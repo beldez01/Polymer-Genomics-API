@@ -5,7 +5,7 @@ async def test_region_query_basic(client, seed_genomic_data):
     resp = await client.get("/v1/regions/hg38/chr16:70699930-70700000?layers=cpg_sites")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] in ("complete", "paginated")
+    assert body["status"] in ("complete", "truncated")
     assert body["coordinate_system"] == "1-based_closed"
     assert "cpg_sites" in body["data"]
     assert len(body["layers_resolved"]) >= 1
@@ -28,6 +28,15 @@ async def test_region_query_0based(client, seed_genomic_data):
         "/v1/regions/hg38/chr16:70699929-70700000?layers=cpg_sites&coords=0based"
     )
     assert resp_1based.json()["data"] == resp_0based.json()["data"]
+
+
+async def test_region_query_truncated(client, seed_genomic_data):
+    """With limit=1 and 3 seed rows, status should be 'truncated'."""
+    resp = await client.get("/v1/regions/hg38/chr16:70699930-70700000?layers=cpg_sites&limit=1")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "truncated"
+    assert body["data"]["cpg_sites"]["n"] == 1
 
 
 async def test_region_too_large(client):

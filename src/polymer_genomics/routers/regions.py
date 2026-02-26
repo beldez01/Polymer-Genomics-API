@@ -22,7 +22,7 @@ async def query_region(
     region: str,
     layers: str | None = Query(None),
     coords: str = Query("1based"),
-    limit: int = Query(None),
+    limit: int | None = Query(None, ge=1),
 ):
     start_time = time.monotonic()
 
