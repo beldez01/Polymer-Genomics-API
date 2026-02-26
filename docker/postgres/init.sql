@@ -347,16 +347,16 @@ GRANT SELECT ON ALL TABLES IN SCHEMA probe       TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA methylation TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA storage     TO api_reader;
 
--- ingest_writer: SELECT on ref/registry, INSERT+UPDATE on data schemas
+-- ingest_writer: SELECT on ref/registry, SELECT+INSERT+UPDATE on data schemas
 GRANT USAGE ON SCHEMA ref, registry, cpg, gene, probe, methylation, storage TO ingest_writer;
 GRANT SELECT ON ALL TABLES IN SCHEMA ref      TO ingest_writer;
 GRANT SELECT ON ALL TABLES IN SCHEMA registry TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA cpg         TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA gene        TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA probe       TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA methylation TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA registry    TO ingest_writer;
-GRANT INSERT, UPDATE ON ALL TABLES IN SCHEMA storage     TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA cpg         TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA gene        TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA probe       TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA methylation TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA registry    TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA storage     TO ingest_writer;
 
 -- Default privileges for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref         GRANT SELECT ON TABLES TO api_reader;
