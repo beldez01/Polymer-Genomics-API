@@ -1,0 +1,42 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Environment files (secrets must not be baked into images)
+.env
+.env.*
+
+# Development / editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Tests (not needed in production image)
+tests/
+
+# Documentation
+docs/
+*.md
+
+# Frontend / viewer
+viewer/
+node_modules/
+.next/
+
+# Data files (reference data is fetched at runtime or via S3)
+data/
+
+# Other project artifacts
+mcp/
+r-client/
