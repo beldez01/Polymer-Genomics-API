@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useViewport } from '@/stores/viewport';
+import { useViewportData } from '@/hooks/useViewportData';
+import { TrackStack } from '@/components/TrackStack';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
   const decoded = decodeURIComponent(region);
@@ -13,7 +15,8 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 export default function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, setBuild, setRegion } = useViewport();
+  const { build, chr, start, end, width, setBuild, setRegion } = useViewport();
+  const { data, loading, error } = useViewportData();
 
   useEffect(() => {
     if (params.build === 'hg38' || params.build === 'hg37') {
@@ -32,24 +35,33 @@ export default function ViewerPage() {
         <h1 className="text-lg font-semibold">Polymer Genomics</h1>
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <span className="font-mono">{build}</span>
-          <span className="font-mono">{chr}:{start.toLocaleString()}-{end.toLocaleString()}</span>
+          <span className="font-mono">
+            {chr}:{start.toLocaleString()}-{end.toLocaleString()}
+          </span>
           <span className="text-xs">({width.toLocaleString()} bp)</span>
         </div>
       </header>
 
-      {/* Track area (placeholder) */}
-      <main className="flex-1 bg-gray-950 flex items-center justify-center">
-        <div className="text-center text-gray-500">
-          <p className="text-lg mb-2">Track renderers will be added here</p>
-          <p className="text-sm">Viewing {chr}:{start.toLocaleString()}-{end.toLocaleString()} ({width.toLocaleString()} bp)</p>
-          <p className="text-sm mt-1">Active layers: {activeLayers.join(', ')}</p>
-        </div>
+      {/* Track area */}
+      <main className="flex-1 overflow-hidden">
+        <TrackStack
+          data={data}
+          viewStart={start}
+          viewEnd={end}
+          canvasWidth={1200}
+          loading={loading}
+          error={error}
+        />
       </main>
 
       {/* Footer status bar */}
       <footer className="px-4 py-1 bg-gray-900 border-t border-gray-800 text-xs text-gray-500 flex justify-between">
         <span>Polymer Genomics API v0.1.0</span>
-        <span>Base-pair resolution genome browser</span>
+        <span>
+          {data?.resolution === 1
+            ? 'Base-pair resolution'
+            : `${data?.resolution?.toLocaleString() ?? '\u2014'} bp tiles`}
+        </span>
       </footer>
     </div>
   );
