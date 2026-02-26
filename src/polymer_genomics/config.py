@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -6,7 +7,10 @@ class Settings(BaseSettings):
     postgres_port: int = 5432
     postgres_db: str = "polymer_genomics"
     postgres_user: str = "api_reader"
-    postgres_password: str = "api_reader_dev"
+    postgres_password: str = Field(
+        default="api_reader_dev",
+        validation_alias="POSTGRES_USER_PASSWORD",
+    )
 
     s3_endpoint: str = "http://localhost:9000"
     s3_bucket: str = "polymer-genomics-api"
@@ -18,7 +22,7 @@ class Settings(BaseSettings):
     max_returned_rows: int = 50_000
     default_page_size: int = 1_000
 
-    model_config = {"env_prefix": "", "env_file": ".env"}
+    model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()
