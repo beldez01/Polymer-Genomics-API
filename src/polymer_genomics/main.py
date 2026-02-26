@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from polymer_genomics.db import close_pool, get_pool, init_pool
 from polymer_genomics.routers.genes import router as genes_router
 from polymer_genomics.routers.layers import router as layers_router
+from polymer_genomics.routers.probes import router as probes_router
 from polymer_genomics.routers.regions import router as regions_router
 
 
@@ -25,6 +26,7 @@ app = FastAPI(
 
 app.include_router(genes_router)
 app.include_router(layers_router)
+app.include_router(probes_router)
 app.include_router(regions_router)
 
 
