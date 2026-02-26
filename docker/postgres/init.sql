@@ -56,7 +56,8 @@ CREATE TYPE mapping_method AS ENUM (
     'exact_id', 'coord_overlap', 'liftover', 'sequence_match'
 );
 CREATE TYPE feature_type AS ENUM (
-    'exon', 'intron', 'UTR5', 'UTR3', 'promoter', 'gene_body'
+    'gene', 'transcript', 'exon', 'intron', 'cds', 'utr5', 'utr3',
+    'start_codon', 'stop_codon', 'promoter', 'gene_body'
 );
 CREATE TYPE cpg_context AS ENUM (
     'island', 'n_shore', 's_shore', 'n_shelf', 's_shelf', 'open_sea'
