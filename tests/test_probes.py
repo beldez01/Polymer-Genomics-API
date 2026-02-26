@@ -1,4 +1,3 @@
-import pytest
 
 
 async def test_probe_lookup_basic(client, seed_probe_data):

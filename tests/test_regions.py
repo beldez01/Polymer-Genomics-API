@@ -1,4 +1,3 @@
-import pytest
 
 
 async def test_region_query_basic(client, seed_genomic_data):

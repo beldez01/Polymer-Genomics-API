@@ -1,8 +1,20 @@
+import asyncpg
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from polymer_genomics.db import close_pool, init_pool
 from polymer_genomics.main import app
+
+
+async def _admin_connect() -> asyncpg.Connection:
+    """Connect as admin for test fixture setup/teardown."""
+    return await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
 
 
 @pytest.fixture
@@ -17,15 +29,7 @@ async def client():
 @pytest.fixture
 async def seed_layers():
     """Insert test layers into the database using admin credentials."""
-    import asyncpg
-
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     await conn.execute("""
         INSERT INTO registry.layers
             (layer_key, version, name, layer_type, genome_build,
@@ -41,13 +45,7 @@ async def seed_layers():
     """)
     await conn.close()
     yield
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     await conn.execute(
         "DELETE FROM registry.layers WHERE layer_key IN ('probe_epic_v2', 'cpg_sites', 'gencode_v44')"
     )
@@ -57,19 +55,10 @@ async def seed_layers():
 @pytest.fixture
 async def seed_genomic_data(seed_layers):
     """Insert small test dataset for region queries."""
-    import asyncpg
-
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     cpg_layer = await conn.fetchval(
         "SELECT id FROM registry.layers WHERE layer_key = 'cpg_sites'"
     )
-    # Insert test CpG sites (0-based positions)
     await conn.execute(
         """
         INSERT INTO cpg.sites (layer_id, build, chr_id, pos, context, gc_content)
@@ -82,13 +71,7 @@ async def seed_genomic_data(seed_layers):
     )
     await conn.close()
     yield
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     await conn.execute("DELETE FROM cpg.sites WHERE chr_id = 16")
     await conn.close()
 
@@ -96,15 +79,7 @@ async def seed_genomic_data(seed_layers):
 @pytest.fixture
 async def seed_gene_data(seed_layers):
     """Insert test gene features on chr16 for gene endpoint tests."""
-    import asyncpg
-
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     gene_layer = await conn.fetchval(
         "SELECT id FROM registry.layers WHERE layer_key = 'gencode_v44'"
     )
@@ -125,13 +100,7 @@ async def seed_gene_data(seed_layers):
     )
     await conn.close()
     yield
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     await conn.execute("DELETE FROM gene.features WHERE chr_id = 16")
     await conn.close()
 
@@ -139,15 +108,7 @@ async def seed_gene_data(seed_layers):
 @pytest.fixture
 async def seed_probe_data(seed_layers):
     """Insert test probe coordinates and crossmap edges."""
-    import asyncpg
-
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     probe_layer = await conn.fetchval(
         "SELECT id FROM registry.layers WHERE layer_key = 'probe_epic_v2'"
     )
@@ -162,7 +123,6 @@ async def seed_probe_data(seed_layers):
         """,
         probe_layer,
     )
-    # Add a crossmap edge
     await conn.execute(
         """
         INSERT INTO probe.map_edges
@@ -175,13 +135,7 @@ async def seed_probe_data(seed_layers):
     )
     await conn.close()
     yield
-    conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
+    conn = await _admin_connect()
     await conn.execute("DELETE FROM probe.coordinates WHERE chr_id = 16")
     await conn.execute("DELETE FROM probe.map_edges WHERE chr_id = 16")
     await conn.close()

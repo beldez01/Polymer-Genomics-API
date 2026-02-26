@@ -4,16 +4,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from polymer_genomics.config import settings
+from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
 
 router = APIRouter(prefix="/v1/probes", tags=["probes"])
-
-VALID_BUILDS = {"hg37", "hg38"}
-
-CHR_ID_TO_NAME = {i: f"chr{i}" for i in range(1, 23)}
-CHR_ID_TO_NAME.update({23: "chrX", 24: "chrY", 25: "chrM"})
 
 MAX_BATCH_SIZE = 10_000
 

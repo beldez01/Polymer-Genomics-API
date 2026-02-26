@@ -3,17 +3,13 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.config import settings
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.coordinates import api_to_db, db_to_api, parse_region
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
 from polymer_genomics.queries import LAYER_QUERY_MAP
 
 router = APIRouter(prefix="/v1/regions", tags=["regions"])
-
-CHR_NAME_TO_ID = {f"chr{i}": i for i in range(1, 23)}
-CHR_NAME_TO_ID.update({"chrX": 23, "chrY": 24, "chrM": 25})
-
-VALID_BUILDS = {"hg37", "hg38"}
 
 
 @router.get("/{build}/{region}")

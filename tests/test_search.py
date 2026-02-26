@@ -1,4 +1,3 @@
-import pytest
 
 
 async def test_search_prefix_match(client, seed_gene_data):

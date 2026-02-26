@@ -1,4 +1,3 @@
-import pytest
 
 
 async def test_gene_lookup_basic(client, seed_gene_data):

@@ -2,11 +2,10 @@ import time
 
 from fastapi import APIRouter, HTTPException, Query
 
+from polymer_genomics.constants import VALID_BUILDS
 from polymer_genomics.db import get_pool
 
 router = APIRouter(prefix="/v1/search", tags=["search"])
-
-VALID_BUILDS = {"hg37", "hg38"}
 
 
 @router.get("")
@@ -25,6 +24,9 @@ async def search(
             400,
             {"error": {"code": "QUERY_TOO_SHORT", "message": "Search query must be at least 2 characters"}},
         )
+
+    # Escape ILIKE metacharacters in user input
+    safe_q = q.replace("%", "\\%").replace("_", "\\_")
 
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -51,7 +53,7 @@ async def search(
             LIMIT 20
             """,
             build,
-            q + "%",
+            safe_q + "%",
             layer["id"],
             q,
         )

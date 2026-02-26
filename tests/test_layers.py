@@ -1,4 +1,3 @@
-import pytest
 
 
 async def test_list_layers_empty(client):
