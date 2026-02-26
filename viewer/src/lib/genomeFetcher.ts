@@ -71,13 +71,14 @@ export async function fetchViewportData(
 
   if (resolution === 1) {
     // Fine zoom: fetch sequence + features directly
+    // Sequence is best-effort (FASTA may not be available)
     const region = `${chr}:${start}-${end}`;
-    const [seqRes, featureRes] = await Promise.all([
-      fetchSequence(build, region),
+    const [seqResult, featureRes] = await Promise.all([
+      fetchSequence(build, region).catch(() => null),
       fetchRegion(build, region, layers),
     ]);
     return {
-      sequence: seqRes.sequence,
+      sequence: seqResult?.sequence ?? null,
       layers: featureRes.data,
       resolution: 1,
     };

@@ -8,9 +8,17 @@ interface CoordinateRulerProps {
   height?: number;
 }
 
-function formatPosition(pos: number): string {
-  if (pos >= 1_000_000) return `${(pos / 1_000_000).toFixed(2)} Mb`;
-  if (pos >= 1_000) return `${(pos / 1_000).toFixed(1)} kb`;
+function formatPosition(pos: number, interval: number): string {
+  // Use the tick interval to decide precision — ticks must produce distinct labels
+  if (interval >= 1_000_000) {
+    const decimals = interval >= 10_000_000 ? 0 : interval >= 1_000_000 ? 1 : 2;
+    return `${(pos / 1_000_000).toFixed(decimals)} Mb`;
+  }
+  if (interval >= 1_000) {
+    const decimals = interval >= 100_000 ? 0 : interval >= 10_000 ? 1 : 2;
+    return `${(pos / 1_000).toFixed(decimals)} kb`;
+  }
+  // bp-level: show full position with comma separators
   return pos.toLocaleString();
 }
 
@@ -79,7 +87,7 @@ export function CoordinateRuler({
       ctx.stroke();
 
       // Label
-      ctx.fillText(formatPosition(pos), x, height - 10);
+      ctx.fillText(formatPosition(pos, interval), x, height - 10);
 
       // Minor ticks (5 subdivisions)
       const minorInterval = interval / 5;
