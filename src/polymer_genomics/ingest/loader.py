@@ -7,26 +7,50 @@ provides content-hashing for data integrity verification in the registry.
 from __future__ import annotations
 
 import hashlib
+import struct
+import uuid as uuid_mod
+from datetime import datetime
 
 import asyncpg
 
 from polymer_genomics.ingest.partitions import _validate_schema, _validate_table
 
 
+def _encode_value(val: object) -> bytes:
+    """Encode a database value to a deterministic byte sequence for hashing."""
+    if val is None:
+        return b"\x00"
+    if isinstance(val, bool):
+        return b"\x01" if val else b"\x02"
+    if isinstance(val, int):
+        return b"\x03" + struct.pack(">q", val)
+    if isinstance(val, float):
+        return b"\x04" + struct.pack(">d", val)
+    if isinstance(val, str):
+        encoded = val.encode("utf-8")
+        return b"\x05" + struct.pack(">I", len(encoded)) + encoded
+    if isinstance(val, uuid_mod.UUID):
+        return b"\x06" + val.bytes
+    if isinstance(val, datetime):
+        return b"\x07" + val.isoformat().encode("utf-8")
+    if isinstance(val, bytes):
+        return b"\x08" + struct.pack(">I", len(val)) + val
+    # Fallback: use repr (less ideal but safe)
+    encoded = repr(val).encode("utf-8")
+    return b"\x09" + struct.pack(">I", len(encoded)) + encoded
+
+
 async def batch_load(
     conn: asyncpg.Connection,
     schema: str,
     table: str,
-    build: str,
-    chr_id: int,
-    layer_id: str,
     rows: list[tuple],
     columns: list[str],
 ) -> int:
     """Load rows into a partitioned table using the COPY protocol.
 
     Inserts directly into the parent table and lets PostgreSQL route rows
-    to the correct partition based on build and chr_id values.
+    to the correct partition based on build and chr_id values in each row.
 
     Parameters
     ----------
@@ -36,14 +60,9 @@ async def batch_load(
         Database schema (must be in ALLOWED_SCHEMAS).
     table
         Base table name (must be in ALLOWED_TABLES).
-    build
-        Genome build (``hg37`` or ``hg38``).
-    chr_id
-        Chromosome ID (1-25).
-    layer_id
-        UUID string for the registry layer.
     rows
         List of tuples, each matching the ``columns`` specification.
+        Must include build and chr_id values for partition routing.
     columns
         List of column names for the COPY operation.
 
@@ -106,7 +125,9 @@ async def compute_content_hash(
 
     hasher = hashlib.sha256()
     for row in rows:
-        hasher.update(str(dict(row)).encode())
+        for val in row.values():
+            hasher.update(_encode_value(val))
+        hasher.update(b"\xff")  # row separator
     return f"sha256:{hasher.hexdigest()}"
 
 

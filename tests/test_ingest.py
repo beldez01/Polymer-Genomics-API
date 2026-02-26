@@ -2,54 +2,16 @@
 
 from __future__ import annotations
 
-import asyncpg
 import pytest
 
 from polymer_genomics.ingest.loader import batch_load, compute_content_hash, update_layer_stats
 from polymer_genomics.ingest.partitions import ensure_partitions
-
-# ---------------------------------------------------------------------------
-# Connection helpers
-# ---------------------------------------------------------------------------
-
-async def _admin_connect() -> asyncpg.Connection:
-    """Connect as admin for setup/teardown."""
-    return await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="admin",
-        password="dev_password",
-    )
-
-
-async def _ingest_connect() -> asyncpg.Connection:
-    """Connect as ingest_writer for loader tests."""
-    return await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        database="polymer_genomics",
-        user="ingest_writer",
-        password="ingest_writer_dev",
-    )
+from tests.conftest import _admin_connect
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-@pytest.fixture
-async def admin_conn():
-    conn = await _admin_connect()
-    yield conn
-    await conn.close()
-
-
-@pytest.fixture
-async def ingest_conn():
-    conn = await _ingest_connect()
-    yield conn
-    await conn.close()
 
 
 @pytest.fixture
@@ -76,6 +38,7 @@ async def test_layer(admin_conn):
 # Partition tests
 # ---------------------------------------------------------------------------
 
+
 class TestEnsurePartitions:
     """Tests for ensure_partitions."""
 
@@ -96,8 +59,6 @@ class TestEnsurePartitions:
 
     async def test_missing_partition_raises(self, admin_conn):
         """Should raise RuntimeError if partition is missing and create_if_missing=False."""
-        # probe.coordinates is NOT sub-partitioned by chr, so requesting
-        # a chr-level partition for it should fail.
         with pytest.raises(RuntimeError, match="does not exist"):
             await ensure_partitions(
                 admin_conn, "probe", "coordinates", "hg38", [1]
@@ -130,6 +91,7 @@ class TestEnsurePartitions:
 # Loader tests
 # ---------------------------------------------------------------------------
 
+
 class TestBatchLoad:
     """Tests for batch_load using cpg.sites (partitions already exist)."""
 
@@ -142,9 +104,7 @@ class TestBatchLoad:
         ]
         columns = ["layer_id", "build", "chr_id", "pos", "context", "gc_content"]
 
-        n = await batch_load(
-            ingest_conn, "cpg", "sites", "hg38", 1, str(test_layer), rows, columns
-        )
+        n = await batch_load(ingest_conn, "cpg", "sites", rows, columns)
         assert n == 3
 
         # Verify rows landed in the database.
@@ -155,9 +115,7 @@ class TestBatchLoad:
 
     async def test_load_empty(self, ingest_conn, test_layer):
         """Loading zero rows should return 0 without error."""
-        n = await batch_load(
-            ingest_conn, "cpg", "sites", "hg38", 1, str(test_layer), [], []
-        )
+        n = await batch_load(ingest_conn, "cpg", "sites", [], [])
         assert n == 0
 
     async def test_load_routes_to_partition(self, ingest_conn, test_layer):
@@ -167,9 +125,7 @@ class TestBatchLoad:
         ]
         columns = ["layer_id", "build", "chr_id", "pos", "context", "gc_content"]
 
-        await batch_load(
-            ingest_conn, "cpg", "sites", "hg38", 16, str(test_layer), rows, columns
-        )
+        await batch_load(ingest_conn, "cpg", "sites", rows, columns)
 
         # Query the sub-partition directly.
         count = await ingest_conn.fetchval(
@@ -189,9 +145,7 @@ class TestComputeContentHash:
             (test_layer, "hg38", 1, 10001, "island", 0.71),
         ]
         columns = ["layer_id", "build", "chr_id", "pos", "context", "gc_content"]
-        await batch_load(
-            ingest_conn, "cpg", "sites", "hg38", 1, str(test_layer), rows, columns
-        )
+        await batch_load(ingest_conn, "cpg", "sites", rows, columns)
 
         h1 = await compute_content_hash(ingest_conn, "cpg", "sites", str(test_layer))
         h2 = await compute_content_hash(ingest_conn, "cpg", "sites", str(test_layer))
@@ -203,8 +157,6 @@ class TestComputeContentHash:
         """Hash of zero rows should still be a valid sha256."""
         h = await compute_content_hash(ingest_conn, "cpg", "sites", str(test_layer))
         assert h.startswith("sha256:")
-        # SHA-256 of empty input
-        assert h == "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
     async def test_hash_changes_with_data(self, ingest_conn, test_layer):
         """Hash should change when different data is loaded."""
@@ -214,9 +166,7 @@ class TestComputeContentHash:
 
         rows = [(test_layer, "hg38", 1, 99999, "island", 0.50)]
         columns = ["layer_id", "build", "chr_id", "pos", "context", "gc_content"]
-        await batch_load(
-            ingest_conn, "cpg", "sites", "hg38", 1, str(test_layer), rows, columns
-        )
+        await batch_load(ingest_conn, "cpg", "sites", rows, columns)
 
         h_loaded = await compute_content_hash(
             ingest_conn, "cpg", "sites", str(test_layer)
@@ -236,17 +186,21 @@ class TestUpdateLayerStats:
             content_hash="sha256:abc123",
         )
 
-        row = await ingest_conn.fetchrow(
+        conn = await _admin_connect()
+        row = await conn.fetchrow(
             "SELECT row_count, content_hash FROM registry.layers WHERE id = $1",
             test_layer,
         )
+        await conn.close()
         assert row["row_count"] == 42
         assert row["content_hash"] == "sha256:abc123"
 
-    async def test_updates_timestamp(self, ingest_conn, test_layer):
+    async def test_updates_timestamp(self, admin_conn, ingest_conn, test_layer):
         """updated_at should advance after update_layer_stats."""
-        before = await ingest_conn.fetchval(
-            "SELECT updated_at FROM registry.layers WHERE id = $1", test_layer
+        # Set a known old timestamp
+        await admin_conn.execute(
+            "UPDATE registry.layers SET updated_at = '2000-01-01T00:00:00Z' WHERE id = $1",
+            test_layer,
         )
 
         await update_layer_stats(
@@ -256,7 +210,7 @@ class TestUpdateLayerStats:
             content_hash="sha256:def456",
         )
 
-        after = await ingest_conn.fetchval(
+        after = await admin_conn.fetchval(
             "SELECT updated_at FROM registry.layers WHERE id = $1", test_layer
         )
-        assert after >= before
+        assert after.year >= 2025

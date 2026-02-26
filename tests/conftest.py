@@ -17,6 +17,31 @@ async def _admin_connect() -> asyncpg.Connection:
     )
 
 
+async def _ingest_connect() -> asyncpg.Connection:
+    """Connect as ingest_writer for ingestion tests."""
+    return await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="ingest_writer",
+        password="ingest_writer_dev",
+    )
+
+
+@pytest.fixture
+async def admin_conn():
+    conn = await _admin_connect()
+    yield conn
+    await conn.close()
+
+
+@pytest.fixture
+async def ingest_conn():
+    conn = await _ingest_connect()
+    yield conn
+    await conn.close()
+
+
 @pytest.fixture
 async def client():
     await init_pool()
