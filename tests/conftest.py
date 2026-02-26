@@ -52,3 +52,42 @@ async def seed_layers():
         "DELETE FROM registry.layers WHERE layer_key IN ('probe_epic_v2', 'cpg_sites', 'gencode_v44')"
     )
     await conn.close()
+
+
+@pytest.fixture
+async def seed_genomic_data(seed_layers):
+    """Insert small test dataset for region queries."""
+    import asyncpg
+
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    cpg_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'cpg_sites'"
+    )
+    # Insert test CpG sites (0-based positions)
+    await conn.execute(
+        """
+        INSERT INTO cpg.sites (layer_id, build, chr_id, pos, context, gc_content)
+        VALUES
+            ($1, 'hg38', 16, 70699929, 'island', 0.62),
+            ($1, 'hg38', 16, 70699940, 'island', 0.61),
+            ($1, 'hg38', 16, 70699960, 'n_shore', 0.55)
+        """,
+        cpg_layer,
+    )
+    await conn.close()
+    yield
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    await conn.execute("DELETE FROM cpg.sites WHERE chr_id = 16")
+    await conn.close()

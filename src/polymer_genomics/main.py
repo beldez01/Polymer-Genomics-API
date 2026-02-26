@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from polymer_genomics.db import close_pool, get_pool, init_pool
 from polymer_genomics.routers.layers import router as layers_router
+from polymer_genomics.routers.regions import router as regions_router
 
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ app = FastAPI(
 
 
 app.include_router(layers_router)
+app.include_router(regions_router)
 
 
 @app.get("/health")
