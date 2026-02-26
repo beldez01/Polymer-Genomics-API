@@ -3,11 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from polymer_genomics.db import close_pool, get_pool, init_pool
+from polymer_genomics.routers.aggregation import router as aggregation_router
 from polymer_genomics.routers.genes import router as genes_router
 from polymer_genomics.routers.layers import router as layers_router
 from polymer_genomics.routers.probes import router as probes_router
 from polymer_genomics.routers.regions import router as regions_router
 from polymer_genomics.routers.search import router as search_router
+from polymer_genomics.routers.tiles import router as tiles_router
 
 
 @asynccontextmanager
@@ -25,11 +27,13 @@ app = FastAPI(
 )
 
 
+app.include_router(aggregation_router)
 app.include_router(genes_router)
 app.include_router(layers_router)
 app.include_router(probes_router)
 app.include_router(regions_router)
 app.include_router(search_router)
+app.include_router(tiles_router)
 
 
 @app.get("/health")
