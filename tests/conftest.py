@@ -91,3 +91,97 @@ async def seed_genomic_data(seed_layers):
     )
     await conn.execute("DELETE FROM cpg.sites WHERE chr_id = 16")
     await conn.close()
+
+
+@pytest.fixture
+async def seed_gene_data(seed_layers):
+    """Insert test gene features on chr16 for gene endpoint tests."""
+    import asyncpg
+
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    gene_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'gencode_v44'"
+    )
+    await conn.execute(
+        """
+        INSERT INTO gene.features
+            (layer_id, build, chr_id, start_pos, end_pos, strand,
+             gene_symbol, gene_id, transcript_id, feature_type)
+        VALUES
+            ($1, 'hg38', 16, 70699000, 70700000, '+',
+             'VAC14', 'ENSG00000130164', 'ENST00000355500', 'exon'),
+            ($1, 'hg38', 16, 70700000, 70705000, '+',
+             'VAC14', 'ENSG00000130164', 'ENST00000355500', 'intron'),
+            ($1, 'hg38', 16, 70705000, 70706000, '+',
+             'VAC14', 'ENSG00000130164', 'ENST00000355500', 'exon')
+        """,
+        gene_layer,
+    )
+    await conn.close()
+    yield
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    await conn.execute("DELETE FROM gene.features WHERE chr_id = 16")
+    await conn.close()
+
+
+@pytest.fixture
+async def seed_probe_data(seed_layers):
+    """Insert test probe coordinates and crossmap edges."""
+    import asyncpg
+
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    probe_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'probe_epic_v2'"
+    )
+    await conn.execute(
+        """
+        INSERT INTO probe.coordinates
+            (layer_id, probe_id, build, chr_id, pos, gene_symbol, cpg_context)
+        VALUES
+            ($1, 'cg08796240', 'hg38', 16, 70699929, 'VAC14', 'island'),
+            ($1, 'cg14514483', 'hg38', 16, 70699940, 'VAC14', 'island'),
+            ($1, 'cg27457201', 'hg38', 16, 70699960, 'VAC14', 'n_shore')
+        """,
+        probe_layer,
+    )
+    # Add a crossmap edge
+    await conn.execute(
+        """
+        INSERT INTO probe.map_edges
+            (src_platform, src_probe_id, dst_platform, dst_probe_id,
+             build, chr_id, pos, method, confidence)
+        VALUES
+            ('epic_v2', 'cg08796240', 'epic_v1', 'cg08796240',
+             'hg38', 16, 70699929, 'exact_id', 1.0)
+        """
+    )
+    await conn.close()
+    yield
+    conn = await asyncpg.connect(
+        host="localhost",
+        port=5432,
+        database="polymer_genomics",
+        user="admin",
+        password="dev_password",
+    )
+    await conn.execute("DELETE FROM probe.coordinates WHERE chr_id = 16")
+    await conn.execute("DELETE FROM probe.map_edges WHERE chr_id = 16")
+    await conn.close()
