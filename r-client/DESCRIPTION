@@ -1,0 +1,22 @@
+Package: polymergenomics
+Title: R Client for the Polymer Genomics API
+Version: 0.1.0
+Authors@R: person("Polymer", "Genomics", email = "dev@example.com", role = c("aut", "cre"))
+Description: Provides functions to query the Polymer Genomics REST API,
+    returning data as GRanges, GRangesList, and DataFrame objects.
+    Supports region queries, gene lookups, probe searches, sequence
+    retrieval, and bulk downloads.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports:
+    httr2,
+    jsonlite,
+    GenomicRanges,
+    IRanges,
+    S4Vectors,
+    GenomeInfoDb
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
