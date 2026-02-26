@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from polymer_genomics.db import close_pool, get_pool, init_pool
+from polymer_genomics.routers.layers import router as layers_router
 
 
 @asynccontextmanager
@@ -18,6 +19,9 @@ app = FastAPI(
     description="Curated genomic reference database for agents and bioinformaticians",
     lifespan=lifespan,
 )
+
+
+app.include_router(layers_router)
 
 
 @app.get("/health")
