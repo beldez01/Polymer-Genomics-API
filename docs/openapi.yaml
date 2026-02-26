@@ -1,0 +1,488 @@
+openapi: 3.1.0
+info:
+  title: Polymer Genomics API
+  description: Curated genomic reference database for agents and bioinformaticians
+  version: 0.1.0
+paths:
+  /v1/aggregation/{build}/{region}:
+    get:
+      tags:
+      - aggregation
+      summary: Aggregate Region
+      operationId: aggregate_region_v1_aggregation__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: layers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Layers
+      - name: resolution
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1000
+          title: Resolution
+      - name: coords
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1based
+          title: Coords
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/bulk/{layer_key}:
+    get:
+      tags:
+      - bulk
+      summary: Bulk Download
+      operationId: bulk_download_v1_bulk__layer_key__get
+      parameters:
+      - name: layer_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Layer Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}:
+    get:
+      tags:
+      - genes
+      summary: Get Gene
+      operationId: get_gene_v1_genes__build___symbol__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/layers:
+    get:
+      tags:
+      - layers
+      summary: List Layers
+      operationId: list_layers_v1_layers_get
+      parameters:
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Type
+      - name: build
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Build
+      - name: active
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+          title: Active
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/layers/{layer_key}:
+    get:
+      tags:
+      - layers
+      summary: Get Layer
+      operationId: get_layer_v1_layers__layer_key__get
+      parameters:
+      - name: layer_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Layer Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/probes/{build}/{probe_id}:
+    get:
+      tags:
+      - probes
+      summary: Get Probe
+      operationId: get_probe_v1_probes__build___probe_id__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: probe_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Probe Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/probes/{build}/batch:
+    post:
+      tags:
+      - probes
+      summary: Probe Batch
+      operationId: probe_batch_v1_probes__build__batch_post
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProbeBatchRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/regions/{build}/{region}:
+    get:
+      tags:
+      - regions
+      summary: Query Region
+      operationId: query_region_v1_regions__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: layers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Layers
+      - name: coords
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1based
+          title: Coords
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/search:
+    get:
+      tags:
+      - search
+      summary: Search
+      operationId: search_v1_search_get
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          title: Q
+      - name: build
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Build
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/sequence/{build}/{region}:
+    get:
+      tags:
+      - sequence
+      summary: Get Sequence Endpoint
+      description: 'Return the raw DNA sequence for a genomic region.
+
+
+        The response contains the uppercase nucleotide string plus metadata.
+
+        Coordinates in the response always use 1-based closed convention,
+
+        matching the user-facing format regardless of the ``coords`` query
+
+        parameter used for input.'
+      operationId: get_sequence_endpoint_v1_sequence__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: coords
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1based
+          title: Coords
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/tiles/{build}/{chr_name}/tile/{resolution}/{tile_index}:
+    get:
+      tags:
+      - tiles
+      summary: Get Tile
+      operationId: get_tile_v1_tiles__build___chr_name__tile__resolution___tile_index__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: chr_name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Chr Name
+      - name: resolution
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Resolution
+      - name: tile_index
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Tile Index
+      - name: layers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Layers
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ProbeBatchRequest:
+      properties:
+        probe_ids:
+          items:
+            type: string
+          type: array
+          title: Probe Ids
+      type: object
+      required:
+      - probe_ids
+      title: ProbeBatchRequest
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
