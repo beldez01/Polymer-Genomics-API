@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useViewport } from '@/stores/viewport';
 import { useViewportData } from '@/hooks/useViewportData';
@@ -75,6 +75,65 @@ export default function ViewerPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Click-and-drag panning
+  const dragRef = useRef<{
+    startX: number;
+    viewStart: number;
+    viewEnd: number;
+    chr: string;
+  } | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only left-click, ignore if on interactive elements
+    if (e.button !== 0) return;
+    const tag = (e.target as HTMLElement).tagName;
+    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT') return;
+
+    const state = useViewport.getState();
+    dragRef.current = {
+      startX: e.clientX,
+      viewStart: state.start,
+      viewEnd: state.end,
+      chr: state.chr,
+    };
+    setDragging(true);
+    e.preventDefault();
+  }, []);
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      const drag = dragRef.current;
+      if (!drag || !containerRef.current) return;
+
+      const deltaX = e.clientX - drag.startX;
+      // Track area is container width minus 96px label column
+      const trackWidth = containerRef.current.clientWidth - 96;
+      const viewWidth = drag.viewEnd - drag.viewStart + 1;
+      const bpPerPixel = viewWidth / trackWidth;
+      // Drag right = pan left (move to earlier coordinates)
+      const deltaBp = Math.round(-deltaX * bpPerPixel);
+
+      const newStart = Math.max(1, drag.viewStart + deltaBp);
+      const newEnd = newStart + viewWidth - 1;
+      useViewport.getState().setRegion(drag.chr, newStart, newEnd);
+    }
+
+    function handleMouseUp() {
+      dragRef.current = null;
+      setDragging(false);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging]);
+
   return (
     <div className="flex flex-col h-screen">
       {/* Top bar: logo + search + build/coords */}
@@ -103,7 +162,12 @@ export default function ViewerPage() {
       <LayerToggle />
 
       {/* Coordinate ruler + tracks */}
-      <main ref={containerRef} className="flex-1 overflow-hidden flex flex-col">
+      <main
+        ref={containerRef}
+        className="flex-1 overflow-hidden flex flex-col select-none"
+        style={{ cursor: dragging ? 'grabbing' : 'grab' }}
+        onMouseDown={handleMouseDown}
+      >
         {/* Ruler (offset by 96px label column to align with tracks) */}
         <div className="flex bg-gray-950 border-b border-gray-800">
           <div className="w-24 shrink-0" />
