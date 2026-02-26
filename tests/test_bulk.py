@@ -2,10 +2,11 @@
 
 from unittest.mock import patch
 
-import boto3
+import httpx
 import pytest
-from botocore.config import Config
 
+from polymer_genomics.config import settings
+from polymer_genomics.s3 import get_s3_client
 from tests.conftest import _admin_connect
 
 # ---------------------------------------------------------------------------
@@ -22,19 +23,12 @@ async def seed_storage_object(seed_layers):
         "SELECT id, layer_key FROM registry.layers WHERE layer_key = 'probe_epic_v2'"
     )
     layer_id = layer["id"]
-    bucket = "polymer-genomics-api"
+    bucket = settings.s3_bucket
     key = "test/probe_epic_v2.parquet"
     test_content = b"fake parquet content for testing"
 
-    # Upload to MinIO
-    s3 = boto3.client(
-        "s3",
-        endpoint_url="http://localhost:9000",
-        aws_access_key_id="minioadmin",
-        aws_secret_access_key="minioadmin",
-        region_name="us-east-1",
-        config=Config(signature_version="s3v4"),
-    )
+    # Upload to MinIO using the shared S3 client
+    s3 = get_s3_client()
 
     # Ensure bucket exists
     try:
@@ -127,6 +121,7 @@ async def test_bulk_presigned_url_mocked(client, seed_layers):
             body = resp.json()
             assert body["layer_key"] == "probe_epic_v2"
             assert body["version"] == "1.0"
+            assert body["row_count"] == 935000
             assert body["content_hash"] == "sha256:mock123"
             assert body["size_bytes"] == 42000
             assert body["file_type"] == "parquet"
@@ -140,8 +135,6 @@ async def test_bulk_presigned_url_mocked(client, seed_layers):
 
 async def test_bulk_presigned_url_minio_roundtrip(client, seed_storage_object):
     """Integration test: presigned URL from real MinIO, then fetch the file."""
-    import httpx
-
     info = seed_storage_object
 
     resp = await client.get(f"/v1/bulk/{info['layer_key']}")
@@ -149,6 +142,7 @@ async def test_bulk_presigned_url_minio_roundtrip(client, seed_storage_object):
     body = resp.json()
     assert body["layer_key"] == "probe_epic_v2"
     assert body["version"] == "1.0"
+    assert body["row_count"] == 935000
     assert body["content_hash"] == "sha256:abc123"
     assert body["size_bytes"] == len(info["content"])
     assert body["file_type"] == "parquet"

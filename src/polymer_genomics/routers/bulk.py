@@ -1,5 +1,6 @@
 """Bulk download endpoint — presigned URL for layer data files."""
 
+from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException
 
 from polymer_genomics.db import get_pool
@@ -16,7 +17,7 @@ async def bulk_download(layer_key: str):
     async with pool.acquire() as conn:
         # Look up active layer by key
         layer = await conn.fetchrow(
-            "SELECT id, layer_key, version FROM registry.active_layers WHERE layer_key = $1",
+            "SELECT id, layer_key, version, row_count FROM registry.active_layers WHERE layer_key = $1",
             layer_key,
         )
         if not layer:
@@ -42,15 +43,22 @@ async def bulk_download(layer_key: str):
                 },
             )
 
-    url = generate_presigned_url(
-        bucket=obj["bucket"],
-        key=obj["key"],
-        expiry_seconds=EXPIRY_SECONDS,
-    )
+    try:
+        url = generate_presigned_url(
+            bucket=obj["bucket"],
+            key=obj["key"],
+            expiry_seconds=EXPIRY_SECONDS,
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise HTTPException(
+            502,
+            {"error": {"code": "S3_ERROR", "message": f"Failed to generate download URL: {exc}"}},
+        )
 
     return {
         "layer_key": layer["layer_key"],
         "version": layer["version"],
+        "row_count": layer["row_count"],
         "content_hash": obj["content_hash"],
         "size_bytes": obj["size_bytes"],
         "file_type": obj["file_type"],
