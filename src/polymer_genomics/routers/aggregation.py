@@ -82,6 +82,7 @@ async def aggregate_region(
     region: str,
     layers: str | None = Query(None),
     resolution: int = Query(1000),
+    coords: str = Query("1based"),
 ):
     start_time = time.monotonic()
 
@@ -124,7 +125,7 @@ async def aggregate_region(
             {"error": {"code": "INVALID_CHROMOSOME", "message": f"Unknown chromosome: {chr_name}"}},
         )
 
-    internal = api_to_db(parsed["start"], parsed["end"])
+    internal = api_to_db(parsed["start"], parsed["end"], coords=coords)
     region_length = internal["end"] - internal["start"]
     if region_length > settings.max_region_length:
         raise HTTPException(
