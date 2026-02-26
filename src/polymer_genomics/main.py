@@ -10,6 +10,7 @@ from polymer_genomics.routers.layers import router as layers_router
 from polymer_genomics.routers.probes import router as probes_router
 from polymer_genomics.routers.regions import router as regions_router
 from polymer_genomics.routers.search import router as search_router
+from polymer_genomics.routers.sequence import router as sequence_router
 from polymer_genomics.routers.tiles import router as tiles_router
 
 
@@ -35,6 +36,7 @@ app.include_router(layers_router)
 app.include_router(probes_router)
 app.include_router(regions_router)
 app.include_router(search_router)
+app.include_router(sequence_router)
 app.include_router(tiles_router)
 
 

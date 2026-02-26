@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     max_returned_rows: int = 50_000
     default_page_size: int = 1_000
 
+    fasta_dir: str = "data"  # Directory containing reference FASTA files (e.g. hg38.fa)
+
     model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}
 
 
