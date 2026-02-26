@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "polymer-genomics": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/PolymerGenomicsAPI/mcp", "run", "polymer-genomics-mcp"],
+      "env": {
+        "POLYMER_API_BASE": "http://localhost:8000"
+      }
+    }
+  }
+}
