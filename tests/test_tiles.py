@@ -123,16 +123,13 @@ async def test_tile_empty(client, seed_genomic_data):
     assert body["data"]["cpg_sites"]["n"] == 0
 
 
-async def test_tile_cache_control(client, seed_genomic_data):
+async def test_tile_cache_control(client, seed_genomic_data, _txn_conn):
     """Tile responses should have Cache-Control headers when layers have content_hash."""
-    from tests.conftest import _admin_connect
-
-    # Set a content_hash on the cpg_sites layer so cache headers fire
-    conn = await _admin_connect()
-    await conn.execute(
-        "UPDATE registry.layers SET content_hash = 'abc123' WHERE layer_key = 'cpg_sites'"
+    # Set a content_hash on the test cpg_sites layer (rolled back with transaction)
+    await _txn_conn.execute(
+        "UPDATE registry.layers SET content_hash = 'abc123' "
+        "WHERE layer_key = 'cpg_sites' AND is_default = true"
     )
-    await conn.close()
 
     resp = await client.get(
         "/v1/tiles/hg38/chr16/tile/1000/70699?layers=cpg_sites"
@@ -141,13 +138,6 @@ async def test_tile_cache_control(client, seed_genomic_data):
     cc = resp.headers.get("cache-control", "")
     assert "public" in cc
     assert "immutable" in cc
-
-    # Clean up
-    conn = await _admin_connect()
-    await conn.execute(
-        "UPDATE registry.layers SET content_hash = NULL WHERE layer_key = 'cpg_sites'"
-    )
-    await conn.close()
 
 
 async def test_tile_no_cache_control_without_content_hash(client, seed_genomic_data):

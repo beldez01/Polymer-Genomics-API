@@ -1,9 +1,16 @@
+import contextlib
+
 import asyncpg
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from polymer_genomics.db import close_pool, init_pool
+import polymer_genomics.db as db_module
 from polymer_genomics.main import app
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 async def _admin_connect() -> asyncpg.Connection:
@@ -28,6 +35,58 @@ async def _ingest_connect() -> asyncpg.Connection:
     )
 
 
+# ---------------------------------------------------------------------------
+# Transactional pool wrapper — allows API code to use pool.acquire() while
+# all operations stay in a single transaction that is rolled back at the end.
+# ---------------------------------------------------------------------------
+
+
+class _FakeAcquire:
+    """Context manager returning the shared transactional connection."""
+
+    def __init__(self, conn: asyncpg.Connection):
+        self._conn = conn
+
+    async def __aenter__(self) -> asyncpg.Connection:
+        return self._conn
+
+    async def __aexit__(self, *args):
+        pass
+
+
+class _RollbackPool:
+    """Mimics asyncpg.Pool but always returns the same transactional connection."""
+
+    def __init__(self, conn: asyncpg.Connection):
+        self._conn = conn
+
+    def acquire(self) -> _FakeAcquire:
+        return _FakeAcquire(self._conn)
+
+    async def close(self):
+        pass  # Connection lifecycle managed externally.
+
+
+# ---------------------------------------------------------------------------
+# Core fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+async def _txn_conn():
+    """Admin connection wrapped in a transaction that rolls back on teardown.
+
+    Every INSERT/UPDATE made through this connection is automatically undone,
+    so tests never mutate the real database.
+    """
+    conn = await _admin_connect()
+    tx = conn.transaction()
+    await tx.start()
+    yield conn
+    await tx.rollback()
+    await conn.close()
+
+
 @pytest.fixture
 async def admin_conn():
     conn = await _admin_connect()
@@ -43,18 +102,47 @@ async def ingest_conn():
 
 
 @pytest.fixture
-async def client():
-    await init_pool()
+async def client(_txn_conn):
+    """HTTPX test client whose DB pool is the transactional connection.
+
+    The FastAPI app sees the same connection (and uncommitted data) as the
+    seed fixtures, giving full isolation without touching real data.
+    """
+    db_module._pool = _RollbackPool(_txn_conn)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
-    await close_pool()
+    db_module._pool = None
+
+
+# ---------------------------------------------------------------------------
+# Seed fixtures — all operate within the rollback transaction
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
-async def seed_layers():
-    """Insert test layers into the database using admin credentials."""
-    conn = await _admin_connect()
+async def seed_layers(_txn_conn):
+    """Insert test layers, temporarily deactivating real defaults if present.
+
+    Within the transaction:
+    1. Set is_default=false on any existing default layers that would conflict
+       (restored when the transaction rolls back).
+    2. Insert test layers with version '1.0' and is_default=true.
+    """
+    conn = _txn_conn
+
+    # Deactivate real defaults that would conflict with one_default_per_key
+    # or leak real data into test queries (e.g. probe lookups span all
+    # active probe layers).
+    await conn.execute("""
+        UPDATE registry.layers SET is_default = false
+        WHERE layer_key IN (
+            'probe_epic_v2', 'probe_epic_v1', 'probe_450k',
+            'cpg_sites', 'gencode_v44'
+        ) AND is_default = true
+    """)
+
+    # Insert test layers (new UUIDs, isolated from real data).
     await conn.execute("""
         INSERT INTO registry.layers
             (layer_key, version, name, layer_type, genome_build,
@@ -68,21 +156,15 @@ async def seed_layers():
              'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true)
         ON CONFLICT (layer_key, version) DO NOTHING
     """)
-    await conn.close()
     yield
-    conn = await _admin_connect()
-    await conn.execute(
-        "DELETE FROM registry.layers WHERE layer_key IN ('probe_epic_v2', 'cpg_sites', 'gencode_v44')"
-    )
-    await conn.close()
 
 
 @pytest.fixture
-async def seed_genomic_data(seed_layers):
-    """Insert small test dataset for region queries."""
-    conn = await _admin_connect()
+async def seed_genomic_data(_txn_conn, seed_layers):
+    """Insert small CpG test dataset for region/tile/aggregation queries."""
+    conn = _txn_conn
     cpg_layer = await conn.fetchval(
-        "SELECT id FROM registry.layers WHERE layer_key = 'cpg_sites'"
+        "SELECT id FROM registry.layers WHERE layer_key = 'cpg_sites' AND is_default = true"
     )
     await conn.execute(
         """
@@ -94,19 +176,15 @@ async def seed_genomic_data(seed_layers):
         """,
         cpg_layer,
     )
-    await conn.close()
     yield
-    conn = await _admin_connect()
-    await conn.execute("DELETE FROM cpg.sites WHERE chr_id = 16")
-    await conn.close()
 
 
 @pytest.fixture
-async def seed_gene_data(seed_layers):
+async def seed_gene_data(_txn_conn, seed_layers):
     """Insert test gene features on chr16 for gene endpoint tests."""
-    conn = await _admin_connect()
+    conn = _txn_conn
     gene_layer = await conn.fetchval(
-        "SELECT id FROM registry.layers WHERE layer_key = 'gencode_v44'"
+        "SELECT id FROM registry.layers WHERE layer_key = 'gencode_v44' AND is_default = true"
     )
     await conn.execute(
         """
@@ -123,19 +201,15 @@ async def seed_gene_data(seed_layers):
         """,
         gene_layer,
     )
-    await conn.close()
     yield
-    conn = await _admin_connect()
-    await conn.execute("DELETE FROM gene.features WHERE chr_id = 16")
-    await conn.close()
 
 
 @pytest.fixture
-async def seed_probe_data(seed_layers):
+async def seed_probe_data(_txn_conn, seed_layers):
     """Insert test probe coordinates and crossmap edges."""
-    conn = await _admin_connect()
+    conn = _txn_conn
     probe_layer = await conn.fetchval(
-        "SELECT id FROM registry.layers WHERE layer_key = 'probe_epic_v2'"
+        "SELECT id FROM registry.layers WHERE layer_key = 'probe_epic_v2' AND is_default = true"
     )
     await conn.execute(
         """
@@ -148,6 +222,14 @@ async def seed_probe_data(seed_layers):
         """,
         probe_layer,
     )
+    # Remove real crossmap edges for test probe IDs (rolled back with transaction)
+    await conn.execute(
+        """
+        DELETE FROM probe.map_edges
+        WHERE src_probe_id IN ('cg08796240', 'cg14514483', 'cg27457201')
+           OR dst_probe_id IN ('cg08796240', 'cg14514483', 'cg27457201')
+        """
+    )
     await conn.execute(
         """
         INSERT INTO probe.map_edges
@@ -158,9 +240,4 @@ async def seed_probe_data(seed_layers):
              'hg38', 16, 70699929, 'exact_id', 1.0)
         """
     )
-    await conn.close()
     yield
-    conn = await _admin_connect()
-    await conn.execute("DELETE FROM probe.coordinates WHERE chr_id = 16")
-    await conn.execute("DELETE FROM probe.map_edges WHERE chr_id = 16")
-    await conn.close()
