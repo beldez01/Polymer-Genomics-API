@@ -3,14 +3,13 @@
 import { useRef, useEffect } from 'react';
 import type { GRanges } from '@/lib/api';
 import { genomicToPixel, basePairWidth } from '@/lib/coordinates';
+import { COLORS } from '@/config/colors';
+import { drawGridlines } from '@/lib/gridlines';
+import { drawTrackLabel } from '@/lib/trackLabel';
 
-// CpG context colours
 const CONTEXT_COLORS: Record<string, string> = {
-  island: '#22c55e',     // green
-  shore: '#14b8a6',      // teal
-  shelf: '#3b82f6',      // blue
-  open_sea: '#6b7280',   // gray
-  opensea: '#6b7280',    // alternate spelling
+  ...COLORS.cpgContext,
+  opensea: COLORS.cpgContext.open_sea,
 };
 
 function contextColor(ctx: string | null | undefined): string {
@@ -49,10 +48,11 @@ export function CpgTrack({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, height);
+    drawGridlines(ctx, viewStart, viewEnd, canvasWidth, height);
 
     if (!data || data.n === 0) {
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.canvas.emptyText;
+      ctx.font = "12px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.fillText('No CpG data in view', canvasWidth / 2, height / 2 + 4);
       return;
@@ -62,7 +62,6 @@ export function CpgTrack({
     const span = viewEnd - viewStart + 1;
 
     if (bpW >= 2) {
-      // ---- Fine zoom: individual tick marks ----
       for (let i = 0; i < data.n; i++) {
         const pos = data.ranges.start[i];
         const end = data.ranges.end[i];
@@ -70,13 +69,12 @@ export function CpgTrack({
 
         const x = genomicToPixel(pos, viewStart, viewEnd, canvasWidth);
         const w = Math.max(1, ((end - pos + 1) / span) * canvasWidth);
-        const cpgCtx = data.mcols.cpg_context?.[i] as string | null;
+        const cpgCtx = data.mcols.context?.[i] as string | null;
 
         ctx.fillStyle = contextColor(cpgCtx);
         ctx.fillRect(x, 4, Math.max(1, w), height - 8);
       }
     } else {
-      // ---- Coarse zoom: density bars per pixel bin ----
       const binCount = Math.ceil(canvasWidth);
       const bins = new Float64Array(binCount);
       const contextBins: string[] = new Array(binCount).fill('open_sea');
@@ -89,14 +87,12 @@ export function CpgTrack({
           Math.floor(((pos - viewStart) / span) * binCount),
         );
         bins[bin]++;
-        // Track predominant context per bin
-        const cpgCtx = data.mcols.cpg_context?.[i] as string | null;
+        const cpgCtx = data.mcols.context?.[i] as string | null;
         if (cpgCtx && cpgCtx !== 'open_sea' && cpgCtx !== 'opensea') {
           contextBins[bin] = cpgCtx;
         }
       }
 
-      // Find max for scaling
       let maxCount = 0;
       for (let b = 0; b < binCount; b++) {
         if (bins[b] > maxCount) maxCount = bins[b];
@@ -114,6 +110,8 @@ export function CpgTrack({
       }
       ctx.globalAlpha = 1.0;
     }
+
+    drawTrackLabel(ctx, 'CpG Sites', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

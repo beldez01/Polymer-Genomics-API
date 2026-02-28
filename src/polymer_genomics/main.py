@@ -1,8 +1,11 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from polymer_genomics.db import close_pool, get_pool, init_pool
+from polymer_genomics.middleware import APIKeyMiddleware
 from polymer_genomics.routers.aggregation import router as aggregation_router
 from polymer_genomics.routers.bulk import router as bulk_router
 from polymer_genomics.routers.genes import router as genes_router
@@ -26,6 +29,20 @@ app = FastAPI(
     version="0.1.0",
     description="Curated genomic reference database for agents and bioinformaticians",
     lifespan=lifespan,
+)
+
+# ── Middleware ────────────────────────────────────────────────────
+# API key auth (no-op when POLYMER_API_KEY is unset — safe for local dev)
+app.add_middleware(APIKeyMiddleware)
+
+# CORS for viewer (configurable via POLYMER_CORS_ORIGINS env var)
+cors_origins = os.environ.get("POLYMER_CORS_ORIGINS", "http://localhost:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["X-API-Key"],
 )
 
 

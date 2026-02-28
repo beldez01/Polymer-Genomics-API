@@ -1,10 +1,17 @@
 {
+  "_comment": [
+    "Copy this into your Claude Code MCP settings.",
+    "Local dev:   POLYMER_API_BASE=http://localhost:8000",
+    "Deployed:    POLYMER_API_BASE=https://polymer-genomics-api.fly.dev",
+    "If using an API key, set POLYMER_API_KEY in env."
+  ],
   "mcpServers": {
     "polymer-genomics": {
       "command": "uv",
       "args": ["--directory", "/path/to/PolymerGenomicsAPI/mcp", "run", "polymer-genomics-mcp"],
       "env": {
-        "POLYMER_API_BASE": "http://localhost:8000"
+        "POLYMER_API_BASE": "http://localhost:8000",
+        "POLYMER_API_KEY": ""
       }
     }
   }

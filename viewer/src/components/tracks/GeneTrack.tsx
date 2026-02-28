@@ -3,15 +3,17 @@
 import { useRef, useEffect } from 'react';
 import type { GRanges } from '@/lib/api';
 import { genomicToPixel, basePairWidth } from '@/lib/coordinates';
+import { COLORS } from '@/config/colors';
+import { drawGridlines } from '@/lib/gridlines';
+import { drawTrackLabel } from '@/lib/trackLabel';
 
-// ---- Constants ----
 const EXON_HEIGHT = 20;
 const UTR_HEIGHT = 12;
 const INTRON_HEIGHT = 2;
 const GENE_COLOR = '#3b82f6';
-const GENE_COLOR_MINUS = '#a78bfa'; // purple-ish for minus strand
-const LABEL_COLOR = '#d1d5db';
-const ROW_HEIGHT = 40; // per-transcript row
+const GENE_COLOR_MINUS = '#a78bfa';
+const LABEL_COLOR = COLORS.canvas.featureLabel;
+const ROW_HEIGHT = 40;
 
 export interface GeneTrackProps {
   data: GRanges | undefined;
@@ -30,9 +32,6 @@ interface Feature {
   transcriptId: string | null;
 }
 
-/**
- * Group features by transcript, then lay out each transcript on a row.
- */
 function groupByTranscript(features: Feature[]): Map<string, Feature[]> {
   const map = new Map<string, Feature[]>();
   for (const f of features) {
@@ -60,7 +59,6 @@ export function GeneTrack({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Parse features from GRanges
     const features: Feature[] = [];
     if (data && data.n > 0) {
       for (let i = 0; i < data.n; i++) {
@@ -68,7 +66,7 @@ export function GeneTrack({
           start: data.ranges.start[i],
           end: data.ranges.end[i],
           strand: data.strand[i] ?? '*',
-          type: (data.mcols.type?.[i] as string) ?? null,
+          type: (data.mcols.feature_type?.[i] as string) ?? null,
           geneSymbol: (data.mcols.gene_symbol?.[i] as string) ?? null,
           transcriptId: (data.mcols.transcript_id?.[i] as string) ?? null,
         });
@@ -89,10 +87,11 @@ export function GeneTrack({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, height);
+    drawGridlines(ctx, viewStart, viewEnd, canvasWidth, height);
 
     if (features.length === 0) {
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.canvas.emptyText;
+      ctx.font = "12px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.fillText('No gene annotations in view', canvasWidth / 2, height / 2 + 4);
       return;
@@ -107,7 +106,6 @@ export function GeneTrack({
       const strand = txFeatures[0]?.strand ?? '+';
       const color = strand === '-' ? GENE_COLOR_MINUS : GENE_COLOR;
 
-      // Determine transcript span for intron line
       let txMin = Infinity;
       let txMax = -Infinity;
       for (const f of txFeatures) {
@@ -115,7 +113,6 @@ export function GeneTrack({
         if (f.end > txMax) txMax = f.end;
       }
 
-      // Draw intron line (thin horizontal across full transcript span)
       const lineX1 = Math.max(0, toX(txMin));
       const lineX2 = Math.min(canvasWidth, toX(txMax + 1));
       ctx.strokeStyle = color;
@@ -125,10 +122,9 @@ export function GeneTrack({
       ctx.lineTo(lineX2, yCenter);
       ctx.stroke();
 
-      // Draw strand direction arrows on intron line
       const arrowChar = strand === '-' ? '<' : '>';
       ctx.fillStyle = color;
-      ctx.font = '10px monospace';
+      ctx.font = "10px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const arrowStep = Math.max(30, bpW * 20);
@@ -136,7 +132,6 @@ export function GeneTrack({
         ctx.fillText(arrowChar, ax, yCenter);
       }
 
-      // Draw features (exons, UTRs)
       for (const f of txFeatures) {
         const x1 = Math.max(0, toX(f.start));
         const x2 = Math.min(canvasWidth, toX(f.end + 1));
@@ -145,24 +140,124 @@ export function GeneTrack({
         const featureType = f.type?.toLowerCase() ?? '';
 
         if (featureType.includes('utr') || featureType === 'utr5' || featureType === 'utr3') {
-          // UTR: medium height
           ctx.fillStyle = color;
           ctx.globalAlpha = 0.7;
           ctx.fillRect(x1, yCenter - UTR_HEIGHT / 2, w, UTR_HEIGHT);
           ctx.globalAlpha = 1.0;
         } else if (featureType === 'exon' || featureType === 'cds') {
-          // Exon / CDS: full height
           ctx.fillStyle = color;
           ctx.fillRect(x1, yCenter - EXON_HEIGHT / 2, w, EXON_HEIGHT);
         }
-        // Other types (gene, transcript, etc.) are just spanned by the intron line
       }
 
-      // Gene label
+      // --- Splice site markers (when zoom >= 0.5 px/bp) ---
+      if (bpW >= 0.5) {
+        const exonFeatures = txFeatures
+          .filter(f => {
+            const ft = f.type?.toLowerCase() ?? '';
+            return ft === 'exon' || ft === 'cds';
+          })
+          .sort((a, b) => a.start - b.start);
+
+        // Deduplicate by position
+        const uniqueExons: Feature[] = [];
+        const seenPos = new Set<string>();
+        for (const e of exonFeatures) {
+          const key = `${e.start}-${e.end}`;
+          if (!seenPos.has(key)) { seenPos.add(key); uniqueExons.push(e); }
+        }
+
+        const triSize = 4;
+        for (let ei = 0; ei < uniqueExons.length; ei++) {
+          // Acceptor (exon start) — skip first exon
+          if (ei > 0) {
+            const ax = toX(uniqueExons[ei].start);
+            if (ax >= 0 && ax <= canvasWidth) {
+              const accColor = strand === '-' ? '#F43F5E' : '#22c55e';
+              ctx.fillStyle = accColor;
+              ctx.beginPath();
+              ctx.moveTo(ax, yCenter + EXON_HEIGHT / 2 + 2);
+              ctx.lineTo(ax - triSize, yCenter + EXON_HEIGHT / 2 + 2 + triSize);
+              ctx.lineTo(ax + triSize, yCenter + EXON_HEIGHT / 2 + 2 + triSize);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+
+          // Donor (exon end) — skip last exon
+          if (ei < uniqueExons.length - 1) {
+            const dx = toX(uniqueExons[ei].end + 1);
+            if (dx >= 0 && dx <= canvasWidth) {
+              const donColor = strand === '-' ? '#22c55e' : '#F43F5E';
+              ctx.fillStyle = donColor;
+              ctx.beginPath();
+              ctx.moveTo(dx, yCenter + EXON_HEIGHT / 2 + 2);
+              ctx.lineTo(dx - triSize, yCenter + EXON_HEIGHT / 2 + 2 + triSize);
+              ctx.lineTo(dx + triSize, yCenter + EXON_HEIGHT / 2 + 2 + triSize);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+        }
+      }
+
+      // --- TSS arrow (when zoom >= 0.1 px/bp) ---
+      if (bpW >= 0.1) {
+        const tssPos = strand === '-' ? txMax : txMin;
+        const tx_ = toX(tssPos);
+        if (tx_ >= -10 && tx_ <= canvasWidth + 10) {
+          const arrowH = EXON_HEIGHT + 4;
+          ctx.strokeStyle = COLORS.accent.amber;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(tx_, yCenter + arrowH / 2);
+          ctx.lineTo(tx_, yCenter - arrowH / 2);
+          ctx.stroke();
+          // Arrow head pointing in transcription direction
+          const dir = strand === '-' ? 1 : -1; // arrow points up and toward transcription
+          ctx.fillStyle = COLORS.accent.amber;
+          ctx.beginPath();
+          ctx.moveTo(tx_, yCenter - arrowH / 2);
+          ctx.lineTo(tx_ - 4, yCenter - arrowH / 2 + 5);
+          ctx.lineTo(tx_ + 4, yCenter - arrowH / 2 + 5);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      // --- AUG markers (when zoom >= 4 px/bp) ---
+      if (bpW >= 4) {
+        for (const f of txFeatures) {
+          const ft = f.type?.toLowerCase() ?? '';
+          if (ft !== 'start_codon') continue;
+          const ax = toX(f.start);
+          if (ax < 0 || ax > canvasWidth) continue;
+
+          const dSize = 4;
+          ctx.fillStyle = COLORS.accent.violet;
+          ctx.beginPath();
+          ctx.moveTo(ax, yCenter - dSize);
+          ctx.lineTo(ax + dSize, yCenter);
+          ctx.lineTo(ax, yCenter + dSize);
+          ctx.lineTo(ax - dSize, yCenter);
+          ctx.closePath();
+          ctx.fill();
+
+          // Label when space permits
+          if (bpW >= 8) {
+            ctx.fillStyle = COLORS.accent.violet;
+            ctx.font = "9px 'JetBrains Mono', monospace";
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('AUG', ax + dSize + 2, yCenter);
+          }
+        }
+      }
+
       const label = txFeatures[0]?.geneSymbol ?? '';
       if (label) {
         ctx.fillStyle = LABEL_COLOR;
-        ctx.font = '11px sans-serif';
+        ctx.font = "11px 'JetBrains Mono', monospace";
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
         const labelX = Math.max(2, toX(txMin));
@@ -170,11 +265,12 @@ export function GeneTrack({
       }
 
       rowIdx++;
-      if (rowIdx * ROW_HEIGHT > height - 10) break; // prevent overflow
+      if (rowIdx * ROW_HEIGHT > height - 10) break;
     }
+
+    drawTrackLabel(ctx, 'Genes', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, heightProp]);
 
-  // Compute height for the outer element (mirror logic in effect)
   const rowCount = data ? Math.max(1, new Set(
     Array.from({ length: data.n }, (_, i) =>
       (data.mcols.transcript_id?.[i] as string) ?? (data.mcols.gene_symbol?.[i] as string) ?? '_',

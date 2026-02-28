@@ -453,7 +453,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'methylation', $4,
-             'Reinius2012/Salas2018', 'public_domain', 's3', true, true)
+             'Reinius2012/Salas2018', 'public_domain', 'object_storage', true, true)
         RETURNING id
         """,
         layer_key,

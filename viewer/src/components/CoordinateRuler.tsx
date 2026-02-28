@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useEffect } from 'react';
+import { COLORS } from '@/config/colors';
 
 interface CoordinateRulerProps {
   viewStart: number;
@@ -9,7 +10,6 @@ interface CoordinateRulerProps {
 }
 
 function formatPosition(pos: number, interval: number): string {
-  // Use the tick interval to decide precision — ticks must produce distinct labels
   if (interval >= 1_000_000) {
     const decimals = interval >= 10_000_000 ? 0 : interval >= 1_000_000 ? 1 : 2;
     return `${(pos / 1_000_000).toFixed(decimals)} Mb`;
@@ -18,7 +18,6 @@ function formatPosition(pos: number, interval: number): string {
     const decimals = interval >= 100_000 ? 0 : interval >= 10_000 ? 1 : 2;
     return `${(pos / 1_000).toFixed(decimals)} kb`;
   }
-  // bp-level: show full position with comma separators
   return pos.toLocaleString();
 }
 
@@ -46,56 +45,45 @@ export function CoordinateRuler({
     ctx.clearRect(0, 0, canvasWidth, height);
 
     const viewWidth = viewEnd - viewStart + 1;
-
-    // Determine tick spacing (aim for ~80-150px between major ticks)
     const targetPixelGap = 100;
     const bpPerPixel = viewWidth / canvasWidth;
     const rawInterval = bpPerPixel * targetPixelGap;
-
-    // Round to a nice number
     const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)));
     let interval: number;
     if (rawInterval / magnitude < 2) interval = magnitude;
     else if (rawInterval / magnitude < 5) interval = 2 * magnitude;
     else interval = 5 * magnitude;
-
-    // Ensure interval is at least 1
     interval = Math.max(1, interval);
 
-    // Draw background line
-    ctx.strokeStyle = '#374151';
+    ctx.strokeStyle = COLORS.border.axis;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height - 1);
     ctx.lineTo(canvasWidth, height - 1);
     ctx.stroke();
 
-    // Draw ticks
     const firstTick = Math.ceil(viewStart / interval) * interval;
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '10px ui-monospace, monospace';
+    ctx.fillStyle = COLORS.canvas.axisLabel;
+    ctx.font = "10px 'JetBrains Mono', monospace";
     ctx.textAlign = 'center';
 
     for (let pos = firstTick; pos <= viewEnd; pos += interval) {
       const x = ((pos - viewStart) / viewWidth) * canvasWidth;
 
-      // Major tick
-      ctx.strokeStyle = '#4b5563';
+      ctx.strokeStyle = COLORS.canvas.tickMark;
       ctx.beginPath();
       ctx.moveTo(x, height - 1);
       ctx.lineTo(x, height - 8);
       ctx.stroke();
 
-      // Label
       ctx.fillText(formatPosition(pos, interval), x, height - 10);
 
-      // Minor ticks (5 subdivisions)
       const minorInterval = interval / 5;
       for (let j = 1; j < 5; j++) {
         const minorPos = pos + j * minorInterval;
         if (minorPos > viewEnd) break;
         const mx = ((minorPos - viewStart) / viewWidth) * canvasWidth;
-        ctx.strokeStyle = '#374151';
+        ctx.strokeStyle = COLORS.border.axis;
         ctx.beginPath();
         ctx.moveTo(mx, height - 1);
         ctx.lineTo(mx, height - 4);

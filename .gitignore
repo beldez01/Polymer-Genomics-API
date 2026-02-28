@@ -9,5 +9,12 @@ node_modules/
 .next/
 .env
 *.db
+.DS_Store
+
+# Large data files
 data/*.gz
 data/*.gtf
+data/*.fa
+data/*.fai
+data/*.csv
+data/probes/

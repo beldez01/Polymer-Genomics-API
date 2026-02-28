@@ -1,1 +1,36 @@
 @import "tailwindcss";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
+:root {
+  --bg-primary: #0A0A0A;
+  --bg-track: #111111;
+  --bg-sidebar: #0A0A0A;
+  --bg-tooltip: #1a1a1a;
+  --bg-ideogram: #0D0D0D;
+  --border-subtle: #1a1a1a;
+  --border-axis: #222222;
+  --border-tooltip: #333333;
+  --text-label: #666666;
+  --text-axis: #555555;
+  --text-tooltip: #CCCCCC;
+  --text-primary: #E0E0E0;
+  --text-muted: #444444;
+  --accent-teal: #4ECDC4;
+  --accent-amber: #F0A500;
+  --accent-violet: #8B5CF6;
+  --accent-rose: #F43F5E;
+}
+
+* {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}

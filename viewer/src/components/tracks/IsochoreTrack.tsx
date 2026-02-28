@@ -3,19 +3,21 @@
 import { useRef, useEffect } from 'react';
 import type { GRanges } from '@/lib/api';
 import { genomicToPixel } from '@/lib/coordinates';
+import { COLORS } from '@/config/colors';
+import { drawGridlines } from '@/lib/gridlines';
+import { drawTrackLabel } from '@/lib/trackLabel';
 
-// Isochore class colours (Bernardi classification)
 const ISOCHORE_COLORS: Record<string, string> = {
-  L1: '#1e3a5f', // dark blue  (AT-rich)
-  L2: '#2563eb', // blue
-  H1: '#16a34a', // green
-  H2: '#eab308', // yellow
-  H3: '#dc2626', // red        (GC-rich)
+  L1: COLORS.isochore.L1,
+  L2: COLORS.isochore.L2,
+  H1: COLORS.isochore.H1,
+  H2: COLORS.isochore.H2,
+  H3: COLORS.isochore.H3,
 };
 
 function isochoreColor(cls: string | null | undefined): string {
-  if (!cls) return '#374151';
-  return ISOCHORE_COLORS[cls.toUpperCase()] ?? '#374151';
+  if (!cls) return '#222222';
+  return ISOCHORE_COLORS[cls.toUpperCase()] ?? '#222222';
 }
 
 export interface IsochoreTrackProps {
@@ -49,10 +51,11 @@ export function IsochoreTrack({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, height);
+    drawGridlines(ctx, viewStart, viewEnd, canvasWidth, height);
 
     if (!data || data.n === 0) {
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.canvas.emptyText;
+      ctx.font = "12px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.fillText('No isochore data in view', canvasWidth / 2, height / 2 + 4);
       return;
@@ -64,10 +67,8 @@ export function IsochoreTrack({
       const rStart = data.ranges.start[i];
       const rEnd = data.ranges.end[i];
 
-      // Skip features entirely outside viewport
       if (rEnd < viewStart || rStart > viewEnd) continue;
 
-      // Clip to viewport
       const clippedStart = Math.max(rStart, viewStart);
       const clippedEnd = Math.min(rEnd, viewEnd);
 
@@ -82,11 +83,10 @@ export function IsochoreTrack({
       ctx.fillStyle = isochoreColor(isoClass);
       ctx.fillRect(x1, 2, w, height - 4);
 
-      // Label: show isochore class + GC% if there is enough room
       const labelMinPx = 50;
       if (w >= labelMinPx) {
-        ctx.fillStyle = '#f3f4f6';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = '#CCCCCC';
+        ctx.font = "bold 11px 'JetBrains Mono', monospace";
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
@@ -94,7 +94,6 @@ export function IsochoreTrack({
         if (gcContent != null) {
           label += ` (${(gcContent * 100).toFixed(1)}%)`;
         }
-        // Clip text to band width
         const textX = x1 + w / 2;
         ctx.save();
         ctx.beginPath();
@@ -105,11 +104,10 @@ export function IsochoreTrack({
       }
     }
 
-    // Legend at bottom-right if viewport is large enough
     if (canvasWidth >= 400 && span > 100_000) {
       const legend = Object.entries(ISOCHORE_COLORS);
       const legendX = canvasWidth - 10;
-      ctx.font = '9px sans-serif';
+      ctx.font = "9px 'JetBrains Mono', monospace";
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
 
@@ -120,10 +118,12 @@ export function IsochoreTrack({
         lx -= labelW;
         ctx.fillStyle = clr;
         ctx.fillRect(lx, height - 12, 8, 8);
-        ctx.fillStyle = '#9ca3af';
+        ctx.fillStyle = COLORS.canvas.axisLabel;
         ctx.fillText(cls, lx + labelW - 4, height - 8);
       }
     }
+
+    drawTrackLabel(ctx, 'Isochores', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

@@ -97,8 +97,13 @@ def parse_manifest_csv(csv_path: str | Path) -> list[dict]:
     csv_path = Path(csv_path)
     records: list[dict] = []
 
+    # Auto-detect delimiter (TSV from export_probes.R or CSV).
+    with open(csv_path, encoding="utf-8") as peek:
+        first_line = peek.readline()
+    delimiter = "\t" if "\t" in first_line else ","
+
     with open(csv_path, newline="", encoding="utf-8") as fh:
-        reader = csv.DictReader(fh)
+        reader = csv.DictReader(fh, delimiter=delimiter)
         for row in reader:
             probe_id = row["probe_id"].strip()
             chr_name = row["chr"].strip()

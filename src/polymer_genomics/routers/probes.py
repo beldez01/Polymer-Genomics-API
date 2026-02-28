@@ -30,33 +30,36 @@ async def get_probe(build: str, probe_id: str):
 
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Resolve probe layer
-        layer = await conn.fetchrow(
+        # Resolve all probe layers
+        layers = await conn.fetch(
             "SELECT id, layer_key, version, content_hash FROM registry.active_layers "
             "WHERE layer_type = 'probe' AND genome_build = $1::genome_build",
             build,
         )
-        if not layer:
+        if not layers:
             raise HTTPException(
                 404,
                 {"error": {"code": "NOT_FOUND", "message": f"No probe layer for build {build}"}},
             )
 
+        layer_ids = [l["id"] for l in layers]
+        layer_map = {l["id"]: l for l in layers}
+
         db_start = time.monotonic()
 
-        # Fetch probe coordinate
+        # Fetch probe coordinate across all probe layers
         row = await conn.fetchrow(
             """
             SELECT probe_id, chr_id, pos, pos + 1 AS end_pos,
-                   gene_symbol, cpg_context
+                   gene_symbol, cpg_context, layer_id
             FROM probe.coordinates
             WHERE build = $1::genome_build
               AND probe_id = $2
-              AND layer_id = $3
+              AND layer_id = ANY($3)
             """,
             build,
             probe_id,
-            layer["id"],
+            layer_ids,
         )
 
         if not row:
@@ -65,6 +68,8 @@ async def get_probe(build: str, probe_id: str):
                 404,
                 {"error": {"code": "NOT_FOUND", "message": f"Probe '{probe_id}' not found in {build}"}},
             )
+
+        layer = layer_map[row["layer_id"]]
 
         # Fetch crossmap edges
         crossmap_rows = await conn.fetch(
@@ -151,32 +156,34 @@ async def probe_batch(build: str, body: ProbeBatchRequest):
 
     pool = await get_pool()
     async with pool.acquire() as conn:
-        # Resolve probe layer
-        layer = await conn.fetchrow(
+        # Resolve all probe layers
+        layers = await conn.fetch(
             "SELECT id, layer_key, version, content_hash FROM registry.active_layers "
             "WHERE layer_type = 'probe' AND genome_build = $1::genome_build",
             build,
         )
-        if not layer:
+        if not layers:
             raise HTTPException(
                 404,
                 {"error": {"code": "NOT_FOUND", "message": f"No probe layer for build {build}"}},
             )
 
+        layer_ids = [l["id"] for l in layers]
+
         db_start = time.monotonic()
         rows = await conn.fetch(
             """
-            SELECT probe_id, chr_id, pos, pos + 1 AS end_pos,
+            SELECT DISTINCT ON (probe_id) probe_id, chr_id, pos, pos + 1 AS end_pos,
                    gene_symbol, cpg_context
             FROM probe.coordinates
             WHERE build = $1::genome_build
               AND probe_id = ANY($2)
-              AND layer_id = $3
-            ORDER BY chr_id, pos
+              AND layer_id = ANY($3)
+            ORDER BY probe_id, chr_id, pos
             """,
             build,
             body.probe_ids,
-            layer["id"],
+            layer_ids,
         )
         db_time = (time.monotonic() - db_start) * 1000
 
@@ -212,12 +219,13 @@ async def probe_batch(build: str, body: ProbeBatchRequest):
         query={"build": build, "probe_ids": body.probe_ids, "batch_size": len(body.probe_ids)},
         layers_resolved=[
             {
-                "layer_key": layer["layer_key"],
-                "version": layer["version"],
-                "layer_id": str(layer["id"]),
-                "content_hash": layer["content_hash"],
+                "layer_key": l["layer_key"],
+                "version": l["version"],
+                "layer_id": str(l["id"]),
+                "content_hash": l["content_hash"],
                 "status": "ok",
             }
+            for l in layers
         ],
         data=data,
         db_time_ms=round(db_time, 1),

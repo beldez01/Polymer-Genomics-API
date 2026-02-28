@@ -18,6 +18,7 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 API_BASE = os.environ.get("POLYMER_API_BASE", "http://localhost:8000")
+API_KEY = os.environ.get("POLYMER_API_KEY", "")
 
 mcp = FastMCP(
     "Polymer Genomics",
@@ -36,7 +37,14 @@ async def get_client() -> httpx.AsyncClient:
     """Return a lazily-initialized async HTTP client (singleton)."""
     global _client
     if _client is None:
-        _client = httpx.AsyncClient(base_url=API_BASE, timeout=30.0)
+        headers = {}
+        if API_KEY:
+            headers["X-API-Key"] = API_KEY
+        _client = httpx.AsyncClient(
+            base_url=API_BASE,
+            timeout=30.0,
+            headers=headers,
+        )
     return _client
 
 

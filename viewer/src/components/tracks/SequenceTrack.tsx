@@ -1,14 +1,16 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import { COLORS } from '@/config/colors';
+import { drawGridlines } from '@/lib/gridlines';
+import { drawTrackLabel } from '@/lib/trackLabel';
 
-// ----- Nucleotide colours (bright, dark-theme friendly) -----
 const BASE_COLORS: Record<string, string> = {
-  A: '#22c55e', // green
-  T: '#ef4444', // red
-  G: '#f59e0b', // amber/gold
-  C: '#3b82f6', // blue
-  N: '#6b7280', // gray
+  A: '#22c55e',
+  T: '#ef4444',
+  G: '#f59e0b',
+  C: '#3b82f6',
+  N: '#6b7280',
 };
 
 function colorForBase(base: string): string {
@@ -17,8 +19,8 @@ function colorForBase(base: string): string {
 
 export interface SequenceTrackProps {
   sequence: string | null;
-  viewStart: number; // 1-based
-  viewEnd: number; // 1-based
+  viewStart: number;
+  viewEnd: number;
   canvasWidth: number;
   height?: number;
 }
@@ -46,10 +48,11 @@ export function SequenceTrack({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, canvasWidth, height);
+    drawGridlines(ctx, viewStart, viewEnd, canvasWidth, height);
 
     if (!sequence || sequence.length === 0) {
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '12px sans-serif';
+      ctx.fillStyle = COLORS.canvas.emptyText;
+      ctx.font = "12px 'JetBrains Mono', monospace";
       ctx.textAlign = 'center';
       ctx.fillText('No sequence data', canvasWidth / 2, height / 2 + 4);
       return;
@@ -57,12 +60,11 @@ export function SequenceTrack({
 
     const span = viewEnd - viewStart + 1;
     const bpPerPixel = span / canvasWidth;
-    const bpWidth = canvasWidth / span; // pixels per base
+    const bpWidth = canvasWidth / span;
 
     if (bpPerPixel <= 1) {
-      // ------- MODE 1: Individual coloured letters -------
       const fontSize = Math.min(Math.floor(bpWidth * 0.85), height - 8);
-      ctx.font = `bold ${fontSize}px "Courier New", monospace`;
+      ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
@@ -76,7 +78,6 @@ export function SequenceTrack({
         ctx.fillText(base.toUpperCase(), centerX, height / 2);
       }
     } else if (bpPerPixel <= 10) {
-      // ------- MODE 2: Coloured rectangles per base -------
       for (let i = 0; i < sequence.length; i++) {
         const base = sequence[i];
         const x = (i / span) * canvasWidth;
@@ -86,13 +87,10 @@ export function SequenceTrack({
         ctx.fillRect(x, 4, w, height - 8);
       }
     } else {
-      // ------- MODE 3: GC% summary bars -------
-      // Bin bases into pixel-width bins, compute GC fraction per bin
       const binCount = Math.ceil(canvasWidth);
       const barWidth = canvasWidth / binCount;
 
       for (let bin = 0; bin < binCount; bin++) {
-        // Determine which bases fall into this pixel bin
         const binStartBp = Math.floor((bin / binCount) * span);
         const binEndBp = Math.min(
           Math.floor(((bin + 1) / binCount) * span),
@@ -113,7 +111,6 @@ export function SequenceTrack({
         const gcFrac = gc / total;
         const barHeight = gcFrac * (height - 8);
 
-        // Colour gradient: low GC = warm brown, high GC = green
         const r = Math.round(180 - gcFrac * 130);
         const g = Math.round(100 + gcFrac * 100);
         const b2 = Math.round(50);
@@ -126,12 +123,12 @@ export function SequenceTrack({
         );
       }
 
-      // Axis label
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '10px sans-serif';
+      ctx.fillStyle = COLORS.canvas.axisLabel;
+      ctx.font = "10px 'JetBrains Mono', monospace";
       ctx.textAlign = 'left';
       ctx.fillText('GC%', 4, 12);
     }
+    drawTrackLabel(ctx, 'Sequence', canvasWidth);
   }, [sequence, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;
