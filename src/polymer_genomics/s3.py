@@ -6,6 +6,7 @@ from botocore.config import Config
 from polymer_genomics.config import settings
 
 _s3_client = None
+_s3_public_client = None
 
 
 def get_s3_client():
@@ -23,12 +24,29 @@ def get_s3_client():
     return _s3_client
 
 
+def _get_public_client():
+    """Return an S3 client using the public endpoint (for presigned URLs)."""
+    global _s3_public_client
+    if _s3_public_client is None:
+        public_endpoint = settings.s3_public_endpoint or settings.s3_endpoint
+        _s3_public_client = boto3.client(
+            "s3",
+            endpoint_url=public_endpoint,
+            aws_access_key_id=settings.s3_access_key,
+            aws_secret_access_key=settings.s3_secret_key,
+            region_name=settings.s3_region,
+            config=Config(signature_version="s3v4"),
+        )
+    return _s3_public_client
+
+
 def generate_presigned_url(bucket: str, key: str, expiry_seconds: int = 3600) -> str:
     """Generate a presigned GET URL for an S3/MinIO object.
 
+    Uses s3_public_endpoint so URLs are reachable by external clients.
     This is a synchronous operation (just cryptographic signing, no network call).
     """
-    client = get_s3_client()
+    client = _get_public_client()
     return client.generate_presigned_url(
         "get_object",
         Params={"Bucket": bucket, "Key": key},

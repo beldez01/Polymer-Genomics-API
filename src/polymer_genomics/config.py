@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     )
 
     s3_endpoint: str = "http://localhost:9000"
+    s3_public_endpoint: str | None = None  # Public URL for presigned URLs (falls back to s3_endpoint)
     s3_bucket: str = "polymer-genomics-api"
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"

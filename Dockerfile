@@ -30,8 +30,9 @@ RUN groupadd --gid 1000 app \
 
 WORKDIR /app
 
-# Copy the virtual environment from the builder stage
+# Copy the virtual environment and source from the builder stage
 COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/src /app/src
 
 # Copy the init SQL for cases where the API container needs it
 # (primarily used by docker-compose postgres init)
