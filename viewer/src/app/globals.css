@@ -12,11 +12,11 @@
   --border-subtle: #1a1a1a;
   --border-axis: #222222;
   --border-tooltip: #333333;
-  --text-label: #666666;
-  --text-axis: #555555;
+  --text-label: #999999;
+  --text-axis: #888888;
   --text-tooltip: #CCCCCC;
   --text-primary: #E0E0E0;
-  --text-muted: #444444;
+  --text-muted: #777777;
   --accent-teal: #4ECDC4;
   --accent-amber: #F0A500;
   --accent-violet: #8B5CF6;
@@ -26,6 +26,10 @@
 * {
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+.chr-btn {
+  border-radius: 8px !important;
 }
 
 body {

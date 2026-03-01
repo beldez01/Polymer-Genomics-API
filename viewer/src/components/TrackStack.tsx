@@ -19,7 +19,7 @@ export interface TrackStackProps {
 
 function TrackRow({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ borderBottom: '1px solid #1a1a1a' }}>
+    <div style={{ borderBottom: '1px solid #1a1a1a', marginTop: 4, overflow: 'hidden' }}>
       {children}
     </div>
   );

@@ -17,7 +17,7 @@ def get_fasta(build: str) -> Fasta:
         fasta_path = Path(settings.fasta_dir) / f"{build}.fa"
         if not fasta_path.exists():
             raise FileNotFoundError(f"Reference FASTA not found: {fasta_path}")
-        _fasta_cache[build] = Fasta(str(fasta_path), read_ahead=10000)
+        _fasta_cache[build] = Fasta(str(fasta_path), read_ahead=10000, rebuild=False)
     return _fasta_cache[build]
 
 

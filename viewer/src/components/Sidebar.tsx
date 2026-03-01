@@ -63,7 +63,7 @@ export function Sidebar({
 
   const btnStyle = (active = false): React.CSSProperties => ({
     backgroundColor: active ? '#1a2a28' : '#111111',
-    color: active ? '#4ECDC4' : '#666',
+    color: active ? '#4ECDC4' : '#999',
     border: active ? '1px solid #4ECDC4' : '1px solid #1a1a1a',
     padding: '3px 8px',
     fontSize: 10,
@@ -105,7 +105,7 @@ export function Sidebar({
                   backgroundColor: active ? color : 'transparent',
                 }} />
                 <span style={{
-                  color: active ? '#CCC' : '#555',
+                  color: active ? '#CCC' : '#888',
                   fontSize: 11,
                   fontFamily: "'JetBrains Mono', monospace",
                   textAlign: 'left',
@@ -113,7 +113,7 @@ export function Sidebar({
                   {l.name || l.layer_key}
                 </span>
                 {l.row_count != null && (
-                  <span style={{ color: '#444', fontSize: 9, fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
+                  <span style={{ color: '#777', fontSize: 9, fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
                     {(l.row_count / 1_000_000).toFixed(1)}M
                   </span>
                 )}
@@ -125,7 +125,7 @@ export function Sidebar({
 
       {/* Navigation */}
       <div style={{ padding: '10px 12px', borderBottom: '1px solid #1a1a1a' }}>
-        <div style={{ color: '#666', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
+        <div style={{ color: '#999', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
           NAVIGATION
         </div>
         <div className="flex gap-1" style={{ marginBottom: 6 }}>
@@ -149,11 +149,11 @@ export function Sidebar({
 
       {/* Info */}
       <div style={{ padding: '10px 12px', marginTop: 'auto' }}>
-        <div style={{ color: '#444', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.8 }}>
+        <div style={{ color: '#777', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.8 }}>
           <div>{viewportWidth.toLocaleString()} bp viewport</div>
           <div>{resolution === 1 ? 'Base-pair resolution' : `${resolution?.toLocaleString() ?? '—'} bp tiles`}</div>
-          <div style={{ marginTop: 4, color: '#333' }}>Arrow keys: pan</div>
-          <div style={{ color: '#333' }}>+/−: zoom</div>
+          <div style={{ marginTop: 4, color: '#666' }}>Arrow keys: pan</div>
+          <div style={{ color: '#666' }}>+/−: zoom</div>
         </div>
       </div>
     </div>

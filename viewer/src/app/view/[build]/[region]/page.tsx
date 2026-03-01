@@ -130,6 +130,12 @@ export default function ViewerPage() {
 
   return (
     <div className="flex flex-col h-screen" style={{ backgroundColor: '#0A0A0A' }}>
+      <div style={{ height: 44, backgroundColor: '#0A0A0A', display: 'flex', alignItems: 'center', paddingLeft: 16, borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
+        <span style={{ color: '#4ECDC4', fontSize: 17, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: '0.08em' }}>
+          POLYMER GENOMICS
+        </span>
+      </div>
+
       <HeaderBar
         build={build}
         chr={chr}

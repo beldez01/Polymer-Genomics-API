@@ -57,10 +57,14 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }:
   async function selectGene(symbol: string) {
     try {
       const res = await fetchGene(build, symbol);
-      const allData = Object.values(res.data);
-      if (allData.length === 0) return;
+      // data may be a flat GRanges object or a Record<string, GRanges>
+      const d = res.data as Record<string, unknown>;
+      const grangesList = d.class === 'GRanges'
+        ? [res.data as unknown as import('@/lib/api').GRanges]
+        : Object.values(res.data) as import('@/lib/api').GRanges[];
+      if (grangesList.length === 0) return;
       let minStart = Infinity, maxEnd = -Infinity, c = '';
-      for (const granges of allData)
+      for (const granges of grangesList)
         for (let i = 0; i < granges.n; i++) {
           if (granges.ranges.start[i] < minStart) minStart = granges.ranges.start[i];
           if (granges.ranges.end[i] > maxEnd) maxEnd = granges.ranges.end[i];
@@ -80,17 +84,13 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }:
   return (
     <div className="w-full flex items-center px-4 gap-6 flex-shrink-0"
          style={{ height: 48, backgroundColor: '#0A0A0A', borderBottom: '1px solid #1a1a1a' }}>
-      <span style={{ color: '#4ECDC4', fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>
-        POLYMER GENOMICS
-      </span>
-
       <button
         onClick={() => onBuildChange(build === 'hg38' ? 'hg37' : 'hg38')}
-        style={{ color: '#444', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", padding: '2px 6px', border: '1px solid #222', whiteSpace: 'nowrap', backgroundColor: 'transparent', cursor: 'pointer' }}>
+        style={{ color: '#CCC', fontSize: 13, fontFamily: "'JetBrains Mono', monospace", padding: '3px 8px', border: '1px solid #444', whiteSpace: 'nowrap', backgroundColor: 'transparent', cursor: 'pointer' }}>
         {build}
       </button>
 
-      <span style={{ color: '#888', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <span style={{ color: '#CCC', fontSize: 14, fontFamily: "'JetBrains Mono', monospace", flex: 1, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {coords}
       </span>
 
@@ -101,11 +101,11 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }:
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSubmit(); }}
           placeholder="chr17:7668421-7687490 or TP53"
-          style={{ backgroundColor: '#111111', color: '#CCC', border: '1px solid #1a1a1a', padding: '4px 8px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", width: 280, outline: 'none' }}
+          style={{ backgroundColor: '#111111', color: '#CCC', border: '1px solid #444', padding: '5px 10px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", width: 280, outline: 'none' }}
         />
         <button
           onClick={handleSubmit}
-          style={{ backgroundColor: '#111111', color: '#666', border: '1px solid #1a1a1a', padding: '4px 8px', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", cursor: 'pointer' }}>
+          style={{ backgroundColor: '#111111', color: '#CCC', border: '1px solid #444', padding: '5px 10px', fontSize: 12, fontFamily: "'JetBrains Mono', monospace", cursor: 'pointer' }}>
           GO
         </button>
 

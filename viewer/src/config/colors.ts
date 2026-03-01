@@ -12,11 +12,11 @@ export const COLORS = {
     tooltip: '#333333',
   },
   text: {
-    label: '#666666',
-    axis: '#555555',
+    label: '#999999',
+    axis: '#888888',
     tooltip: '#CCCCCC',
     primary: '#E0E0E0',
-    muted: '#444444',
+    muted: '#777777',
   },
   accent: {
     teal: '#4ECDC4',
@@ -47,8 +47,8 @@ export const COLORS = {
     background: '#0A0A0A',
     gridLine: '#222222',
     tickMark: '#333333',
-    axisLabel: '#555555',
+    axisLabel: '#888888',
     featureLabel: '#CCCCCC',
-    emptyText: '#444444',
+    emptyText: '#777777',
   },
 } as const;

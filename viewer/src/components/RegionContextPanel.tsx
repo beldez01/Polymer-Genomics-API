@@ -21,12 +21,12 @@ const styles = {
     lineHeight: 1.6,
   },
   label: {
-    color: '#666',
+    color: '#999',
     fontSize: 10,
     fontFamily: FONT,
   },
   muted: {
-    color: '#444',
+    color: '#777',
     fontSize: 10,
     fontFamily: FONT,
   },
@@ -96,7 +96,7 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
     <div
       className="h-full overflow-y-auto flex-shrink-0 flex flex-col"
       style={{
-        width: 280,
+        width: 160,
         backgroundColor: '#0A0A0A',
         borderLeft: '1px solid #1a1a1a',
       }}
@@ -159,7 +159,7 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
                 </span>
               )}
               {context.flankingGenes.left && context.flankingGenes.right && (
-                <span style={{ margin: '0 6px', color: '#333' }}>|</span>
+                <span style={{ margin: '0 6px', color: '#555' }}>|</span>
               )}
               {context.flankingGenes.right && (
                 <span>
