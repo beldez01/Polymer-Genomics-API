@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { fetchLayers, type LayerInfo } from '@/lib/api';
-import { COLORS } from '@/config/colors';
+import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 import type { GenomeBuild } from '@/stores/viewport';
 
+function formatCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M rows`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K rows`;
+  return `${n} rows`;
+}
+
 const LAYER_COLORS: Record<string, string> = {
-  gencode_v44: COLORS.layer.gencode_v44,
-  cpg_sites: COLORS.layer.cpg_sites,
-  probe_epic_v2: COLORS.layer.probe_epic_v2,
-  isochores: COLORS.layer.isochores,
+  gencode_v44: COLOR.layer.gencode_v44,
+  cpg_sites: COLOR.layer.cpg_sites,
+  probe_epic_v2: COLOR.layer.probe_epic_v2,
+  isochores: COLOR.layer.isochores,
 };
 
 const ZOOM_PRESETS = [
@@ -32,6 +38,8 @@ interface SidebarProps {
   onZoomPreset: (width: number) => void;
   viewportWidth: number;
   resolution: number | null;
+  showCodons: boolean;
+  onToggleCodons: () => void;
 }
 
 export function Sidebar({
@@ -45,6 +53,8 @@ export function Sidebar({
   onZoomPreset,
   viewportWidth,
   resolution,
+  showCodons,
+  onToggleCodons,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
 
@@ -61,28 +71,25 @@ export function Sidebar({
         { layer_key: 'isochores', name: 'Isochores', type: 'isochore', row_count: null },
       ];
 
-  const btnStyle = (active = false): React.CSSProperties => ({
-    backgroundColor: active ? '#1a2a28' : '#111111',
-    color: active ? '#4ECDC4' : '#999',
-    border: active ? '1px solid #4ECDC4' : '1px solid #1a1a1a',
-    padding: '3px 8px',
-    fontSize: 10,
-    fontFamily: "'JetBrains Mono', monospace",
-    cursor: 'pointer',
-  });
-
   return (
     <div className="h-full overflow-y-auto flex-shrink-0 flex flex-col"
-         style={{ width: 240, backgroundColor: '#0A0A0A', borderRight: '1px solid #1a1a1a' }}>
+         style={{
+           width: LAYOUT.sidebarWidth,
+           backgroundColor: COLOR.bg.primary,
+           borderRight: `1px solid ${COLOR.border.subtle}`,
+         }}>
 
-      {/* Annotation layers */}
+      {/* ─── Annotation Layers ─── */}
       <div>
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid #1a1a1a', backgroundColor: '#0D0D0D' }}>
-          <span style={{ color: '#4ECDC4', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
-            ANNOTATIONS
-          </span>
+        <div style={{
+          padding: `${SPACE[2]}px ${SPACE[3]}px`,
+          borderBottom: `2px solid ${COLOR.border.default}`,
+          backgroundColor: COLOR.bg.elevated,
+        }}>
+          <span style={COMPONENT.sectionHeader}>ANNOTATIONS</span>
         </div>
-        <div style={{ borderBottom: '1px solid #1a1a1a' }}>
+
+        <div style={{ borderBottom: `1px solid ${COLOR.border.subtle}` }}>
           {displayLayers.map((l) => {
             const active = activeLayers.includes(l.layer_key);
             const color = LAYER_COLORS[l.layer_key] || '#666';
@@ -90,31 +97,32 @@ export function Sidebar({
               <button
                 key={l.layer_key}
                 onClick={() => onToggleLayer(l.layer_key)}
-                className="w-full flex items-center gap-2"
+                className="w-full flex flex-col items-start"
                 style={{
-                  padding: '6px 12px',
-                  backgroundColor: active ? '#111111' : 'transparent',
-                  borderBottom: '1px solid #111111',
+                  padding: `${SPACE[2]}px ${SPACE[3]}px`,
+                  backgroundColor: active ? COLOR.bg.track : 'transparent',
                   cursor: 'pointer',
                   border: 'none',
-                  borderBlockEnd: '1px solid #111111',
+                  borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+                  borderLeft: `2px solid ${active ? color : color + '4D'}`,
+                  transition: 'background-color 0.15s, border-color 0.15s',
                 }}>
-                <div style={{
-                  width: 12, height: 12, flexShrink: 0,
-                  border: `1px solid ${active ? color : '#333'}`,
-                  backgroundColor: active ? color : 'transparent',
-                }} />
                 <span style={{
-                  color: active ? '#CCC' : '#888',
-                  fontSize: 11,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  color: active ? COLOR.text.secondary : COLOR.text.tertiary,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
                   textAlign: 'left',
                 }}>
                   {l.name || l.layer_key}
                 </span>
                 {l.row_count != null && (
-                  <span style={{ color: '#777', fontSize: 9, fontFamily: "'JetBrains Mono', monospace", marginLeft: 'auto' }}>
-                    {(l.row_count / 1_000_000).toFixed(1)}M
+                  <span style={{
+                    color: COLOR.text.faint,
+                    fontSize: TYPE.xs.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    marginTop: 1,
+                  }}>
+                    {formatCount(l.row_count)}
                   </span>
                 )}
               </button>
@@ -123,37 +131,78 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Navigation */}
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #1a1a1a' }}>
-        <div style={{ color: '#999', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
+      {/* ─── Navigation ─── */}
+      <div style={{ padding: `${SPACE[3]}px ${SPACE[3]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
+        <div style={{
+          color: COLOR.text.tertiary,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          marginBottom: SPACE[2],
+          letterSpacing: '0.08em',
+          fontWeight: WEIGHT.medium,
+        }}>
           NAVIGATION
         </div>
-        <div className="flex gap-1" style={{ marginBottom: 6 }}>
-          <button onClick={onPanLeft} style={btnStyle()} title="Pan left 25%">&larr;</button>
-          <button onClick={onPanRight} style={btnStyle()} title="Pan right 25%">&rarr;</button>
-          <div style={{ width: 8 }} />
-          <button onClick={onZoomIn} style={btnStyle()} title="Zoom in 2x">+</button>
-          <button onClick={onZoomOut} style={btnStyle()} title="Zoom out 2x">&minus;</button>
+        <div className="flex gap-1" style={{ marginBottom: SPACE[2] }}>
+          <button onClick={onPanLeft}  style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
+          <button onClick={onPanRight} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
+          <div style={{ width: SPACE[2] }} />
+          <button onClick={onZoomIn}  style={COMPONENT.button.small} title="Zoom in 2x">+</button>
+          <button onClick={onZoomOut} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
         </div>
         <div className="flex flex-wrap gap-1">
-          {ZOOM_PRESETS.map((p) => (
-            <button
-              key={p.label}
-              onClick={() => onZoomPreset(p.width)}
-              style={btnStyle(Math.abs(viewportWidth - p.width) < p.width * 0.2)}>
-              {p.label}
-            </button>
-          ))}
+          {ZOOM_PRESETS.map((p) => {
+            const isActive = Math.abs(viewportWidth - p.width) < p.width * 0.2;
+            return (
+              <button
+                key={p.label}
+                onClick={() => onZoomPreset(p.width)}
+                style={isActive ? COMPONENT.button.smallActive : COMPONENT.button.small}>
+                {p.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Info */}
-      <div style={{ padding: '10px 12px', marginTop: 'auto' }}>
-        <div style={{ color: '#777', fontSize: 10, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.8 }}>
+      {/* ─── Gene Options ─── */}
+      <div style={{ padding: `${SPACE[3]}px ${SPACE[3]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
+        <div style={{
+          color: COLOR.text.tertiary,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          marginBottom: SPACE[2],
+          letterSpacing: '0.08em',
+          fontWeight: WEIGHT.medium,
+        }}>
+          GENE OPTIONS
+        </div>
+        <div className="flex gap-1">
+          <button
+            onClick={onToggleCodons}
+            style={showCodons ? COMPONENT.button.smallActive : COMPONENT.button.small}
+            title="Show codon reading frame coloring on CDS regions">
+            Codons
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Info ─── */}
+      <div style={{
+        padding: `${SPACE[3]}px ${SPACE[3]}px`,
+        marginTop: 'auto',
+        borderTop: `1px solid ${COLOR.border.subtle}`,
+      }}>
+        <div style={{
+          color: COLOR.text.muted,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          lineHeight: 1.8,
+        }}>
           <div>{viewportWidth.toLocaleString()} bp viewport</div>
-          <div>{resolution === 1 ? 'Base-pair resolution' : `${resolution?.toLocaleString() ?? '—'} bp tiles`}</div>
-          <div style={{ marginTop: 4, color: '#666' }}>Arrow keys: pan</div>
-          <div style={{ color: '#666' }}>+/−: zoom</div>
+          <div>{resolution === 1 ? 'Base-pair resolution' : `${resolution?.toLocaleString() ?? '\u2014'} bp tiles`}</div>
+          <div style={{ marginTop: SPACE[1], color: COLOR.text.faint }}>Arrow keys: pan</div>
+          <div style={{ color: COLOR.text.faint }}>+/\u2212: zoom &middot; i: context</div>
         </div>
       </div>
     </div>

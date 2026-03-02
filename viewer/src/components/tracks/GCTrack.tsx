@@ -4,7 +4,7 @@ import { useRef, useEffect } from 'react';
 import type { ViewportData } from '@/lib/genomeFetcher';
 import { drawGridlines } from '@/lib/gridlines';
 import { COLORS } from '@/config/colors';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const GC_LOW_COLOR = '#4a5568';   // blue-grey
 const GC_HIGH_COLOR = '#4ECDC4';  // teal
@@ -254,7 +254,6 @@ export function GCTrack({
     ctx.textBaseline = 'middle';
     ctx.fillText('50%', canvasWidth - 2, refY);
 
-    drawTrackLabel(ctx, 'GC%', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

@@ -5,7 +5,7 @@ import type { GRanges } from '@/lib/api';
 import { genomicToPixel, basePairWidth } from '@/lib/coordinates';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const EXON_HEIGHT = 20;
 const UTR_HEIGHT = 12;
@@ -21,6 +21,7 @@ export interface GeneTrackProps {
   viewEnd: number;
   canvasWidth: number;
   height?: number;
+  showCodons?: boolean;
 }
 
 interface Feature {
@@ -52,6 +53,7 @@ export function GeneTrack({
   viewEnd,
   canvasWidth,
   height: heightProp,
+  showCodons,
 }: GeneTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -102,7 +104,7 @@ export function GeneTrack({
 
     let rowIdx = 0;
     for (const [, txFeatures] of transcripts) {
-      const yCenter = 20 + rowIdx * ROW_HEIGHT;
+      const yCenter = 26 + rowIdx * ROW_HEIGHT;
       const strand = txFeatures[0]?.strand ?? '+';
       const color = strand === '-' ? GENE_COLOR_MINUS : GENE_COLOR;
 
@@ -122,14 +124,37 @@ export function GeneTrack({
       ctx.lineTo(lineX2, yCenter);
       ctx.stroke();
 
-      const arrowChar = strand === '-' ? '<' : '>';
-      ctx.fillStyle = color;
-      ctx.font = "10px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const arrowStep = Math.max(30, bpW * 20);
-      for (let ax = lineX1 + 15; ax < lineX2 - 10; ax += arrowStep) {
-        ctx.fillText(arrowChar, ax, yCenter);
+      // --- Geometric chevrons in intron gaps ---
+      const exonsSorted = txFeatures
+        .filter(f => { const ft = f.type?.toLowerCase() ?? ''; return ft === 'exon' || ft === 'cds'; })
+        .sort((a, b) => a.start - b.start);
+      const uniqueForChevrons: Feature[] = [];
+      const seenChev = new Set<string>();
+      for (const e of exonsSorted) {
+        const k = `${e.start}-${e.end}`;
+        if (!seenChev.has(k)) { seenChev.add(k); uniqueForChevrons.push(e); }
+      }
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      const peakH = 6;
+      for (let ei = 0; ei < uniqueForChevrons.length - 1; ei++) {
+        const intronX1Raw = toX(uniqueForChevrons[ei].end + 1);
+        const intronX2Raw = toX(uniqueForChevrons[ei + 1].start);
+        const intronX1 = Math.max(0, intronX1Raw);
+        const intronX2 = Math.min(canvasWidth, intronX2Raw);
+        const intronWidthPx = intronX2 - intronX1;
+        if (intronWidthPx < 4) continue;  // too narrow for chevrons
+        const spacing = Math.max(14, Math.min(30, intronWidthPx / 3));
+        ctx.beginPath();
+        ctx.moveTo(intronX1, yCenter);
+        for (let x = intronX1 + spacing / 2; x < intronX2 - 2; x += spacing) {
+          const peakY = strand === '+' ? yCenter - peakH : yCenter + peakH;
+          ctx.lineTo(x - spacing / 4, peakY);
+          ctx.lineTo(x + spacing / 4, yCenter);
+        }
+        ctx.lineTo(intronX2, yCenter);
+        ctx.stroke();
       }
 
       for (const f of txFeatures) {
@@ -144,10 +169,114 @@ export function GeneTrack({
           ctx.globalAlpha = 0.7;
           ctx.fillRect(x1, yCenter - UTR_HEIGHT / 2, w, UTR_HEIGHT);
           ctx.globalAlpha = 1.0;
-        } else if (featureType === 'exon' || featureType === 'cds') {
+        } else if (featureType === 'cds' || featureType === 'exon') {
           ctx.fillStyle = color;
           ctx.fillRect(x1, yCenter - EXON_HEIGHT / 2, w, EXON_HEIGHT);
         }
+      }
+
+      // --- Exon boundary caps ---
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 1.5;
+      for (const f of txFeatures) {
+        const ft = f.type?.toLowerCase() ?? '';
+        if (ft !== 'exon' && ft !== 'cds') continue;
+        const x1 = toX(f.start);
+        const x2 = toX(f.end + 1);
+        if (x1 >= 0 && x1 <= canvasWidth) {
+          ctx.beginPath();
+          ctx.moveTo(x1, yCenter - EXON_HEIGHT / 2);
+          ctx.lineTo(x1, yCenter + EXON_HEIGHT / 2);
+          ctx.stroke();
+        }
+        if (x2 >= 0 && x2 <= canvasWidth) {
+          ctx.beginPath();
+          ctx.moveTo(x2, yCenter - EXON_HEIGHT / 2);
+          ctx.lineTo(x2, yCenter + EXON_HEIGHT / 2);
+          ctx.stroke();
+        }
+      }
+      ctx.lineWidth = 1; // reset
+
+      // --- Codon reading frame overlay ---
+      if (showCodons && bpW >= 1) {
+        ctx.save();
+        const CODON_COLORS = [
+          'rgba(78, 205, 196, 0.30)',   // frame 0 — teal
+          'rgba(240, 165, 0, 0.30)',    // frame 1 — amber
+          'rgba(139, 92, 246, 0.30)',   // frame 2 — violet
+        ];
+
+        // Collect CDS/exon features for this transcript (API returns 'exon', not 'cds')
+        const cdsFeatures = txFeatures
+          .filter(f => { const ft = f.type?.toLowerCase() ?? ''; return ft === 'cds' || ft === 'exon'; })
+          .sort((a, b) => a.start - b.start);
+
+        if (cdsFeatures.length > 0) {
+          // CDS start: lowest start on + strand; highest end on − strand
+          const cdsStart = strand === '+' ? cdsFeatures[0].start : cdsFeatures[cdsFeatures.length - 1].end;
+
+          for (const cds of cdsFeatures) {
+            // Iterate codon-by-codon (3bp steps) through this CDS block
+            const blockStart = cds.start;
+            const blockEnd = cds.end;
+
+            // Snap to nearest codon boundary from cdsStart
+            const offsetToBlock = strand === '+' ? blockStart - cdsStart : cdsStart - blockEnd;
+            const firstCodonStart = strand === '+'
+              ? blockStart - ((offsetToBlock % 3 + 3) % 3)
+              : blockEnd + ((offsetToBlock % 3 + 3) % 3);
+
+            if (strand === '+') {
+              let pos = firstCodonStart;
+              while (pos < blockEnd + 3) {
+                const codonEnd = pos + 3;
+                const frame = ((pos - cdsStart) % 3 + 3) % 3;
+                const cx1 = Math.max(0, toX(Math.max(pos, blockStart)));
+                const cx2 = Math.min(canvasWidth, toX(Math.min(codonEnd, blockEnd + 1)));
+                if (cx2 > cx1) {
+                  ctx.fillStyle = CODON_COLORS[frame];
+                  ctx.fillRect(cx1, yCenter - EXON_HEIGHT / 2, cx2 - cx1, EXON_HEIGHT);
+                }
+                if (bpW >= 3 && cx2 > 0 && cx2 <= canvasWidth) {
+                  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                  ctx.lineWidth = 0.5;
+                  ctx.beginPath();
+                  ctx.moveTo(cx2, yCenter - EXON_HEIGHT / 2);
+                  ctx.lineTo(cx2, yCenter + EXON_HEIGHT / 2);
+                  ctx.stroke();
+                }
+                pos += 3;
+              }
+            } else {
+              // − strand: iterate from high to low
+              let pos = firstCodonStart;
+              const initialCodonIdx = Math.round((cdsStart - firstCodonStart) / 3);
+              let codonIdx = initialCodonIdx;
+              while (pos > blockStart) {
+                const codonStart = pos - 3;
+                const frame = ((codonIdx % 3) + 3) % 3;
+                const cx1 = Math.max(0, toX(Math.max(codonStart, blockStart)));
+                const cx2 = Math.min(canvasWidth, toX(Math.min(pos, blockEnd + 1)));
+                if (cx2 > cx1) {
+                  ctx.fillStyle = CODON_COLORS[frame];
+                  ctx.fillRect(cx1, yCenter - EXON_HEIGHT / 2, cx2 - cx1, EXON_HEIGHT);
+                }
+                if (bpW >= 3 && cx1 > 0 && cx1 <= canvasWidth) {
+                  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                  ctx.lineWidth = 0.5;
+                  ctx.beginPath();
+                  ctx.moveTo(cx1, yCenter - EXON_HEIGHT / 2);
+                  ctx.lineTo(cx1, yCenter + EXON_HEIGHT / 2);
+                  ctx.stroke();
+                }
+                pos -= 3;
+                codonIdx++;
+              }
+            }
+          }
+        }
+        ctx.restore();
       }
 
       // --- Splice site markers (when zoom >= 0.5 px/bp) ---
@@ -268,8 +397,7 @@ export function GeneTrack({
       if (rowIdx * ROW_HEIGHT > height - 10) break;
     }
 
-    drawTrackLabel(ctx, 'Genes', canvasWidth);
-  }, [data, viewStart, viewEnd, canvasWidth, heightProp]);
+  }, [data, viewStart, viewEnd, canvasWidth, heightProp, showCodons]);
 
   const rowCount = data ? Math.max(1, new Set(
     Array.from({ length: data.n }, (_, i) =>

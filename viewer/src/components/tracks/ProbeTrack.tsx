@@ -5,7 +5,7 @@ import type { GRanges } from '@/lib/api';
 import { genomicToPixel, basePairWidth } from '@/lib/coordinates';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const CONTEXT_COLORS: Record<string, string> = {
   island: '#22c55e',
@@ -102,7 +102,6 @@ export function ProbeTrack({
       }
     }
 
-    drawTrackLabel(ctx, 'Probes', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

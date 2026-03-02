@@ -5,7 +5,7 @@ import type { GRanges } from '@/lib/api';
 import { genomicToPixel, basePairWidth } from '@/lib/coordinates';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const CONTEXT_COLORS: Record<string, string> = {
   ...COLORS.cpgContext,
@@ -111,7 +111,6 @@ export function CpgTrack({
       ctx.globalAlpha = 1.0;
     }
 
-    drawTrackLabel(ctx, 'CpG Sites', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

@@ -5,7 +5,7 @@ import type { GRanges } from '@/lib/api';
 import { genomicToPixel } from '@/lib/coordinates';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const ISOCHORE_COLORS: Record<string, string> = {
   L1: COLORS.isochore.L1,
@@ -123,7 +123,6 @@ export function IsochoreTrack({
       }
     }
 
-    drawTrackLabel(ctx, 'Isochores', canvasWidth);
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

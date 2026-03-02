@@ -15,6 +15,9 @@ export interface ViewportState {
   // Active annotation layers
   activeLayers: string[];
 
+  // Gene track options
+  showCodons: boolean;
+
   // Actions
   setBuild: (build: GenomeBuild) => void;
   setRegion: (chr: string, start: number, end: number) => void;
@@ -25,6 +28,7 @@ export interface ViewportState {
   zoomToBase: (chr: string, position: number) => void;
   toggleLayer: (layerKey: string) => void;
   setLayers: (layers: string[]) => void;
+  toggleCodons: () => void;
 }
 
 /**
@@ -47,6 +51,7 @@ export const useViewport = create<ViewportState>((set, get) => ({
   end: 100_000,
   width: 100_000,
   activeLayers: ['gencode_v44', 'cpg_sites'],
+  showCodons: false,
 
   setBuild: (build) => set({ build }),
 
@@ -106,4 +111,6 @@ export const useViewport = create<ViewportState>((set, get) => ({
     })),
 
   setLayers: (layers) => set({ activeLayers: layers }),
+
+  toggleCodons: () => set((state) => ({ showCodons: !state.showCodons })),
 }));

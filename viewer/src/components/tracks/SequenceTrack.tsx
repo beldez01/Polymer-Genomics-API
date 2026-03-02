@@ -3,7 +3,7 @@
 import { useRef, useEffect } from 'react';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
-import { drawTrackLabel } from '@/lib/trackLabel';
+
 
 const BASE_COLORS: Record<string, string> = {
   A: '#22c55e',
@@ -128,7 +128,6 @@ export function SequenceTrack({
       ctx.textAlign = 'left';
       ctx.fillText('GC%', 4, 12);
     }
-    drawTrackLabel(ctx, 'Sequence', canvasWidth);
   }, [sequence, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

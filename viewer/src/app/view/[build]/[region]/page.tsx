@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useViewport } from '@/stores/viewport';
 import { useViewportData } from '@/hooks/useViewportData';
 import { TrackStack } from '@/components/TrackStack';
@@ -13,6 +14,7 @@ import { RegionContextPanel } from '@/components/RegionContextPanel';
 import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
+import { COLOR, FONT_FAMILY, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
   const decoded = decodeURIComponent(region);
@@ -21,15 +23,17 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
   return { chr: match[1], start: parseInt(match[2], 10), end: parseInt(match[3], 10) };
 }
 
-export default function ViewerPage() {
+function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, setBuild, setRegion, toggleLayer } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, setBuild, setRegion, setLayers, toggleLayer, toggleCodons } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasWidth, setCanvasWidth] = useState(1200);
   const [showContext, setShowContext] = useState(true);
+  const [copyLabel, setCopyLabel] = useState('Link');
   const regionContext = useRegionContext(data, chr, start, end);
 
   useEffect(() => {
@@ -54,6 +58,21 @@ export default function ViewerPage() {
     }
   }, [params.build, params.region, setBuild, setRegion]);
 
+  // Restore layers from ?layers= query param on mount
+  useEffect(() => {
+    const layersParam = searchParams.get('layers');
+    if (layersParam) {
+      setLayers(layersParam.split(',').filter(Boolean));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep ?layers= query param in sync with activeLayers
+  useEffect(() => {
+    const newUrl = `${window.location.pathname}?layers=${activeLayers.join(',')}`;
+    window.history.replaceState(null, '', newUrl);
+  }, [activeLayers]);
+
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -77,7 +96,7 @@ export default function ViewerPage() {
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const tag = (e.target as HTMLElement).tagName;
-    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT') return;
+    if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT' || tag === 'A') return;
     const state = useViewport.getState();
     dragRef.current = { startX: e.clientX, viewStart: state.start, viewEnd: state.end, chr: state.chr };
     setDragging(true);
@@ -110,6 +129,13 @@ export default function ViewerPage() {
     };
   }, [dragging]);
 
+  function handleCopyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopyLabel('Copied!');
+      setTimeout(() => setCopyLabel('Link'), 2000);
+    }).catch(() => {});
+  }
+
   function handleNavigate(c: string, s: number, e: number) {
     setRegion(c, s, e);
   }
@@ -129,13 +155,44 @@ export default function ViewerPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: '#0A0A0A' }}>
-      <div style={{ height: 44, backgroundColor: '#0A0A0A', display: 'flex', alignItems: 'center', paddingLeft: 16, borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
-        <span style={{ color: '#4ECDC4', fontSize: 17, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: '0.08em' }}>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
+
+      {/* ─── Brand Bar ─── */}
+      <div style={{
+        height: 44,
+        backgroundColor: COLOR.bg.primary,
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: SPACE[4],
+        paddingRight: SPACE[4],
+        borderBottom: `1px solid ${COLOR.border.subtle}`,
+        flexShrink: 0,
+      }}>
+        <Link
+          href="/"
+          style={{
+            color: COLOR.accent.teal,
+            fontSize: 17,
+            fontFamily: FONT_FAMILY,
+            fontWeight: WEIGHT.bold,
+            letterSpacing: '0.08em',
+            textDecoration: 'none',
+          }}
+        >
           POLYMER GENOMICS
-        </span>
+        </Link>
+        <div style={{ marginLeft: 'auto' }}>
+          <button
+            onClick={handleCopyLink}
+            style={COMPONENT.button.small}
+            title="Copy shareable link with active layers"
+          >
+            {copyLabel}
+          </button>
+        </div>
       </div>
 
+      {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
       <HeaderBar
         build={build}
         chr={chr}
@@ -162,6 +219,8 @@ export default function ViewerPage() {
           onZoomPreset={handleZoomPreset}
           viewportWidth={width}
           resolution={data?.resolution ?? null}
+          showCodons={showCodons}
+          onToggleCodons={toggleCodons}
         />
 
         <main
@@ -170,8 +229,29 @@ export default function ViewerPage() {
           style={{ cursor: dragging ? 'grabbing' : 'grab' }}
           onMouseDown={handleMouseDown}
         >
+          {/* Loading progress bar — subtle teal line at top */}
+          {loading && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              zIndex: 20,
+              overflow: 'hidden',
+              backgroundColor: COLOR.border.subtle,
+            }}>
+              <div style={{
+                height: '100%',
+                width: '40%',
+                backgroundColor: COLOR.accent.teal,
+                animation: 'progressSlide 1.2s ease-in-out infinite',
+              }} />
+            </div>
+          )}
+
           <div ref={animRef} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform' }}>
-            <div style={{ backgroundColor: '#0A0A0A', borderBottom: '1px solid #1a1a1a' }}>
+            <div style={{ backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
               <CoordinateRuler
                 viewStart={start}
                 viewEnd={end}
@@ -187,6 +267,7 @@ export default function ViewerPage() {
                 canvasWidth={canvasWidth}
                 loading={loading}
                 error={error}
+                showCodons={showCodons}
               />
             </div>
           </div>
@@ -194,6 +275,22 @@ export default function ViewerPage() {
 
         {showContext && <RegionContextPanel context={regionContext} />}
       </div>
+
+      {/* Progress bar animation */}
+      <style>{`
+        @keyframes progressSlide {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(350%); }
+        }
+      `}</style>
     </div>
+  );
+}
+
+export default function ViewerPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <ViewerPage />
+    </Suspense>
   );
 }

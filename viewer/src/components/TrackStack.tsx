@@ -3,10 +3,15 @@
 import type { ViewportData } from '@/lib/genomeFetcher';
 import { SequenceTrack } from './tracks/SequenceTrack';
 import { GeneTrack } from './tracks/GeneTrack';
+import { CodonFrameTrack } from './tracks/CodonFrameTrack';
 import { CpgTrack } from './tracks/CpgTrack';
 import { ProbeTrack } from './tracks/ProbeTrack';
 import { IsochoreTrack } from './tracks/IsochoreTrack';
 import { GCTrack } from './tracks/GCTrack';
+import { basePairWidth } from '@/lib/coordinates';
+import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
+
+const TRACK_LABEL_WIDTH = 72;
 
 export interface TrackStackProps {
   data: ViewportData | null;
@@ -15,12 +20,39 @@ export interface TrackStackProps {
   canvasWidth: number;
   loading: boolean;
   error: string | null;
+  showCodons?: boolean;
 }
 
-function TrackRow({ children }: { children: React.ReactNode }) {
+function TrackRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ borderBottom: '1px solid #1a1a1a', marginTop: 4, overflow: 'hidden' }}>
-      {children}
+    <div style={{
+      borderBottom: `1px solid ${COLOR.border.subtle}`,
+      marginTop: 4,
+      display: 'flex',
+      alignItems: 'stretch',
+    }}>
+      <div style={{
+        width: TRACK_LABEL_WIDTH,
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        paddingRight: 8,
+        paddingLeft: 4,
+        borderRight: `1px solid ${COLOR.border.subtle}`,
+        color: COLOR.text.muted,
+        fontSize: TYPE.xs.fontSize,
+        fontFamily: FONT_FAMILY,
+        fontWeight: 500,
+        letterSpacing: '0.04em',
+        textAlign: 'right',
+        userSelect: 'none',
+      }}>
+        {label}
+      </div>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -32,72 +64,73 @@ export function TrackStack({
   canvasWidth,
   loading,
   error,
+  showCodons,
 }: TrackStackProps) {
-  const trackWidth = Math.max(100, canvasWidth);
+  const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
+  const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ backgroundColor: '#0A0A0A' }}>
+      <div className="flex items-center justify-center h-full" style={{ backgroundColor: COLOR.bg.primary }}>
         <div className="text-center">
-          <p style={{ color: '#F43F5E', fontSize: 16, fontWeight: 500, marginBottom: 4 }}>Error loading data</p>
-          <p style={{ color: 'rgba(244,63,94,0.6)', fontSize: 13 }}>{error}</p>
+          <p style={{ color: COLOR.accent.rose, fontSize: TYPE.md.fontSize, fontWeight: 500, marginBottom: 4 }}>
+            Error loading data
+          </p>
+          <p style={{ color: `${COLOR.accent.rose}99`, fontSize: TYPE.base.fontSize }}>{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative h-full overflow-y-auto" style={{ backgroundColor: '#0A0A0A' }}>
-      {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ backgroundColor: 'rgba(10,10,10,0.6)', backdropFilter: 'blur(4px)' }}>
-          <div className="flex items-center gap-3" style={{ color: '#E0E0E0' }}>
-            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span style={{ fontSize: 13 }}>Loading...</span>
-          </div>
-        </div>
-      )}
+    <div className="relative h-full overflow-y-auto" style={{ backgroundColor: COLOR.bg.primary }}>
 
       <div className="flex flex-col">
         {data?.sequence != null && (
-          <TrackRow>
-            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
+          <TrackRow label="Sequence">
+            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} />
           </TrackRow>
         )}
 
-        <TrackRow>
+        {showCodons && bpW >= 1 && (
+          <TrackRow label="Frames">
+            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} />
+          </TrackRow>
+        )}
+
+        <TrackRow label="GC%">
           <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
         </TrackRow>
 
         {data?.layers?.gencode_v44 && (
-          <TrackRow>
-            <GeneTrack data={data.layers.gencode_v44} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} />
+          <TrackRow label="Genes">
+            <GeneTrack data={data.layers.gencode_v44} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} showCodons={showCodons} />
           </TrackRow>
         )}
 
         {data?.layers?.cpg_sites && (
-          <TrackRow>
+          <TrackRow label="CpG Sites">
             <CpgTrack data={data.layers.cpg_sites} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
           </TrackRow>
         )}
 
         {data?.layers?.probe_epic_v2 && (
-          <TrackRow>
+          <TrackRow label="Probes">
             <ProbeTrack data={data.layers.probe_epic_v2} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
 
         {data?.layers?.isochores && (
-          <TrackRow>
+          <TrackRow label="Isochores">
             <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
           </TrackRow>
         )}
 
         {!data && !loading && (
           <div className="flex items-center justify-center py-16">
-            <p style={{ color: '#444444', fontSize: 13 }}>Navigate to a genomic region to view tracks</p>
+            <p style={{ color: COLOR.text.faint, fontSize: TYPE.base.fontSize, fontFamily: FONT_FAMILY }}>
+              Enter a region or gene symbol above
+            </p>
           </div>
         )}
       </div>
