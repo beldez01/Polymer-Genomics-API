@@ -115,29 +115,122 @@ export function Sidebar({
     return (
       <Tag
         onClick={placeholder ? undefined : onClick}
-        className="w-full flex flex-col items-start"
+        className="w-full flex items-start gap-2"
         style={{
-          padding: `${SPACE[2]}px ${SPACE[3]}px`,
+          padding: `${SPACE[1] + 2}px ${SPACE[2]}px`,
           backgroundColor: active ? COLOR.bg.track : 'transparent',
           cursor: placeholder ? 'default' : 'pointer',
           border: 'none',
           borderBlockEnd: `1px solid ${COLOR.bg.track}`,
-          borderLeft: `2px solid ${active ? color : color + '4D'}`,
-          transition: 'background-color 0.15s, border-color 0.15s',
+          transition: 'background-color 0.15s',
           width: '100%',
           textAlign: 'left',
         } as React.CSSProperties}
       >
         <span style={{
-          color: active ? COLOR.text.secondary : COLOR.text.tertiary,
-          fontSize: TYPE.sm.fontSize,
-          fontFamily: FONT_FAMILY,
-          textAlign: 'left',
-        }}>
-          {name}
-        </span>
-        {subLine}
+          width: 10,
+          height: 10,
+          borderRadius: 2,
+          backgroundColor: active ? color : color + '4D',
+          flexShrink: 0,
+          marginTop: 3,
+        }} />
+        <div className="flex flex-col">
+          <span style={{
+            color: active ? COLOR.text.secondary : COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            textAlign: 'left',
+          }}>
+            {name}
+          </span>
+          {subLine}
+        </div>
       </Tag>
+    );
+  }
+
+  /** Render the probe group with checkboxes. */
+  function ProbeGroup() {
+    const probeKeys = ['probe_epic_v2', 'probe_epic_v1', 'probe_450k'] as const;
+    const probeLabels: Record<string, string> = {
+      probe_epic_v2: 'EPIC v2',
+      probe_epic_v1: 'EPIC v1',
+      probe_450k: '450K',
+    };
+    const anyActive = probeKeys.some((k) => activeLayers.includes(k));
+    const groupColor = LAYER_COLORS.probe_epic_v2 ?? '#F0A500';
+
+    return (
+      <div style={{
+        padding: `${SPACE[1] + 2}px ${SPACE[2]}px`,
+        backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
+        borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+      }}>
+        <div className="flex items-start gap-2">
+          <span style={{
+            width: 10,
+            height: 10,
+            borderRadius: 2,
+            backgroundColor: anyActive ? groupColor : groupColor + '4D',
+            flexShrink: 0,
+            marginTop: 3,
+          }} />
+          <span style={{
+            color: anyActive ? COLOR.text.secondary : COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+          }}>
+            Methylation Probes
+          </span>
+        </div>
+        <div style={{ paddingLeft: 18, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {probeKeys.map((key) => {
+            const l = apiLayerMap.get(key);
+            const active = activeLayers.includes(key);
+            const color = LAYER_COLORS[key] ?? groupColor;
+            return (
+              <button
+                key={key}
+                onClick={() => onToggleLayer(key)}
+                className="flex items-center gap-2"
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 2,
+                  border: `1.5px solid ${active ? color : COLOR.text.faint}`,
+                  backgroundColor: active ? color : 'transparent',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {active && (
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <path d="M1.5 4L3.2 5.7L6.5 2.3" stroke={COLOR.bg.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </span>
+                <span style={{
+                  color: active ? COLOR.text.secondary : COLOR.text.faint,
+                  fontSize: TYPE.xs.fontSize,
+                  fontFamily: FONT_FAMILY,
+                }}>
+                  {probeLabels[key]}{l?.row_count != null ? ` · ${formatCount(l.row_count)}` : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
     );
   }
 
@@ -177,41 +270,26 @@ export function Sidebar({
             onClick={onToggleCodons}
           />
 
-          {/* 3–6. API layers in canonical order */}
+          {/* 3–N. API layers in canonical order, probes grouped */}
           {LAYER_ORDER.map((key) => {
+            // Render probe group once when we hit the first probe key
+            if (PROBE_LAYER_KEYS.has(key)) {
+              if (key === 'probe_epic_v2') return <ProbeGroup key="probe_group" />;
+              return null; // skip v1 and 450k — handled by ProbeGroup
+            }
             const l = apiLayerMap.get(key);
             if (!l) return null;
             const active = activeLayers.includes(key);
-            const isProbe = PROBE_LAYER_KEYS.has(key);
-            const subLine = (
-              <>
-                {l.row_count != null && (
-                  <span style={{
-                    color: COLOR.text.faint,
-                    fontSize: TYPE.xs.fontSize,
-                    fontFamily: FONT_FAMILY,
-                    marginTop: 1,
-                  }}>
-                    {formatCount(l.row_count)}
-                    {isProbe && (
-                      <span style={{ color: COLOR.text.faint, marginLeft: 4 }}>
-                        · {build} mapping
-                      </span>
-                    )}
-                  </span>
-                )}
-                {l.row_count == null && isProbe && (
-                  <span style={{
-                    color: COLOR.text.faint,
-                    fontSize: TYPE.xs.fontSize,
-                    fontFamily: FONT_FAMILY,
-                    marginTop: 1,
-                  }}>
-                    {build} mapping
-                  </span>
-                )}
-              </>
-            );
+            const subLine = l.row_count != null ? (
+              <span style={{
+                color: COLOR.text.faint,
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                marginTop: 1,
+              }}>
+                {formatCount(l.row_count)}
+              </span>
+            ) : undefined;
             return (
               <AnnotationRow
                 key={key}
