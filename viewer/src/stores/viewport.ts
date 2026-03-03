@@ -19,6 +19,9 @@ export interface ViewportState {
   showCodons: boolean;
   showGC: boolean;
 
+  // Methylation atlas cell type visibility
+  visibleCellTypes: string[];
+
   // Actions
   setBuild: (build: GenomeBuild) => void;
   setRegion: (chr: string, start: number, end: number) => void;
@@ -31,6 +34,7 @@ export interface ViewportState {
   setLayers: (layers: string[]) => void;
   toggleCodons: () => void;
   toggleGC: () => void;
+  toggleCellType: (cellType: string) => void;
 }
 
 /**
@@ -55,6 +59,7 @@ export const useViewport = create<ViewportState>((set, get) => ({
   activeLayers: ['gencode_v44', 'cpg_sites'],
   showCodons: false,
   showGC: true,
+  visibleCellTypes: ['Gran', 'Mono', 'NK', 'Bcell', 'CD4T', 'CD8T'],
 
   setBuild: (build) => set({ build }),
 
@@ -84,18 +89,20 @@ export const useViewport = create<ViewportState>((set, get) => ({
 
   panLeft: (fraction = 0.25) => {
     const { start, end } = get();
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
     const width = end - start + 1;
     const shift = Math.max(1, Math.round(width * fraction));
     const newStart = Math.max(1, start - shift);
     const newEnd = newStart + width - 1;
-    set({ start: newStart, end: newEnd });
+    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
   },
 
   panRight: (fraction = 0.25) => {
-    const { start, end } = get();
-    const width = end - start + 1;
+    const state = get();
+    if (!Number.isFinite(state.start) || !Number.isFinite(state.end)) return;
+    const width = state.end - state.start + 1;
     const shift = Math.max(1, Math.round(width * fraction));
-    set({ start: start + shift, end: end + shift });
+    set({ start: state.start + shift, end: state.end + shift, width });
   },
 
   zoomToBase: (chr, position) => {
@@ -117,4 +124,20 @@ export const useViewport = create<ViewportState>((set, get) => ({
 
   toggleCodons: () => set((state) => ({ showCodons: !state.showCodons })),
   toggleGC: () => set((state) => ({ showGC: !state.showGC })),
+
+  toggleCellType: (cellType) =>
+    set((state) => {
+      const next = state.visibleCellTypes.includes(cellType)
+        ? state.visibleCellTypes.filter((c) => c !== cellType)
+        : [...state.visibleCellTypes, cellType];
+      // If all cell types unchecked, also remove methylation_atlas from activeLayers
+      if (next.length === 0 && state.activeLayers.includes('methylation_atlas')) {
+        return { visibleCellTypes: next, activeLayers: state.activeLayers.filter((l) => l !== 'methylation_atlas') };
+      }
+      // If re-enabling a cell type and methylation_atlas not active, add it
+      if (next.length > 0 && !state.activeLayers.includes('methylation_atlas')) {
+        return { visibleCellTypes: next, activeLayers: [...state.activeLayers, 'methylation_atlas'] };
+      }
+      return { visibleCellTypes: next };
+    }),
 }));

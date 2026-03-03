@@ -73,6 +73,22 @@ def _aggregation_query(layer_type: str) -> str:
             GROUP BY bin_start
             ORDER BY bin_start
         """
+    elif layer_type == "gene_cost":
+        return """
+            SELECT floor(gc.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS gene_count,
+                   count(*)::float / $6 AS density,
+                   avg(gc.ecpa_b20) AS mean_ecpa,
+                   sum(gc.c_protein) AS total_cost,
+                   avg(gc.cai) AS mean_cai
+            FROM bioenergetics.gene_costs gc
+            WHERE gc.build = $1::genome_build
+              AND gc.chr_id = $2
+              AND gc.coord && int4range($3, $4)
+              AND gc.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
     return None
 
 
@@ -179,16 +195,28 @@ async def aggregate_region(
             )
 
             has_gc = lr["layer_type"] in _GC_LAYER_TYPES
+            is_gene_cost = lr["layer_type"] == "gene_cost"
             bins = []
             for r in rows:
-                bin_entry = {
-                    "bin_start": int(r["bin_start"]),
-                    "bin_end": int(r["bin_start"]) + resolution,
-                    "count": r["count"],
-                    "density": r["density"],
-                }
-                if has_gc:
-                    bin_entry["avg_gc"] = float(r["avg_gc"]) if r["avg_gc"] is not None else None
+                if is_gene_cost:
+                    bin_entry = {
+                        "bin_start": int(r["bin_start"]),
+                        "bin_end": int(r["bin_start"]) + resolution,
+                        "gene_count": r["gene_count"],
+                        "density": r["density"],
+                        "mean_ecpa": float(r["mean_ecpa"]) if r["mean_ecpa"] is not None else None,
+                        "total_cost": float(r["total_cost"]) if r["total_cost"] is not None else None,
+                        "mean_cai": float(r["mean_cai"]) if r["mean_cai"] is not None else None,
+                    }
+                else:
+                    bin_entry = {
+                        "bin_start": int(r["bin_start"]),
+                        "bin_end": int(r["bin_start"]) + resolution,
+                        "count": r["count"],
+                        "density": r["density"],
+                    }
+                    if has_gc:
+                        bin_entry["avg_gc"] = float(r["avg_gc"]) if r["avg_gc"] is not None else None
                 bins.append(bin_entry)
 
             data[lr["layer_key"]] = {

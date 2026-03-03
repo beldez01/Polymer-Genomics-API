@@ -7,6 +7,7 @@ import { CodonFrameTrack } from './tracks/CodonFrameTrack';
 import { CpgTrack } from './tracks/CpgTrack';
 import { ProbeTrack } from './tracks/ProbeTrack';
 import { IsochoreTrack } from './tracks/IsochoreTrack';
+import { CostTrack } from './tracks/CostTrack';
 import { GCTrack } from './tracks/GCTrack';
 import { MethylationReferenceTrack } from './tracks/MethylationReferenceTrack';
 import { basePairWidth } from '@/lib/coordinates';
@@ -23,6 +24,7 @@ export interface TrackStackProps {
   error: string | null;
   showCodons?: boolean;
   showGC?: boolean;
+  visibleCellTypes?: string[];
 }
 
 function TrackRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -68,6 +70,7 @@ export function TrackStack({
   error,
   showCodons,
   showGC = true,
+  visibleCellTypes,
 }: TrackStackProps) {
   const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
   const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
@@ -89,9 +92,15 @@ export function TrackStack({
     <div className="relative h-full overflow-y-auto" style={{ backgroundColor: COLOR.bg.primary }}>
 
       <div className="flex flex-col">
+        {data?.layers?.isochores && (
+          <TrackRow label="Isochores">
+            <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
+          </TrackRow>
+        )}
+
         {data?.sequence != null && (
           <TrackRow label="Sequence">
-            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} />
+            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} />
           </TrackRow>
         )}
 
@@ -107,11 +116,13 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        {data?.layers?.cpg_sites && (
-          <TrackRow label="CpG Sites">
-            <CpgTrack data={data.layers.cpg_sites} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
+        {data?.layers?.gene_costs_v1 && (
+          <TrackRow label="Cost">
+            <CostTrack data={data.layers.gene_costs_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={36} />
           </TrackRow>
         )}
+
+        {/* CpG Sites rendered as overlay on Sequence track — no separate row */}
 
         {data?.layers?.probe_epic_v2 && (
           <TrackRow label="Probes">
@@ -119,15 +130,9 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        {data?.layers?.isochores && (
-          <TrackRow label="Isochores">
-            <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
-          </TrackRow>
-        )}
-
         {data?.layers?.methylation_atlas && (
           <TrackRow label="Meth Ref">
-            <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
+            <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} visibleCellTypes={visibleCellTypes} />
           </TrackRow>
         )}
 

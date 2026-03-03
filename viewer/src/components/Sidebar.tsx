@@ -33,7 +33,7 @@ const LAYER_COLORS: Record<string, string> = {
 const PROBE_LAYER_KEYS = new Set(['probe_epic_v2', 'probe_epic_v1', 'probe_450k']);
 
 /** Canonical display order for API layers (between Codons and GC%). */
-const LAYER_ORDER = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k', 'isochores', 'methylation_atlas'];
+const LAYER_ORDER = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k', 'methylation_atlas'];
 
 const ZOOM_PRESETS = [
   { label: '1 bp',   width: 50 },
@@ -115,9 +115,9 @@ export function Sidebar({
     return (
       <Tag
         onClick={placeholder ? undefined : onClick}
-        className="w-full flex items-start gap-2"
+        className="w-full flex items-center gap-1.5"
         style={{
-          padding: `${SPACE[1] + 2}px ${SPACE[2]}px`,
+          padding: `3px ${SPACE[1]}px`,
           backgroundColor: active ? COLOR.bg.track : 'transparent',
           cursor: placeholder ? 'default' : 'pointer',
           border: 'none',
@@ -128,24 +128,24 @@ export function Sidebar({
         } as React.CSSProperties}
       >
         <span style={{
-          width: 10,
-          height: 10,
+          width: 8,
+          height: 8,
           borderRadius: 2,
           backgroundColor: active ? color : color + '4D',
           flexShrink: 0,
-          marginTop: 3,
         }} />
-        <div className="flex flex-col">
-          <span style={{
-            color: active ? COLOR.text.secondary : COLOR.text.tertiary,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            textAlign: 'left',
-          }}>
-            {name}
-          </span>
+        <span style={{
+          color: active ? COLOR.text.secondary : COLOR.text.tertiary,
+          fontSize: TYPE.sm.fontSize,
+          fontFamily: FONT_FAMILY,
+          textAlign: 'left',
+          lineHeight: 1.2,
+        }}>
+          {name}
+        </span>
+        {subLine && <span style={{ color: COLOR.text.faint, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, marginLeft: 2 }}>
           {subLine}
-        </div>
+        </span>}
       </Tag>
     );
   }
@@ -163,18 +163,17 @@ export function Sidebar({
 
     return (
       <div style={{
-        padding: `${SPACE[1] + 2}px ${SPACE[2]}px`,
+        padding: `3px ${SPACE[1]}px`,
         backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
         borderBlockEnd: `1px solid ${COLOR.bg.track}`,
       }}>
-        <div className="flex items-start gap-2">
+        <div className="flex items-center gap-1.5">
           <span style={{
-            width: 10,
-            height: 10,
+            width: 8,
+            height: 8,
             borderRadius: 2,
             backgroundColor: anyActive ? groupColor : groupColor + '4D',
             flexShrink: 0,
-            marginTop: 3,
           }} />
           <span style={{
             color: anyActive ? COLOR.text.secondary : COLOR.text.tertiary,
@@ -184,7 +183,7 @@ export function Sidebar({
             Methylation Probes
           </span>
         </div>
-        <div style={{ paddingLeft: 18, marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {probeKeys.map((key) => {
             const l = apiLayerMap.get(key);
             const active = activeLayers.includes(key);
@@ -193,7 +192,7 @@ export function Sidebar({
               <button
                 key={key}
                 onClick={() => onToggleLayer(key)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-1.5"
                 style={{
                   border: 'none',
                   background: 'none',
@@ -203,8 +202,8 @@ export function Sidebar({
                 }}
               >
                 <span style={{
-                  width: 12,
-                  height: 12,
+                  width: 10,
+                  height: 10,
                   borderRadius: 2,
                   border: `1.5px solid ${active ? color : COLOR.text.faint}`,
                   backgroundColor: active ? color : 'transparent',
@@ -214,7 +213,7 @@ export function Sidebar({
                   justifyContent: 'center',
                 }}>
                   {active && (
-                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                    <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
                       <path d="M1.5 4L3.2 5.7L6.5 2.3" stroke={COLOR.bg.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   )}
@@ -245,7 +244,7 @@ export function Sidebar({
       {/* ─── Annotation Layers ─── */}
       <div>
         <div style={{
-          padding: `${SPACE[2]}px ${SPACE[3]}px`,
+          padding: `${SPACE[1]}px ${SPACE[2]}px`,
           borderBottom: `2px solid ${COLOR.border.default}`,
           backgroundColor: COLOR.bg.elevated,
         }}>
@@ -254,7 +253,23 @@ export function Sidebar({
 
         <div style={{ borderBottom: `1px solid ${COLOR.border.subtle}` }}>
 
-          {/* 1. Sequence — placeholder, always active */}
+          {/* 1. Isochores — above sequence */}
+          {(() => {
+            const l = apiLayerMap.get('isochores');
+            const active = activeLayers.includes('isochores');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            return (
+              <AnnotationRow
+                colorKey="isochores"
+                active={active}
+                name={l ? cleanName(l.name || 'Isochores') : 'Isochores'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('isochores')}
+              />
+            );
+          })()}
+
+          {/* 2. Sequence — placeholder, always active */}
           <AnnotationRow
             colorKey="sequence"
             active
@@ -280,16 +295,7 @@ export function Sidebar({
             const l = apiLayerMap.get(key);
             if (!l) return null;
             const active = activeLayers.includes(key);
-            const subLine = l.row_count != null ? (
-              <span style={{
-                color: COLOR.text.faint,
-                fontSize: TYPE.xs.fontSize,
-                fontFamily: FONT_FAMILY,
-                marginTop: 1,
-              }}>
-                {formatCount(l.row_count)}
-              </span>
-            ) : undefined;
+            const subLine = l.row_count != null ? formatCount(l.row_count) : undefined;
             return (
               <AnnotationRow
                 key={key}
@@ -314,23 +320,23 @@ export function Sidebar({
       </div>
 
       {/* ─── Navigation ─── */}
-      <div style={{ padding: `${SPACE[3]}px ${SPACE[3]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
+      <div style={{ padding: `${SPACE[2]}px ${SPACE[2]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
         <div style={{
           color: COLOR.text.tertiary,
-          fontSize: TYPE.xs.fontSize,
+          fontSize: 9,
           fontFamily: FONT_FAMILY,
-          marginBottom: SPACE[2],
+          marginBottom: SPACE[1],
           letterSpacing: '0.08em',
           fontWeight: WEIGHT.medium,
         }}>
           NAVIGATION
         </div>
-        <div className="flex gap-1" style={{ marginBottom: SPACE[2] }}>
-          <button onClick={onPanLeft}  style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
-          <button onClick={onPanRight} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
-          <div style={{ width: SPACE[2] }} />
-          <button onClick={onZoomIn}  style={COMPONENT.button.small} title="Zoom in 2x">+</button>
-          <button onClick={onZoomOut} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
+        <div className="flex gap-1" style={{ marginBottom: SPACE[1] }}>
+          <button onClick={() => onPanLeft()}  style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
+          <button onClick={() => onPanRight()} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
+          <div style={{ width: SPACE[1] }} />
+          <button onClick={() => onZoomIn()}  style={COMPONENT.button.small} title="Zoom in 2x">+</button>
+          <button onClick={() => onZoomOut()} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
         </div>
         <div className="flex flex-wrap gap-1">
           {ZOOM_PRESETS.map((p) => {

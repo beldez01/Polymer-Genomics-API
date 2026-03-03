@@ -1,26 +1,34 @@
 #!/usr/bin/env Rscript
 # export_methylation_reference.R
 #
-# Export Salas 2018 (FlowSorted.Blood.EPIC) 6-cell-type IDOL reference betas
-# to a CSV ready for ingestion into ref.methylation_reference.
+# Export full cell-type reference methylation betas from FlowSorted.Blood.EPIC
+# (Salas 2018, 37 purified samples, EPIC v1 array) for all ~865K probes.
+#
+# Pipeline:
+#   1. Load RGChannelSet from ExperimentHub (EH1136)
+#   2. Subset to purified cell types (exclude MIX samples)
+#   3. preprocessQuantile normalization
+#   4. Extract betas, average per cell type
+#   5. Merge with probe coordinates from EPIC v1 annotation
+#   6. Export CSV
 #
 # Output columns: probe_id, chr, pos, Gran, Mono, NK, Bcell, CD4T, CD8T
 #   - pos is 1-based (API convention; ingest converts to 0-based internally)
 #
 # Usage:
 #   Rscript export_methylation_reference.R
-#   Rscript export_methylation_reference.R --out /path/to/methylation_reference_hg38.csv
-#   Rscript export_methylation_reference.R --build hg37
+#   Rscript export_methylation_reference.R --out data/methylation_reference_hg38.csv
 #
 # Requirements:
 #   BiocManager::install(c("FlowSorted.Blood.EPIC", "minfi",
-#     "IlluminaHumanMethylationEPICanno.ilm10b4.hg19",
-#     "IlluminaHumanMethylationEPICv2anno.20a1.hg38"))
+#     "IlluminaHumanMethylationEPICanno.ilm10b4.hg19", "ExperimentHub"))
 #   install.packages("optparse")
 
 suppressPackageStartupMessages({
   library(optparse)
   library(FlowSorted.Blood.EPIC)
+  library(minfi)
+  library(ExperimentHub)
 })
 
 # ── Options ──────────────────────────────────────────────────────────────────
@@ -38,68 +46,104 @@ option_list <- list(
 
 opt <- parse_args(OptionParser(option_list = option_list))
 
-build  <- opt$build
+build   <- opt$build
 outfile <- opt$out %||% file.path("data", paste0("methylation_reference_", build, ".csv"))
 
 stopifnot(build %in% c("hg38", "hg37"))
-cat(sprintf("Build: %s\nOutput: %s\n", build, outfile))
+cat(sprintf("Build: %s\nOutput: %s\n\n", build, outfile))
 
-# ── Load IDOL Reference Betas ───────────────────────────────────────────────
+# ── 1. Load RGChannelSet ─────────────────────────────────────────────────────
 
-cat("Loading IDOLOptimizedCpGs.compTable (450 probes x 6 cell types)...\n")
+cat("Loading FlowSorted.Blood.EPIC RGChannelSet from ExperimentHub...\n")
 
-data("IDOLOptimizedCpGs.compTable", package = "FlowSorted.Blood.EPIC")
+hub   <- ExperimentHub()
+rgSet <- hub[["EH1136"]]
 
-ref_betas <- IDOLOptimizedCpGs.compTable
-# Matrix: 450 rows (probes) x 6 cols (CD8T, CD4T, NK, Bcell, Mono, Neu)
+cat(sprintf("  Loaded: %d samples, %d probes (green channel)\n",
+            ncol(rgSet), nrow(getGreen(rgSet))))
+cat(sprintf("  Cell types: %s\n",
+            paste(names(table(pData(rgSet)$CellType)), collapse = ", ")))
+print(table(pData(rgSet)$CellType))
 
-cat(sprintf("  Loaded: %d probes x %d cell types\n", nrow(ref_betas), ncol(ref_betas)))
-cat(sprintf("  Columns: %s\n", paste(colnames(ref_betas), collapse = ", ")))
+# ── 2. Subset to Purified Cell Types ─────────────────────────────────────────
 
-# Rename Neu -> Gran (neutrophils are the dominant granulocyte fraction)
-colnames(ref_betas)[colnames(ref_betas) == "Neu"] <- "Gran"
+cat("\nSubsetting to purified cell types (excluding MIX)...\n")
+
+purified <- rgSet[, pData(rgSet)$CellType != "MIX"]
+cat(sprintf("  Purified samples: %d\n", ncol(purified)))
+print(table(pData(purified)$CellType))
+
+# ── 3. Normalize ─────────────────────────────────────────────────────────────
+
+cat("\nRunning preprocessQuantile normalization...\n")
+cat("  (This may take 5-10 minutes)\n")
+
+t0 <- proc.time()
+mSet <- preprocessQuantile(purified)
+elapsed <- (proc.time() - t0)[3]
+cat(sprintf("  Normalization complete in %.1f seconds\n", elapsed))
+cat(sprintf("  Result: %d probes x %d samples\n", nrow(mSet), ncol(mSet)))
+
+# ── 4. Extract Betas and Average Per Cell Type ───────────────────────────────
+
+cat("\nExtracting betas and computing cell-type means...\n")
+
+betas     <- getBeta(mSet)
+cell_types <- pData(mSet)$CellType
+
+# Map Neu -> Gran for output naming
+target_types <- c("CD8T", "CD4T", "NK", "Bcell", "Mono", "Neu")
+output_names <- c("CD8T", "CD4T", "NK", "Bcell", "Mono", "Gran")
+
+ref_matrix <- matrix(NA_real_, nrow = nrow(betas), ncol = length(target_types))
+colnames(ref_matrix) <- output_names
+rownames(ref_matrix) <- rownames(betas)
+
+for (i in seq_along(target_types)) {
+  ct <- target_types[i]
+  idx <- which(cell_types == ct)
+  if (length(idx) == 0) {
+    cat(sprintf("  WARNING: No samples for %s\n", ct))
+    next
+  }
+  ref_matrix[, i] <- rowMeans(betas[, idx, drop = FALSE], na.rm = TRUE)
+  cat(sprintf("  %s: %d samples, mean beta = %.4f\n",
+              output_names[i], length(idx), mean(ref_matrix[, i], na.rm = TRUE)))
+}
+
+# Drop probes with any NA across cell types
+na_mask <- complete.cases(ref_matrix)
+cat(sprintf("  Probes with complete data: %d / %d (dropped %d with NAs)\n",
+            sum(na_mask), nrow(ref_matrix), sum(!na_mask)))
+ref_matrix <- ref_matrix[na_mask, ]
 
 if (!is.null(opt$n)) {
   cat(sprintf("DEBUG: limiting to %d probes\n", opt$n))
-  ref_betas <- ref_betas[seq_len(min(opt$n, nrow(ref_betas))), , drop = FALSE]
+  ref_matrix <- ref_matrix[seq_len(min(opt$n, nrow(ref_matrix))), , drop = FALSE]
 }
 
-# ── Get Probe Coordinates ────────────────────────────────────────────────────
+# ── 5. Get Probe Coordinates ─────────────────────────────────────────────────
 
-cat("Loading probe coordinates...\n")
+cat("\nLoading probe coordinates from EPIC v1 annotation...\n")
 
-probe_ids <- rownames(ref_betas)
+suppressPackageStartupMessages(
+  library(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
+)
+anno_obj <- getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
+
+probe_ids <- rownames(ref_matrix)
+matched   <- probe_ids[probe_ids %in% rownames(anno_obj)]
+anno      <- anno_obj[matched, ]
+
+cat(sprintf("  Matched: %d / %d probes in annotation\n",
+            length(matched), length(probe_ids)))
 
 if (build == "hg38") {
-  # Try v2 annotation (hg38 native) first — probe IDs have _BCXX suffixes
-  # Fall back to v1 annotation (hg19) which has exact cg ID matches
-  suppressPackageStartupMessages(
-    library(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
-  )
-
-  # v1 annotation: probes match IDOL IDs exactly (both use cg\d{8} format)
-  anno_obj <- minfi::getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
-  matched <- probe_ids[probe_ids %in% rownames(anno_obj)]
-  anno <- anno_obj[matched, ]
-  cat(sprintf("  Using EPIC v1 annotation (hg19): %d / %d probes matched\n",
-              length(matched), length(probe_ids)))
-
-  if (build == "hg38") {
-    cat("  NOTE: Coordinates are hg19. For hg38, liftOver would be needed.\n")
-    cat("  Using hg19 coordinates (positional error is typically <10bp at probe resolution).\n")
-  }
-} else {
-  suppressPackageStartupMessages(
-    library(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
-  )
-  anno_obj <- minfi::getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b4.hg19)
-  matched <- probe_ids[probe_ids %in% rownames(anno_obj)]
-  anno <- anno_obj[matched, ]
-  cat(sprintf("  Using EPIC v1 annotation (hg19): %d / %d probes matched\n",
-              length(matched), length(probe_ids)))
+  cat("  NOTE: Coordinates are hg19. For hg38, liftOver would be needed.\n")
+  cat("  Using hg19 coordinates (positional offset is typically <10bp at probe resolution).\n")
 }
 
-# Extract coordinates
+# Build coordinates data frame
 coords <- data.frame(
   probe_id = rownames(anno),
   chr      = as.character(anno$chr),
@@ -107,11 +151,11 @@ coords <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# ── Merge Betas + Coordinates ────────────────────────────────────────────────
+# ── 6. Merge and Write ───────────────────────────────────────────────────────
 
-cat("Merging betas with coordinates...\n")
+cat("\nMerging betas with coordinates...\n")
 
-ref_df <- as.data.frame(ref_betas)
+ref_df          <- as.data.frame(ref_matrix[matched, , drop = FALSE])
 ref_df$probe_id <- rownames(ref_df)
 
 merged <- merge(coords, ref_df, by = "probe_id", all.x = FALSE, all.y = FALSE)
@@ -120,7 +164,7 @@ merged <- merge(coords, ref_df, by = "probe_id", all.x = FALSE, all.y = FALSE)
 valid_chrs <- paste0("chr", c(1:22, "X", "Y", "M"))
 merged <- merged[merged$chr %in% valid_chrs, ]
 
-# Round betas to 4 decimal places
+# Round betas to 4 decimal places (sufficient for visualization)
 beta_cols <- c("Gran", "Mono", "NK", "Bcell", "CD4T", "CD8T")
 for (col in intersect(beta_cols, colnames(merged))) {
   merged[[col]] <- round(merged[[col]], 4)
@@ -133,15 +177,14 @@ merged <- merged[order(chr_order, merged$pos), ]
 cat(sprintf("  Final: %d probes across %d chromosomes\n",
             nrow(merged), length(unique(merged$chr))))
 
-# ── Write Output ─────────────────────────────────────────────────────────────
-
+# Write
 dir.create(dirname(outfile), showWarnings = FALSE, recursive = TRUE)
 
-out_cols <- c("probe_id", "chr", "pos",
-              intersect(beta_cols, colnames(merged)))
+out_cols   <- c("probe_id", "chr", "pos", intersect(beta_cols, colnames(merged)))
 merged_out <- merged[, out_cols]
 
 write.csv(merged_out, outfile, row.names = FALSE, quote = FALSE)
-cat(sprintf("Wrote %s (%d rows, %d cols)\n",
-            outfile, nrow(merged_out), ncol(merged_out)))
+
+cat(sprintf("\nWrote %s (%d rows, %d cols)\n", outfile, nrow(merged_out), ncol(merged_out)))
+cat(sprintf("  ~%.1f probes per kb genome-wide\n", nrow(merged_out) / 3.1e6))
 cat("Done.\n")

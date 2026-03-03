@@ -12,7 +12,7 @@ import re
 import asyncpg
 
 # Whitelist of schemas and tables allowed in dynamic SQL to prevent injection.
-ALLOWED_SCHEMAS = frozenset({"cpg", "gene", "probe", "methylation", "ref", "registry", "storage"})
+ALLOWED_SCHEMAS = frozenset({"cpg", "gene", "probe", "methylation", "ref", "registry", "storage", "bioenergetics"})
 ALLOWED_TABLES = frozenset({
     "features",
     "sites",
@@ -22,6 +22,7 @@ ALLOWED_TABLES = frozenset({
     "atlas_layers",
     "methylation_reference",
     "isochores",
+    "gene_costs",
     "layers",
     "objects",
 })

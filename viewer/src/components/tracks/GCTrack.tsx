@@ -78,7 +78,7 @@ function gcFromCpgSites(
     const gc = cpg.mcols.gc_content[i];
     if (typeof gc !== 'number') continue;
     const bin = Math.min(binCount - 1, Math.floor(((pos - viewStart) / span) * binCount));
-    bins[bin].push(gc);
+    if (bin >= 0 && bin < binCount) bins[bin].push(gc);
   }
 
   // Check if we have enough data

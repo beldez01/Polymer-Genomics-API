@@ -8,6 +8,7 @@ from polymer_genomics.db import close_pool, get_pool, init_pool
 from polymer_genomics.middleware import APIKeyMiddleware
 from polymer_genomics.routers.aggregation import router as aggregation_router
 from polymer_genomics.routers.bulk import router as bulk_router
+from polymer_genomics.routers.gene_costs import router as gene_costs_router
 from polymer_genomics.routers.genes import router as genes_router
 from polymer_genomics.routers.layers import router as layers_router
 from polymer_genomics.routers.probes import router as probes_router
@@ -48,6 +49,7 @@ app.add_middleware(
 
 app.include_router(aggregation_router)
 app.include_router(bulk_router)
+app.include_router(gene_costs_router)
 app.include_router(genes_router)
 app.include_router(layers_router)
 app.include_router(probes_router)

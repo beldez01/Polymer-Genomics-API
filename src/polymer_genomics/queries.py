@@ -83,6 +83,24 @@ def region_methylation_reference_query() -> str:
     """
 
 
+def region_gene_costs_query() -> str:
+    """Gene bioenergetic cost metrics (Akashi-Gojobori, CAI, GTEx EWGC)."""
+    return """
+        SELECT gc.gene_symbol, gc.start_pos, gc.end_pos, gc.strand,
+               gc.protein_length, gc.ecpa_b20, gc.c_protein,
+               gc.n_protein, gc.s_protein, gc.cai, gc.tai,
+               gc.mean_tpm, gc.max_tpm,
+               gc.frac_cheap, gc.frac_expensive
+        FROM bioenergetics.gene_costs gc
+        WHERE gc.build = $1::genome_build
+          AND gc.chr_id = $2
+          AND gc.coord && int4range($3, $4)
+          AND gc.layer_id = $5
+        ORDER BY gc.start_pos
+        LIMIT $6
+    """
+
+
 # ---------------------------------------------------------------------------
 # Row converter functions
 # ---------------------------------------------------------------------------
@@ -202,6 +220,55 @@ def _convert_methylation(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_gene_cost(rows: list, chr_name: str) -> dict:
+    starts, ends, widths, strands = [], [], [], []
+    symbols, protein_lengths = [], []
+    ecpa_b20s, c_proteins = [], []
+    n_proteins, s_proteins = [], []
+    cais, tais = [], []
+    mean_tpms, max_tpms = [], []
+    frac_cheaps, frac_expensives = [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        strands.append(r["strand"] or "*")
+        symbols.append(r["gene_symbol"])
+        protein_lengths.append(r["protein_length"])
+        ecpa_b20s.append(r["ecpa_b20"])
+        c_proteins.append(r["c_protein"])
+        n_proteins.append(r["n_protein"])
+        s_proteins.append(r["s_protein"])
+        cais.append(r["cai"])
+        tais.append(r["tai"])
+        mean_tpms.append(r["mean_tpm"])
+        max_tpms.append(r["max_tpm"])
+        frac_cheaps.append(r["frac_cheap"])
+        frac_expensives.append(r["frac_expensive"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": strands,
+        "mcols": {
+            "gene_symbol": symbols,
+            "protein_length": protein_lengths,
+            "ecpa_b20": ecpa_b20s,
+            "c_protein": c_proteins,
+            "n_protein": n_proteins,
+            "s_protein": s_proteins,
+            "cai": cais,
+            "tai": tais,
+            "mean_tpm": mean_tpms,
+            "max_tpm": max_tpms,
+            "frac_cheap": frac_cheaps,
+            "frac_expensive": frac_expensives,
+        },
+        "n": len(rows),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Declarative track registry
 # ---------------------------------------------------------------------------
@@ -226,6 +293,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "methylation": {
         "query_fn": region_methylation_reference_query,
         "convert_fn": _convert_methylation,
+    },
+    "gene_cost": {
+        "query_fn": region_gene_costs_query,
+        "convert_fn": _convert_gene_cost,
     },
 }
 

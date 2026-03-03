@@ -33,6 +33,18 @@ export interface RegionContext {
   nearestAUG: LandmarkInfo | null;
 
   gc: { percent: number | null; source: 'sequence' | 'cpg_sites' | 'isochore' };
+
+  cost: {
+    geneSymbol: string | null;
+    proteinLength: number | null;
+    ecpaB20: number | null;
+    cProtein: number | null;
+    nProtein: number | null;
+    sProtein: number | null;
+    cai: number | null;
+    tai: number | null;
+    meanTpm: number | null;
+  } | null;
 }
 
 function computeGC(
@@ -165,6 +177,29 @@ export function useRegionContext(
     // --- GC ---
     const gc = computeGC(data?.sequence ?? null, cpgData, isochoreData, center, start);
 
+    // --- Cost ---
+    let cost: RegionContext['cost'] = null;
+    const costData = data?.layers?.gene_costs_v1;
+    if (costData && costData.n > 0) {
+      // Find gene whose range contains center
+      for (let i = 0; i < costData.n; i++) {
+        if (center >= costData.ranges.start[i] && center <= costData.ranges.end[i]) {
+          cost = {
+            geneSymbol: (costData.mcols.gene_symbol?.[i] as string) ?? null,
+            proteinLength: (costData.mcols.protein_length?.[i] as number) ?? null,
+            ecpaB20: (costData.mcols.ecpa_b20?.[i] as number) ?? null,
+            cProtein: (costData.mcols.c_protein?.[i] as number) ?? null,
+            nProtein: (costData.mcols.n_protein?.[i] as number) ?? null,
+            sProtein: (costData.mcols.s_protein?.[i] as number) ?? null,
+            cai: (costData.mcols.cai?.[i] as number) ?? null,
+            tai: (costData.mcols.tai?.[i] as number) ?? null,
+            meanTpm: (costData.mcols.mean_tpm?.[i] as number) ?? null,
+          };
+          break;
+        }
+      }
+    }
+
     return {
       center,
       viewportWidth,
@@ -176,6 +211,7 @@ export function useRegionContext(
       nearestTSS,
       nearestAUG,
       gc,
+      cost,
     };
   }, [data, chr, start, end]);
 }

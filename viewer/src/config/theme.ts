@@ -96,6 +96,7 @@ export const COLOR = {
     probe_epic_v2:    '#F0A500',
     isochores:        '#8B5CF6',
     methylation_atlas:'#f43f5e',
+    gene_costs_v1:    '#10b981',
   },
 
   // Isochore classes — earth tones, low-key
@@ -113,6 +114,14 @@ export const COLOR = {
     shore:    '#14b8a6',
     shelf:    '#3b82f6',
     open_sea: '#6b7280',
+  },
+
+  // Bioenergetic cost tiers
+  cost: {
+    cheap:          '#22c55e',
+    moderate:       '#eab308',
+    expensive:      '#f97316',
+    very_expensive: '#ef4444',
   },
 
   // Canvas-specific
@@ -227,7 +236,7 @@ export const COMPONENT = {
 export const LAYOUT = {
   headerHeight: 48,
   ideogramHeight: 32,
-  sidebarWidth: 240,
+  sidebarWidth: 200,
   contextPanelWidth: 160,
   docsSidebarWidth: 200,
 } as const;

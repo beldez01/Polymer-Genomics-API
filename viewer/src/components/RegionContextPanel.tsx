@@ -194,6 +194,40 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
         )}
       </Section>
 
+      {/* COST */}
+      <Section title="COST">
+        {context.cost ? (
+          <>
+            <div style={styles.value}>
+              <span style={{ color: COLORS.accent.teal, fontWeight: 500 }}>{context.cost.geneSymbol}</span>
+              {context.cost.proteinLength != null && (
+                <span style={styles.muted}> ({context.cost.proteinLength} aa)</span>
+              )}
+            </div>
+            {context.cost.ecpaB20 != null && (
+              <div style={styles.value}>ECPA: {context.cost.ecpaB20.toFixed(1)} ATP/aa</div>
+            )}
+            {context.cost.cProtein != null && (
+              <div style={styles.value}>C_prot: {(context.cost.cProtein / 1000).toFixed(1)}k ATP</div>
+            )}
+            {context.cost.nProtein != null && (
+              <div style={styles.muted}>N: {context.cost.nProtein} S: {context.cost.sProtein ?? 0}</div>
+            )}
+            {context.cost.cai != null && (
+              <div style={styles.value}>CAI: {context.cost.cai.toFixed(3)}</div>
+            )}
+            {context.cost.tai != null && (
+              <div style={styles.value}>tAI: {context.cost.tai.toFixed(3)}</div>
+            )}
+            {context.cost.meanTpm != null && (
+              <div style={styles.muted}>TPM: {context.cost.meanTpm.toFixed(1)}</div>
+            )}
+          </>
+        ) : (
+          <div style={styles.muted}>No cost data</div>
+        )}
+      </Section>
+
       {/* LANDMARKS */}
       <Section title="LANDMARKS">
         {context.nearestSplice ? (

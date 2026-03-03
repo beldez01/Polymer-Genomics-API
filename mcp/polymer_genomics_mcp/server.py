@@ -198,6 +198,25 @@ async def aggregate_region(
 
 
 @mcp.tool()
+async def lookup_gene_cost(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up bioenergetic cost metrics for a gene.
+
+    Returns biosynthetic cost (Akashi-Gojobori ECPAgene), elemental composition
+    (N, S, C atoms), amino acid composition fractions, codon optimization
+    metrics (CAI, tAI, ENC), and tissue-specific expression with energetic
+    weighted gene cost (EWGC) from GTEx.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'ALB', 'TP53', 'BRCA1').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/cost")
+
+
+@mcp.tool()
 async def search(
     query: str,
     build: str = "hg38",

@@ -18,22 +18,22 @@ const CELL_TYPES = [
 
 const N_CELLS = CELL_TYPES.length;
 
-// Beta=0 → dark blue, Beta=1 → amber  (bisulfite methylation convention)
+// Beta=0 → blue (hypomethylated), Beta=0.5 → near-white, Beta=1 → red (hypermethylated)
 function betaToColor(beta: number | null | undefined): string {
   if (beta == null || isNaN(beta)) return '#333333';
   const t = Math.max(0, Math.min(1, beta));
-  // Interpolate: 0=deep blue (#1e3a5f), 0.5=near-black (#111), 1=amber (#f59e0b)
+  // Blue (#1e40af) → white (#e8e8e8) → Red (#b91c1c)
   if (t <= 0.5) {
     const s = t * 2;
-    const r = Math.round(30  + s * (17 - 30));
-    const g = Math.round(58  + s * (17 - 58));
-    const b = Math.round(95  + s * (17 - 95));
+    const r = Math.round(30  + s * (232 - 30));
+    const g = Math.round(64  + s * (232 - 64));
+    const b = Math.round(175 + s * (232 - 175));
     return `rgb(${r},${g},${b})`;
   } else {
     const s = (t - 0.5) * 2;
-    const r = Math.round(17  + s * (245 - 17));
-    const g = Math.round(17  + s * (158 - 17));
-    const b = Math.round(17  + s * (11  - 17));
+    const r = Math.round(232 + s * (185 - 232));
+    const g = Math.round(232 + s * (28  - 232));
+    const b = Math.round(232 + s * (28  - 232));
     return `rgb(${r},${g},${b})`;
   }
 }
@@ -44,6 +44,7 @@ export interface MethylationReferenceTrackProps {
   viewEnd: number;
   canvasWidth: number;
   height?: number;
+  visibleCellTypes?: string[];
 }
 
 export function MethylationReferenceTrack({
@@ -52,6 +53,7 @@ export function MethylationReferenceTrack({
   viewEnd,
   canvasWidth,
   height = 80,
+  visibleCellTypes,
 }: MethylationReferenceTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -79,15 +81,22 @@ export function MethylationReferenceTrack({
       return;
     }
 
-    const rowH = height / N_CELLS;
+    // Filter to visible cell types
+    const activeCells = visibleCellTypes
+      ? CELL_TYPES.filter((ct) => visibleCellTypes.includes(ct.key))
+      : CELL_TYPES;
+    const nVisible = activeCells.length;
+    if (nVisible === 0) return;
+
+    const rowH = height / nVisible;
     const viewWidth = viewEnd - viewStart + 1;
     const bpPerPixel = viewWidth / canvasWidth;
 
     // Draw cell-type label strip on the left (first 32px)
     const LABEL_W = 32;
 
-    for (let ci = 0; ci < N_CELLS; ci++) {
-      const ct = CELL_TYPES[ci];
+    for (let ci = 0; ci < nVisible; ci++) {
+      const ct = activeCells[ci];
       const y = ci * rowH;
 
       // Row background
@@ -110,8 +119,8 @@ export function MethylationReferenceTrack({
       const x = genomicToPixel(pos, viewStart, viewEnd, canvasWidth);
       const markW = Math.max(1, Math.min(8, 1 / bpPerPixel));
 
-      for (let ci = 0; ci < N_CELLS; ci++) {
-        const ct = CELL_TYPES[ci];
+      for (let ci = 0; ci < nVisible; ci++) {
+        const ct = activeCells[ci];
         const beta = (data.mcols as Record<string, unknown[]>)[ct.key.toLowerCase()]?.[i] as number | undefined
                ?? (data.mcols as Record<string, unknown[]>)[ct.key]?.[i] as number | undefined;
         const color = betaToColor(beta);
@@ -137,7 +146,7 @@ export function MethylationReferenceTrack({
     // Row dividers
     ctx.strokeStyle = '#1a1a1a';
     ctx.lineWidth = 0.5;
-    for (let ci = 1; ci < N_CELLS; ci++) {
+    for (let ci = 1; ci < nVisible; ci++) {
       const y = ci * rowH;
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -145,7 +154,7 @@ export function MethylationReferenceTrack({
       ctx.stroke();
     }
 
-  }, [data, viewStart, viewEnd, canvasWidth, height]);
+  }, [data, viewStart, viewEnd, canvasWidth, height, visibleCellTypes]);
 
   return <canvas ref={canvasRef} className="block" />;
 }

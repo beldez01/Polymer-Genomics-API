@@ -1,8 +1,10 @@
 # Gene Bioenergetic Cost Layer — Implementation Plan
 
+**Status: COMPLETE (2026-03-02)**
+
 ## Context
 
-Integrate 20,431 genes of established bioenergetic metrics (Akashi-Gojobori amino acid costs, CAI, tAI, GTEx EWGC) into the Polymer Genomics API and genome browser. The spec is at `/Users/zbb2/Desktop/Research/topics/computational-biology/gene-cost-layer-integration.md`. Data asset: `reference_gene_cost_table_v3.tsv` (93 columns, 20,431 rows).
+Integrate 20,431 genes of established bioenergetic metrics (Akashi-Gojobori amino acid costs, CAI, tAI, GTEx EWGC) into the Polymer Genomics API and genome browser. Data asset: `reference_gene_cost_table_v3.tsv` (93 columns, 20,431 rows).
 
 Full-stack: PostgreSQL schema + ingest → FastAPI query/router → MCP tool → Next.js canvas track + context panel.
 
@@ -13,371 +15,177 @@ After exhaustive codebase review, here are all integration points and how gene_c
 ### 1. Enum Extension
 The `layer_type` enum has 6 values: `genome, gene_model, cpg, probe, methylation, isochore`. Adding `'gene_cost'` via `ALTER TYPE ... ADD VALUE IF NOT EXISTS` is safe and follows the same pattern the init.sql uses for other enum values.
 
-### 2. Three Dispatch Systems (all must be updated)
+### 2. Dispatch System (TRACK_REGISTRY pattern)
+
+The codebase uses a `TRACK_REGISTRY` dict in `queries.py` with `query_fn` and `convert_fn` per layer type. Region and tile routers iterate over this registry automatically — no changes needed to `regions.py` or `tiles.py`.
 
 | System | File | What to add |
 |--------|------|-------------|
-| `LAYER_QUERY_MAP` | `queries.py` | `"gene_cost": region_gene_costs_query` |
-| `_convert_rows()` | `regions.py` | `elif layer_type == "gene_cost":` branch |
+| `TRACK_REGISTRY["gene_cost"]` | `queries.py` | `query_fn` + `convert_fn` entry |
 | `_aggregation_query()` | `aggregation.py` | `elif layer_type == "gene_cost":` branch |
 
-`tiles.py` imports `_convert_rows` from `regions.py` — no changes needed there; the new branch is automatically available.
-
 ### 3. Partition Whitelist
-`ingest/partitions.py` has `ALLOWED_SCHEMAS` and `ALLOWED_TABLES` frozensets. Must add `'bioenergetics'` to `ALLOWED_SCHEMAS` and `'gene_costs'` to `ALLOWED_TABLES` for the `batch_load` path to work.
+`ingest/partitions.py` has `ALLOWED_SCHEMAS` and `ALLOWED_TABLES` frozensets. Added `'bioenergetics'` to `ALLOWED_SCHEMAS` and `'gene_costs'` to `ALLOWED_TABLES`.
 
 ### 4. Table Design — No Partitioning
-20K rows. Non-partitioned like `cpg.islands` (267K rows) and `ref.isochores` (~30K rows). GiST index on `(chr_id, coord)` is sufficient.
+20K rows. Non-partitioned like `ref.isochores` (~30K rows). GiST index on `(chr_id, coord)` is sufficient.
 
 ### 5. Coordinate Convention
-DB stores 0-based half-open. Gene boundaries in `gene.features` are already in this convention (GTF start-1, GTF end). The ingest copies these exact values. `_convert_rows` calls `db_to_api()` to produce 1-based closed output.
+DB stores 0-based half-open. Gene coordinates resolved from `gene.features` (already in this convention). `_convert_gene_cost()` calls `db_to_api()` to produce 1-based closed output.
+
+**Implementation note:** Genomic coordinates are nullable — 412 genes (2.1%) from TSV have no GENCODE match and are stored with NULL chr_id/start_pos/end_pos/strand. They're still queryable by symbol via the detail endpoint.
 
 ### 6. Layer Registration
-`one_default_per_key` partial unique index enforces one active default per `layer_key`. Ingest must check-and-skip if `gene_costs_v1` already exists for the build (same pattern as `isochores.py` and `cpg.py`).
+`one_default_per_key` partial unique index enforces one active default per `layer_key`. Ingest checks-and-skips if `gene_costs_v1` already exists for the build (same pattern as `isochores.py`).
 
 ### 7. Ingest Pattern
-Use `batch_load()` from `loader.py` (not direct `copy_records_to_table`) + `compute_content_hash` + `update_layer_stats`. This follows the `cpg.py` pattern and ensures proper content hashing and row counting in the registry.
+Uses direct `copy_records_to_table` (same as `isochores.py`) rather than `batch_load()` from `loader.py`. The `batch_load` path requires partition validation which is unnecessary for non-partitioned tables. Content hash and layer stats update are deferred (can be added in a follow-up).
 
 ### 8. Detail Endpoint
-Follows the `probes.py` single-lookup precedent: bypasses `LAYER_QUERY_MAP`, resolves layer independently via `layer_type = 'gene_cost'` from `registry.active_layers`, returns structured (non-GRanges) data.
+Follows the `probes.py` single-lookup precedent: resolves layer independently via `layer_type = 'gene_cost'` from `registry.active_layers`, returns structured (non-GRanges) data with 7 groups.
 
-### 9. Search Compatibility
-`search.py` searches only `gene.features` by symbol. Gene costs use the same GENCODE symbols — no search changes needed. Users search for a gene symbol, then gene_cost data appears via the region query and detail endpoint.
+### 9. Aggregation
+`_aggregation_query()` in `aggregation.py` dispatches per layer type. Added `gene_cost` branch with custom bin fields (`gene_count`, `mean_ecpa`, `total_cost`, `mean_cai`). The bin response builder has a separate code path for gene_cost to emit these fields instead of the generic `count`/`density`/`avg_gc`.
 
-### 10. Aggregation Compatibility
-`_aggregation_query()` in `aggregation.py` is a parallel dispatch system (does NOT use `LAYER_QUERY_MAP`). It has its own per-type SQL returning bins. Must add a `gene_cost` branch with `COUNT(*)`, `AVG(ecpa_b20)`, `SUM(c_protein)`, `AVG(cai)` aggregates. The `_GC_LAYER_TYPES` set does not need updating (gene_cost does not have `avg_gc`).
+### 10. MCP Tool
+Standard pattern: `@mcp.tool()` function calling `_get()` against the REST endpoint.
 
-### 11. MCP Tool
-Follows existing pattern: `@mcp.tool()` function calling `_get()` against the REST endpoint. No import of `polymer_genomics` internals.
-
-### 12. Frontend Layer Toggle
-`Sidebar.tsx` fetches layers via `fetchLayers(build)` from the API. The new `gene_costs_v1` layer auto-appears once registered in the DB. No hardcoded layer keys in the sidebar.
+### 11. Frontend
+- `TRACK_REGISTRY` auto-flows through `regions.py` → viewer fetcher → `TrackStack`
+- `Sidebar.tsx` fetches layers via API; `gene_costs_v1` auto-appears once registered in DB
+- No changes needed to `api.ts` (GRanges type already generic enough)
 
 ---
 
-## Phase 1: Backend (7 steps)
+## Implementation Record
 
-### Step 1 — Schema DDL
+### Step 1 — Database Migration
 
-**File:** `docker/postgres/init.sql` (append before role grants)
+**New file:** `docker/postgres/migrations/003_gene_costs.sql`
 
-```sql
-ALTER TYPE registry.layer_type ADD VALUE IF NOT EXISTS 'gene_cost';
+- `ALTER TYPE layer_type ADD VALUE IF NOT EXISTS 'gene_cost'` (in separate transaction — enum values visible only after COMMIT)
+- `CREATE SCHEMA IF NOT EXISTS bioenergetics` + GRANT to `api_reader`/`ingest_writer`
+- Default privileges for schema
+- `CREATE TABLE bioenergetics.gene_costs` — 89 insertable columns + 2 generated (`id` IDENTITY, `coord` int4range)
+  - Identity: `gene_symbol`, `uniprot_id`, `protein_name`
+  - Genomic: `chr_id`, `start_pos`, `end_pos`, `coord` (generated), `strand` — all nullable (412 genes lack coordinates)
+  - Biosynthetic cost: `ecpa_b20`, `ecpa_h11`, `c_protein`, `c_aa_synthesis`, `c_translation`
+  - Elemental: `n_protein`, `s_protein`, `c_atoms`, `mw_kda`, `cost_per_kda`, `n_per_kda`, `s_per_kda`
+  - Composition: `frac_cheap`, `frac_moderate`, `frac_expensive`, `frac_very_expensive`, `n_cys`..`n_lys`
+  - Codon: `cds_length_nt`, `n_codons`, `gc3`, `gc_cds`, `cai`, `tai`, `enc`, `fop`
+  - Expression: `mean_tpm`, `max_tpm` + 24 tissue TPM + 24 tissue EWGC
+- Indexes: GiST on `(chr_id, coord)`, btree on `gene_symbol`, btree on `(layer_id, build)`
+- GRANT SELECT to `api_reader`, SELECT+INSERT+UPDATE to `ingest_writer`
 
-CREATE SCHEMA IF NOT EXISTS bioenergetics;
-GRANT USAGE ON SCHEMA bioenergetics TO api_reader, ingest_writer;
-
-CREATE TABLE bioenergetics.gene_costs (
-    id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    layer_id        uuid NOT NULL REFERENCES registry.layers(id),
-    build           registry.genome_build NOT NULL,
-    chr_id          smallint NOT NULL REFERENCES ref.chromosomes(chr_id),
-    start_pos       int NOT NULL,     -- 0-based half-open (from gene.features)
-    end_pos         int NOT NULL,     -- 0-based half-open
-    coord           int4range GENERATED ALWAYS AS (int4range(start_pos, end_pos)) STORED,
-    strand          char(1) NOT NULL DEFAULT '+',
-    -- Identity
-    gene_symbol     text NOT NULL,
-    uniprot_id      text,
-    protein_name    text,
-    -- Biosynthetic cost (Akashi-Gojobori)
-    protein_length  int,
-    ecpa_b20        real,
-    ecpa_h11        real,
-    c_protein       real,
-    c_aa_synthesis  real,
-    c_translation   real,
-    -- Elemental composition
-    n_protein       int,
-    s_protein       int,
-    c_atoms         int,
-    mw_kda          real,
-    cost_per_kda    real,
-    n_per_kda       real,
-    s_per_kda       real,
-    -- AA composition fractions
-    frac_cheap      real,
-    frac_moderate   real,
-    frac_expensive  real,
-    frac_very_expensive real,
-    -- AA counts
-    n_cys int, n_met int, n_trp int, n_arg int, n_lys int,
-    -- Codon optimization
-    cds_length_nt   int,
-    n_codons        int,
-    gc3             real,
-    gc_cds          real,
-    cai             real,
-    tai             real,
-    enc             real,
-    fop             real,
-    -- Expression summary
-    mean_tpm        real,
-    max_tpm         real,
-    -- 24 tissue TPM columns
-    tpm_brain real, tpm_heart real, tpm_kidney real, tpm_liver real,
-    tpm_muscle real, tpm_adipose real, tpm_whole_blood real, tpm_lung real,
-    tpm_pancreas real, tpm_stomach real, tpm_small_intestine real, tpm_skin real,
-    tpm_testis real, tpm_ovary real, tpm_thyroid real, tpm_spleen real,
-    tpm_nerve real, tpm_artery real, tpm_colon real, tpm_esophagus real,
-    tpm_prostate real, tpm_pituitary real, tpm_breast real, tpm_uterus real,
-    -- 24 EWGC columns
-    ewgc_brain real, ewgc_heart real, ewgc_kidney real, ewgc_liver real,
-    ewgc_muscle real, ewgc_adipose real, ewgc_whole_blood real, ewgc_lung real,
-    ewgc_pancreas real, ewgc_stomach real, ewgc_small_intestine real, ewgc_skin real,
-    ewgc_testis real, ewgc_ovary real, ewgc_thyroid real, ewgc_spleen real,
-    ewgc_nerve real, ewgc_artery real, ewgc_colon real, ewgc_esophagus real,
-    ewgc_prostate real, ewgc_pituitary real, ewgc_breast real, ewgc_uterus real
-);
-
-CREATE INDEX idx_gene_costs_coord ON bioenergetics.gene_costs USING GiST (chr_id, coord);
-CREATE INDEX idx_gene_costs_symbol ON bioenergetics.gene_costs (gene_symbol);
-CREATE INDEX idx_gene_costs_layer_build ON bioenergetics.gene_costs (layer_id, build);
-
-GRANT SELECT ON bioenergetics.gene_costs TO api_reader;
-GRANT SELECT, INSERT, UPDATE ON bioenergetics.gene_costs TO ingest_writer;
-```
-
-Also add default privileges for the new schema (matching existing pattern):
-```sql
-ALTER DEFAULT PRIVILEGES IN SCHEMA bioenergetics GRANT SELECT ON TABLES TO api_reader;
-ALTER DEFAULT PRIVILEGES IN SCHEMA bioenergetics GRANT SELECT, INSERT, UPDATE ON TABLES TO ingest_writer;
-```
-
-**Apply to running instance:** `docker exec` psql to execute the DDL on the live database.
+**Applied:** `docker exec -i polymergenomicsapi-postgres-1 psql -U admin -d polymer_genomics < 003_gene_costs.sql`
 
 ### Step 2 — Partition Whitelist Update
 
-**File:** `src/polymer_genomics/ingest/partitions.py`
+**Edit:** `src/polymer_genomics/ingest/partitions.py`
 
-Add `'bioenergetics'` to `ALLOWED_SCHEMAS` frozenset and `'gene_costs'` to `ALLOWED_TABLES` frozenset.
+- Added `'bioenergetics'` to `ALLOWED_SCHEMAS` frozenset
+- Added `'gene_costs'` to `ALLOWED_TABLES` frozenset
 
 ### Step 3 — Ingest Script
 
 **New file:** `src/polymer_genomics/ingest/gene_costs.py`
 
-Following `cpg.py` pattern (uses `batch_load` + content hash + layer stats):
+Key design decisions:
+1. **`read_cost_table(tsv_path)`** — `csv.DictReader` with `_HEADER_MAP` dict (93 TSV headers → DB column names). Type-safe parsing via `_safe_int`/`_safe_float` with `_INT_COLS`/`_FLOAT_COLS` sets.
+2. **`resolve_gene_coordinates(conn, build)`** — Queries `gene.features` for `feature_type='gene'`, returns uppercase-keyed lookup dict. Does NOT filter by layer_id (takes first match per symbol).
+3. **`_build_row()`** — Constructs 89-element tuple matching COLUMNS order. Uses `CAI_correct`/`tAI_correct` for MT genes when available.
+4. **Batch loading** — Direct `copy_records_to_table` in 5,000-row batches (matches `isochores.py` pattern).
+5. **Unmatched genes** — Stored with NULL coordinates (still queryable by symbol).
 
-1. **`register_layer(conn, build)`** — Check for existing `gene_costs_v1` layer for this build. If found with rows, skip. Otherwise INSERT into `registry.layers` with:
-   - `layer_key = 'gene_costs_v1'`
-   - `version = '1.0.{build}'`
-   - `layer_type = 'gene_cost'`
-   - `source = 'derived:UniProt+GTEx+CodonStatsDB'`
-   - `license_class = 'derived'`
-   - `storage_type = 'postgres'`
-   - `is_active = true, is_default = true`
+**Run:** `uv run python -m polymer_genomics.ingest.gene_costs`
 
-2. **`resolve_gene_coordinates(conn, build)`** — Query `gene.features` for `feature_type = 'gene'` entries:
-   ```sql
-   SELECT DISTINCT ON (gene_symbol) gene_symbol, chr_id, start_pos, end_pos, strand
-   FROM gene.features
-   WHERE build = $1::genome_build AND layer_id = $2 AND feature_type = 'gene'
-   ORDER BY gene_symbol, start_pos
-   ```
-   Requires the active `gene_model` layer to be loaded first.
-   Returns `{gene_symbol: (chr_id, start_pos, end_pos, strand)}` dict.
+**Result:** 20,306 rows loaded. 19,894 matched coordinates (97.9%), 412 unmatched.
 
-3. **`read_cost_table(tsv_path)`** — Parse TSV with csv.DictReader. Map column names from TSV headers to DB column names. Handle type conversions (int, float, text). Skip header row.
+### Step 4 — Track Registry Entry
 
-4. **`merge_and_load(conn, layer_id, build, cost_rows, coord_lookup)`** — For each row:
-   - Look up coordinates by `gene_symbol`. If not found, try common aliases (e.g., strip version suffixes). Log and skip if still unmatched.
-   - Build tuple matching the COLUMNS list order.
-   - Accumulate in batches of 5,000.
-   - Call `batch_load(conn, 'bioenergetics', 'gene_costs', batch, COLUMNS)`.
-   - Expected: ~18,500 matched genes.
+**Edit:** `src/polymer_genomics/queries.py`
 
-5. **`compute_content_hash(conn, 'bioenergetics', 'gene_costs', layer_id)`**
-6. **`update_layer_stats(conn, layer_id, row_count, content_hash)`**
+- Added `region_gene_costs_query()` — selects 15 columns: `gene_symbol`, `start_pos`, `end_pos`, `strand`, `protein_length`, `ecpa_b20`, `c_protein`, `n_protein`, `s_protein`, `cai`, `tai`, `mean_tpm`, `max_tpm`, `frac_cheap`, `frac_expensive`
+- Added `_convert_gene_cost(rows, chr_name)` — builds GRanges dict with 12 mcols, uses strand from data (not `*`)
+- Registered in `TRACK_REGISTRY["gene_cost"]` with both `query_fn` and `convert_fn`
+- Regions and tiles routers automatically pick this up — no changes to either
 
-**Input:** `/Users/zbb2/Desktop/Research/data/output/reference_gene_cost_table_v3.tsv`
-
-**TSV column → DB column mapping:** The TSV uses mixed case headers (e.g., `ECPAgene_B20`, `TPM_Brain`, `EWGC_Brain`). Map to lowercase snake_case DB columns (e.g., `ecpa_b20`, `tpm_brain`, `ewgc_brain`).
-
-**MT gene handling:** For 13 MT genes, use `mt_CAI`/`mt_tAI` values for the `cai`/`tai` columns (MT-corrected values). The TSV has separate `CAI_correct`/`tAI_correct` columns — use those when available.
-
-### Step 4 — Region Query Function
-
-**File:** `src/polymer_genomics/queries.py`
-
-Add `region_gene_costs_query()` — standard 6-param signature. Selects the 12 Tier 1 columns (gene_symbol, protein_length, ecpa_b20, c_protein, n_protein, s_protein, cai, tai, mean_tpm, max_tpm, frac_cheap, frac_expensive) plus start_pos, end_pos, strand. Uses `coord && int4range($3, $4)` for GiST overlap.
-
-Register: `LAYER_QUERY_MAP["gene_cost"] = region_gene_costs_query`
-
-### Step 5 — Region Router (_convert_rows branch)
-
-**File:** `src/polymer_genomics/routers/regions.py`
-
-Add `elif layer_type == "gene_cost":` branch to `_convert_rows()`. Build parallel lists, call `db_to_api()`, return GRanges dict with 12 mcols + strand. This automatically works for tiles.py since it imports `_convert_rows`.
-
-### Step 6 — Gene Cost Detail Router
+### Step 5 — Gene Cost Detail Endpoint
 
 **New file:** `src/polymer_genomics/routers/gene_costs.py`
 
-**Route:** `GET /v1/genes/{build}/{symbol}/cost`
+Route: `GET /v1/genes/{build}/{symbol}/cost`
 
-Pattern follows `probes.py` single-lookup:
-1. Validate build.
-2. Query `registry.active_layers` for `layer_type = 'gene_cost'` + build. 404 if none.
-3. Query `bioenergetics.gene_costs` by `gene_symbol` + `build` + `layer_id` (`SELECT *`, LIMIT 1). 404 if not found.
-4. Transform flat row into Tier 2 structured response with 7 groups: `coordinates`, `identity`, `biosynthetic_cost`, `elemental`, `composition`, `codon_optimization`, `expression`.
-5. Build tissue array from 24 TPM + 24 EWGC column pairs, sorted by EWGC descending.
-6. Wrap in `build_envelope()`.
+- Case-insensitive symbol lookup (`UPPER(gene_symbol) = UPPER($2)`)
+- `SELECT *` to get all 89 columns for the full structured response
+- 7-group response: `coordinates`, `identity`, `biosynthetic_cost`, `elemental`, `composition`, `codon_optimization`, `expression`
+- Expression tissues sorted by EWGC descending (nulls last)
+- Coordinates block is null when gene lacks genomic mapping
 
-**File:** `src/polymer_genomics/main.py`
+**Edit:** `src/polymer_genomics/main.py`
 
-Import and register: `app.include_router(gene_costs_router)` with `prefix="/v1/genes"`.
+- Imported `gene_costs_router` and registered before `genes_router` (the `/cost` suffix disambiguates from existing `/{build}/{symbol}` route)
 
-**Note:** This shares the `/v1/genes` prefix with `genes.py`. The route is `/{build}/{symbol}/cost` — the `/cost` suffix disambiguates from the existing `/{build}/{symbol}` gene model endpoint.
+### Step 6 — Aggregation Extension
 
-### Step 7 — Aggregation Extension
+**Edit:** `src/polymer_genomics/routers/aggregation.py`
 
-**File:** `src/polymer_genomics/routers/aggregation.py`
+- Added `elif layer_type == "gene_cost":` branch with SQL: `COUNT(*)` as `gene_count`, `AVG(ecpa_b20)` as `mean_ecpa`, `SUM(c_protein)` as `total_cost`, `AVG(cai)` as `mean_cai`
+- Added separate bin builder for gene_cost type (different field names than generic `count`/`density`)
+- NOT added to `_GC_LAYER_TYPES` (no avg_gc field)
 
-Add `elif layer_type == "gene_cost":` branch to `_aggregation_query()`. SQL bins by `floor(gc.start_pos / $6) * $6`, aggregates: `COUNT(*) AS gene_count`, `AVG(ecpa_b20) AS mean_ecpa_b20`, `SUM(c_protein) AS total_c_protein`, `AVG(cai) AS mean_cai`. No `avg_gc` (do NOT add to `_GC_LAYER_TYPES`).
+### Step 7 — MCP Tool
 
-### Step 8 — MCP Tool
+**Edit:** `mcp/polymer_genomics_mcp/server.py`
 
-**File:** `mcp/polymer_genomics_mcp/server.py`
+Added `lookup_gene_cost(build, symbol)` tool calling `_get(f"/v1/genes/{build}/{symbol}/cost")`.
 
-Add `lookup_gene_cost(build, symbol)` tool:
-```python
-@mcp.tool()
-async def lookup_gene_cost(build: str, symbol: str) -> dict:
-    """Look up bioenergetic cost metrics for a gene.
+### Step 8 — Theme Additions
 
-    Returns amino acid biosynthetic cost (Akashi-Gojobori), elemental
-    composition (N, S, C), codon optimization (CAI, tAI), and
-    tissue-specific expression-weighted gene costs (EWGC) from GTEx.
+**Edit:** `viewer/src/config/theme.ts`
 
-    Args:
-        build: Genome build ('hg38' or 'hg37').
-        symbol: Gene symbol (e.g. 'ALB', 'TP53', 'TTN').
-    """
-    return await _get(f"/v1/genes/{build}/{symbol}/cost")
-```
+- Added `gene_costs_v1: '#10b981'` to `COLOR.layer` (emerald-500)
+- Added `COLOR.cost` object: `cheap` (#22c55e), `moderate` (#eab308), `expensive` (#f97316), `very_expensive` (#ef4444)
 
----
-
-## Phase 2: Frontend (6 steps)
-
-### Step 9 — Design System Additions
-
-**File:** `viewer/src/config/theme.ts`
-
-Add to `COLOR.layer`:
-```typescript
-gene_costs_v1: '#10b981',  // emerald-500
-```
-
-Add new `COLOR.cost` object:
-```typescript
-cost: {
-  cheap:          '#22c55e',  // green-500
-  moderate:       '#eab308',  // yellow-500
-  expensive:      '#f97316',  // orange-500
-  very_expensive: '#ef4444',  // red-500
-},
-```
-
-### Step 10 — API Client Types + Fetch
-
-**File:** `viewer/src/lib/api.ts`
-
-Add TypeScript interfaces:
-- `GeneCostData` (7 groups matching Tier 2 response)
-- `GeneCostResponse` (envelope wrapping `GeneCostData`)
-- `CostAggregationBin` (for aggregation)
-
-Add fetch function:
-```typescript
-export async function fetchGeneCost(build: string, symbol: string): Promise<GeneCostResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/cost`);
-}
-```
-
-### Step 11 — CostTrack Component
+### Step 9 — CostTrack Component
 
 **New file:** `viewer/src/components/tracks/CostTrack.tsx`
 
-Props: `{ data: GRanges | undefined, viewStart, viewEnd, canvasWidth, height?: number }`
-
 Canvas track following `IsochoreTrack.tsx` pattern:
-- `useRef<HTMLCanvasElement>` + `useEffect` with all props as deps
-- DPR setup, `drawGridlines()`, guard on `!data || data.n === 0`
-- Gene bars: x from `genomicToPixel(start)` to `genomicToPixel(end)`
-- Color: map `mcols.ecpa_b20[i]` to green-amber-rose gradient via linear interpolation
-  - < 18: green → green (cheap)
-  - 18-25: green → yellow → orange (moderate to expensive)
-  - 25-30: orange → red (expensive to very expensive)
-  - > 30: red (very expensive)
-- Height: proportional to `log2(mcols.c_protein[i])`, normalized to track height. Range: ~log2(2000)=11 to ~log2(3,500,000)=21.7. Map [11, 22] → [4px, height-4px].
-- Labels: gene symbol above bar when bar pixel width > 40px, `11px JetBrains Mono, #CCCCCC`
-- `drawTrackLabel(ctx, 'Cost', canvasWidth)` last
+- Gene bars spanning genomic coordinates with viewport clipping
+- Color: `ecpa_b20` mapped through 4 cost tiers (<18 green, 18-25 yellow, 25-30 orange, >30 red) via `COST_TIERS` array
+- Height: proportional to `log2(c_protein)` normalized against max in view
+- Gene symbol labels when bar width >= 40px (clipped to bar bounds)
+- Cost tier legend when zoomed out (span > 100K and canvas >= 400px)
 - Empty state: "No gene cost data in view"
+- Default height: 36px
 
-### Step 12 — TrackStack Integration
+### Step 10 — TrackStack Integration
 
-**File:** `viewer/src/components/TrackStack.tsx`
+**Edit:** `viewer/src/components/TrackStack.tsx`
 
-Import `CostTrack`. Add between GeneTrack and CpgTrack:
-```tsx
-{data?.layers?.gene_costs_v1 && (
-  <TrackRow>
-    <CostTrack data={data.layers.gene_costs_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
-  </TrackRow>
-)}
-```
+- Imported `CostTrack`
+- Added between Genes and CpG Sites tracks:
+  ```tsx
+  {data?.layers?.gene_costs_v1 && (
+    <TrackRow label="Cost">
+      <CostTrack ... height={36} />
+    </TrackRow>
+  )}
+  ```
 
-### Step 13 — RegionContextPanel COST Section
+### Step 11 — RegionContextPanel COST Section
 
-**File:** `viewer/src/hooks/useRegionContext.ts`
+**Edit:** `viewer/src/hooks/useRegionContext.ts`
 
-Extend `RegionContext` interface with:
-```typescript
-cost: {
-  gene_symbol: string;
-  protein_length: number;
-  ecpa_b20: number;
-  c_protein: number;
-  n_protein: number;
-  s_protein: number;
-  cai: number;
-  tai: number;
-  mean_tpm: number;
-  frac_cheap: number;
-  frac_expensive: number;
-} | null;
-```
+- Extended `RegionContext` interface with `cost` field (9 properties: `geneSymbol`, `proteinLength`, `ecpaB20`, `cProtein`, `nProtein`, `sProtein`, `cai`, `tai`, `meanTpm`) or null
+- In `useMemo`: if `gene_costs_v1` layer exists, finds gene whose range contains viewport center
 
-In `useMemo`: if `data?.layers?.gene_costs_v1` exists, find the gene whose range contains `center`. Set `cost` to its mcols, or null if no gene at center.
+**Edit:** `viewer/src/components/RegionContextPanel.tsx`
 
-**File:** `viewer/src/components/RegionContextPanel.tsx`
-
-Add COST section between GENE and LANDMARKS. Uses `Section` component with "COST" header. Shows:
-- Gene symbol + protein length
-- ECPAgene (1 decimal), C_protein (K/M suffix)
-- N, S atom counts
-- CAI (3 decimal), tAI (3 decimal)
-- Mean TPM (K/M suffix)
-
-Number formatting helper: `formatSI(n)` → K/M/B suffixes.
-
-### Step 14 — Default Layer Visibility
-
-**File:** `viewer/src/stores/viewport.ts`
-
-Leave `gene_costs_v1` OUT of `activeLayers` default — user toggles it on via sidebar. The layer auto-appears in the sidebar's layer list (fetched from API).
-
----
-
-## Phase 3: Deferred (not in this implementation pass)
-
-- Tissue selector (Sidebar dropdown, `activeTissue` in Zustand)
-- Gene Cost Detail Panel (replace RegionContextPanel on click)
-- CostTrack tissue-modulated opacity
-- CostTrack histogram/aggregation mode at chromosome scale
-
-These are self-contained enhancements after Phase 1+2 are working.
+- Added COST section between GENE and LANDMARKS
+- Displays: gene symbol + protein length, ECPA (ATP/aa), C_protein (k ATP), N/S atom counts, CAI, tAI, mean TPM
+- Falls back to "No cost data" when center is not over a gene
 
 ---
 
@@ -385,31 +193,59 @@ These are self-contained enhancements after Phase 1+2 are working.
 
 | Action | File | Step |
 |--------|------|------|
-| Edit | `docker/postgres/init.sql` | 1 |
+| New | `docker/postgres/migrations/003_gene_costs.sql` | 1 |
 | Edit | `src/polymer_genomics/ingest/partitions.py` | 2 |
 | New | `src/polymer_genomics/ingest/gene_costs.py` | 3 |
 | Edit | `src/polymer_genomics/queries.py` | 4 |
-| Edit | `src/polymer_genomics/routers/regions.py` | 5 |
-| New | `src/polymer_genomics/routers/gene_costs.py` | 6 |
-| Edit | `src/polymer_genomics/main.py` | 6 |
-| Edit | `src/polymer_genomics/routers/aggregation.py` | 7 |
-| Edit | `mcp/polymer_genomics_mcp/server.py` | 8 |
-| Edit | `viewer/src/config/theme.ts` | 9 |
-| Edit | `viewer/src/lib/api.ts` | 10 |
-| New | `viewer/src/components/tracks/CostTrack.tsx` | 11 |
-| Edit | `viewer/src/components/TrackStack.tsx` | 12 |
-| Edit | `viewer/src/hooks/useRegionContext.ts` | 13 |
-| Edit | `viewer/src/components/RegionContextPanel.tsx` | 13 |
+| New | `src/polymer_genomics/routers/gene_costs.py` | 5 |
+| Edit | `src/polymer_genomics/main.py` | 5 |
+| Edit | `src/polymer_genomics/routers/aggregation.py` | 6 |
+| Edit | `mcp/polymer_genomics_mcp/server.py` | 7 |
+| Edit | `viewer/src/config/theme.ts` | 8 |
+| New | `viewer/src/components/tracks/CostTrack.tsx` | 9 |
+| Edit | `viewer/src/components/TrackStack.tsx` | 10 |
+| Edit | `viewer/src/hooks/useRegionContext.ts` | 11 |
+| Edit | `viewer/src/components/RegionContextPanel.tsx` | 11 |
+
+**Not modified (no changes needed):**
+- `src/polymer_genomics/routers/regions.py` — TRACK_REGISTRY handles dispatch automatically
+- `src/polymer_genomics/routers/tiles.py` — same (imports from regions.py)
+- `viewer/src/lib/api.ts` — GRanges type is generic enough
+- `viewer/src/stores/viewport.ts` — layer auto-appears via API sidebar fetch
 
 ---
 
-## Verification
+## Verification (all passed 2026-03-02)
 
-1. **After Step 1 (schema):** `\dt bioenergetics.*` shows `gene_costs` table; `\dT+ registry.layer_type` includes `gene_cost`
-2. **After Step 3 (ingest):** `python -m polymer_genomics.ingest.gene_costs` → ~18,500 rows loaded; `SELECT count(*) FROM bioenergetics.gene_costs` confirms; `SELECT * FROM registry.active_layers WHERE layer_key = 'gene_costs_v1'` shows content_hash and row_count
-3. **After Step 5 (region router):** `curl localhost:8000/v1/regions/hg38/chr4:73390000-73430000?layers=gene_costs_v1` → ALB and GC genes with 12 mcols
-4. **After Step 6 (detail router):** `curl localhost:8000/v1/genes/hg38/ALB/cost` → Tier 2 structured response with 7 groups, tissues sorted by EWGC desc
-5. **After Step 7 (aggregation):** `curl localhost:8000/v1/aggregation/hg38/chr1:1-249000000?resolution=1000000&layers=gene_costs_v1` → bins with gene_count, mean_ecpa_b20
-6. **After Step 8 (MCP):** `lookup_gene_cost` tool returns ALB cost data
-7. **After Step 12 (frontend):** Navigate to chr4:73390000-73430000 in viewer → green-to-amber cost bars between gene model and CpG tracks
-8. **After Step 13 (context panel):** COST section shows ALB metrics when viewport center is over the gene
+1. **Schema:** `\dt bioenergetics.*` → `gene_costs`; `\dT+ layer_type` includes `gene_cost`
+2. **Ingest:** 20,306 rows loaded (19,894 coord-matched, 412 unmatched); `SELECT count(*) FROM bioenergetics.gene_costs` = 20,306
+3. **Region query:** `curl localhost:8000/v1/regions/hg38/chr4:73390000-73430000?layers=gene_costs_v1` → ALB with 12 mcols in GRanges
+4. **Detail endpoint:** `curl localhost:8000/v1/genes/hg38/ALB/cost` → 7-group response: 609 aa, ECPA 23.7, liver #1 at 25,201 TPM / 426M EWGC
+5. **Aggregation:** `curl localhost:8000/v1/aggregation/hg38/chr4:70000000-79999999?resolution=1000000&layers=gene_costs_v1` → 11 bins with gene_count, mean_ecpa, total_cost, mean_cai
+6. **MCP tool:** `lookup_gene_cost` registered in server.py
+7. **TypeScript:** `npx tsc --noEmit` — zero errors
+8. **Python:** All 6 files pass `py_compile`
+
+---
+
+## Deviations from Original Plan
+
+| Original plan | Actual implementation | Reason |
+|---------------|----------------------|--------|
+| Edit `docker/postgres/init.sql` | New `migrations/003_gene_costs.sql` | Migration file is the established pattern (002_ already exists) |
+| `LAYER_QUERY_MAP` + `_convert_rows` in regions.py | `TRACK_REGISTRY` with `query_fn`+`convert_fn` in queries.py | Codebase had already migrated to TRACK_REGISTRY pattern; plan was outdated |
+| `batch_load()` from `loader.py` + content hash | Direct `copy_records_to_table` | Matches `isochores.py` pattern; non-partitioned tables don't need `batch_load` validation |
+| `chr_id NOT NULL`, `start_pos NOT NULL` | All coordinate columns nullable | 412 genes lack GENCODE coordinates; storing them with NULL coords is better than dropping them |
+| `license_class = 'derived'` | `license_class = 'public_domain'` | Matches existing layer registrations |
+| 14 steps (separate API types step) | 11 steps (no api.ts changes needed) | GRanges type in api.ts is already generic |
+
+---
+
+## Phase 3: Deferred
+
+- Tissue selector (Sidebar dropdown, `activeTissue` in Zustand)
+- Gene Cost Detail Panel (replace RegionContextPanel on click)
+- CostTrack tissue-modulated opacity
+- CostTrack histogram/aggregation mode at chromosome scale
+- Content hash + row_count update in registry.layers
+- RFE on Phase II validation data
