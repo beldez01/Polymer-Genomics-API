@@ -8,6 +8,7 @@ import { CpgTrack } from './tracks/CpgTrack';
 import { ProbeTrack } from './tracks/ProbeTrack';
 import { IsochoreTrack } from './tracks/IsochoreTrack';
 import { GCTrack } from './tracks/GCTrack';
+import { MethylationReferenceTrack } from './tracks/MethylationReferenceTrack';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
@@ -21,6 +22,7 @@ export interface TrackStackProps {
   loading: boolean;
   error: string | null;
   showCodons?: boolean;
+  showGC?: boolean;
 }
 
 function TrackRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -65,6 +67,7 @@ export function TrackStack({
   loading,
   error,
   showCodons,
+  showGC = true,
 }: TrackStackProps) {
   const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
   const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
@@ -98,10 +101,6 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        <TrackRow label="GC%">
-          <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
-        </TrackRow>
-
         {data?.layers?.gencode_v44 && (
           <TrackRow label="Genes">
             <GeneTrack data={data.layers.gencode_v44} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} showCodons={showCodons} />
@@ -123,6 +122,18 @@ export function TrackStack({
         {data?.layers?.isochores && (
           <TrackRow label="Isochores">
             <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.methylation_atlas && (
+          <TrackRow label="Meth Ref">
+            <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
+          </TrackRow>
+        )}
+
+        {showGC && (
+          <TrackRow label="GC%">
+            <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
 

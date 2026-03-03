@@ -1,54 +1,33 @@
+/**
+ * Legacy COLORS export — bridges existing component imports to the new theme.
+ * Components that import { COLORS } from '@/config/colors' continue to work.
+ * New code should import from '@/config/theme' directly.
+ */
+import { COLOR } from './theme';
+
 export const COLORS = {
   bg: {
-    primary: '#0A0A0A',
-    track: '#111111',
-    sidebar: '#0A0A0A',
-    tooltip: '#1a1a1a',
-    ideogram: '#0D0D0D',
+    primary:  COLOR.bg.primary,
+    track:    COLOR.bg.track,
+    sidebar:  COLOR.bg.primary,
+    tooltip:  COLOR.bg.surface,
+    ideogram: COLOR.bg.elevated,
   },
   border: {
-    subtle: '#1a1a1a',
-    axis: '#222222',
-    tooltip: '#333333',
+    subtle:  COLOR.border.subtle,
+    axis:    COLOR.border.default,
+    tooltip: COLOR.border.strong,
   },
   text: {
-    label: '#999999',
-    axis: '#888888',
-    tooltip: '#CCCCCC',
-    primary: '#E0E0E0',
-    muted: '#777777',
+    label:   COLOR.text.tertiary,
+    axis:    COLOR.canvas.axisLabel,
+    tooltip: COLOR.text.secondary,
+    primary: COLOR.text.primary,
+    muted:   COLOR.text.muted,
   },
-  accent: {
-    teal: '#4ECDC4',
-    amber: '#F0A500',
-    violet: '#8B5CF6',
-    rose: '#F43F5E',
-  },
-  layer: {
-    gencode_v44: '#3b82f6',
-    cpg_sites: '#4ECDC4',
-    probe_epic_v2: '#F0A500',
-    isochores: '#8B5CF6',
-  },
-  isochore: {
-    L1: '#1a3a5c',
-    L2: '#1f3a4a',
-    H1: '#2a4a3a',
-    H2: '#3a4a2a',
-    H3: '#5c3a1a',
-  },
-  cpgContext: {
-    island: '#22c55e',
-    shore: '#14b8a6',
-    shelf: '#3b82f6',
-    open_sea: '#6b7280',
-  },
-  canvas: {
-    background: '#0A0A0A',
-    gridLine: '#222222',
-    tickMark: '#333333',
-    axisLabel: '#888888',
-    featureLabel: '#CCCCCC',
-    emptyText: '#777777',
-  },
+  accent: COLOR.accent,
+  layer:  COLOR.layer,
+  isochore: COLOR.isochore,
+  cpgContext: COLOR.cpgContext,
+  canvas: COLOR.canvas,
 } as const;

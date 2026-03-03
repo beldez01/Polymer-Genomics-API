@@ -1,0 +1,151 @@
+'use client';
+
+import { useRef, useEffect } from 'react';
+import type { GRanges } from '@/lib/api';
+import { genomicToPixel } from '@/lib/coordinates';
+import { COLORS } from '@/config/colors';
+import { drawGridlines } from '@/lib/gridlines';
+
+// Six hematopoietic cell types — ordered as displayed top-to-bottom
+const CELL_TYPES = [
+  { key: 'Gran',  label: 'Gran',  color: '#f59e0b' },
+  { key: 'Mono',  label: 'Mono',  color: '#fb923c' },
+  { key: 'NK',    label: 'NK',    color: '#a78bfa' },
+  { key: 'Bcell', label: 'B',     color: '#60a5fa' },
+  { key: 'CD4T',  label: 'CD4T',  color: '#34d399' },
+  { key: 'CD8T',  label: 'CD8T',  color: '#4ade80' },
+] as const;
+
+const N_CELLS = CELL_TYPES.length;
+
+// Beta=0 → dark blue, Beta=1 → amber  (bisulfite methylation convention)
+function betaToColor(beta: number | null | undefined): string {
+  if (beta == null || isNaN(beta)) return '#333333';
+  const t = Math.max(0, Math.min(1, beta));
+  // Interpolate: 0=deep blue (#1e3a5f), 0.5=near-black (#111), 1=amber (#f59e0b)
+  if (t <= 0.5) {
+    const s = t * 2;
+    const r = Math.round(30  + s * (17 - 30));
+    const g = Math.round(58  + s * (17 - 58));
+    const b = Math.round(95  + s * (17 - 95));
+    return `rgb(${r},${g},${b})`;
+  } else {
+    const s = (t - 0.5) * 2;
+    const r = Math.round(17  + s * (245 - 17));
+    const g = Math.round(17  + s * (158 - 17));
+    const b = Math.round(17  + s * (11  - 17));
+    return `rgb(${r},${g},${b})`;
+  }
+}
+
+export interface MethylationReferenceTrackProps {
+  data: GRanges | undefined;
+  viewStart: number;
+  viewEnd: number;
+  canvasWidth: number;
+  height?: number;
+}
+
+export function MethylationReferenceTrack({
+  data,
+  viewStart,
+  viewEnd,
+  canvasWidth,
+  height = 80,
+}: MethylationReferenceTrackProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvasWidth * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${height}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, canvasWidth, height);
+    drawGridlines(ctx, viewStart, viewEnd, canvasWidth, height);
+
+    if (!data || data.n === 0) {
+      ctx.fillStyle = COLORS.canvas.emptyText;
+      ctx.font = "11px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('No methylation reference in view', canvasWidth / 2, height / 2 + 4);
+      return;
+    }
+
+    const rowH = height / N_CELLS;
+    const viewWidth = viewEnd - viewStart + 1;
+    const bpPerPixel = viewWidth / canvasWidth;
+
+    // Draw cell-type label strip on the left (first 32px)
+    const LABEL_W = 32;
+
+    for (let ci = 0; ci < N_CELLS; ci++) {
+      const ct = CELL_TYPES[ci];
+      const y = ci * rowH;
+
+      // Row background
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(0, y, canvasWidth, rowH);
+
+      // Cell type label
+      ctx.fillStyle = ct.color;
+      ctx.font = `bold 8px 'JetBrains Mono', monospace`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ct.label, 2, y + rowH / 2);
+    }
+
+    // Draw probe marks
+    for (let i = 0; i < data.n; i++) {
+      const pos = data.ranges.start[i];
+      if (pos < viewStart || pos > viewEnd) continue;
+
+      const x = genomicToPixel(pos, viewStart, viewEnd, canvasWidth);
+      const markW = Math.max(1, Math.min(8, 1 / bpPerPixel));
+
+      for (let ci = 0; ci < N_CELLS; ci++) {
+        const ct = CELL_TYPES[ci];
+        const beta = (data.mcols as Record<string, unknown[]>)[ct.key.toLowerCase()]?.[i] as number | undefined
+               ?? (data.mcols as Record<string, unknown[]>)[ct.key]?.[i] as number | undefined;
+        const color = betaToColor(beta);
+        const y = ci * rowH;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x - markW / 2, y + 1, markW, rowH - 2);
+      }
+
+      // Probe ID label at fine zoom
+      if (bpPerPixel < 0.5) {
+        const probeId = data.mcols.probe_id?.[i] as string | null;
+        if (probeId) {
+          ctx.fillStyle = COLORS.canvas.featureLabel;
+          ctx.font = "8px 'JetBrains Mono', monospace";
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(probeId, x, height - 1);
+        }
+      }
+    }
+
+    // Row dividers
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 0.5;
+    for (let ci = 1; ci < N_CELLS; ci++) {
+      const y = ci * rowH;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvasWidth, y);
+      ctx.stroke();
+    }
+
+  }, [data, viewStart, viewEnd, canvasWidth, height]);
+
+  return <canvas ref={canvasRef} className="block" />;
+}

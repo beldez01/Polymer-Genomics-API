@@ -33,7 +33,7 @@ const LAYER_COLORS: Record<string, string> = {
 const PROBE_LAYER_KEYS = new Set(['probe_epic_v2', 'probe_epic_v1', 'probe_450k']);
 
 /** Canonical display order for API layers (between Codons and GC%). */
-const LAYER_ORDER = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k', 'isochores'];
+const LAYER_ORDER = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k', 'isochores', 'methylation_atlas'];
 
 const ZOOM_PRESETS = [
   { label: '1 bp',   width: 50 },

@@ -17,6 +17,7 @@ export interface ViewportState {
 
   // Gene track options
   showCodons: boolean;
+  showGC: boolean;
 
   // Actions
   setBuild: (build: GenomeBuild) => void;
@@ -29,6 +30,7 @@ export interface ViewportState {
   toggleLayer: (layerKey: string) => void;
   setLayers: (layers: string[]) => void;
   toggleCodons: () => void;
+  toggleGC: () => void;
 }
 
 /**
@@ -52,6 +54,7 @@ export const useViewport = create<ViewportState>((set, get) => ({
   width: 100_000,
   activeLayers: ['gencode_v44', 'cpg_sites'],
   showCodons: false,
+  showGC: true,
 
   setBuild: (build) => set({ build }),
 
@@ -113,4 +116,5 @@ export const useViewport = create<ViewportState>((set, get) => ({
   setLayers: (layers) => set({ activeLayers: layers }),
 
   toggleCodons: () => set((state) => ({ showCodons: !state.showCodons })),
+  toggleGC: () => set((state) => ({ showGC: !state.showGC })),
 }));

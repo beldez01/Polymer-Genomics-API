@@ -594,7 +594,148 @@ async def register_atlas_layer(
     return atlas_id
 
 
-# ── Full Pipeline ────────────────────────────────────────────────────────────
+# ── Postgres Reference Table Pipeline ────────────────────────────────────────
+
+
+REFERENCE_COLUMNS = [
+    "layer_id",
+    "build",
+    "chr_id",
+    "probe_id",
+    "pos",
+    "gran",
+    "mono",
+    "nk",
+    "bcell",
+    "cd4t",
+    "cd8t",
+]
+
+REFERENCE_BATCH_SIZE = 50_000
+
+
+async def register_reference_layer(conn, build: str) -> str:
+    """Register (or retrieve) the methylation atlas layer for Postgres storage.
+
+    If the layer already exists (from S3 ingest), updates storage_type to 'both'.
+    """
+    layer_key = "methylation_atlas"
+    version = f"1.0.{build}"
+
+    existing = await conn.fetchrow(
+        "SELECT id, storage_type::text FROM registry.layers WHERE layer_key = $1 AND version = $2",
+        layer_key,
+        version,
+    )
+    if existing is not None:
+        layer_id = existing["id"]
+        # If it was object_storage only, upgrade to 'both'
+        if existing["storage_type"] == "object_storage":
+            await conn.execute(
+                "UPDATE registry.layers SET storage_type = 'both' WHERE id = $1",
+                layer_id,
+            )
+            print(f"  Layer upgraded to storage_type='both': {layer_id}")
+        else:
+            print(f"  Layer already registered: {layer_key} v{version} -> {layer_id}")
+        return layer_id
+
+    layer_id = await conn.fetchval(
+        """
+        INSERT INTO registry.layers
+            (layer_key, version, name, layer_type, genome_build,
+             source, license_class, storage_type, is_active, is_default)
+        VALUES
+            ($1, $2, $3, 'methylation', $4,
+             'Reinius2012/Salas2018', 'public_domain', 'postgres', true, true)
+        RETURNING id
+        """,
+        layer_key,
+        version,
+        f"Methylation Atlas ({build})",
+        build,
+    )
+    print(f"  Registered layer: {layer_key} v{version} -> {layer_id}")
+    return layer_id
+
+
+async def ingest_reference(
+    conn,
+    build: str,
+    matrix_path: str | Path,
+) -> int:
+    """Populate ref.methylation_reference from a CSV exported by export_methylation_reference.R.
+
+    Steps:
+    1. Register the layer (or retrieve existing).
+    2. Read the CSV.
+    3. Convert 1-based positions to 0-based (internal convention).
+    4. Batch-load into ref.methylation_reference via COPY protocol.
+    5. Update layer stats (row_count, content_hash).
+
+    Returns the number of rows loaded.
+    """
+    from polymer_genomics.ingest.loader import batch_load, compute_content_hash, update_layer_stats
+
+    matrix_path = Path(matrix_path)
+
+    # 1. Register layer.
+    layer_id = await register_reference_layer(conn, build)
+
+    # Check for existing data.
+    existing_count = await conn.fetchval(
+        "SELECT COUNT(*) FROM ref.methylation_reference WHERE layer_id = $1 AND build = $2::genome_build",
+        layer_id,
+        build,
+    )
+    if existing_count and existing_count > 0:
+        print(f"  WARNING: {existing_count:,} rows already exist. Truncating...")
+        await conn.execute(
+            "DELETE FROM ref.methylation_reference WHERE layer_id = $1 AND build = $2::genome_build",
+            layer_id,
+            build,
+        )
+
+    # 2. Read the CSV.
+    print(f"  Reading methylation matrix: {matrix_path}")
+    probe_data = read_methylation_matrix(matrix_path)
+    print(f"  Loaded {len(probe_data):,} probes")
+
+    # 3. Build rows: convert 1-based pos to 0-based (internal).
+    rows = []
+    for probe_id, entry in sorted(probe_data.items()):
+        pos_0based = entry["pos"] - 1  # CSV is 1-based, DB is 0-based
+        rows.append((
+            layer_id,
+            build,
+            entry["chr_id"],
+            probe_id,
+            pos_0based,
+            entry.get("Gran") or entry.get("gran"),
+            entry.get("Mono") or entry.get("mono"),
+            entry.get("NK") or entry.get("nk"),
+            entry.get("Bcell") or entry.get("bcell"),
+            entry.get("CD4T") or entry.get("cd4t"),
+            entry.get("CD8T") or entry.get("cd8t"),
+        ))
+
+    # 4. Batch-load.
+    total_loaded = 0
+    for i in range(0, len(rows), REFERENCE_BATCH_SIZE):
+        batch = rows[i : i + REFERENCE_BATCH_SIZE]
+        n = await batch_load(conn, "ref", "methylation_reference", batch, REFERENCE_COLUMNS)
+        total_loaded += n
+        print(f"    Loaded batch {i // REFERENCE_BATCH_SIZE + 1}: {n:,} rows (total: {total_loaded:,})")
+
+    # 5. Update layer stats.
+    content_hash = await compute_content_hash(conn, "ref", "methylation_reference", str(layer_id))
+    await update_layer_stats(conn, str(layer_id), total_loaded, content_hash)
+    print(f"  Reference ingest complete: {total_loaded:,} rows, hash={content_hash[:20]}...")
+
+    return total_loaded
+
+
+# ── Full Pipeline (S3/Parquet) ──────────────────────────────────────────────
 
 
 async def ingest_build(
@@ -759,8 +900,9 @@ async def ingest_build(
 async def main(
     builds: list[str] | None = None,
     csv_path: str | Path | None = None,
+    mode: str = "reference",
 ) -> None:
-    """Connect as admin and run the full methylation atlas ingestion.
+    """Connect as admin and run methylation ingestion.
 
     Parameters
     ----------
@@ -768,7 +910,11 @@ async def main(
         List of builds to ingest. Defaults to ``["hg38"]``.
     csv_path
         Path to the methylation matrix CSV. If None, looks for
-        ``data/methylation_atlas_{build}.csv``.
+        ``data/methylation_reference_{build}.csv``.
+    mode
+        ``"reference"`` populates ``ref.methylation_reference`` (Postgres inline).
+        ``"atlas"`` populates ``methylation.atlas_layers`` (S3/Parquet).
+        ``"both"`` runs both pipelines.
     """
     import asyncpg
 
@@ -796,23 +942,30 @@ async def main(
                 continue
 
             print(f"\n{'=' * 60}")
-            print(f"Ingesting methylation atlas -- {build}")
+            print(f"Ingesting methylation ({mode}) -- {build}")
             print(f"{'=' * 60}")
 
             if csv_path is not None:
                 matrix_path = Path(csv_path)
             else:
-                matrix_path = DATA_DIR / f"methylation_atlas_{build}.csv"
+                matrix_path = DATA_DIR / f"methylation_reference_{build}.csv"
 
             if not matrix_path.exists():
                 print(f"  ERROR: Matrix file not found: {matrix_path}")
                 print("  Provide --csv or place file in data/ directory.")
                 continue
 
-            atlas_ids = await ingest_build(conn, build, matrix_path)
-            print(f"\n  Summary: {len(atlas_ids)} cell types registered")
-            for ct, aid in atlas_ids.items():
-                print(f"    {ct}: {aid}")
+            if mode in ("reference", "both"):
+                print("\n--- Postgres reference table ---")
+                n = await ingest_reference(conn, build, matrix_path)
+                print(f"  Loaded {n:,} rows into ref.methylation_reference")
+
+            if mode in ("atlas", "both"):
+                print("\n--- S3/Parquet atlas ---")
+                atlas_ids = await ingest_build(conn, build, matrix_path)
+                print(f"  Summary: {len(atlas_ids)} cell types registered")
+                for ct, aid in atlas_ids.items():
+                    print(f"    {ct}: {aid}")
 
         print("\nDone.")
     finally:
@@ -822,7 +975,7 @@ async def main(
 def cli() -> None:
     """Command-line entry point."""
     parser = argparse.ArgumentParser(
-        description="Ingest methylation atlas into storage + methylation.atlas_layers",
+        description="Ingest methylation reference data",
     )
     parser.add_argument(
         "--build",
@@ -836,10 +989,16 @@ def cli() -> None:
         default=None,
         help="Path to the methylation reference matrix CSV",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["reference", "atlas", "both"],
+        default="reference",
+        help="Ingest mode: reference (Postgres), atlas (S3/Parquet), or both (default: reference)",
+    )
     args = parser.parse_args()
 
     builds = [args.build] if args.build else None
-    asyncio.run(main(builds=builds, csv_path=args.csv))
+    asyncio.run(main(builds=builds, csv_path=args.csv, mode=args.mode))
 
 
 if __name__ == "__main__":

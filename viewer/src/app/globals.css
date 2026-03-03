@@ -5,18 +5,17 @@
 
 :root {
   --bg-primary: #0A0A0A;
+  --bg-elevated: #0D0D0D;
   --bg-track: #111111;
-  --bg-sidebar: #0A0A0A;
-  --bg-tooltip: #1a1a1a;
-  --bg-ideogram: #0D0D0D;
+  --bg-surface: #1a1a1a;
   --border-subtle: #1a1a1a;
-  --border-axis: #222222;
-  --border-tooltip: #333333;
-  --text-label: #999999;
-  --text-axis: #888888;
-  --text-tooltip: #CCCCCC;
+  --border-default: #222222;
+  --border-strong: #333333;
   --text-primary: #E0E0E0;
+  --text-secondary: #CCCCCC;
+  --text-tertiary: #8a8a8a;
   --text-muted: #777777;
+  --text-faint: #555555;
   --accent-teal: #4ECDC4;
   --accent-amber: #F0A500;
   --accent-violet: #8B5CF6;
@@ -36,5 +35,33 @@ body {
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  overflow: hidden;
+}
+
+/* Focus states — teal ring on keyboard navigation only */
+*:focus-visible {
+  outline: 2px solid var(--accent-teal);
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Scrollbar styling — subtle, matches the palette */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
 }

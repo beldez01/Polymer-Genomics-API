@@ -1,6 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import type { RegionContext } from '@/hooks/useRegionContext';
+import { useViewport } from '@/stores/viewport';
 import { COLORS } from '@/config/colors';
 
 const FONT = "'JetBrains Mono', monospace";
@@ -82,6 +84,7 @@ export interface RegionContextPanelProps {
 }
 
 export function RegionContextPanel({ context }: RegionContextPanelProps) {
+  const { build } = useViewport();
   const isochoreColor = context.isochore.class
     ? (COLORS.isochore as Record<string, string>)[context.isochore.class] ?? '#333'
     : '#333';
@@ -172,10 +175,15 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
           <>
             <div style={styles.value}>
               {context.gene.geneSymbol && (
-                <span style={{ color: '#E0E0E0', fontWeight: 500 }}>
-                  {context.gene.geneSymbol}{' '}
-                </span>
-              )}
+                <Link
+                  href={`/gene/${build}/${context.gene.geneSymbol}`}
+                  style={{ color: COLORS.accent.teal, fontWeight: 500, textDecoration: 'none' }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.textDecoration = 'underline'; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.textDecoration = 'none'; }}
+                >
+                  {context.gene.geneSymbol}
+                </Link>
+              )}{' '}
               <span style={styles.muted}>{strandChar}</span>
             </div>
             <div style={styles.value}>{context.gene.featureLabel ?? context.gene.location}</div>

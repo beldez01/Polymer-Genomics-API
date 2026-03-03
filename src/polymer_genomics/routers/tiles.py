@@ -9,8 +9,7 @@ from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
-from polymer_genomics.queries import LAYER_QUERY_MAP
-from polymer_genomics.routers.regions import _convert_rows
+from polymer_genomics.queries import TRACK_REGISTRY
 
 # ---------------------------------------------------------------------------
 # Pure tile math
@@ -112,12 +111,12 @@ async def get_tile(
         db_start = time.monotonic()
 
         for lr in layer_rows:
-            query_fn = LAYER_QUERY_MAP.get(lr["layer_type"])
-            if not query_fn:
+            track = TRACK_REGISTRY.get(lr["layer_type"])
+            if not track:
                 continue
 
             rows = await conn.fetch(
-                query_fn(),
+                track["query_fn"](),
                 build,
                 chr_id,
                 tile_start,
@@ -126,7 +125,7 @@ async def get_tile(
                 page_limit,
             )
 
-            converted = _convert_rows(lr["layer_type"], rows, chr_name)
+            converted = track["convert_fn"](rows, chr_name)
             data[lr["layer_key"]] = converted
 
             if lr["content_hash"]:

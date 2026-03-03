@@ -20,6 +20,7 @@ ALLOWED_TABLES = frozenset({
     "coordinates",
     "map_edges",
     "atlas_layers",
+    "methylation_reference",
     "isochores",
     "layers",
     "objects",

@@ -23,7 +23,7 @@ export function drawGridlines(
   const firstTick = Math.ceil(viewStart / interval) * interval;
 
   ctx.save();
-  ctx.strokeStyle = '#1a1a1a';
+  ctx.strokeStyle = '#2e2e2e';
   ctx.lineWidth = 1;
 
   for (let pos = firstTick; pos <= viewEnd; pos += interval) {

@@ -157,3 +157,22 @@ export async function fetchGene(
 ): Promise<RegionResponse> {
   return fetchJSON(`${API_BASE}/v1/genes/${build}/${symbol}`);
 }
+
+export interface ProbeResponse {
+  status: string;
+  data: {
+    probe: {
+      probe_id: string;
+      seqname: string;
+      start: number;
+      end: number;
+      gene_symbol: string | null;
+      cpg_context: string;
+    };
+    crossmap: Array<{ dst_platform: string; dst_probe_id: string; confidence: number }>;
+  };
+}
+
+export async function fetchProbe(build: string, probeId: string): Promise<ProbeResponse> {
+  return fetchJSON(`${API_BASE}/v1/probes/${build}/${encodeURIComponent(probeId)}`);
+}

@@ -124,39 +124,6 @@ export function GeneTrack({
       ctx.lineTo(lineX2, yCenter);
       ctx.stroke();
 
-      // --- Geometric chevrons in intron gaps ---
-      const exonsSorted = txFeatures
-        .filter(f => { const ft = f.type?.toLowerCase() ?? ''; return ft === 'exon' || ft === 'cds'; })
-        .sort((a, b) => a.start - b.start);
-      const uniqueForChevrons: Feature[] = [];
-      const seenChev = new Set<string>();
-      for (const e of exonsSorted) {
-        const k = `${e.start}-${e.end}`;
-        if (!seenChev.has(k)) { seenChev.add(k); uniqueForChevrons.push(e); }
-      }
-
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 1.5;
-      const peakH = 6;
-      for (let ei = 0; ei < uniqueForChevrons.length - 1; ei++) {
-        const intronX1Raw = toX(uniqueForChevrons[ei].end + 1);
-        const intronX2Raw = toX(uniqueForChevrons[ei + 1].start);
-        const intronX1 = Math.max(0, intronX1Raw);
-        const intronX2 = Math.min(canvasWidth, intronX2Raw);
-        const intronWidthPx = intronX2 - intronX1;
-        if (intronWidthPx < 4) continue;  // too narrow for chevrons
-        const spacing = Math.max(14, Math.min(30, intronWidthPx / 3));
-        ctx.beginPath();
-        ctx.moveTo(intronX1, yCenter);
-        for (let x = intronX1 + spacing / 2; x < intronX2 - 2; x += spacing) {
-          const peakY = strand === '+' ? yCenter - peakH : yCenter + peakH;
-          ctx.lineTo(x - spacing / 4, peakY);
-          ctx.lineTo(x + spacing / 4, yCenter);
-        }
-        ctx.lineTo(intronX2, yCenter);
-        ctx.stroke();
-      }
-
       for (const f of txFeatures) {
         const x1 = Math.max(0, toX(f.start));
         const x2 = Math.min(canvasWidth, toX(f.end + 1));

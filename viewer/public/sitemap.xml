@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://polymerbio.org/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://polymerbio.org/docs</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://polymerbio.org/view/hg38/chr17:7668421-7687490</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://polymerbio.org/view/hg38/chr16:70699930-70700000</loc>
+    <priority>0.8</priority>
+  </url>
+</urlset>
