@@ -11,6 +11,7 @@ import { IdeogramBar } from '@/components/IdeogramBar';
 import { Sidebar } from '@/components/Sidebar';
 import { CoordinateRuler } from '@/components/CoordinateRuler';
 import { RegionContextPanel } from '@/components/RegionContextPanel';
+import { Footer } from '@/components/Footer';
 import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
@@ -25,7 +26,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, showCodons, setBuild, setRegion, setLayers, toggleLayer, toggleCodons } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, showGC, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
@@ -181,10 +182,12 @@ function ViewerPage() {
         >
           POLYMER GENOMICS
         </Link>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
+          <Link href="/atlas" style={COMPONENT.button.small as React.CSSProperties}>Atlas</Link>
+          <Link href="/docs"  style={COMPONENT.button.small as React.CSSProperties}>API</Link>
           <button
             onClick={handleCopyLink}
-            style={COMPONENT.button.small}
+            style={{ ...COMPONENT.button.small, marginLeft: SPACE[2] }}
             title="Copy shareable link with active layers"
           >
             {copyLabel}
@@ -221,6 +224,8 @@ function ViewerPage() {
           resolution={data?.resolution ?? null}
           showCodons={showCodons}
           onToggleCodons={toggleCodons}
+          showGC={showGC}
+          onToggleGC={toggleGC}
         />
 
         <main
@@ -268,6 +273,7 @@ function ViewerPage() {
                 loading={loading}
                 error={error}
                 showCodons={showCodons}
+                showGC={showGC}
               />
             </div>
           </div>
@@ -275,6 +281,8 @@ function ViewerPage() {
 
         {showContext && <RegionContextPanel context={regionContext} />}
       </div>
+
+      <Footer />
 
       {/* Progress bar animation */}
       <style>{`

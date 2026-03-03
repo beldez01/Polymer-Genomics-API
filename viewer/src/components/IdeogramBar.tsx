@@ -10,7 +10,7 @@ interface IdeogramBarProps {
 export function IdeogramBar({ currentChromosome, onSelectChromosome }: IdeogramBarProps) {
   return (
     <div className="w-full flex items-stretch flex-shrink-0"
-         style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 2px', gap: 2 }}>
+         style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 8px', gap: 2 }}>
       {CHROMOSOMES.map(chr => {
         const pct = (chr.length / GENOME_LENGTH) * 100;
         const isActive = currentChromosome === chr.name;

@@ -91,10 +91,11 @@ export const COLOR = {
 
   // Data layer identity colors
   layer: {
-    gencode_v44:   '#3b82f6',
-    cpg_sites:     '#4ECDC4',
-    probe_epic_v2: '#F0A500',
-    isochores:     '#8B5CF6',
+    gencode_v44:      '#3b82f6',
+    cpg_sites:        '#4ECDC4',
+    probe_epic_v2:    '#F0A500',
+    isochores:        '#8B5CF6',
+    methylation_atlas:'#f43f5e',
   },
 
   // Isochore classes — earth tones, low-key
@@ -167,8 +168,8 @@ export const COMPONENT = {
     } as React.CSSProperties,
     small: {
       backgroundColor: COLOR.bg.track,
-      color: COLOR.text.tertiary,
-      border: `1px solid ${COLOR.border.subtle}`,
+      color: COLOR.text.secondary,
+      border: `1px solid ${COLOR.border.strong}`,
       padding: `${sp(1) + 1}px ${sp(2) + 2}px`,
       fontSize: TYPE.xs.fontSize,
       fontFamily: FONT_FAMILY,
@@ -190,7 +191,7 @@ export const COMPONENT = {
     default: {
       backgroundColor: COLOR.bg.track,
       color: COLOR.text.secondary,
-      border: `1px solid ${COLOR.border.subtle}`,
+      border: `1px solid ${COLOR.border.strong}`,
       padding: `${sp(1) + 1}px ${sp(3)}px`,
       fontSize: TYPE.sm.fontSize,
       fontFamily: FONT_FAMILY,
