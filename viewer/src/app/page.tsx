@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { BrandBar } from '@/components/BrandBar';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
 
 const LAYERS = [
@@ -43,6 +44,7 @@ function GhostButton({ href, children }: { href: string; children: React.ReactNo
 export default function Home() {
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
+      <BrandBar />
 
       {/* ─── Hero ─── */}
       <section
@@ -51,7 +53,7 @@ export default function Home() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '100vh',
+          minHeight: 'calc(100vh - 44px)',
           padding: `0 ${SPACE[6]}px`,
         }}
       >

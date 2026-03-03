@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { BrandBar } from '@/components/BrandBar';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
@@ -425,33 +426,22 @@ function ResponseBlock({ json }: { json: string }) {
 
 export default function DocsPage() {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: COLOR.bg.primary }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: COLOR.bg.primary }}>
+      <BrandBar subtitle="API Reference" />
+
+      <div style={{ display: 'flex', flex: 1 }}>
 
       {/* ─── Sidebar Nav ─── */}
       <nav style={{
         width: 200,
         flexShrink: 0,
         borderRight: `1px solid ${COLOR.border.subtle}`,
-        padding: `${SPACE[6]}px 0`,
+        padding: `${SPACE[4]}px 0`,
         position: 'sticky',
-        top: 0,
-        height: '100vh',
+        top: 44,
+        height: 'calc(100vh - 44px)',
         overflowY: 'auto',
       }}>
-        <Link href="/" style={{
-          display: 'block',
-          padding: `0 ${SPACE[4]}px`,
-          marginBottom: SPACE[6],
-          color: COLOR.accent.teal,
-          fontSize: 13,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.bold,
-          letterSpacing: '0.08em',
-          textDecoration: 'none',
-        }}>
-          POLYMER
-        </Link>
-
         <div style={{
           padding: `0 ${SPACE[4]}px`,
           marginBottom: SPACE[4],
@@ -665,6 +655,7 @@ export default function DocsPage() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );

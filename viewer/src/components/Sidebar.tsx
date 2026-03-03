@@ -32,8 +32,17 @@ const LAYER_COLORS: Record<string, string> = {
 /** Layers that show a "build mapping" sub-line (methylation arrays). */
 const PROBE_LAYER_KEYS = new Set(['probe_epic_v2', 'probe_epic_v1', 'probe_450k']);
 
-/** Canonical display order for API layers (between Codons and GC%). */
-const LAYER_ORDER = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k', 'methylation_atlas'];
+/** Canonical display order for API layers (between Codons and GC%). — cpg_sites handled separately. */
+const LAYER_ORDER = ['gencode_v44', 'probe_epic_v2', 'probe_epic_v1', 'probe_450k'];
+
+const CELL_TYPE_KEYS = [
+  { key: 'Gran',  label: 'Gran' },
+  { key: 'Mono',  label: 'Mono' },
+  { key: 'NK',    label: 'NK' },
+  { key: 'Bcell', label: 'B' },
+  { key: 'CD4T',  label: 'CD4T' },
+  { key: 'CD8T',  label: 'CD8T' },
+] as const;
 
 const ZOOM_PRESETS = [
   { label: '1 bp',   width: 50 },
@@ -43,6 +52,10 @@ const ZOOM_PRESETS = [
   { label: '1 Mb',   width: 1_000_000 },
   { label: '10 Mb',  width: 10_000_000 },
 ];
+
+/** Teal color for all toggle indicators. */
+const TOGGLE_TEAL = COLOR.accent.teal;
+const TOGGLE_TEAL_DIM = COLOR.accent.teal + '4D';
 
 interface SidebarProps {
   build: GenomeBuild;
@@ -59,6 +72,8 @@ interface SidebarProps {
   onToggleCodons: () => void;
   showGC: boolean;
   onToggleGC: () => void;
+  visibleCellTypes: string[];
+  onToggleCellType: (cellType: string) => void;
 }
 
 export function Sidebar({
@@ -76,6 +91,8 @@ export function Sidebar({
   onToggleCodons,
   showGC,
   onToggleGC,
+  visibleCellTypes,
+  onToggleCellType,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
 
@@ -94,30 +111,27 @@ export function Sidebar({
         ];
   const apiLayerMap = new Map(displayList.map((l) => [l.layer_key, l]));
 
-  /** Render a single annotation row. */
+  /** Render a single annotation row — all toggle squares use unified teal. */
   function AnnotationRow({
-    colorKey,
     active,
     name,
     subLine,
     onClick,
     placeholder,
   }: {
-    colorKey: string;
     active: boolean;
     name: string;
     subLine?: React.ReactNode;
     onClick?: () => void;
     placeholder?: boolean;
   }) {
-    const color = LAYER_COLORS[colorKey] ?? '#666';
     const Tag = placeholder ? 'div' : 'button';
     return (
       <Tag
         onClick={placeholder ? undefined : onClick}
         className="w-full flex items-center gap-1.5"
         style={{
-          padding: `3px ${SPACE[1]}px`,
+          padding: `3px ${SPACE[2]}px`,
           backgroundColor: active ? COLOR.bg.track : 'transparent',
           cursor: placeholder ? 'default' : 'pointer',
           border: 'none',
@@ -131,22 +145,64 @@ export function Sidebar({
           width: 8,
           height: 8,
           borderRadius: 2,
-          backgroundColor: active ? color : color + '4D',
+          backgroundColor: active ? TOGGLE_TEAL : TOGGLE_TEAL_DIM,
           flexShrink: 0,
         }} />
         <span style={{
           color: active ? COLOR.text.secondary : COLOR.text.tertiary,
-          fontSize: TYPE.sm.fontSize,
+          fontSize: 12,
           fontFamily: FONT_FAMILY,
           textAlign: 'left',
           lineHeight: 1.2,
         }}>
           {name}
         </span>
-        {subLine && <span style={{ color: COLOR.text.faint, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, marginLeft: 2 }}>
+        {subLine && <span style={{ color: COLOR.text.faint, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY, marginLeft: 2 }}>
           {subLine}
         </span>}
       </Tag>
+    );
+  }
+
+  /** Teal checkbox used by probe and cell type groups. */
+  function TealCheckbox({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+    return (
+      <button
+        onClick={onClick}
+        className="flex items-center gap-1.5"
+        style={{
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          textAlign: 'left',
+        }}
+      >
+        <span style={{
+          width: 10,
+          height: 10,
+          borderRadius: 2,
+          border: `1.5px solid ${active ? TOGGLE_TEAL : COLOR.text.faint}`,
+          backgroundColor: active ? TOGGLE_TEAL : 'transparent',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          {active && (
+            <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
+              <path d="M1.5 4L3.2 5.7L6.5 2.3" stroke={COLOR.bg.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </span>
+        <span style={{
+          color: active ? COLOR.text.secondary : COLOR.text.faint,
+          fontSize: TYPE.sm.fontSize,
+          fontFamily: FONT_FAMILY,
+        }}>
+          {label}
+        </span>
+      </button>
     );
   }
 
@@ -159,11 +215,10 @@ export function Sidebar({
       probe_450k: '450K',
     };
     const anyActive = probeKeys.some((k) => activeLayers.includes(k));
-    const groupColor = LAYER_COLORS.probe_epic_v2 ?? '#F0A500';
 
     return (
       <div style={{
-        padding: `3px ${SPACE[1]}px`,
+        padding: `3px ${SPACE[2]}px`,
         backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
         borderBlockEnd: `1px solid ${COLOR.bg.track}`,
       }}>
@@ -172,12 +227,12 @@ export function Sidebar({
             width: 8,
             height: 8,
             borderRadius: 2,
-            backgroundColor: anyActive ? groupColor : groupColor + '4D',
+            backgroundColor: anyActive ? TOGGLE_TEAL : TOGGLE_TEAL_DIM,
             flexShrink: 0,
           }} />
           <span style={{
             color: anyActive ? COLOR.text.secondary : COLOR.text.tertiary,
-            fontSize: TYPE.sm.fontSize,
+            fontSize: 12,
             fontFamily: FONT_FAMILY,
           }}>
             Methylation Probes
@@ -187,47 +242,56 @@ export function Sidebar({
           {probeKeys.map((key) => {
             const l = apiLayerMap.get(key);
             const active = activeLayers.includes(key);
-            const color = LAYER_COLORS[key] ?? groupColor;
+            const suffix = l?.row_count != null ? ` \u00b7 ${formatCount(l.row_count)}` : '';
             return (
-              <button
+              <TealCheckbox
                 key={key}
+                active={active}
+                label={probeLabels[key] + suffix}
                 onClick={() => onToggleLayer(key)}
-                className="flex items-center gap-1.5"
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  border: `1.5px solid ${active ? color : COLOR.text.faint}`,
-                  backgroundColor: active ? color : 'transparent',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  {active && (
-                    <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
-                      <path d="M1.5 4L3.2 5.7L6.5 2.3" stroke={COLOR.bg.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </span>
-                <span style={{
-                  color: active ? COLOR.text.secondary : COLOR.text.faint,
-                  fontSize: TYPE.xs.fontSize,
-                  fontFamily: FONT_FAMILY,
-                }}>
-                  {probeLabels[key]}{l?.row_count != null ? ` · ${formatCount(l.row_count)}` : ''}
-                </span>
-              </button>
+              />
             );
           })}
+        </div>
+      </div>
+    );
+  }
+
+  /** Render the methylation atlas cell type group with checkboxes. */
+  function CellTypeGroup() {
+    const anyActive = visibleCellTypes.length > 0;
+
+    return (
+      <div style={{
+        padding: `3px ${SPACE[2]}px`,
+        backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
+        borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+      }}>
+        <div className="flex items-center gap-1.5">
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: 2,
+            backgroundColor: anyActive ? TOGGLE_TEAL : TOGGLE_TEAL_DIM,
+            flexShrink: 0,
+          }} />
+          <span style={{
+            color: anyActive ? COLOR.text.secondary : COLOR.text.tertiary,
+            fontSize: 12,
+            fontFamily: FONT_FAMILY,
+          }}>
+            Methylation Atlas
+          </span>
+        </div>
+        <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {CELL_TYPE_KEYS.map((ct) => (
+            <TealCheckbox
+              key={ct.key}
+              active={visibleCellTypes.includes(ct.key)}
+              label={ct.label}
+              onClick={() => onToggleCellType(ct.key)}
+            />
+          ))}
         </div>
       </div>
     );
@@ -260,7 +324,6 @@ export function Sidebar({
             const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
             return (
               <AnnotationRow
-                colorKey="isochores"
                 active={active}
                 name={l ? cleanName(l.name || 'Isochores') : 'Isochores'}
                 subLine={subLine}
@@ -271,46 +334,57 @@ export function Sidebar({
 
           {/* 2. Sequence — placeholder, always active */}
           <AnnotationRow
-            colorKey="sequence"
             active
             name="Sequence"
             placeholder
           />
 
-          {/* 2. Codons — toggle */}
+          {/* 3. CpG Sites — overlay toggle, right after Sequence */}
+          {(() => {
+            const l = apiLayerMap.get('cpg_sites');
+            const active = activeLayers.includes('cpg_sites');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'CpG Sites') : 'CpG Sites'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('cpg_sites')}
+              />
+            );
+          })()}
+
+          {/* 4. Codons — toggle */}
           <AnnotationRow
-            colorKey="codons"
             active={showCodons}
             name="Codons"
             onClick={onToggleCodons}
           />
 
-          {/* 3–N. API layers in canonical order, probes grouped */}
-          {LAYER_ORDER.map((key) => {
-            // Render probe group once when we hit the first probe key
-            if (PROBE_LAYER_KEYS.has(key)) {
-              if (key === 'probe_epic_v2') return <ProbeGroup key="probe_group" />;
-              return null; // skip v1 and 450k — handled by ProbeGroup
-            }
-            const l = apiLayerMap.get(key);
+          {/* 5. GENCODE — from API layer order */}
+          {(() => {
+            const l = apiLayerMap.get('gencode_v44');
             if (!l) return null;
-            const active = activeLayers.includes(key);
+            const active = activeLayers.includes('gencode_v44');
             const subLine = l.row_count != null ? formatCount(l.row_count) : undefined;
             return (
               <AnnotationRow
-                key={key}
-                colorKey={key}
                 active={active}
-                name={cleanName(l.name || key)}
+                name={cleanName(l.name || 'gencode_v44')}
                 subLine={subLine}
-                onClick={() => onToggleLayer(key)}
+                onClick={() => onToggleLayer('gencode_v44')}
               />
             );
-          })}
+          })()}
 
-          {/* 7. GC% — toggle, always last */}
+          {/* 6. Methylation Probes group */}
+          <ProbeGroup />
+
+          {/* 7. Methylation Atlas cell type group */}
+          <CellTypeGroup />
+
+          {/* 8. GC% — toggle, always last */}
           <AnnotationRow
-            colorKey="gc"
             active={showGC}
             name="GC%"
             onClick={onToggleGC}
@@ -368,7 +442,7 @@ export function Sidebar({
           <div>{viewportWidth.toLocaleString()} bp viewport</div>
           <div>{resolution === 1 ? 'Base-pair resolution' : `${resolution?.toLocaleString() ?? '\u2014'} bp tiles`}</div>
           <div style={{ marginTop: SPACE[1], color: COLOR.text.faint }}>Arrow keys: pan</div>
-          <div style={{ color: COLOR.text.faint }}>+/\u2212: zoom &middot; i: context</div>
+          <div style={{ color: COLOR.text.faint }}>+/&#x2212;: zoom &middot; i: context</div>
         </div>
       </div>
     </div>

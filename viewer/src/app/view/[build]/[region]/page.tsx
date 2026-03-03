@@ -2,20 +2,20 @@
 
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { useViewport } from '@/stores/viewport';
 import { useViewportData } from '@/hooks/useViewportData';
 import { TrackStack } from '@/components/TrackStack';
 import { HeaderBar } from '@/components/HeaderBar';
 import { IdeogramBar } from '@/components/IdeogramBar';
 import { Sidebar } from '@/components/Sidebar';
+import { BrandBar } from '@/components/BrandBar';
 import { CoordinateRuler } from '@/components/CoordinateRuler';
 import { RegionContextPanel } from '@/components/RegionContextPanel';
 import { Footer } from '@/components/Footer';
 import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
-import { COLOR, FONT_FAMILY, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
   const decoded = decodeURIComponent(region);
@@ -26,7 +26,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, showCodons, showGC, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
@@ -158,42 +158,15 @@ function ViewerPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
 
-      {/* ─── Brand Bar ─── */}
-      <div style={{
-        height: 44,
-        backgroundColor: COLOR.bg.primary,
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: SPACE[4],
-        paddingRight: SPACE[4],
-        borderBottom: `1px solid ${COLOR.border.subtle}`,
-        flexShrink: 0,
-      }}>
-        <Link
-          href="/"
-          style={{
-            color: COLOR.accent.teal,
-            fontSize: 17,
-            fontFamily: FONT_FAMILY,
-            fontWeight: WEIGHT.bold,
-            letterSpacing: '0.08em',
-            textDecoration: 'none',
-          }}
+      <BrandBar>
+        <button
+          onClick={handleCopyLink}
+          style={{ ...COMPONENT.button.small, marginLeft: SPACE[2] }}
+          title="Copy shareable link with active layers"
         >
-          POLYMER GENOMICS
-        </Link>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
-          <Link href="/atlas" style={COMPONENT.button.small as React.CSSProperties}>Atlas</Link>
-          <Link href="/docs"  style={COMPONENT.button.small as React.CSSProperties}>API</Link>
-          <button
-            onClick={handleCopyLink}
-            style={{ ...COMPONENT.button.small, marginLeft: SPACE[2] }}
-            title="Copy shareable link with active layers"
-          >
-            {copyLabel}
-          </button>
-        </div>
-      </div>
+          {copyLabel}
+        </button>
+      </BrandBar>
 
       {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
       <HeaderBar
@@ -226,6 +199,8 @@ function ViewerPage() {
           onToggleCodons={toggleCodons}
           showGC={showGC}
           onToggleGC={toggleGC}
+          visibleCellTypes={visibleCellTypes}
+          onToggleCellType={toggleCellType}
         />
 
         <main
@@ -274,6 +249,7 @@ function ViewerPage() {
                 error={error}
                 showCodons={showCodons}
                 showGC={showGC}
+                visibleCellTypes={visibleCellTypes}
               />
             </div>
           </div>

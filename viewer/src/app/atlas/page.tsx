@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { CHROMOSOMES, ChromosomeInfo } from '@/config/chromosomes';
 import { fetchAggregation, AggregationResponse } from '@/lib/api';
+import { BrandBar } from '@/components/BrandBar';
 import { COLOR, TYPE, WEIGHT, SPACE, FONT_FAMILY, LAYOUT } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
@@ -378,52 +379,9 @@ export default function AtlasPage() {
       fontFamily: FONT_FAMILY,
     }}>
 
-      {/* ─── Top bar ─── */}
-      <header style={{
-        height: LAYOUT.headerHeight,
-        borderBottom: `1px solid ${COLOR.border.subtle}`,
-        display: 'flex',
-        alignItems: 'center',
-        padding: `0 ${SPACE[6]}px`,
-        gap: SPACE[4],
-        backgroundColor: COLOR.bg.primary,
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}>
-        <Link
-          href="/"
-          style={{
-            color: COLOR.accent.teal,
-            textDecoration: 'none',
-            fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
-            fontWeight: WEIGHT.bold,
-            letterSpacing: '0.10em',
-          }}
-        >
-          POLYMER GENOMICS
-        </Link>
-        <span style={{
-          color: COLOR.border.strong,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-        }}>
-          /
-        </span>
-        <span style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          letterSpacing: '0.02em',
-        }}>
-          Chromosome Atlas · hg38
-        </span>
-
-        {/* Loading indicator in header */}
+      <BrandBar subtitle="Chromosome Atlas · hg38" sticky>
         {!allLoaded && (
           <span style={{
-            marginLeft: 'auto',
             color: COLOR.text.faint,
             fontSize: TYPE.xs.fontSize,
             fontFamily: FONT_FAMILY,
@@ -432,7 +390,7 @@ export default function AtlasPage() {
             loading {loadedCount}/{totalCount}
           </span>
         )}
-      </header>
+      </BrandBar>
 
       {/* ─── Stats header bar ─── */}
       <div style={{

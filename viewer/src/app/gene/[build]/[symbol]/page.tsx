@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { fetchGene } from '@/lib/api';
 import type { GRanges } from '@/lib/api';
+import { BrandBar } from '@/components/BrandBar';
 import {
   COLOR,
   TYPE,
@@ -98,53 +99,6 @@ function parseGRanges(gr: GRanges): ParsedGene | null {
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function TopBar({ build, gene }: { build: string; gene: ParsedGene | null }) {
-  const PAD = 5000;
-  const viewerHref = gene
-    ? `/view/${build}/${gene.chr}:${Math.max(1, gene.geneStart - PAD)}-${gene.geneEnd + PAD}`
-    : `/${build}`;
-
-  return (
-    <div
-      style={{
-        height: 44,
-        backgroundColor: COLOR.bg.primary,
-        borderBottom: `1px solid ${COLOR.border.subtle}`,
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: SPACE[4],
-        paddingRight: SPACE[4],
-        gap: SPACE[6],
-        flexShrink: 0,
-      }}
-    >
-      <Link
-        href="/"
-        style={{
-          color: COLOR.accent.teal,
-          fontSize: 17,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.bold,
-          letterSpacing: '0.08em',
-          textDecoration: 'none',
-          flexShrink: 0,
-        }}
-      >
-        POLYMER GENOMICS
-      </Link>
-      <div
-        style={{
-          width: 1,
-          height: 20,
-          backgroundColor: COLOR.border.strong,
-          flexShrink: 0,
-        }}
-      />
-      <BackLink href={viewerHref} />
-    </div>
-  );
-}
 
 function BackLink({ href }: { href: string }) {
   const [hovered, setHovered] = useState(false);
@@ -658,7 +612,7 @@ export default function GenePage() {
       }}
     >
       {/* 1. Top bar */}
-      <TopBar build={build} gene={gene} />
+      <BrandBar subtitle={<BackLink href={viewerHref} />} />
 
       {/* Content */}
       <div
