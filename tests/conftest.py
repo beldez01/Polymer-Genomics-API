@@ -138,7 +138,7 @@ async def seed_layers(_txn_conn):
         UPDATE registry.layers SET is_default = false
         WHERE layer_key IN (
             'probe_epic_v2', 'probe_epic_v1', 'probe_450k',
-            'cpg_sites', 'gencode_v44'
+            'cpg_sites', 'gencode_v44', 'gtex_v10'
         ) AND is_default = true
     """)
 
@@ -153,7 +153,9 @@ async def seed_layers(_txn_conn):
             ('cpg_sites', '1.0', 'CpG Sites', 'cpg', 'hg38',
              'computed', 'public_domain', 'postgres', 28300000, true, true),
             ('gencode_v44', '1.0', 'GENCODE v44', 'gene_model', 'hg38',
-             'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true)
+             'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true),
+            ('gtex_v10', '1.0', 'GTEx v10 Expression', 'expression', 'hg38',
+             'GTEx v10', 'public_domain', 'postgres', 56000, true, true)
         ON CONFLICT (layer_key, version) DO NOTHING
     """)
     yield
@@ -239,5 +241,47 @@ async def seed_probe_data(_txn_conn, seed_layers):
             ('epic_v2', 'cg08796240', 'epic_v1', 'cg08796240',
              'hg38', 16, 70699929, 'exact_id', 1.0)
         """
+    )
+    yield
+
+
+@pytest.fixture
+async def seed_expression_data(_txn_conn, seed_layers):
+    """Insert test gene expression data on chr16 and chr17 for expression endpoint tests."""
+    conn = _txn_conn
+    expr_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'gtex_v10' AND is_default = true"
+    )
+    # VAC14 on chr16 — moderately expressed, highest in kidney
+    await conn.execute(
+        """
+        INSERT INTO expression.gene_tpm
+            (layer_id, build, chr_id, start_pos, end_pos, strand,
+             gene_symbol, gene_id,
+             median_tpm, max_tpm, max_tissue, n_tissues_detected,
+             tpm_kidney_cortex, tpm_liver, tpm_whole_blood, tpm_brain_cortex)
+        VALUES
+            ($1, 'hg38', 16, 70699000, 70706000, '+',
+             'VAC14', 'ENSG00000130164',
+             8.5, 42.3, 'kidney_cortex', 48,
+             42.3, 15.2, 8.5, 3.1)
+        """,
+        expr_layer,
+    )
+    # TP53 on chr17 — ubiquitously expressed
+    await conn.execute(
+        """
+        INSERT INTO expression.gene_tpm
+            (layer_id, build, chr_id, start_pos, end_pos, strand,
+             gene_symbol, gene_id,
+             median_tpm, max_tpm, max_tissue, n_tissues_detected,
+             tpm_kidney_cortex, tpm_liver, tpm_whole_blood, tpm_brain_cortex)
+        VALUES
+            ($1, 'hg38', 17, 7668402, 7687550, '-',
+             'TP53', 'ENSG00000141510',
+             12.1, 35.8, 'liver', 54,
+             22.0, 35.8, 18.3, 9.7)
+        """,
+        expr_layer,
     )
     yield

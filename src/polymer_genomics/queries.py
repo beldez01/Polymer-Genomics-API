@@ -83,6 +83,21 @@ def region_methylation_reference_query() -> str:
     """
 
 
+def region_expression_query() -> str:
+    """Gene expression summary (GTEx v10, 54 tissues)."""
+    return """
+        SELECT e.gene_symbol, e.gene_id, e.start_pos, e.end_pos, e.strand,
+               e.median_tpm, e.max_tpm, e.max_tissue, e.n_tissues_detected
+        FROM expression.gene_tpm e
+        WHERE e.build = $1::genome_build
+          AND e.chr_id = $2
+          AND e.coord && int4range($3, $4)
+          AND e.layer_id = $5
+        ORDER BY e.start_pos
+        LIMIT $6
+    """
+
+
 def region_gene_costs_query() -> str:
     """Gene bioenergetic cost metrics (Akashi-Gojobori, CAI, GTEx EWGC)."""
     return """
@@ -220,6 +235,39 @@ def _convert_methylation(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_expression(rows: list, chr_name: str) -> dict:
+    starts, ends, widths, strands = [], [], [], []
+    symbols, gene_ids = [], []
+    median_tpms, max_tpms, max_tissues, n_detected = [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        strands.append(r["strand"] or "*")
+        symbols.append(r["gene_symbol"])
+        gene_ids.append(r["gene_id"])
+        median_tpms.append(r["median_tpm"])
+        max_tpms.append(r["max_tpm"])
+        max_tissues.append(r["max_tissue"])
+        n_detected.append(r["n_tissues_detected"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": strands,
+        "mcols": {
+            "gene_symbol": symbols,
+            "gene_id": gene_ids,
+            "median_tpm": median_tpms,
+            "max_tpm": max_tpms,
+            "max_tissue": max_tissues,
+            "n_tissues_detected": n_detected,
+        },
+        "n": len(rows),
+    }
+
+
 def _convert_gene_cost(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, protein_lengths = [], []
@@ -297,6 +345,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "gene_cost": {
         "query_fn": region_gene_costs_query,
         "convert_fn": _convert_gene_cost,
+    },
+    "expression": {
+        "query_fn": region_expression_query,
+        "convert_fn": _convert_expression,
     },
 }
 

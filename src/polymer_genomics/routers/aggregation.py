@@ -142,19 +142,11 @@ async def aggregate_region(
         )
 
     internal = api_to_db(parsed["start"], parsed["end"], coords=coords)
-    region_length = internal["end"] - internal["start"]
-    if region_length > settings.max_region_length:
-        raise HTTPException(
-            400,
-            {
-                "error": {
-                    "code": "REGION_TOO_LARGE",
-                    "message": f"Region exceeds maximum of {settings.max_region_length}bp.",
-                    "limit": settings.max_region_length,
-                    "requested": region_length,
-                }
-            },
-        )
+
+    # No max_region_length guard here — aggregation returns binned summaries,
+    # not raw rows, so whole-chromosome queries are fine.  Output size is
+    # bounded by region_length / resolution, which is at most ~250 K bins
+    # (whole chr1 at 1 kb) — well within SQL GROUP BY capacity.
 
     pool = await get_pool()
     async with pool.acquire() as conn:

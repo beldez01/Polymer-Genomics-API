@@ -23,9 +23,25 @@ API_KEY = os.environ.get("POLYMER_API_KEY", "")
 mcp = FastMCP(
     "Polymer Genomics",
     instructions=(
-        "Query curated genomic reference data (hg37/hg38): gene models, CpG sites, "
-        "probes, isochores, methylation atlases, and raw DNA sequence. "
-        "All coordinates are 1-based closed. Regions use format chr16:70699930-70700000."
+        "Polymer Genomics: curated genomic reference database (hg38/hg37).\n\n"
+        "COORDINATES: All regions are 1-based closed. Format: chr16:70699930-70700000.\n"
+        "RESPONSE FORMAT: GRanges JSON — seqnames[], ranges.start[], ranges.end[], "
+        "strand[], mcols{}. status='complete' or 'truncated'.\n"
+        "TRUNCATION: If status='truncated', results are incomplete. Use aggregate_region "
+        "for overview, then drill into sub-regions. Never report truncated data as complete.\n\n"
+        "TOOL SELECTION:\n"
+        "- Gene by name → lookup_gene (returns exons/introns/UTRs)\n"
+        "- Probe by ID → lookup_probe (coordinates + CpG context + crossmap)\n"
+        "- Everything in a region → query_region (use layers= to filter)\n"
+        "- Large region overview → aggregate_region (binned density)\n"
+        "- Annotations near a gene → query_proximity (gene + radius, single call)\n"
+        "- Gene search → search (prefix match, min 2 chars)\n"
+        "- DNA sequence → get_sequence (max 100kb)\n"
+        "- Multiple probes → batch_probes (max 10,000)\n"
+        "- Available data → list_layers\n"
+        "- Bulk download → bulk_download (presigned URL, 1hr TTL)\n"
+        "- Gene biosynthetic cost → lookup_gene_cost (Akashi-Gojobori + GTEx EWGC)\n"
+        "- Gene expression profile → lookup_gene_expression (GTEx v10 54-tissue TPM)"
     ),
     json_response=True,
 )
@@ -75,6 +91,9 @@ async def list_layers(build: str = "hg38", layer_type: str | None = None) -> dic
     probes, isochores, methylation atlases). Use this to discover what data is
     available before querying.
 
+    Use this when you need to check what data is loaded, confirm a layer_key
+    exists, or see row counts before a large query.
+
     Args:
         build: Genome build ('hg38' or 'hg37'). Defaults to 'hg38'.
         layer_type: Optional filter by type ('cpg', 'gene_model', 'probe', 'isochore', 'methylation').
@@ -96,6 +115,10 @@ async def query_region(
     Returns all annotation features (genes, CpG sites, probes, isochores) that
     overlap the specified region. Results are in GRanges format with 1-based
     closed coordinates.
+
+    Use this when you need all annotations overlapping a specific interval.
+    Use lookup_gene first if you only have a gene symbol.
+    Prefer aggregate_region for regions > 500kb to avoid truncation.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -119,6 +142,9 @@ async def get_sequence(
     Returns the nucleotide sequence (ACGT) for the specified region.
     Maximum 100,000 bp per request.
 
+    Use this when you need the actual nucleotide content — e.g. to inspect
+    CpG density, motif context, or primer design around a locus.
+
     Args:
         build: Genome build ('hg38' or 'hg37').
         region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
@@ -135,6 +161,9 @@ async def lookup_gene(
 
     Returns all gene features (exons, introns, UTRs, etc.) for the specified
     gene symbol. Results are in GRanges format.
+
+    Use this when you have a gene symbol and need its coordinates, transcript
+    structure, or exon boundaries. Use search first if unsure of the exact symbol.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -153,6 +182,9 @@ async def lookup_probe(
     Returns probe coordinates, gene symbol, CpG context, and cross-platform
     mappings (450k, EPIC v1, EPIC v2).
 
+    Use this when you have a probe ID (cg/ch prefix) and need its genomic
+    position, associated gene, or cross-platform availability.
+
     Args:
         build: Genome build ('hg38' or 'hg37').
         probe_id: Probe identifier (e.g. 'cg08796240').
@@ -166,6 +198,9 @@ async def batch_probes(
     probe_ids: list[str],
 ) -> dict:
     """Look up multiple probes at once (batch, max 10,000).
+
+    Use this when you have a list of probe IDs — more efficient than calling
+    lookup_probe in a loop. Returns the same fields as lookup_probe for each.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -184,6 +219,9 @@ async def aggregate_region(
     """Get binned density/summary statistics for a region.
 
     Returns feature counts and density per bin for visualization or overview.
+
+    Use this BEFORE query_region for large regions (>500kb) to avoid truncation.
+    Identifies density hotspots to drill into with query_region.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -209,11 +247,63 @@ async def lookup_gene_cost(
     metrics (CAI, tAI, ENC), and tissue-specific expression with energetic
     weighted gene cost (EWGC) from GTEx.
 
+    Use this when analyzing gene economy — biosynthetic investment per protein,
+    codon bias, or tissue-weighted energetic cost.
+
     Args:
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'ALB', 'TP53', 'BRCA1').
     """
     return await _get(f"/v1/genes/{build}/{symbol}/cost")
+
+
+@mcp.tool()
+async def lookup_gene_expression(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up tissue expression profile for a gene (GTEx v10).
+
+    Returns median TPM across 54 human tissues from GTEx v10. Includes
+    summary statistics (median, max, tissue count) and per-tissue values
+    sorted by expression level.
+
+    Use this when you need to know where a gene is expressed, compare
+    tissue-specific expression, or identify tissue-enriched genes.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'ALB').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/expression")
+
+
+@mcp.tool()
+async def query_proximity(
+    build: str,
+    gene: str,
+    radius: int = 5000,
+    layers: str | None = None,
+) -> dict:
+    """Query annotations around a gene with a specified radius.
+
+    Resolves gene symbol to coordinates, expands by radius on each side,
+    and returns all overlapping features. Equivalent to lookup_gene +
+    query_region but in a single call.
+
+    Use this when you want to find what CpG sites, probes, or other
+    annotations are near a gene.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        gene: Gene symbol (e.g. 'TP53', 'BRCA1', 'VAC14').
+        radius: Base pairs to expand on each side. Default 5000.
+        layers: Optional comma-separated layer keys.
+    """
+    params: dict = {"build": build, "gene": gene, "radius": str(radius)}
+    if layers:
+        params["layers"] = layers
+    return await _get("/v1/query", params)
 
 
 @mcp.tool()
@@ -225,6 +315,10 @@ async def search(
 
     Returns matching gene symbols. Use this to find gene names before
     calling lookup_gene.
+
+    Use this when unsure of the exact gene symbol, or to autocomplete a
+    partial name. Always call this before lookup_gene if the symbol might
+    have aliases or ambiguous capitalization.
 
     Args:
         query: Search term (minimum 2 characters). Case-insensitive prefix match.
@@ -241,6 +335,9 @@ async def bulk_download(
 
     Returns a temporary (1-hour) download URL for the full dataset of a layer.
     Useful for downloading complete probe manifests, CpG site lists, etc.
+
+    Use this when you need the full dataset for offline analysis — e.g. all
+    937K EPIC v2 probes or all 29M CpG sites. Not for ad-hoc queries.
 
     Args:
         layer_key: Layer identifier (e.g. 'probe_epic_v2', 'cpg_sites').

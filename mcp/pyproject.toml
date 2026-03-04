@@ -1,12 +1,32 @@
 [project]
 name = "polymer-genomics-mcp"
 version = "0.1.0"
-description = "MCP server for the Polymer Genomics API"
+description = "MCP server for the Polymer Genomics API — curated genomic reference data via Model Context Protocol"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Polymer Bio" },
+]
+readme = "AGENT.md"
+keywords = ["mcp", "genomics", "bioinformatics", "methylation", "cpg"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
 dependencies = [
     "mcp>=1.0.0",
     "httpx>=0.27.0",
 ]
+
+[project.urls]
+Homepage = "https://polymerbio.org"
+Repository = "https://github.com/polymerbio/polymer-genomics-mcp"
 
 [build-system]
 requires = ["hatchling"]
