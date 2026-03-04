@@ -6,6 +6,8 @@ import { fetchAggregation, AggregationResponse } from '@/lib/api';
 import { BrandBar } from '@/components/BrandBar';
 import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
+import { GeneSearch } from '@/components/atlas/GeneSearch';
+import { GeneCard } from '@/components/atlas/GeneCard';
 import { COLOR, FONT_FAMILY } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +21,15 @@ const AGG_RESOLUTION = 1_000_000;
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type ViewState =
+  | 'overview'
+  | 'entering'
+  | 'detail'
+  | 'exiting'
+  | 'gene_entering'
+  | 'gene'
+  | 'gene_exiting';
 
 interface ChrStats {
   genes: number | null;
@@ -37,10 +48,13 @@ function sumBinCounts(agg: AggregationResponse, layer: string): number {
   return layerData.bins.reduce((s, b) => s + b.count, 0);
 }
 
-function readChrParam(): string | null {
-  if (typeof window === 'undefined') return null;
+function readUrlParams(): { chr: string | null; gene: string | null } {
+  if (typeof window === 'undefined') return { chr: null, gene: null };
   const params = new URLSearchParams(window.location.search);
-  return params.get('chr') || null;
+  return {
+    chr: params.get('chr') || null,
+    gene: params.get('gene') || null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -48,15 +62,18 @@ function readChrParam(): string | null {
 // ---------------------------------------------------------------------------
 
 export default function AtlasPage() {
-  // Initialize as null (SSR-safe), then hydrate from URL in useEffect
   const [selectedChr, setSelectedChr] = useState<string | null>(null);
-  const [viewState, setViewState] = useState<'overview' | 'entering' | 'detail' | 'exiting'>('overview');
+  const [selectedGene, setSelectedGene] = useState<string | null>(null);
+  const [viewState, setViewState] = useState<ViewState>('overview');
   const [hydrated, setHydrated] = useState(false);
 
-  // Read URL param after mount to avoid hydration mismatch
+  // Read URL params after mount
   useEffect(() => {
-    const chr = readChrParam();
-    if (chr) {
+    const { chr, gene } = readUrlParams();
+    if (gene) {
+      setSelectedGene(gene.toUpperCase());
+      setViewState('gene');
+    } else if (chr) {
       setSelectedChr(chr);
       setViewState('detail');
     }
@@ -118,33 +135,49 @@ export default function AtlasPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // URL sync (skip before hydration to avoid clobbering the initial ?chr param)
+  // URL sync
   useEffect(() => {
     if (!hydrated) return;
     const url = new URL(window.location.href);
-    if (selectedChr) {
+    if (selectedGene) {
+      url.searchParams.delete('chr');
+      url.searchParams.set('gene', selectedGene);
+    } else if (selectedChr) {
+      url.searchParams.delete('gene');
       url.searchParams.set('chr', selectedChr);
     } else {
       url.searchParams.delete('chr');
+      url.searchParams.delete('gene');
     }
     history.replaceState(null, '', url.toString());
-  }, [selectedChr, hydrated]);
+  }, [selectedChr, selectedGene, hydrated]);
 
   // Handle browser back/forward
   useEffect(() => {
     function onPopState() {
-      const chr = readChrParam();
-      setSelectedChr(chr);
-      setViewState(chr ? 'detail' : 'overview');
+      const { chr, gene } = readUrlParams();
+      if (gene) {
+        setSelectedGene(gene.toUpperCase());
+        setSelectedChr(null);
+        setViewState('gene');
+      } else if (chr) {
+        setSelectedChr(chr);
+        setSelectedGene(null);
+        setViewState('detail');
+      } else {
+        setSelectedChr(null);
+        setSelectedGene(null);
+        setViewState('overview');
+      }
     }
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   const selectChromosome = useCallback((chrName: string) => {
+    setSelectedGene(null);
     setSelectedChr(chrName);
     setViewState('entering');
-    // Trigger enter animation
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setViewState('detail');
@@ -160,11 +193,52 @@ export default function AtlasPage() {
     }, 300);
   }, []);
 
+  const selectGene = useCallback((symbol: string) => {
+    const upper = symbol.toUpperCase();
+    // If currently in chr detail, exit first then enter gene
+    if (viewState === 'detail' || viewState === 'entering') {
+      setViewState('exiting');
+      setTimeout(() => {
+        setSelectedChr(null);
+        setSelectedGene(upper);
+        setViewState('gene_entering');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setViewState('gene');
+          });
+        });
+      }, 300);
+    } else {
+      setSelectedChr(null);
+      setSelectedGene(upper);
+      setViewState('gene_entering');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setViewState('gene');
+        });
+      });
+    }
+  }, [viewState]);
+
+  const goBackFromGene = useCallback(() => {
+    setViewState('gene_exiting');
+    setTimeout(() => {
+      setSelectedGene(null);
+      setViewState('overview');
+    }, 300);
+  }, []);
+
   const chrInfo = selectedChr ? getChromosomeByName(selectedChr) : null;
   const stats = selectedChr ? chrStats[selectedChr] : null;
 
   const showDetail = viewState === 'entering' || viewState === 'detail' || viewState === 'exiting';
   const showOverview = viewState === 'overview' || viewState === 'exiting';
+  const showGene = viewState === 'gene_entering' || viewState === 'gene' || viewState === 'gene_exiting';
+
+  // Dynamic subtitle
+  const subtitle = selectedGene
+    ? `Gene Card · ${selectedGene} · hg38`
+    : 'Karyotype Atlas · hg38';
 
   return (
     <main style={{
@@ -172,7 +246,14 @@ export default function AtlasPage() {
       minHeight: '100vh',
       fontFamily: FONT_FAMILY,
     }}>
-      <BrandBar subtitle="Karyotype Atlas · hg38" sticky />
+      <BrandBar subtitle={subtitle} sticky />
+
+      <GeneSearch
+        build={BUILD}
+        onSelectGene={selectGene}
+        selectedGene={selectedGene}
+        onClear={goBackFromGene}
+      />
 
       {/* Overview */}
       {showOverview && (
@@ -184,7 +265,7 @@ export default function AtlasPage() {
         </div>
       )}
 
-      {/* Detail */}
+      {/* Chromosome Detail */}
       {showDetail && chrInfo && (
         <div style={{
           opacity: viewState === 'detail' ? 1 : 0,
@@ -197,6 +278,21 @@ export default function AtlasPage() {
             cpgIslandCount={stats?.cpgIslands ?? null}
             probeCount={stats?.probes ?? null}
             onBack={goBack}
+          />
+        </div>
+      )}
+
+      {/* Gene Card */}
+      {showGene && selectedGene && (
+        <div style={{
+          opacity: viewState === 'gene' ? 1 : 0,
+          transform: viewState === 'gene' ? 'translateY(0)' : 'translateY(20px)',
+          transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
+          <GeneCard
+            symbol={selectedGene}
+            build={BUILD}
+            onBack={goBackFromGene}
           />
         </div>
       )}

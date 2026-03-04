@@ -41,7 +41,12 @@ mcp = FastMCP(
         "- Available data → list_layers\n"
         "- Bulk download → bulk_download (presigned URL, 1hr TTL)\n"
         "- Gene biosynthetic cost → lookup_gene_cost (Akashi-Gojobori + GTEx EWGC)\n"
-        "- Gene expression profile → lookup_gene_expression (GTEx v10 54-tissue TPM)"
+        "- Gene expression profile → lookup_gene_expression (GTEx v10 54-tissue TPM)\n"
+        "- Protein abundance → lookup_protein_abundance (PaxDb tissue-specific PPM)\n"
+        "- Gene constraint → lookup_gene_constraint (gnomAD pLI, LOEUF, Z-scores)\n"
+        "- Gene pathways → lookup_gene_pathways (Reactome pathway memberships)\n"
+        "- Gene sets → lookup_gene_sets (MSigDB Hallmark gene sets)\n"
+        "- Protein atlas → lookup_protein_atlas (HPA tissue expression + subcellular)"
     ),
     json_response=True,
 )
@@ -325,6 +330,93 @@ async def search(
         build: Genome build ('hg38' or 'hg37').
     """
     return await _get("/v1/search", {"q": query, "build": build})
+
+
+@mcp.tool()
+async def lookup_protein_abundance(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up tissue-specific protein abundance for a gene (PaxDb v6.0).
+
+    Returns protein abundance in parts per million (PPM) from mass spectrometry
+    across multiple tissues. Shows where a protein is most abundant.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'ALB', 'TP53', 'BRCA1').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/protein-abundance")
+
+
+@mcp.tool()
+async def lookup_gene_constraint(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up evolutionary constraint metrics for a gene (gnomAD).
+
+    Returns loss-of-function intolerance (pLI, LOEUF), missense constraint
+    (mis_z), and synonymous constraint (syn_z) from gnomAD. Lower LOEUF
+    means more constrained (intolerant of loss-of-function variants).
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'TET2', 'BRCA1').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/constraint")
+
+
+@mcp.tool()
+async def lookup_gene_pathways(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up Reactome pathway memberships for a gene.
+
+    Returns all pathways a gene participates in, with pathway hierarchy
+    and evidence codes. Use this to understand a gene's biological context.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'ALB').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/pathways")
+
+
+@mcp.tool()
+async def lookup_gene_sets(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up MSigDB Hallmark gene set memberships for a gene.
+
+    Returns which of the 50 Hallmark gene sets (e.g. OXIDATIVE_PHOSPHORYLATION,
+    MYC_TARGETS) a gene belongs to. Standard for functional interpretation.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'MYC').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/gene-sets")
+
+
+@mcp.tool()
+async def lookup_protein_atlas(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Look up Human Protein Atlas data for a gene.
+
+    Returns antibody-based protein expression across ~45 normal tissues
+    (Not detected/Low/Medium/High) and subcellular localization across
+    26 compartments. Bridges RNA expression to protein reality.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'ALB', 'BRCA1').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/protein-atlas")
 
 
 @mcp.tool()

@@ -1,5 +1,5 @@
 # Polymer Genomics Platform — Development Roadmap
-*Last updated: 2026-03-03*
+*Last updated: 2026-03-04*
 
 ---
 
@@ -21,16 +21,16 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| REST API | ✅ Live | 12 endpoints, FastAPI + asyncpg, response envelope |
-| MCP Server | ✅ Live | 9 tools, FastMCP, stdio transport |
+| REST API | ✅ Live | 14 endpoints, FastAPI + asyncpg, response envelope |
+| MCP Server | ✅ Live | 11 tools, FastMCP, stdio transport |
 | Frontend Viewer | ✅ Live | Canvas-based, multi-track, keyboard nav, Zustand |
 | R Client | ✅ Live | 8 functions, httr2, GRanges output |
-| Data Ingestion | ✅ Live | genes (3M features), CpG sites (29M), probes (EPIC v2/v1/450K), isochores |
-| Test Suite | ✅ Live | 21 files, 4,088 LOC, unit + integration |
+| Data Ingestion | ✅ Live | genes (3M), CpG (29M), probes (3 platforms), isochores, expression (56K), cCREs (927K), conservation (3.1M) |
+| Test Suite | ✅ Live | 24 files, 440+ tests, unit + integration |
 | Docker / Fly.io + Vercel | ✅ Live | API on Fly.io, viewer on Vercel, auto-deploy |
 | Schema | ✅ Live | Partitioned GiST-indexed tables, cross-platform probe mapping |
 | Gene detail page | ✅ Live | `/gene/[build]/[symbol]` — transcript diagram, locus/CpG panels |
-| Atlas page | ✅ Live | `/atlas` — 25-chromosome cards with density stats |
+| Atlas page + GeneCard | ✅ Live | `/atlas` — karyotype cards, GeneCard (11 sections A–K), protein domain annotations |
 | Track registry | ✅ Live | Declarative `TRACK_REGISTRY` in `queries.py` — zero if/elif dispatch |
 | Shareable URLs | ✅ Live | `?layers=` param synced to viewport; Copy Link button |
 | Probe search | ✅ Live | `cg`/`ch` ID detection in search bar → navigate to probe ±500bp |
@@ -79,38 +79,35 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 
 ---
 
-## Phase 2 — Data Depth (Next)
+## Phase 2 — Data Depth (Near Complete)
 
 **Goal:** Layer by layer, become the richest genomics reference database available. Every addition is a validated, publicly available dataset ingested via a reproducible pipeline.
 
-Priority order is by biological utility and ingestion complexity.
+**Status:** 7/8 items complete (2.0, 2.1, 2.3, 2.5, 2.6+2.7, 2.8). Remaining: 2.4 MCP publish.
 
-### 2.0 Methylation Reference Data Population ← **START HERE**
-*~2–4 hrs. Infrastructure from 1.3 is complete; this is just data.*
-- Run `002_methylation_reference.sql` migration on production Fly.io DB
-- Run `scripts/export_methylation_reference.R` to generate `data/methylation_reference_hg38.csv`
-- Run `uv run python -m polymer_genomics.ingest.methylation` to populate `ref.methylation_reference`
-- Register layer in `registry.layers` with `layer_key=methylation_atlas`
-- Verify `MethylationReferenceTrack` renders in viewer at probe-resolution zoom
+### ✅ 2.0 Methylation Reference Data Population
+*Completed 2026-03-03. Data exported, ingested, live in production.*
+- `data/methylation_reference_hg38.csv` generated from FlowSorted.Blood.EPIC (Salas 2018)
+- `ref.methylation_reference` populated in production DB
+- `MethylationReferenceTrack` renders in viewer
 
-### 2.1 Gene Bioenergetics Layer
-*~6–8 days total.*
-- **Backend:** `bioenergetics.gene_costs` table (Akashi-Gojobori aa costs, CAI, tAI, GTEx EWGC, elemental composition), region router entry in `TRACK_REGISTRY`, gene cost detail endpoint `GET /v1/genes/{build}/{symbol}/cost`, MCP tool `lookup_gene_cost`
-- **Frontend:** CostTrack canvas component (cost-graded color, height ∝ log2(c_protein)), TrackStack integration, gene detail page COST section
-- **Source data:** Published — Akashi & Gojobori 2002, GTEx v10 (all experimentally validated)
+### ✅ 2.1 Gene Bioenergetics Layer + GeneCard
+*Backend completed 2026-03-03. GeneCard + domain annotations completed 2026-03-04.*
+- **Backend:** `bioenergetics.gene_costs` table (Akashi-Gojobori aa costs, CAI, tAI, GTEx EWGC, elemental composition), region router entry in `TRACK_REGISTRY`, gene cost detail endpoint `GET /v1/genes/{build}/{symbol}/cost`, MCP tool `lookup_gene_cost`, data ingested (~20K genes)
+- **GeneCard (11 sections A–K):** Header (A), gene structure diagram (B), protein identity + AA histogram (C), protein cost heatmap (D), biosynthetic cost gauge (E), CDS GC plot (F), exon/intron GC (G), codon optimization (H), transcript structure (I), tissue expression (J), footer links (K)
+- **Protein domain annotations (B2):** Client-side UniProt REST fetch, domain/zinc-finger/DNA-binding/region/motif/active-site types rendered as colored bars below exon track, multi-exon spanning with dashed connectors, overlap stacking, legend with aa ranges. Verified: TP53 (23 domains), BRCA1 (4 domains), TET2 (1 domain), MALAT1 (graceful no-domain)
+- **Source data:** Akashi & Gojobori 2002, GTEx v10, UniProt (public REST API, no auth)
+- **Remaining:** CostTrack canvas component in genome viewer (cost-graded color per gene region)
 
-### 2.2 Python Client Library
-*~6–8 hrs.*
-- Mirrors R client API exactly: `pg_query_region`, `pg_lookup_gene`, `pg_lookup_probe`, etc.
-- httpx (async) + pandas DataFrames
-- PyPI publishable (`pip install polymer-genomics`)
-- No heavy bio dependencies (no Biopython, no pysam)
+### ~~2.2 Python Client Library~~ (Deferred)
+*Deprioritized — focus on data depth first.*
 
-### 2.3 Proximity Query Endpoint
-*~4–8 hrs.*
+### ✅ 2.3 Proximity Query Endpoint
+*Completed 2026-03-03.*
 - `GET /v1/query?build=hg38&gene=TP53&radius=5000&layers=cpg_sites,probe_epic_v2`
-- Resolves gene symbol → coordinates → expands by radius → calls region router
-- Critical for regulatory analysis (e.g., "what CpGs are within 5kb of this promoter?")
+- Resolves gene symbol → coordinates → expands by radius → queries all overlapping features
+- MCP tool `query_proximity` wraps the endpoint for agent consumption
+- Response includes `gene_bounds`, `radius`, and expanded `region` in query metadata
 
 ### 2.4 MCP Server — PyPI Publish + Enhanced Descriptions
 *~3–4 hrs. See AGENT_HARNESS.md for full spec.*
@@ -118,31 +115,34 @@ Priority order is by biological utility and ingestion complexity.
 - One-line install: `uv tool install polymer-genomics-mcp`
 - Enhance all 9 tool docstrings with "Use this when..." hints and example invocations
 
-### 2.5 Gene Expression Layer (GTEx)
-*~1–2 weeks.*
+### ✅ 2.5 Gene Expression Layer (GTEx)
+*Completed 2026-03-03.*
 - Source: GTEx v10 median TPM per gene per tissue (54 tissues)
-- New layer_type: `expression`
-- Schema: `expression.gene_tpm(gene_symbol, tissue, median_tpm, log2_tpm)` partitioned by build
-- Region query returns expression values for all genes overlapping region, all tissues
+- New layer_type: `expression`; WIDE format (one row per gene, 54 tissue columns)
+- Schema: `expression.gene_tpm` — non-partitioned (~56K rows), GiST-indexed
+- Detail endpoint: `GET /v1/genes/{build}/{symbol}/expression` — returns 54-tissue profile sorted by TPM
+- Region query via `TRACK_REGISTRY` entry (`expression`) — returns summary columns per gene
+- MCP tool: `lookup_gene_expression(build, symbol)` — tissue expression profile for agents
+- Ingestion: `uv run python -m polymer_genomics.ingest.expression --build hg38` (GCT format)
 - **Unlock:** First true cross-layer correlation (methylation ↔ expression at same locus)
 
-### 2.6 Chromatin Accessibility Layer (ENCODE DHS)
-*~1–2 weeks.*
-- Source: ENCODE Master DHS List (hg38, ~3.5M sites, 1,800 biosamples)
-- New layer_type: `accessibility`
-- Per-DHS: score, summit, cell_type_count, peak_biosample_list
-- **Unlock:** Methylation ↔ accessibility at CpG sites; probe context interpretation
+### ✅ 2.6+2.7 Regulatory Elements (ENCODE cCREs V4)
+*Completed 2026-03-03. Combined DHS accessibility + regulatory classification into one layer.*
+- Source: ENCODE SCREEN V4 candidate cis-Regulatory Elements (926,535 cCREs, hg38)
+- New layer_type: `regulatory`; partitioned table `regulatory.ccre` (4 hash sub-partitions)
+- 5 classes: PLS (promoter, 34.8K), pELS (proximal enhancer, 141.8K), dELS (distal enhancer, 667.6K), CTCF-only (56.8K), DNase-H3K4me3 (25.5K)
+- Region query via `TRACK_REGISTRY` entry (`regulatory`, layer_key `encode_ccre_v4`) — returns accession, score, encode_label, ccre_class, z_score
+- Ingestion: `uv run python -m polymer_genomics.ingest.regulatory --build hg38` (BED format from bigBedToBed)
+- **Unlock:** Regulatory context for any locus; methylation ↔ accessibility at CpG sites
 
-### 2.7 Regulatory Elements (ENCODE SCREEN RE2)
-*~1 week.*
-- Source: ENCODE SCREEN v3 candidate regulatory elements (cCREs)
-- Classes: PLS (promoter), pELS (proximal enhancer), dELS (distal enhancer), CTCF-only, DNase-H3K4me3
-- **Unlock:** Classify any queried region by regulatory context
-
-### 2.8 Conservation Scores (PhyloP / PhastCons)
-*~1 week.*
-- Source: UCSC 100-way vertebrate alignment
-- Stored as tiled float tracks (1kb resolution for display, per-base for precision query)
+### ✅ 2.8 Conservation Scores (PhyloP / PhastCons)
+*Completed 2026-03-04.*
+- Source: UCSC 100-way vertebrate alignment (PhyloP + PhastCons)
+- New layer_type: `conservation`; partitioned table `conservation.scores` (4 hash sub-partitions)
+- 1kb-binned mean scores: phylop_mean, phylop_max, phastcons_mean, phastcons_max (~3.1M rows for hg38)
+- Region query via `TRACK_REGISTRY` entry (`conservation`, layer_key `phylop_phastcons_100way`)
+- Ingestion: `uv run python -m polymer_genomics.ingest.conservation --build hg38` (bigWig → bigWigAverageOverBed → COPY)
+- PhyloP mean+max loaded; PhastCons download in progress — re-ingest to add phastcons_mean/max columns
 - **Unlock:** Evolutionary constraint layer for variant and CpG interpretation
 
 ---
@@ -213,12 +213,11 @@ These improve usability for human researchers. Can be worked on concurrently wit
 | CpG sites / islands | Sequence-derived | ✅ Live | — |
 | Methylation probes (EPIC v2, v1, 450K) | Illumina (derived) | ✅ Live | — |
 | Isochores | GC-computed | ✅ Live | — |
-| Cell-type methylation reference | FlowSorted Salas 2018 | 🔶 Schema+track done; data pending | 2.0 |
-| Gene bioenergetics | Akashi-Gojobori / GTEx | Planned | 2.1 |
-| Gene expression (GTEx) | GTEx v10 | Planned | 2.5 |
-| Chromatin accessibility (DHS) | ENCODE | Planned | 2.6 |
-| Regulatory elements | ENCODE SCREEN | Planned | 2.7 |
-| Conservation (PhyloP/PhastCons) | UCSC 100-way | Planned | 2.8 |
+| Cell-type methylation reference | FlowSorted Salas 2018 | ✅ Live | 2.0 |
+| Gene bioenergetics | Akashi-Gojobori / GTEx | ✅ Live (backend) | 2.1 |
+| Gene expression (GTEx) | GTEx v10 | ✅ Live | 2.5 |
+| Regulatory elements (cCREs) | ENCODE SCREEN V4 | ✅ Live | 2.6+2.7 |
+| Conservation (PhyloP/PhastCons) | UCSC 100-way | ✅ Live | 2.8 |
 | Genetic variants (gnomAD/ClinVar) | gnomAD v4, ClinVar | Planned | 3.2 |
 | Histone modifications | ENCODE | Planned | 3.3 |
 | 3D genome (TADs/compartments) | Rao 2014 | Planned | 3.4 |

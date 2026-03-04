@@ -18,6 +18,11 @@ from polymer_genomics.routers.regions import router as regions_router
 from polymer_genomics.routers.search import router as search_router
 from polymer_genomics.routers.sequence import router as sequence_router
 from polymer_genomics.routers.tiles import router as tiles_router
+from polymer_genomics.routers.protein_abundance import router as protein_abundance_router
+from polymer_genomics.routers.gene_constraint import router as gene_constraint_router
+from polymer_genomics.routers.gene_pathways import router as gene_pathways_router
+from polymer_genomics.routers.gene_sets_router import router as gene_sets_router
+from polymer_genomics.routers.protein_atlas import router as protein_atlas_router
 
 
 @asynccontextmanager
@@ -61,6 +66,11 @@ app.include_router(regions_router)
 app.include_router(search_router)
 app.include_router(sequence_router)
 app.include_router(tiles_router)
+app.include_router(protein_abundance_router)
+app.include_router(gene_constraint_router)
+app.include_router(gene_pathways_router)
+app.include_router(gene_sets_router)
+app.include_router(protein_atlas_router)
 
 
 @app.get("/health")

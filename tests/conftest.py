@@ -138,7 +138,8 @@ async def seed_layers(_txn_conn):
         UPDATE registry.layers SET is_default = false
         WHERE layer_key IN (
             'probe_epic_v2', 'probe_epic_v1', 'probe_450k',
-            'cpg_sites', 'gencode_v44', 'gtex_v10'
+            'cpg_sites', 'gencode_v44', 'gtex_v10', 'encode_ccre_v4',
+            'phylop_phastcons_100way'
         ) AND is_default = true
     """)
 
@@ -155,7 +156,11 @@ async def seed_layers(_txn_conn):
             ('gencode_v44', '1.0', 'GENCODE v44', 'gene_model', 'hg38',
              'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true),
             ('gtex_v10', '1.0', 'GTEx v10 Expression', 'expression', 'hg38',
-             'GTEx v10', 'public_domain', 'postgres', 56000, true, true)
+             'GTEx v10', 'public_domain', 'postgres', 56000, true, true),
+            ('encode_ccre_v4', '1.0', 'ENCODE cCREs V4', 'regulatory', 'hg38',
+             'ENCODE SCREEN V4', 'public_domain', 'postgres', 926535, true, true),
+            ('phylop_phastcons_100way', '1.0', 'PhyloP+PhastCons 100-way', 'conservation', 'hg38',
+             'UCSC 100-way', 'public_domain', 'postgres', 3100000, true, true)
         ON CONFLICT (layer_key, version) DO NOTHING
     """)
     yield
@@ -283,5 +288,52 @@ async def seed_expression_data(_txn_conn, seed_layers):
              22.0, 35.8, 18.3, 9.7)
         """,
         expr_layer,
+    )
+    yield
+
+
+@pytest.fixture
+async def seed_regulatory_data(_txn_conn, seed_layers):
+    """Insert test cCRE records on chr16 for regulatory endpoint tests."""
+    conn = _txn_conn
+    reg_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'encode_ccre_v4' AND is_default = true"
+    )
+    await conn.execute(
+        """
+        INSERT INTO regulatory.ccre
+            (layer_id, build, chr_id, start_pos, end_pos,
+             accession, score, encode_label, ccre_class, z_score, description)
+        VALUES
+            ($1, 'hg38', 16, 70699500, 70699800, 'EH38E0000001', 488, 'pELS',
+             'pELS,CTCF-bound', 4.88, 'EH38E0000001 proximal enhancer-like signature'),
+            ($1, 'hg38', 16, 70700100, 70700350, 'EH38E0000002', 759, 'PLS',
+             'PLS,CTCF-bound', 7.60, 'EH38E0000002 promoter-like signature'),
+            ($1, 'hg38', 16, 70702000, 70702200, 'EH38E0000003', 179, 'dELS',
+             'dELS', 1.79, 'EH38E0000003 distal enhancer-like signature')
+        """,
+        reg_layer,
+    )
+    yield
+
+
+@pytest.fixture
+async def seed_conservation_data(_txn_conn, seed_layers):
+    """Insert test conservation scores (1kb bins) on chr16."""
+    conn = _txn_conn
+    cons_layer = await conn.fetchval(
+        "SELECT id FROM registry.layers WHERE layer_key = 'phylop_phastcons_100way' AND is_default = true"
+    )
+    await conn.execute(
+        """
+        INSERT INTO conservation.scores
+            (layer_id, build, chr_id, start_pos, end_pos,
+             phylop_mean, phylop_max, phastcons_mean, phastcons_max)
+        VALUES
+            ($1, 'hg38', 16, 70699000, 70700000, 0.85, 4.21, 0.42, 0.99),
+            ($1, 'hg38', 16, 70700000, 70701000, 1.23, 6.78, 0.61, 1.00),
+            ($1, 'hg38', 16, 70701000, 70702000, -0.15, 2.10, 0.18, 0.75)
+        """,
+        cons_layer,
     )
     yield

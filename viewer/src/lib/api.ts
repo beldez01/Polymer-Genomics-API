@@ -176,3 +176,97 @@ export interface ProbeResponse {
 export async function fetchProbe(build: string, probeId: string): Promise<ProbeResponse> {
   return fetchJSON(`${API_BASE}/v1/probes/${build}/${encodeURIComponent(probeId)}`);
 }
+
+// --- Gene Cost types ---
+
+export interface GeneCostCoordinates {
+  seqname: string;
+  start: number;
+  end: number;
+  width: number;
+  strand: string;
+}
+
+export interface GeneCostIdentity {
+  gene_symbol: string;
+  uniprot_id: string | null;
+  protein_name: string | null;
+  protein_length: number | null;
+}
+
+export interface GeneCostBiosynthetic {
+  ecpa_b20: number | null;
+  ecpa_h11: number | null;
+  c_protein: number | null;
+  c_aa_synthesis: number | null;
+  c_translation: number | null;
+}
+
+export interface GeneCostElemental {
+  n_protein: number | null;
+  s_protein: number | null;
+  c_atoms: number | null;
+  mw_kda: number | null;
+  cost_per_kda: number | null;
+  n_per_kda: number | null;
+  s_per_kda: number | null;
+}
+
+export interface GeneCostComposition {
+  frac_cheap: number | null;
+  frac_moderate: number | null;
+  frac_expensive: number | null;
+  frac_very_expensive: number | null;
+  n_cys: number | null;
+  n_met: number | null;
+  n_trp: number | null;
+  n_arg: number | null;
+  n_lys: number | null;
+}
+
+export interface GeneCostCodonOptimization {
+  cds_length_nt: number | null;
+  n_codons: number | null;
+  gc3: number | null;
+  gc_cds: number | null;
+  cai: number | null;
+  tai: number | null;
+  enc: number | null;
+  fop: number | null;
+}
+
+export interface GeneCostTissue {
+  tissue: string;
+  tpm: number | null;
+  ewgc: number | null;
+}
+
+export interface GeneCostExpression {
+  mean_tpm: number | null;
+  max_tpm: number | null;
+  tissues: GeneCostTissue[];
+}
+
+export interface GeneCostData {
+  coordinates: GeneCostCoordinates | null;
+  identity: GeneCostIdentity;
+  biosynthetic_cost: GeneCostBiosynthetic;
+  elemental: GeneCostElemental;
+  composition: GeneCostComposition;
+  codon_optimization: GeneCostCodonOptimization;
+  expression: GeneCostExpression;
+}
+
+export interface GeneCostResponse {
+  status: string;
+  layers_resolved: LayerResolved[];
+  data: GeneCostData;
+  timing: { query_time_ms: number; db_time_ms: number };
+}
+
+export async function fetchGeneCost(
+  build: string,
+  symbol: string,
+): Promise<GeneCostResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/cost`);
+}
