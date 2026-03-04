@@ -214,7 +214,7 @@ These improve usability for human researchers. Can be worked on concurrently wit
 | Methylation probes (EPIC v2, v1, 450K) | Illumina (derived) | ✅ Live | — |
 | Isochores | GC-computed | ✅ Live | — |
 | Cell-type methylation reference | FlowSorted Salas 2018 | ✅ Live | 2.0 |
-| Gene bioenergetics | Akashi-Gojobori / GTEx | ✅ Live (backend) | 2.1 |
+| Gene bioenergetics + GeneCard | Akashi-Gojobori / GTEx / UniProt | ✅ Live | 2.1 |
 | Gene expression (GTEx) | GTEx v10 | ✅ Live | 2.5 |
 | Regulatory elements (cCREs) | ENCODE SCREEN V4 | ✅ Live | 2.6+2.7 |
 | Conservation (PhyloP/PhastCons) | UCSC 100-way | ✅ Live | 2.8 |
