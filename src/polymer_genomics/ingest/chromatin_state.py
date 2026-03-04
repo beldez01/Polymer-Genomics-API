@@ -187,9 +187,9 @@ async def ingest_build(
 ) -> int:
     """Scan directory for ChromHMM BED files and bulk-load into regulatory.chromatin_state."""
     chromhmm_dir = Path(chromhmm_dir)
-    bed_files = sorted(chromhmm_dir.glob("*_15_coreMarks_dense.bed"))
+    bed_files = sorted(chromhmm_dir.glob("*_15_coreMarks_*.bed"))
     if not bed_files:
-        print(f"  ERROR: No *_15_coreMarks_dense.bed files found in {chromhmm_dir}")
+        print(f"  ERROR: No *_15_coreMarks_*.bed files found in {chromhmm_dir}")
         return 0
 
     print(f"  Found {len(bed_files)} ChromHMM BED files in {chromhmm_dir}")

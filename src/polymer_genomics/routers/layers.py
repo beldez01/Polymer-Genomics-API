@@ -31,21 +31,41 @@ async def list_layers(
         query += " ORDER BY layer_key, version"
         rows = await conn.fetch(query, *params)
 
-    return {
-        "layers": [
-            {
-                "layer_key": r["layer_key"],
-                "version": r["version"],
-                "name": r["name"],
-                "type": r["layer_type"],
-                "build": r["genome_build"],
-                "license_class": r["license_class"],
-                "row_count": r["row_count"],
-                "is_default": r["is_default"],
-            }
-            for r in rows
-        ]
-    }
+    layers = [
+        {
+            "layer_key": r["layer_key"],
+            "version": r["version"],
+            "name": r["name"],
+            "type": r["layer_type"],
+            "build": r["genome_build"],
+            "license_class": r["license_class"],
+            "row_count": r["row_count"],
+            "is_default": r["is_default"],
+        }
+        for r in rows
+    ]
+
+    # Append reference.catalog entries (build-independent, not in registry.layers)
+    if type is None or type == "reference":
+        if build is None:  # reference tables are build-independent
+            async with pool.acquire() as conn:
+                ref_rows = await conn.fetch(
+                    "SELECT table_name, display_name, description, source_citation, row_count "
+                    "FROM reference.catalog ORDER BY table_name"
+                )
+            for r in ref_rows:
+                layers.append({
+                    "layer_key": f"ref_{r['table_name']}",
+                    "version": "1.0",
+                    "name": r["display_name"],
+                    "type": "reference",
+                    "build": "all",
+                    "license_class": "open",
+                    "row_count": r["row_count"],
+                    "is_default": True,
+                })
+
+    return {"layers": layers}
 
 
 @router.get("/{layer_key}")

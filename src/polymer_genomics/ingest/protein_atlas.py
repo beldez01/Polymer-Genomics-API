@@ -85,12 +85,15 @@ def read_tissue_expression(tsv_path: str | Path) -> list[dict]:
             if not tissue:
                 continue
 
+            if level not in _EXPRESSION_LEVELS:
+                continue  # Skip rows with invalid expression levels (N/A, Ascending, etc.)
+
             rows.append({
                 "ensembl_gene_id": ensg,
                 "gene_name": gene_name,
                 "tissue": tissue,
                 "cell_type": cell_type if cell_type else None,
-                "expression_level": level if level in _EXPRESSION_LEVELS else None,
+                "expression_level": level,
                 "reliability": reliability if reliability in _RELIABILITY_LEVELS else None,
             })
     return rows

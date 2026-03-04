@@ -23,6 +23,8 @@ from polymer_genomics.routers.gene_constraint import router as gene_constraint_r
 from polymer_genomics.routers.gene_pathways import router as gene_pathways_router
 from polymer_genomics.routers.gene_sets_router import router as gene_sets_router
 from polymer_genomics.routers.protein_atlas import router as protein_atlas_router
+from polymer_genomics.routers.reference import router as reference_router
+from polymer_genomics.routers.biophysics import router as biophysics_router
 
 
 @asynccontextmanager
@@ -71,6 +73,8 @@ app.include_router(gene_constraint_router)
 app.include_router(gene_pathways_router)
 app.include_router(gene_sets_router)
 app.include_router(protein_atlas_router)
+app.include_router(reference_router)
+app.include_router(biophysics_router)
 
 
 @app.get("/health")

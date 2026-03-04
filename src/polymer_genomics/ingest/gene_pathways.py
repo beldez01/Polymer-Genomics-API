@@ -95,16 +95,38 @@ def read_reactome(tsv_path: str | Path) -> list[dict]:
 # ── Gene symbol resolution ───────────────────────────────────────────────────
 
 
+def resolve_ncbi_to_symbol_from_file(gene_info_path: str | Path) -> dict[str, str]:
+    """Build an NCBI gene ID -> gene symbol lookup from NCBI Homo_sapiens.gene_info.
+
+    The gene_info file has columns: #tax_id, GeneID, Symbol, LocusTag, Synonyms, ...
+    Returns a dict keyed by NCBI gene ID (string) with gene_symbol as value.
+    """
+    lookup: dict[str, str] = {}
+    with open(gene_info_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            gid = row.get("GeneID", "").strip()
+            sym = row.get("Symbol", "").strip()
+            if gid and sym:
+                lookup[gid] = sym
+    return lookup
+
+
 async def resolve_ncbi_to_symbol(
     conn: asyncpg.Connection,
     build: str,
+    gene_info_path: str | Path | None = None,
 ) -> dict[str, str]:
-    """Build an NCBI gene ID -> gene symbol lookup from gene.features.
+    """Build an NCBI gene ID -> gene symbol lookup.
 
-    Uses the gene_id column in gene.features (which stores NCBI gene IDs
-    as strings).  Returns a dict keyed by NCBI gene ID with gene_symbol
-    as value.
+    Prefers NCBI Homo_sapiens.gene_info file if available (direct mapping).
+    Falls back to gene.features (which stores ENSG IDs, not NCBI IDs — will
+    produce empty results unless gene_id column contains NCBI IDs).
     """
+    if gene_info_path and Path(gene_info_path).exists():
+        return resolve_ncbi_to_symbol_from_file(gene_info_path)
+
+    # Fallback: try gene.features (unlikely to work with ENSG IDs)
     rows = await conn.fetch(
         """
         SELECT gene_id, gene_symbol
@@ -191,6 +213,7 @@ async def ingest_build(
     build: str,
     layer_id: str,
     tsv_path: str | Path,
+    gene_info_path: str | Path | None = None,
 ) -> int:
     """Read Reactome TSV, resolve gene symbols, and bulk-load into annotation.gene_pathways."""
     print(f"  Reading Reactome file: {tsv_path}")
@@ -198,7 +221,7 @@ async def ingest_build(
     print(f"  Parsed {len(pathway_rows):,} human pathway entries from TSV")
 
     print(f"  Resolving NCBI gene IDs to symbols for {build}...")
-    ncbi_lookup = await resolve_ncbi_to_symbol(conn, build)
+    ncbi_lookup = await resolve_ncbi_to_symbol(conn, build, gene_info_path)
     print(f"  Found symbols for {len(ncbi_lookup):,} NCBI gene IDs")
 
     total_loaded = 0
@@ -256,11 +279,21 @@ async def main(builds: list[str] | None = None) -> None:
         "REACTOME_TSV",
         "/Users/zbb2/Desktop/Research/data/reactome/NCBI2Reactome_All_Levels.txt",
     )
+    gene_info_path = os.environ.get(
+        "NCBI_GENE_INFO",
+        str(Path(tsv_path).parent / "Homo_sapiens.gene_info"),
+    )
 
     if not Path(tsv_path).exists():
         print(f"ERROR: Reactome TSV not found at {tsv_path}")
         print("Set REACTOME_TSV environment variable to the correct path.")
         return
+
+    if Path(gene_info_path).exists():
+        print(f"Using NCBI gene_info for symbol resolution: {gene_info_path}")
+    else:
+        gene_info_path = None
+        print("WARNING: NCBI gene_info not found; falling back to gene.features lookup")
 
     host = os.environ.get("POSTGRES_HOST", "localhost")
     port = int(os.environ.get("POSTGRES_PORT", "5432"))
@@ -296,7 +329,7 @@ async def main(builds: list[str] | None = None) -> None:
                 continue
 
             # 3. Ingest
-            total = await ingest_build(conn, build, layer_id, tsv_path)
+            total = await ingest_build(conn, build, layer_id, tsv_path, gene_info_path)
             print(f"\n  Total pathway mapping rows loaded: {total:,}")
 
         print("\nDone.")

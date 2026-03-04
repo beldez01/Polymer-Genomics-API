@@ -46,7 +46,12 @@ mcp = FastMCP(
         "- Gene constraint → lookup_gene_constraint (gnomAD pLI, LOEUF, Z-scores)\n"
         "- Gene pathways → lookup_gene_pathways (Reactome pathway memberships)\n"
         "- Gene sets → lookup_gene_sets (MSigDB Hallmark gene sets)\n"
-        "- Protein atlas → lookup_protein_atlas (HPA tissue expression + subcellular)"
+        "- Protein atlas → lookup_protein_atlas (HPA tissue expression + subcellular)\n"
+        "- NN thermodynamics → lookup_nn_parameters (SantaLucia/Xia/Sugimoto ΔH, ΔS, ΔG₃₇)\n"
+        "- Dinucleotide properties → lookup_dinucleotide_properties (ε₂₆₀, groove geometry, form propensity)\n"
+        "- Amino acid properties → lookup_amino_acid_properties (MW, volume, hydrophobicity, pKa, cost)\n"
+        "- Physical constants → lookup_physical_constants (Lp, Manning ξ, elastic moduli, enzymatic rates)\n"
+        "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)"
     ),
     json_response=True,
 )
@@ -435,6 +440,148 @@ async def bulk_download(
         layer_key: Layer identifier (e.g. 'probe_epic_v2', 'cpg_sites').
     """
     return await _get(f"/v1/bulk/{layer_key}")
+
+
+@mcp.tool()
+async def lookup_nn_parameters(
+    duplex_type: str = "dna_dna",
+    dinucleotide: str | None = None,
+) -> dict:
+    """Look up nearest-neighbor thermodynamic parameters.
+
+    Returns ΔH (kcal/mol), ΔS (cal/mol·K), ΔG₃₇ (kcal/mol) per dinucleotide
+    step in 1 M NaCl at 37°C. Sources: SantaLucia 1998 (DNA/DNA),
+    Xia/Turner 1998 (RNA/RNA), Sugimoto 1995 (RNA/DNA).
+
+    Use this when you need thermodynamic stability parameters for duplex
+    formation — e.g. melting temperature prediction, hybridization energy,
+    or stacking free energy per dinucleotide step.
+
+    Args:
+        duplex_type: Duplex type — 'dna_dna', 'rna_rna', or 'rna_dna'.
+        dinucleotide: Optional specific dinucleotide (e.g. 'CG', 'AA').
+    """
+    params: dict = {"duplex_type": duplex_type}
+    if dinucleotide:
+        params["dinucleotide"] = dinucleotide
+    return await _get("/v1/reference/nn-parameters", params)
+
+
+@mcp.tool()
+async def lookup_dinucleotide_properties(
+    dinucleotide: str | None = None,
+    property_set: str = "all",
+) -> dict:
+    """Look up per-dinucleotide biophysical properties.
+
+    Returns extinction coefficients (Tataurov 2008), A/Z-form propensity
+    (El Hassan & Calladine 1997, Ho 1994), and groove geometry (major/minor
+    groove width and depth) per dinucleotide step.
+
+    Use this when you need optical properties for concentration measurements,
+    structural propensity for non-B DNA prediction, or groove dimensions
+    for protein-DNA interaction analysis.
+
+    Args:
+        dinucleotide: Optional specific dinucleotide (e.g. 'CG').
+        property_set: Which properties to return — 'all', 'extinction',
+                      'groove', or 'form_propensity'.
+    """
+    params: dict = {"property_set": property_set}
+    if dinucleotide:
+        params["dinucleotide"] = dinucleotide
+    return await _get("/v1/reference/dinucleotide-properties", params)
+
+
+@mcp.tool()
+async def lookup_amino_acid_properties(
+    residue: str | None = None,
+    scale: str = "all",
+) -> dict:
+    """Look up amino acid biophysical reference properties.
+
+    Returns molecular weight (Da), van der Waals volume (Å³, Zamyatnin 1972),
+    solvent-accessible surface area (Å²), hydrophobicity (Kyte-Doolittle,
+    Wimley-White, Eisenberg scales), side-chain pKa, charge at pH 7,
+    and biosynthetic cost (Akashi-Gojobori ATP equivalents).
+
+    Use this when you need per-residue physical properties for protein
+    analysis — sequence-based predictions, cost calculations, or
+    hydrophobicity profiling.
+
+    Args:
+        residue: Optional one-letter amino acid code (e.g. 'M', 'W').
+        scale: Hydrophobicity scale filter — 'all', 'kd', 'ww', or 'eisenberg'.
+    """
+    params: dict = {"scale": scale}
+    if residue:
+        params["residue"] = residue
+    return await _get("/v1/reference/amino-acid-properties", params)
+
+
+@mcp.tool()
+async def lookup_physical_constants(
+    name: str | None = None,
+    category: str | None = None,
+) -> dict:
+    """Look up scalar biophysical constants.
+
+    Returns named physical/chemical constants with values, units, experimental
+    context, and primary literature citations. Includes persistence length
+    (multiple conditions), Manning condensation parameter, elastic moduli,
+    polymerase/ribosome rates, nucleosome thermodynamics, and more.
+
+    Use this when you need canonical published values for biophysical
+    calculations — e.g. DNA stiffness, charge density, or enzymatic rates.
+
+    Args:
+        name: Optional exact constant name (e.g. 'lp_bdna_physiological_nm').
+        category: Optional category filter (e.g. 'mechanics', 'kinetics',
+                  'electrostatics', 'nucleosome').
+    """
+    params: dict = {}
+    if name:
+        params["name"] = name
+    if category:
+        params["category"] = category
+    return await _get("/v1/reference/physical-constants", params)
+
+
+@mcp.tool()
+async def compute_region_biophysics(
+    build: str,
+    region: str,
+    duplex_type: str = "dna_dna",
+    salt_mm: float = 1000.0,
+    properties: str = "all",
+) -> dict:
+    """Compute sequence-derived biophysical properties for a genomic region.
+
+    Fetches the DNA sequence and applies published lookup tables to compute
+    per-dinucleotide profiles: thermodynamic stability (SantaLucia ΔG₃₇),
+    extinction coefficients (Tataurov ε₂₆₀), A/Z-form propensity, and
+    groove geometry. Returns GRanges format (each dinucleotide = one 2-bp range).
+
+    Use this when you need to analyze the biophysical landscape of a genomic
+    region — e.g. thermodynamic stability profile, structural propensity
+    for non-B DNA, or groove accessibility variation.
+
+    Maximum 10,000 bp per request.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
+        duplex_type: Duplex type for NN params — 'dna_dna' (default for genomic DNA).
+        salt_mm: NaCl concentration in mM. 1000 = standard (1 M), 150 = physiological.
+        properties: Comma-separated properties to compute: 'thermodynamics', 'extinction',
+                    'form_propensity', 'groove', or 'all' (default).
+    """
+    params: dict = {
+        "duplex_type": duplex_type,
+        "salt_mm": str(salt_mm),
+        "properties": properties,
+    }
+    return await _get(f"/v1/biophysics/{build}/{region}", params)
 
 
 def main():

@@ -139,8 +139,15 @@ def read_paxdb_file(tsv_path: str | Path, tissue: str) -> list[dict]:
     """
     rows: list[dict] = []
     with open(tsv_path, newline="") as f:
-        # Skip comment lines
-        lines = [line for line in f if not line.startswith("#")]
+        # Keep header line (starts with #gene_name or #internal_id) but skip other comments
+        lines: list[str] = []
+        for line in f:
+            if line.startswith("#") and not line.startswith("#gene_name") and not line.startswith("#internal_id"):
+                continue
+            # Strip leading # from header line
+            if line.startswith("#"):
+                line = line[1:]
+            lines.append(line)
 
     if not lines:
         return rows
@@ -151,6 +158,7 @@ def read_paxdb_file(tsv_path: str | Path, tissue: str) -> list[dict]:
     for raw in reader:
         string_id = raw.get("string_external_id", "")
         abundance_str = raw.get("abundance", "")
+        gene_name = raw.get("gene_name", "").strip()
 
         # Extract ENSP ID from "9606.ENSP00000..." format
         ensp_id = None
@@ -164,6 +172,7 @@ def read_paxdb_file(tsv_path: str | Path, tissue: str) -> list[dict]:
 
         rows.append({
             "ensp_id": ensp_id,
+            "gene_symbol": gene_name if gene_name else None,
             "abundance_ppm": abundance,
             "tissue": tissue,
             "organ_group": _resolve_organ_group(tissue),
@@ -178,9 +187,11 @@ def read_paxdb_dir(paxdb_dir: str | Path) -> list[dict]:
     paxdb_dir = Path(paxdb_dir)
     all_rows: list[dict] = []
 
-    tsv_files = sorted(paxdb_dir.glob("*.tsv"))
+    tsv_files = sorted(paxdb_dir.glob("*.txt"))
     if not tsv_files:
-        print(f"  WARNING: No TSV files found in {paxdb_dir}")
+        tsv_files = sorted(paxdb_dir.glob("*.tsv"))
+    if not tsv_files:
+        print(f"  WARNING: No TSV/TXT files found in {paxdb_dir}")
         return all_rows
 
     for tsv_file in tsv_files:

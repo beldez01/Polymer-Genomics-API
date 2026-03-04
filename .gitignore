@@ -18,3 +18,10 @@ data/*.fa
 data/*.fai
 data/*.csv
 data/probes/
+data/chromhmm/
+data/gnomad/
+data/hpa/
+data/msigdb/
+data/paxdb/
+data/reactome/
+data/repeatmasker/
