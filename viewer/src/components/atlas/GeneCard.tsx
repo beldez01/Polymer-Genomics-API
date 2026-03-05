@@ -2,8 +2,25 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { fetchGene, fetchGeneCost, fetchSequence } from '@/lib/api';
-import type { GRanges, GeneCostData } from '@/lib/api';
+import {
+  fetchGene,
+  fetchGeneCost,
+  fetchSequence,
+  fetchGeneConstraint,
+  fetchProteinAbundance,
+  fetchProteinAtlas,
+  fetchGenePathways,
+  fetchGeneSets,
+} from '@/lib/api';
+import type {
+  GRanges,
+  GeneCostData,
+  GeneConstraintData,
+  ProteinAbundanceData,
+  ProteinAtlasData,
+  GenePathwaysData,
+  GeneSetsData,
+} from '@/lib/api';
 import {
   COLOR,
   WEIGHT,
@@ -28,6 +45,13 @@ import {
   CostContextGauge,
   ExonIntronGCStats,
 } from './GeneCardVisualizations';
+import {
+  ConstraintSection,
+  ProteinAbundanceSection,
+  ProteinAtlasSection,
+  PathwaysSection,
+  GeneSetsSection,
+} from './GeneCardSectionsLP';
 
 // ---------------------------------------------------------------------------
 // Types (exported for visualization components)
@@ -726,6 +750,13 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
   const [seqSkipped, setSeqSkipped] = useState<string | null>(null);
   const [domains, setDomains] = useState<ProteinDomain[] | null>(null);
 
+  // Sections L–P data
+  const [constraintData, setConstraintData] = useState<GeneConstraintData | null>(null);
+  const [abundanceData, setAbundanceData] = useState<ProteinAbundanceData | null>(null);
+  const [atlasData, setAtlasData] = useState<ProteinAtlasData | null>(null);
+  const [pathwaysData, setPathwaysData] = useState<GenePathwaysData | null>(null);
+  const [geneSetsData, setGeneSetsData] = useState<GeneSetsData | null>(null);
+
   // Phase 1: fetch gene + cost
   useEffect(() => {
     if (!symbol) return;
@@ -776,7 +807,38 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
     return () => { cancelled = true; };
   }, [build, symbol]);
 
-  // Phase 1b: fetch UniProt domains
+  // Phase 1b: fetch sections L–P (constraint, abundance, atlas, pathways, gene sets)
+  // Fire-and-forget in parallel — each section handles its own null state gracefully
+  useEffect(() => {
+    if (!symbol) return;
+    let cancelled = false;
+    const upperSymbol = symbol.toUpperCase();
+
+    // All fetches are independent — fire in parallel, catch individually
+    fetchGeneConstraint(build, upperSymbol)
+      .then(res => { if (!cancelled) setConstraintData(res.data); })
+      .catch(() => { /* silently skip — section just won't render */ });
+
+    fetchProteinAbundance(build, upperSymbol)
+      .then(res => { if (!cancelled) setAbundanceData(res.data); })
+      .catch(() => {});
+
+    fetchProteinAtlas(build, upperSymbol)
+      .then(res => { if (!cancelled) setAtlasData(res.data); })
+      .catch(() => {});
+
+    fetchGenePathways(build, upperSymbol)
+      .then(res => { if (!cancelled) setPathwaysData(res.data); })
+      .catch(() => {});
+
+    fetchGeneSets(build, upperSymbol)
+      .then(res => { if (!cancelled) setGeneSetsData(res.data); })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [build, symbol]);
+
+  // Phase 1c: fetch UniProt domains
   useEffect(() => {
     if (!cost?.identity.uniprot_id) return;
     let cancelled = false;
@@ -1142,6 +1204,21 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
 
           {/* J. Tissue Expression */}
           {cost && <TissueExpression expression={cost.expression} />}
+
+          {/* L. Evolutionary Constraint (gnomAD) */}
+          {constraintData && <ConstraintSection data={constraintData} />}
+
+          {/* M. Protein Abundance (PaxDb) */}
+          {abundanceData && <ProteinAbundanceSection data={abundanceData} />}
+
+          {/* N. Protein Atlas (HPA) */}
+          {atlasData && <ProteinAtlasSection data={atlasData} />}
+
+          {/* O. Pathways (Reactome) */}
+          {pathwaysData && <PathwaysSection data={pathwaysData} />}
+
+          {/* P. Gene Sets (MSigDB Hallmark) */}
+          {geneSetsData && <GeneSetsSection data={geneSetsData} />}
 
           {/* K. Footer Actions */}
           <div style={{

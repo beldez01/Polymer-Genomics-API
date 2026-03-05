@@ -270,3 +270,158 @@ export async function fetchGeneCost(
 ): Promise<GeneCostResponse> {
   return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/cost`);
 }
+
+// --- Gene Constraint (gnomAD) ---
+
+export interface GeneConstraintData {
+  coordinates: { seqname: string; start: number; end: number; width: number; strand: string } | null;
+  identity: { gene_symbol: string; transcript: string | null };
+  constraint: {
+    pli: number | null;
+    loeuf: number | null;
+    mis_z: number | null;
+    syn_z: number | null;
+    obs_lof: number | null;
+    exp_lof: number | null;
+    obs_mis: number | null;
+    exp_mis: number | null;
+    obs_syn: number | null;
+    exp_syn: number | null;
+  };
+  gnomad_version: string | null;
+}
+
+export interface GeneConstraintResponse {
+  status: string;
+  data: GeneConstraintData;
+}
+
+export async function fetchGeneConstraint(
+  build: string,
+  symbol: string,
+): Promise<GeneConstraintResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/constraint`);
+}
+
+// --- Protein Abundance (PaxDb) ---
+
+export interface ProteinAbundanceTissue {
+  tissue: string;
+  organ_group: string | null;
+  abundance_ppm: number | null;
+  coverage: number | null;
+  spectral_count: number | null;
+}
+
+export interface ProteinAbundanceData {
+  coordinates: { seqname: string; start: number; end: number } | null;
+  identity: { gene_symbol: string; uniprot_id: string | null };
+  tissues: ProteinAbundanceTissue[];
+}
+
+export interface ProteinAbundanceResponse {
+  status: string;
+  data: ProteinAbundanceData;
+}
+
+export async function fetchProteinAbundance(
+  build: string,
+  symbol: string,
+): Promise<ProteinAbundanceResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-abundance`);
+}
+
+// --- Protein Atlas (HPA) ---
+
+export interface ProteinAtlasTissue {
+  tissue: string;
+  cell_type: string | null;
+  expression_level: string; // 'High' | 'Medium' | 'Low' | 'Not detected'
+  reliability: string | null;
+}
+
+export interface ProteinAtlasLocation {
+  location: string;
+  reliability: string | null;
+  go_id: string | null;
+}
+
+export interface ProteinAtlasData {
+  coordinates: { seqname: string; start: number; end: number } | null;
+  gene_symbol: string;
+  tissue_expression: {
+    n_tissues: number;
+    tissues: ProteinAtlasTissue[];
+  };
+  subcellular_location: {
+    n_locations: number;
+    locations: ProteinAtlasLocation[];
+  };
+}
+
+export interface ProteinAtlasResponse {
+  status: string;
+  data: ProteinAtlasData;
+}
+
+export async function fetchProteinAtlas(
+  build: string,
+  symbol: string,
+): Promise<ProteinAtlasResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-atlas`);
+}
+
+// --- Gene Pathways (Reactome) ---
+
+export interface GenePathway {
+  pathway_id: string;
+  pathway_name: string;
+  pathway_hierarchy: string | null;
+  evidence_code: string | null;
+  source: string | null;
+}
+
+export interface GenePathwaysData {
+  gene_symbol: string;
+  n_pathways: number;
+  pathways: GenePathway[];
+}
+
+export interface GenePathwaysResponse {
+  status: string;
+  data: GenePathwaysData;
+}
+
+export async function fetchGenePathways(
+  build: string,
+  symbol: string,
+): Promise<GenePathwaysResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/pathways`);
+}
+
+// --- Gene Sets (MSigDB Hallmark) ---
+
+export interface GeneSetMembership {
+  collection: string;
+  gene_set_name: string;
+  description: string | null;
+  source: string | null;
+}
+
+export interface GeneSetsData {
+  gene_symbol: string;
+  n_gene_sets: number;
+  gene_sets: GeneSetMembership[];
+}
+
+export interface GeneSetsResponse {
+  status: string;
+  data: GeneSetsData;
+}
+
+export async function fetchGeneSets(
+  build: string,
+  symbol: string,
+): Promise<GeneSetsResponse> {
+  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/gene-sets`);
+}

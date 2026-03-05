@@ -3,9 +3,30 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { fetchGene } from '@/lib/api';
-import type { GRanges } from '@/lib/api';
+import {
+  fetchGene,
+  fetchGeneConstraint,
+  fetchProteinAbundance,
+  fetchProteinAtlas,
+  fetchGenePathways,
+  fetchGeneSets,
+} from '@/lib/api';
+import type {
+  GRanges,
+  GeneConstraintData,
+  ProteinAbundanceData,
+  ProteinAtlasData,
+  GenePathwaysData,
+  GeneSetsData,
+} from '@/lib/api';
 import { BrandBar } from '@/components/BrandBar';
+import {
+  ConstraintSection,
+  ProteinAbundanceSection,
+  ProteinAtlasSection,
+  PathwaysSection,
+  GeneSetsSection,
+} from '@/components/atlas/GeneCardSectionsLP';
 import {
   COLOR,
   TYPE,
@@ -554,6 +575,37 @@ export default function GenePage() {
   const [error, setError]     = useState<string | null>(null);
   const [gene, setGene]       = useState<ParsedGene | null>(null);
 
+  // Sections L–P
+  const [constraintData, setConstraintData] = useState<GeneConstraintData | null>(null);
+  const [abundanceData, setAbundanceData] = useState<ProteinAbundanceData | null>(null);
+  const [atlasData, setAtlasData] = useState<ProteinAtlasData | null>(null);
+  const [pathwaysData, setPathwaysData] = useState<GenePathwaysData | null>(null);
+  const [geneSetsData, setGeneSetsData] = useState<GeneSetsData | null>(null);
+
+  // Fetch sections L–P in parallel
+  useEffect(() => {
+    if (!symbol) return;
+    let cancelled = false;
+
+    fetchGeneConstraint(build, symbol)
+      .then(res => { if (!cancelled) setConstraintData(res.data); })
+      .catch(() => {});
+    fetchProteinAbundance(build, symbol)
+      .then(res => { if (!cancelled) setAbundanceData(res.data); })
+      .catch(() => {});
+    fetchProteinAtlas(build, symbol)
+      .then(res => { if (!cancelled) setAtlasData(res.data); })
+      .catch(() => {});
+    fetchGenePathways(build, symbol)
+      .then(res => { if (!cancelled) setPathwaysData(res.data); })
+      .catch(() => {});
+    fetchGeneSets(build, symbol)
+      .then(res => { if (!cancelled) setGeneSetsData(res.data); })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [build, symbol]);
+
   useEffect(() => {
     if (!symbol) return;
     let cancelled = false;
@@ -875,7 +927,14 @@ export default function GenePage() {
             {/* 4. Transcript structure diagram */}
             <TranscriptDiagram gene={gene} symbol={symbol} />
 
-            {/* 5. Open in Viewer button */}
+            {/* 5. Sections L–P */}
+            {constraintData && <ConstraintSection data={constraintData} />}
+            {abundanceData && <ProteinAbundanceSection data={abundanceData} />}
+            {atlasData && <ProteinAtlasSection data={atlasData} />}
+            {pathwaysData && <PathwaysSection data={pathwaysData} />}
+            {geneSetsData && <GeneSetsSection data={geneSetsData} />}
+
+            {/* 6. Open in Viewer button */}
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: SPACE[4] }}>
               <OpenInViewerButton href={viewerHref} />
             </div>
