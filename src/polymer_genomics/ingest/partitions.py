@@ -15,6 +15,7 @@ import asyncpg
 ALLOWED_SCHEMAS = frozenset({
     "cpg", "gene", "probe", "methylation", "ref", "registry", "storage",
     "bioenergetics", "conservation", "expression", "regulatory", "annotation", "proteomics",
+    "biophysics",
 })
 ALLOWED_TABLES = frozenset({
     "features",
@@ -48,6 +49,8 @@ ALLOWED_TABLES = frozenset({
     "gene_tpm",
     # Phase 6: repeats
     "repeats",
+    # Phase 7: biophysics
+    "sequence_properties",
 })
 ALLOWED_BUILDS = frozenset({"hg37", "hg38"})
 

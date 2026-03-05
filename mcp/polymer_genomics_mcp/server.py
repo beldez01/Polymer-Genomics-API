@@ -51,7 +51,9 @@ mcp = FastMCP(
         "- Dinucleotide properties → lookup_dinucleotide_properties (ε₂₆₀, groove geometry, form propensity)\n"
         "- Amino acid properties → lookup_amino_acid_properties (MW, volume, hydrophobicity, pKa, cost)\n"
         "- Physical constants → lookup_physical_constants (Lp, Manning ξ, elastic moduli, enzymatic rates)\n"
-        "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)"
+        "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
+        "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
+        "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity — genome-wide pre-computed from Polymer Evolution Phase 1)"
     ),
     json_response=True,
 )
