@@ -22,6 +22,7 @@ import argparse
 import asyncio
 import csv
 import os
+from collections import defaultdict
 from pathlib import Path
 
 import asyncpg
@@ -160,8 +161,8 @@ async def derive_gene_symbols_batch(
 ) -> dict[str, str | None]:
     """Find the nearest gene for each probe position from gene.features.
 
-    Uses a single query with LATERAL join for efficiency.  Looks for the
-    nearest gene-level feature within ``GENE_WINDOW_BP`` of each probe.
+    Processes probes per-chromosome so Postgres can use partition pruning
+    and the GiST coord index on each sub-partition.
 
     Parameters
     ----------
@@ -180,39 +181,49 @@ async def derive_gene_symbols_batch(
     if not probes:
         return {}
 
-    # Build a temp table of probe positions for batch lookup.
-    await conn.execute(
-        "CREATE TEMP TABLE _probe_pos (probe_id text, chr_id smallint, pos int) ON COMMIT DROP"
-    )
-    probe_rows = [(p["probe_id"], p["chr_id"], p["pos"]) for p in probes]
-    await conn.copy_records_to_table(
-        "_probe_pos",
-        records=probe_rows,
-        columns=["probe_id", "chr_id", "pos"],
-    )
+    # Group probes by chromosome for partition-pruned queries.
+    by_chr: dict[int, list[dict]] = defaultdict(list)
+    for p in probes:
+        by_chr[p["chr_id"]].append(p)
 
-    rows = await conn.fetch(
-        """
-        SELECT pp.probe_id, g.gene_symbol
-        FROM _probe_pos pp
-        LEFT JOIN LATERAL (
-            SELECT DISTINCT ON (gene_symbol) gene_symbol
-            FROM gene.features
-            WHERE build = $1::genome_build
-              AND chr_id = pp.chr_id
-              AND feature_type = 'gene'
-              AND int4range(start_pos, end_pos) && int4range(pp.pos - $2, pp.pos + $2)
-            ORDER BY gene_symbol, ABS(start_pos - pp.pos)
-            LIMIT 1
-        ) g ON true
-        """,
-        build,
-        GENE_WINDOW_BP,
-    )
+    result: dict[str, str | None] = {}
 
-    await conn.execute("DROP TABLE IF EXISTS _probe_pos")
+    for chr_id, chr_probes in by_chr.items():
+        await conn.execute(
+            "CREATE TEMP TABLE _probe_pos (probe_id text, pos int) ON COMMIT DROP"
+        )
+        probe_rows = [(p["probe_id"], p["pos"]) for p in chr_probes]
+        await conn.copy_records_to_table(
+            "_probe_pos",
+            records=probe_rows,
+            columns=["probe_id", "pos"],
+        )
 
-    return {r["probe_id"]: r["gene_symbol"] for r in rows}
+        rows = await conn.fetch(
+            f"""
+            SELECT pp.probe_id, g.gene_symbol
+            FROM _probe_pos pp
+            LEFT JOIN LATERAL (
+                SELECT DISTINCT ON (gene_symbol) gene_symbol
+                FROM gene.features
+                WHERE build = $1::genome_build
+                  AND chr_id = {int(chr_id)}
+                  AND feature_type = 'gene'
+                  AND coord && int4range(pp.pos - $2, pp.pos + $2)
+                ORDER BY gene_symbol, ABS(start_pos - pp.pos)
+                LIMIT 1
+            ) g ON true
+            """,
+            build,
+            GENE_WINDOW_BP,
+        )
+
+        await conn.execute("DROP TABLE IF EXISTS _probe_pos")
+
+        for r in rows:
+            result[r["probe_id"]] = r["gene_symbol"]
+
+    return result
 
 
 async def derive_gene_symbol(
@@ -246,7 +257,7 @@ async def derive_gene_symbol(
         WHERE build = $1::genome_build
           AND chr_id = $2
           AND feature_type = 'gene'
-          AND int4range(start_pos, end_pos) && int4range($3 - $4, $3 + $4)
+          AND coord && int4range($3 - $4, $3 + $4)
         ORDER BY ABS(start_pos - $3)
         LIMIT 1
         """,
@@ -288,54 +299,60 @@ async def derive_cpg_contexts_batch(
     if not probes:
         return {}
 
-    await conn.execute(
-        "CREATE TEMP TABLE _probe_ctx (probe_id text, chr_id smallint, pos int) ON COMMIT DROP"
-    )
-    probe_rows = [(p["probe_id"], p["chr_id"], p["pos"]) for p in probes]
-    await conn.copy_records_to_table(
-        "_probe_ctx",
-        records=probe_rows,
-        columns=["probe_id", "chr_id", "pos"],
-    )
-
-    # Find island overlaps and nearest island distances.
-    rows = await conn.fetch(
-        """
-        SELECT
-            pp.probe_id,
-            pp.pos,
-            isl.start_pos AS isl_start,
-            isl.end_pos AS isl_end
-        FROM _probe_ctx pp
-        LEFT JOIN LATERAL (
-            SELECT start_pos, end_pos
-            FROM cpg.islands
-            WHERE build = $1::genome_build
-              AND chr_id = pp.chr_id
-              AND int4range(start_pos, end_pos) && int4range(pp.pos - $2, pp.pos + $2)
-            ORDER BY ABS(start_pos - pp.pos)
-            LIMIT 1
-        ) isl ON true
-        """,
-        build,
-        SHELF_DISTANCE,
-    )
-
-    await conn.execute("DROP TABLE IF EXISTS _probe_ctx")
+    # Group probes by chromosome for partition-pruned queries.
+    by_chr: dict[int, list[dict]] = defaultdict(list)
+    for p in probes:
+        by_chr[p["chr_id"]].append(p)
 
     result: dict[str, str | None] = {}
-    for r in rows:
-        probe_id = r["probe_id"]
-        pos = r["pos"]
-        isl_start = r["isl_start"]
-        isl_end = r["isl_end"]
 
-        if isl_start is None:
-            # No island within shelf distance.
-            result[probe_id] = "open_sea"
-            continue
+    for chr_id, chr_probes in by_chr.items():
+        await conn.execute(
+            "CREATE TEMP TABLE _probe_ctx (probe_id text, pos int) ON COMMIT DROP"
+        )
+        probe_rows = [(p["probe_id"], p["pos"]) for p in chr_probes]
+        await conn.copy_records_to_table(
+            "_probe_ctx",
+            records=probe_rows,
+            columns=["probe_id", "pos"],
+        )
 
-        result[probe_id] = _classify_context_from_island(pos, isl_start, isl_end)
+        # Find island overlaps and nearest island distances.
+        rows = await conn.fetch(
+            f"""
+            SELECT
+                pp.probe_id,
+                pp.pos,
+                isl.start_pos AS isl_start,
+                isl.end_pos AS isl_end
+            FROM _probe_ctx pp
+            LEFT JOIN LATERAL (
+                SELECT start_pos, end_pos
+                FROM cpg.islands
+                WHERE build = $1::genome_build
+                  AND chr_id = {int(chr_id)}
+                  AND coord && int4range(pp.pos - $2, pp.pos + $2)
+                ORDER BY ABS(start_pos - pp.pos)
+                LIMIT 1
+            ) isl ON true
+            """,
+            build,
+            SHELF_DISTANCE,
+        )
+
+        await conn.execute("DROP TABLE IF EXISTS _probe_ctx")
+
+        for r in rows:
+            probe_id = r["probe_id"]
+            pos = r["pos"]
+            isl_start = r["isl_start"]
+            isl_end = r["isl_end"]
+
+            if isl_start is None:
+                result[probe_id] = "open_sea"
+                continue
+
+            result[probe_id] = _classify_context_from_island(pos, isl_start, isl_end)
 
     return result
 
@@ -409,7 +426,7 @@ async def derive_cpg_context(
         FROM cpg.islands
         WHERE build = $1::genome_build
           AND chr_id = $2
-          AND int4range(start_pos, end_pos) && int4range($3 - $4, $3 + $4)
+          AND coord && int4range($3 - $4, $3 + $4)
         ORDER BY ABS(start_pos - $3)
         LIMIT 1
         """,
