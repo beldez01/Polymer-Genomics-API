@@ -107,6 +107,7 @@ async def ingest_build(
     try:
         # Use gc_content to define the window grid (all tracks share identical windows)
         ref_bw = bw_handles["gc_content"]
+        available_chroms = set(ref_bw.chroms().keys())
         track_names = list(BIGWIG_FILES.keys())
 
         total_loaded = 0
@@ -115,6 +116,10 @@ async def ingest_build(
         # Iterate chromosomes in canonical order
         for chrom in sorted(CHR_NAME_TO_ID.keys(), key=lambda c: CHR_NAME_TO_ID[c]):
             chr_id = CHR_NAME_TO_ID[chrom]
+
+            if chrom not in available_chroms:
+                print(f"  {chrom}: not in BigWig, skipping")
+                continue
 
             # Get intervals from the reference BigWig
             intervals = ref_bw.intervals(chrom)
