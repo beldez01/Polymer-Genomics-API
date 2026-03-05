@@ -254,6 +254,23 @@ def region_chromatin_state_query() -> str:
     """
 
 
+def region_biophysics_query() -> str:
+    """Sequence biophysical properties (Polymer Evolution L0, 1kb bins)."""
+    return """
+        SELECT b.start_pos, b.end_pos,
+               b.gc_content, b.stacking_dg37, b.melting_temp,
+               b.curvature, b.groove_width, b.dipole_density,
+               b.periodicity_power
+        FROM biophysics.sequence_properties b
+        WHERE b.build = $1::genome_build
+          AND b.chr_id = $2
+          AND b.coord && int4range($3, $4)
+          AND b.layer_id = $5
+        ORDER BY b.start_pos
+        LIMIT $6
+    """
+
+
 def region_repeats_query() -> str:
     """Repeat element annotations (RepeatMasker)."""
     return """
@@ -729,6 +746,36 @@ def _convert_chromatin_state(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_biophysics(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    gc, stacking, tm, curv, groove, dipole, period = [], [], [], [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        gc.append(r["gc_content"])
+        stacking.append(r["stacking_dg37"])
+        tm.append(r["melting_temp"])
+        curv.append(r["curvature"])
+        groove.append(r["groove_width"])
+        dipole.append(r["dipole_density"])
+        period.append(r["periodicity_power"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "gc_content": gc, "stacking_dg37": stacking,
+            "melting_temp": tm, "curvature": curv,
+            "groove_width": groove, "dipole_density": dipole,
+            "periodicity_power": period,
+        },
+        "n": len(rows),
+    }
+
+
 def _convert_repeats(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     names, classes, families, divergences = [], [], [], []
@@ -827,6 +874,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "repeat": {
         "query_fn": region_repeats_query,
         "convert_fn": _convert_repeats,
+    },
+    "biophysics": {
+        "query_fn": region_biophysics_query,
+        "convert_fn": _convert_biophysics,
     },
 }
 

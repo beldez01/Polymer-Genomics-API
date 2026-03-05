@@ -17,6 +17,7 @@ CREATE SCHEMA IF NOT EXISTS gene;
 CREATE SCHEMA IF NOT EXISTS probe;
 CREATE SCHEMA IF NOT EXISTS methylation;
 CREATE SCHEMA IF NOT EXISTS storage;
+CREATE SCHEMA IF NOT EXISTS biophysics;
 
 -- ============================================================
 -- Roles
@@ -43,7 +44,7 @@ ALTER ROLE api_reader SET temp_file_limit = '256MB';
 -- ============================================================
 CREATE TYPE genome_build AS ENUM ('hg37', 'hg38');
 CREATE TYPE layer_type AS ENUM (
-    'genome', 'gene_model', 'cpg', 'probe', 'methylation', 'isochore'
+    'genome', 'gene_model', 'cpg', 'probe', 'methylation', 'isochore', 'biophysics'
 );
 CREATE TYPE license_class AS ENUM (
     'public_domain', 'derived', 'restricted', 'proprietary'
@@ -339,7 +340,7 @@ CREATE INDEX idx_isochore_range ON ref.isochores USING GiST (chr_id, coord);
 -- ============================================================
 
 -- api_reader: SELECT only on all schemas
-GRANT USAGE ON SCHEMA ref, registry, cpg, gene, probe, methylation, storage TO api_reader;
+GRANT USAGE ON SCHEMA ref, registry, cpg, gene, probe, methylation, storage, biophysics TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA ref         TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA registry    TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA cpg         TO api_reader;
@@ -347,9 +348,10 @@ GRANT SELECT ON ALL TABLES IN SCHEMA gene        TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA probe       TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA methylation TO api_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA storage     TO api_reader;
+GRANT SELECT ON ALL TABLES IN SCHEMA biophysics  TO api_reader;
 
 -- ingest_writer: SELECT on ref/registry, SELECT+INSERT+UPDATE on data schemas
-GRANT USAGE ON SCHEMA ref, registry, cpg, gene, probe, methylation, storage TO ingest_writer;
+GRANT USAGE ON SCHEMA ref, registry, cpg, gene, probe, methylation, storage, biophysics TO ingest_writer;
 GRANT SELECT ON ALL TABLES IN SCHEMA ref      TO ingest_writer;
 GRANT SELECT ON ALL TABLES IN SCHEMA registry TO ingest_writer;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA cpg         TO ingest_writer;
@@ -358,6 +360,7 @@ GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA probe       TO ingest_write
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA methylation TO ingest_writer;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA registry    TO ingest_writer;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA storage     TO ingest_writer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA biophysics  TO ingest_writer;
 
 -- Default privileges for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA ref         GRANT SELECT ON TABLES TO api_reader;
@@ -367,3 +370,4 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA gene        GRANT SELECT ON TABLES TO api_rea
 ALTER DEFAULT PRIVILEGES IN SCHEMA probe       GRANT SELECT ON TABLES TO api_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA methylation GRANT SELECT ON TABLES TO api_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA storage     GRANT SELECT ON TABLES TO api_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA biophysics  GRANT SELECT ON TABLES TO api_reader;
