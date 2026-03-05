@@ -8,16 +8,16 @@ import { drawGridlines } from '@/lib/gridlines';
 
 
 const CONTEXT_COLORS: Record<string, string> = {
-  island: '#22c55e',
-  shore: '#14b8a6',
-  shelf: '#3b82f6',
-  open_sea: '#6b7280',
-  opensea: '#6b7280',
+  island:   '#10B981',  // emerald-500
+  shore:    '#06B6D4',  // cyan-500
+  shelf:    '#6366F1',  // indigo-500
+  open_sea: '#F59E0B',  // amber-500
+  opensea:  '#F59E0B',
 };
 
 function contextColor(ctx: string | null | undefined): string {
-  if (!ctx) return '#a78bfa';
-  return CONTEXT_COLORS[ctx.toLowerCase()] ?? '#a78bfa';
+  if (!ctx) return '#F43F5E';  // rose-500
+  return CONTEXT_COLORS[ctx.toLowerCase()] ?? '#F43F5E';
 }
 
 export interface ProbeTrackProps {
@@ -76,6 +76,9 @@ export function ProbeTrack({
       const tipY = height - 6;
       const topY = tipY - markerSize * 1.6;
 
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 3;
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.moveTo(x, tipY);
@@ -83,9 +86,10 @@ export function ProbeTrack({
       ctx.lineTo(x + markerSize, topY);
       ctx.closePath();
       ctx.fill();
+      ctx.restore();
 
       ctx.strokeStyle = color;
-      ctx.globalAlpha = 0.4;
+      ctx.globalAlpha = 0.6;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, topY);

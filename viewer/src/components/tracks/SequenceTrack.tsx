@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import type { GRanges } from '@/lib/api';
 import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
+import { scanMotifs, type Motif } from '@/lib/motifs';
 
 
 const BASE_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ export interface SequenceTrackProps {
   canvasWidth: number;
   height?: number;
   cpgData?: GRanges;
+  enabledMotifs?: string[];
 }
 
 export function SequenceTrack({
@@ -48,6 +50,7 @@ export function SequenceTrack({
   canvasWidth,
   height = 60,
   cpgData,
+  enabledMotifs,
 }: SequenceTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -200,6 +203,43 @@ export function SequenceTrack({
       ctx.fillText('GC%', 4, 12);
     }
 
+    // --- Motif overlays ---
+    const motifSet = new Set(enabledMotifs ?? []);
+    if (sequence && motifSet.size > 0) {
+      const motifs = scanMotifs(sequence, viewStart, motifSet);
+      ctx.save();
+      for (const m of motifs) {
+        if (m.end < viewStart || m.start > viewEnd) continue;
+        const mx1 = ((m.start - viewStart) / span) * canvasWidth;
+        const mx2 = ((m.end + 1 - viewStart) / span) * canvasWidth;
+        const mw = Math.max(1, mx2 - mx1);
+
+        if (bpPerPixel <= 1) {
+          // Colored underline bar
+          ctx.fillStyle = m.color;
+          ctx.globalAlpha = 0.8;
+          ctx.fillRect(mx1, height - 4, mw, 3);
+          ctx.globalAlpha = 1.0;
+        } else if (bpPerPixel <= 10) {
+          // Colored tick marks
+          ctx.fillStyle = m.color;
+          ctx.globalAlpha = 0.8;
+          ctx.fillRect(mx1, height - 6, Math.max(1, mw), 4);
+          ctx.globalAlpha = 1.0;
+        } else {
+          // Aggregate as dots
+          ctx.fillStyle = m.color;
+          ctx.globalAlpha = 0.6;
+          const dotX = (mx1 + mx2) / 2;
+          ctx.beginPath();
+          ctx.arc(dotX, height - 4, 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1.0;
+        }
+      }
+      ctx.restore();
+    }
+
     // Redraw 5'/3' labels on top of everything
     ctx.font = `bold ${labelFontSize}px 'JetBrains Mono', monospace`;
     ctx.textBaseline = 'middle';
@@ -215,7 +255,7 @@ export function SequenceTrack({
     ctx.textAlign = 'right';
     ctx.fillText("3'", canvasWidth - labelPad, height / 2);
 
-  }, [sequence, cpgData, viewStart, viewEnd, canvasWidth, height]);
+  }, [sequence, cpgData, viewStart, viewEnd, canvasWidth, height, enabledMotifs]);
 
   return <canvas ref={canvasRef} className="block" />;
 }

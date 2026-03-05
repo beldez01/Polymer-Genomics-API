@@ -25,6 +25,7 @@ export interface TrackStackProps {
   showCodons?: boolean;
   showGC?: boolean;
   visibleCellTypes?: string[];
+  enabledMotifs?: string[];
 }
 
 function TrackRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -71,6 +72,7 @@ export function TrackStack({
   showCodons,
   showGC = true,
   visibleCellTypes,
+  enabledMotifs,
 }: TrackStackProps) {
   const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
   const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
@@ -100,13 +102,13 @@ export function TrackStack({
 
         {data?.sequence != null && (
           <TrackRow label="Sequence">
-            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} />
+            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} enabledMotifs={enabledMotifs} />
           </TrackRow>
         )}
 
         {showCodons && bpW >= 1 && (
           <TrackRow label="Frames">
-            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} />
+            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} sequence={data?.sequence ?? null} />
           </TrackRow>
         )}
 

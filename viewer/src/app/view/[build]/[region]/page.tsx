@@ -15,6 +15,7 @@ import { Footer } from '@/components/Footer';
 import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
+import { usePinchZoom } from '@/hooks/usePinchZoom';
 import { COLOR, FONT_FAMILY, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
@@ -26,7 +27,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType, toggleMotif } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
@@ -36,6 +37,7 @@ function ViewerPage() {
   const [showContext, setShowContext] = useState(true);
   const [copyLabel, setCopyLabel] = useState('Link');
   const regionContext = useRegionContext(data, chr, start, end);
+  usePinchZoom(containerRef);
 
   useEffect(() => {
     function updateWidth() {
@@ -201,6 +203,8 @@ function ViewerPage() {
           onToggleGC={toggleGC}
           visibleCellTypes={visibleCellTypes}
           onToggleCellType={toggleCellType}
+          enabledMotifs={enabledMotifs}
+          onToggleMotif={toggleMotif}
         />
 
         <main
@@ -250,6 +254,7 @@ function ViewerPage() {
                 showCodons={showCodons}
                 showGC={showGC}
                 visibleCellTypes={visibleCellTypes}
+                enabledMotifs={enabledMotifs}
               />
             </div>
           </div>

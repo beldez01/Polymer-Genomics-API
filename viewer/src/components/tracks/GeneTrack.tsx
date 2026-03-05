@@ -124,6 +124,31 @@ export function GeneTrack({
       ctx.lineTo(lineX2, yCenter);
       ctx.stroke();
 
+      // --- Direction chevrons along intron line ---
+      if (bpW >= 0.05) {
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        const chevronSize = 4;
+        const chevronSpacing = 40;
+        const isPlus = strand === '+';
+        for (let cx = lineX1 + chevronSpacing; cx < lineX2 - 10; cx += chevronSpacing) {
+          ctx.beginPath();
+          if (isPlus) {
+            ctx.moveTo(cx - chevronSize, yCenter - chevronSize);
+            ctx.lineTo(cx, yCenter);
+            ctx.lineTo(cx - chevronSize, yCenter + chevronSize);
+          } else {
+            ctx.moveTo(cx + chevronSize, yCenter - chevronSize);
+            ctx.lineTo(cx, yCenter);
+            ctx.lineTo(cx + chevronSize, yCenter + chevronSize);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       for (const f of txFeatures) {
         const x1 = Math.max(0, toX(f.start));
         const x2 = Math.min(canvasWidth, toX(f.end + 1));

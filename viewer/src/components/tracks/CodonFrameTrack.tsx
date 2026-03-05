@@ -22,13 +22,26 @@ const FRAME_COLORS = [
 
 const FRAME_LABELS = ['+1', '+2', '+3'];
 
+const CODON_TABLE: Record<string, string> = {
+  'TTT':'F','TTC':'F','TTA':'L','TTG':'L','CTT':'L','CTC':'L','CTA':'L','CTG':'L',
+  'ATT':'I','ATC':'I','ATA':'I','ATG':'M','GTT':'V','GTC':'V','GTA':'V','GTG':'V',
+  'TCT':'S','TCC':'S','TCA':'S','TCG':'S','CCT':'P','CCC':'P','CCA':'P','CCG':'P',
+  'ACT':'T','ACC':'T','ACA':'T','ACG':'T','GCT':'A','GCC':'A','GCA':'A','GCG':'A',
+  'TAT':'Y','TAC':'Y','TAA':'*','TAG':'*','TGT':'C','TGC':'C','TGA':'*','TGG':'W',
+  'CGT':'R','CGC':'R','CGA':'R','CGG':'R','AGT':'S','AGC':'S','AGA':'R','AGG':'R',
+  'GAT':'D','GAC':'D','GAA':'E','GAG':'E','GGT':'G','GGC':'G','GGA':'G','GGG':'G',
+};
+
+const STOP_CODONS = new Set(['TAA', 'TAG', 'TGA']);
+
 export interface CodonFrameTrackProps {
   viewStart: number;
   viewEnd: number;
   canvasWidth: number;
+  sequence?: string | null;
 }
 
-export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth }: CodonFrameTrackProps) {
+export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth, sequence }: CodonFrameTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -76,6 +89,47 @@ export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth }: CodonFrameT
         codonIdx += 1;
       }
 
+      // Codon text / highlights when sequence available
+      if (sequence && bpW >= 4) {
+        ctx.save();
+        const k1 = Math.max(0, Math.ceil((viewStart - frame - 1) / 3));
+        let p2 = frame + 1 + 3 * k1;
+        while (p2 <= viewEnd + 3) {
+          const seqIdx = p2 - viewStart;
+          if (seqIdx >= 0 && seqIdx + 2 < sequence.length) {
+            const codon = sequence.substring(seqIdx, seqIdx + 3).toUpperCase();
+            const cx1 = Math.max(0, toX(p2));
+            const cx2 = Math.min(canvasWidth, toX(p2 + 3));
+            if (cx2 > cx1) {
+              // Start/stop codon highlights
+              if (codon === 'ATG') {
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.35)';
+                ctx.fillRect(cx1, rowY, cx2 - cx1, ROW_H);
+              } else if (STOP_CODONS.has(codon)) {
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+                ctx.fillRect(cx1, rowY, cx2 - cx1, ROW_H);
+              }
+
+              // Text label
+              const centerX = (cx1 + cx2) / 2;
+              ctx.fillStyle = '#e0e0e0';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              if (bpW >= 8) {
+                ctx.font = `bold ${Math.min(10, ROW_H - 3)}px ${FONT_FAMILY}`;
+                ctx.fillText(codon, centerX, rowY + ROW_H / 2);
+              } else {
+                const aa = CODON_TABLE[codon] ?? '?';
+                ctx.font = `bold ${Math.min(10, ROW_H - 3)}px ${FONT_FAMILY}`;
+                ctx.fillText(aa, centerX, rowY + ROW_H / 2);
+              }
+            }
+          }
+          p2 += 3;
+        }
+        ctx.restore();
+      }
+
       // Codon-boundary divider lines (only when codons are wide enough)
       if (bpW >= 3) {
         ctx.save();
@@ -96,17 +150,25 @@ export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth }: CodonFrameT
         ctx.restore();
       }
 
-      // Frame label on the left
+      // Frame label badge on the left
       ctx.save();
+      ctx.fillStyle = 'rgba(30, 30, 30, 0.7)';
+      const badgeW = 20;
+      const badgeH = ROW_H - 2;
+      const badgeX = 1;
+      const badgeY = rowY + 1;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 3);
+      ctx.fill();
       ctx.fillStyle = COLORS.canvas.axisLabel;
-      ctx.font = `9px ${FONT_FAMILY}`;
-      ctx.textAlign = 'left';
+      ctx.font = `bold 9px ${FONT_FAMILY}`;
+      ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(FRAME_LABELS[frame], 3, rowY + ROW_H / 2);
+      ctx.fillText(FRAME_LABELS[frame], badgeX + badgeW / 2, rowY + ROW_H / 2);
       ctx.restore();
     }
 
-  }, [viewStart, viewEnd, canvasWidth]);
+  }, [viewStart, viewEnd, canvasWidth, sequence]);
 
   return (
     <canvas

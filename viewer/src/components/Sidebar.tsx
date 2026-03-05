@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { fetchLayers, type LayerInfo } from '@/lib/api';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 import type { GenomeBuild } from '@/stores/viewport';
+import { MOTIF_NAMES } from '@/lib/motifs';
 
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M rows`;
@@ -74,6 +75,8 @@ interface SidebarProps {
   onToggleGC: () => void;
   visibleCellTypes: string[];
   onToggleCellType: (cellType: string) => void;
+  enabledMotifs: string[];
+  onToggleMotif: (motifName: string) => void;
 }
 
 export function Sidebar({
@@ -93,6 +96,8 @@ export function Sidebar({
   onToggleGC,
   visibleCellTypes,
   onToggleCellType,
+  enabledMotifs,
+  onToggleMotif,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
 
@@ -297,6 +302,61 @@ export function Sidebar({
     );
   }
 
+  const MOTIF_COLORS: Record<string, string> = {
+    'TATA Box': '#F59E0B',
+    'Start Codon': '#22C55E',
+    'Stop Codons': '#EF4444',
+    'CTCF Core': '#06B6D4',
+'ERV LTR': '#F97316',
+  };
+
+  function MotifGroup() {
+    const anyActive = enabledMotifs.length > 0;
+
+    return (
+      <div style={{
+        padding: `3px ${SPACE[2]}px`,
+        backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
+        borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+      }}>
+        <div className="flex items-center gap-1.5">
+          <span style={{
+            width: 8,
+            height: 8,
+            borderRadius: 2,
+            backgroundColor: anyActive ? TOGGLE_TEAL : TOGGLE_TEAL_DIM,
+            flexShrink: 0,
+          }} />
+          <span style={{
+            color: anyActive ? COLOR.text.secondary : COLOR.text.tertiary,
+            fontSize: 12,
+            fontFamily: FONT_FAMILY,
+          }}>
+            Sequence Markers
+          </span>
+        </div>
+        <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {MOTIF_NAMES.map((name) => (
+            <div key={name} className="flex items-center gap-1.5">
+              <TealCheckbox
+                active={enabledMotifs.includes(name)}
+                label={name}
+                onClick={() => onToggleMotif(name)}
+              />
+              <span style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                backgroundColor: MOTIF_COLORS[name] ?? '#888',
+                flexShrink: 0,
+              }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto flex-shrink-0 flex flex-col"
          style={{
@@ -354,7 +414,10 @@ export function Sidebar({
             );
           })()}
 
-          {/* 4. Codons — toggle */}
+          {/* 4. Sequence Markers — motif toggles */}
+          <MotifGroup />
+
+          {/* 5. Codons — toggle */}
           <AnnotationRow
             active={showCodons}
             name="Codons"

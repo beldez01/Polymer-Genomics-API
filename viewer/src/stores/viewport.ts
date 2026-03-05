@@ -22,6 +22,9 @@ export interface ViewportState {
   // Methylation atlas cell type visibility
   visibleCellTypes: string[];
 
+  // Sequence motif markers
+  enabledMotifs: string[];
+
   // Actions
   setBuild: (build: GenomeBuild) => void;
   setRegion: (chr: string, start: number, end: number) => void;
@@ -35,6 +38,7 @@ export interface ViewportState {
   toggleCodons: () => void;
   toggleGC: () => void;
   toggleCellType: (cellType: string) => void;
+  toggleMotif: (motifName: string) => void;
 }
 
 /**
@@ -60,6 +64,7 @@ export const useViewport = create<ViewportState>((set, get) => ({
   showCodons: false,
   showGC: true,
   visibleCellTypes: ['Gran', 'Mono', 'NK', 'Bcell', 'CD4T', 'CD8T'],
+  enabledMotifs: [],
 
   setBuild: (build) => set({ build }),
 
@@ -124,6 +129,13 @@ export const useViewport = create<ViewportState>((set, get) => ({
 
   toggleCodons: () => set((state) => ({ showCodons: !state.showCodons })),
   toggleGC: () => set((state) => ({ showGC: !state.showGC })),
+
+  toggleMotif: (motifName) =>
+    set((state) => ({
+      enabledMotifs: state.enabledMotifs.includes(motifName)
+        ? state.enabledMotifs.filter((m) => m !== motifName)
+        : [...state.enabledMotifs, motifName],
+    })),
 
   toggleCellType: (cellType) =>
     set((state) => {
