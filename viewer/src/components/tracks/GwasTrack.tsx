@@ -200,42 +200,37 @@ export function GwasTrack({
     setTooltip(closest);
   };
 
-  const tooltipContent = tooltip && data ? (() => {
+  const tooltipRows = tooltip && data ? (() => {
     const i = tooltip.i;
     const rsid = data.mcols.rsid?.[i] as string | null;
     const trait = data.mcols.trait?.[i] as string | null;
     const pVal = data.mcols.p_value?.[i] as number | null;
     const orVal = data.mcols.or_beta?.[i] as number | null;
-    const ciLo = data.mcols.ci_lower?.[i] as number | null;
-    const ciHi = data.mcols.ci_upper?.[i] as number | null;
+    const ci95 = data.mcols.ci_95?.[i] as string | null;
     const gene = data.mcols.mapped_gene?.[i] as string | null;
-    const pmid = data.mcols.pmid?.[i] as string | null;
+    const pubmedId = data.mcols.pubmed_id?.[i] as string | null;
     const study = data.mcols.study_accession?.[i] as string | null;
 
-    const lines: string[] = [];
-    if (rsid) lines.push(rsid);
-    if (trait) lines.push(trait);
-    const stats: string[] = [];
-    if (pVal != null) stats.push(`p = ${pVal.toExponential(1)}`);
+    const rows: { label: string; value: string }[] = [];
+    if (rsid) rows.push({ label: 'SNP', value: rsid });
+    if (trait) rows.push({ label: 'Trait', value: trait });
+    if (gene) rows.push({ label: 'Gene', value: gene });
+    if (pVal != null) rows.push({ label: 'p-value', value: pVal.toExponential(1) });
     if (orVal != null) {
-      let orStr = `OR = ${orVal.toFixed(2)}`;
-      if (ciLo != null && ciHi != null) orStr += ` [${ciLo.toFixed(2)}\u2013${ciHi.toFixed(2)}]`;
-      stats.push(orStr);
+      let orStr = orVal.toFixed(2);
+      if (ci95) orStr += ` (95% CI: ${ci95})`;
+      rows.push({ label: 'OR/\u03b2', value: orStr });
     }
-    if (stats.length) lines.push(stats.join(' | '));
-    if (gene) lines.push(`Gene: ${gene}`);
-    const refs: string[] = [];
-    if (pmid) refs.push(`PMID: ${pmid}`);
-    if (study) refs.push(study);
-    if (refs.length) lines.push(refs.join(' | '));
+    if (pubmedId) rows.push({ label: 'PMID', value: pubmedId });
+    if (study) rows.push({ label: 'Study', value: study });
 
-    return lines;
+    return rows;
   })() : null;
 
   return (
     <div style={{ position: 'relative' }} onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
       <canvas ref={canvasRef} className="block" />
-      {tooltip && tooltipContent && (
+      {tooltip && tooltipRows && tooltipRows.length > 0 && (
         <div style={{
           position: 'absolute',
           left: Math.min(tooltip.x, canvasWidth - 310),
@@ -243,22 +238,21 @@ export function GwasTrack({
           transform: 'translateY(-100%)',
           backgroundColor: '#1a1a1a',
           border: '1px solid #444',
-          padding: '4px 8px',
-          maxWidth: 300,
+          padding: '6px 10px',
+          maxWidth: 340,
           pointerEvents: 'none',
           zIndex: 10,
         }}>
-          {tooltipContent.map((line, li) => (
-            <div key={li} style={{
-              color: li === 0 ? '#ccc' : '#999',
+          {tooltipRows.map((row, ri) => (
+            <div key={ri} style={{
+              display: 'flex',
+              gap: 8,
               fontSize: 9,
               fontFamily: "'JetBrains Mono', monospace",
-              lineHeight: 1.4,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              lineHeight: 1.5,
             }}>
-              {line}
+              <span style={{ color: '#777', flexShrink: 0, width: 48, textAlign: 'right' }}>{row.label}</span>
+              <span style={{ color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.value}</span>
             </div>
           ))}
         </div>

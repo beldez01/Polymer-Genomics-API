@@ -267,7 +267,38 @@ function StrandBadge({ strand }: { strand: string }) {
 }
 
 function Abbr({ short, full }: { short: string; full: string }) {
-  return <abbr title={full} style={{ textDecoration: 'none', borderBottom: `1px dotted ${COLOR.text.faint}`, cursor: 'help', color: 'inherit' }}>{short}</abbr>;
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: 'relative', borderBottom: `1px dotted ${COLOR.text.faint}`, cursor: 'help', color: 'inherit' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {short}
+      {show && (
+        <span style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: 0,
+          marginBottom: 4,
+          backgroundColor: '#1a1a1a',
+          border: '1px solid #444',
+          padding: '3px 8px',
+          fontSize: GC_TYPE.xs,
+          fontFamily: FONT_FAMILY,
+          color: '#ccc',
+          whiteSpace: 'nowrap',
+          zIndex: 50,
+          pointerEvents: 'none',
+          fontWeight: 400,
+          letterSpacing: '0.01em',
+          textTransform: 'none' as const,
+        }}>
+          {full}
+        </span>
+      )}
+    </span>
+  );
 }
 
 function CostBar({ fracs }: { fracs: { frac: number | null; color: string; label: string }[] }) {
