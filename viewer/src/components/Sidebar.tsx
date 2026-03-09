@@ -77,6 +77,8 @@ interface SidebarProps {
   onToggleCellType: (cellType: string) => void;
   enabledMotifs: string[];
   onToggleMotif: (motifName: string) => void;
+  onToggleAllProbes?: () => void;
+  onToggleAllCellTypes?: () => void;
 }
 
 export function Sidebar({
@@ -98,6 +100,8 @@ export function Sidebar({
   onToggleCellType,
   enabledMotifs,
   onToggleMotif,
+  onToggleAllProbes,
+  onToggleAllCellTypes,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
 
@@ -227,7 +231,11 @@ export function Sidebar({
         backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
         borderBlockEnd: `1px solid ${COLOR.bg.track}`,
       }}>
-        <div className="flex items-center gap-1.5">
+        <button
+          onClick={onToggleAllProbes}
+          className="flex items-center gap-1.5"
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%' }}
+        >
           <span style={{
             width: 8,
             height: 8,
@@ -242,7 +250,7 @@ export function Sidebar({
           }}>
             Methylation Probes
           </span>
-        </div>
+        </button>
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {probeKeys.map((key) => {
             const l = apiLayerMap.get(key);
@@ -272,7 +280,11 @@ export function Sidebar({
         backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
         borderBlockEnd: `1px solid ${COLOR.bg.track}`,
       }}>
-        <div className="flex items-center gap-1.5">
+        <button
+          onClick={onToggleAllCellTypes}
+          className="flex items-center gap-1.5"
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%' }}
+        >
           <span style={{
             width: 8,
             height: 8,
@@ -287,7 +299,7 @@ export function Sidebar({
           }}>
             Methylation Atlas
           </span>
-        </div>
+        </button>
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {CELL_TYPE_KEYS.map((ct) => (
             <TealCheckbox
@@ -446,7 +458,37 @@ export function Sidebar({
           {/* 7. Methylation Atlas cell type group */}
           <CellTypeGroup />
 
-          {/* 8. GC% — toggle, always last */}
+          {/* 8. Histone Marks — ENCODE */}
+          {(() => {
+            const l = apiLayerMap.get('histone_peaks_encode_v1');
+            const active = activeLayers.includes('histone_peaks_encode_v1');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'Histone Marks') : 'Histone Marks'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('histone_peaks_encode_v1')}
+              />
+            );
+          })()}
+
+          {/* 9. GWAS Catalog — EBI */}
+          {(() => {
+            const l = apiLayerMap.get('gwas_catalog_ebi_v1');
+            const active = activeLayers.includes('gwas_catalog_ebi_v1');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'GWAS Catalog') : 'GWAS Catalog'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('gwas_catalog_ebi_v1')}
+              />
+            );
+          })()}
+
+          {/* 10. GC% — toggle, always last */}
           <AnnotationRow
             active={showGC}
             name="GC%"

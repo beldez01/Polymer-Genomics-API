@@ -27,7 +27,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType, toggleMotif } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType, toggleMotif, toggleAllProbes, toggleAllCellTypes } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
@@ -205,6 +205,8 @@ function ViewerPage() {
           onToggleCellType={toggleCellType}
           enabledMotifs={enabledMotifs}
           onToggleMotif={toggleMotif}
+          onToggleAllProbes={toggleAllProbes}
+          onToggleAllCellTypes={toggleAllCellTypes}
         />
 
         <main

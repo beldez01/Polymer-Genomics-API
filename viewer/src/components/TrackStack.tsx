@@ -10,6 +10,8 @@ import { IsochoreTrack } from './tracks/IsochoreTrack';
 import { CostTrack } from './tracks/CostTrack';
 import { GCTrack } from './tracks/GCTrack';
 import { MethylationReferenceTrack } from './tracks/MethylationReferenceTrack';
+import { HistoneTrack } from './tracks/HistoneTrack';
+import { GwasTrack } from './tracks/GwasTrack';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
@@ -126,15 +128,34 @@ export function TrackStack({
 
         {/* CpG Sites rendered as overlay on Sequence track — no separate row */}
 
-        {data?.layers?.probe_epic_v2 && (
-          <TrackRow label="Probes">
-            <ProbeTrack data={data.layers.probe_epic_v2} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
-          </TrackRow>
-        )}
+        {(() => {
+          const probeKeys = ['probe_epic_v2', 'probe_epic_v1', 'probe_450k'] as const;
+          const datasets = probeKeys
+            .filter((k) => data?.layers?.[k])
+            .map((k) => ({ key: k, data: data!.layers![k]! }));
+          if (datasets.length === 0) return null;
+          return (
+            <TrackRow label="Probes">
+              <ProbeTrack datasets={datasets} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+            </TrackRow>
+          );
+        })()}
 
         {data?.layers?.methylation_atlas && (
           <TrackRow label="Meth Ref">
             <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} visibleCellTypes={visibleCellTypes} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.histone_peaks_encode_v1 && (
+          <TrackRow label="Histones">
+            <HistoneTrack data={data.layers.histone_peaks_encode_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.gwas_catalog_ebi_v1 && (
+          <TrackRow label="GWAS">
+            <GwasTrack data={data.layers.gwas_catalog_ebi_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
           </TrackRow>
         )}
 

@@ -39,6 +39,8 @@ export interface ViewportState {
   toggleGC: () => void;
   toggleCellType: (cellType: string) => void;
   toggleMotif: (motifName: string) => void;
+  toggleAllProbes: () => void;
+  toggleAllCellTypes: () => void;
 }
 
 /**
@@ -151,5 +153,33 @@ export const useViewport = create<ViewportState>((set, get) => ({
         return { visibleCellTypes: next, activeLayers: [...state.activeLayers, 'methylation_atlas'] };
       }
       return { visibleCellTypes: next };
+    }),
+
+  toggleAllProbes: () =>
+    set((state) => {
+      const probeKeys = ['probe_epic_v2', 'probe_epic_v1', 'probe_450k'];
+      const anyActive = probeKeys.some((k) => state.activeLayers.includes(k));
+      if (anyActive) {
+        return { activeLayers: state.activeLayers.filter((l) => !probeKeys.includes(l)) };
+      }
+      const toAdd = probeKeys.filter((k) => !state.activeLayers.includes(k));
+      return { activeLayers: [...state.activeLayers, ...toAdd] };
+    }),
+
+  toggleAllCellTypes: () =>
+    set((state) => {
+      const allTypes = ['Gran', 'Mono', 'NK', 'Bcell', 'CD4T', 'CD8T'];
+      if (state.visibleCellTypes.length > 0) {
+        return {
+          visibleCellTypes: [],
+          activeLayers: state.activeLayers.filter((l) => l !== 'methylation_atlas'),
+        };
+      }
+      return {
+        visibleCellTypes: allTypes,
+        activeLayers: state.activeLayers.includes('methylation_atlas')
+          ? state.activeLayers
+          : [...state.activeLayers, 'methylation_atlas'],
+      };
     }),
 }));
