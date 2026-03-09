@@ -278,7 +278,7 @@ async def main(builds: list[str] | None = None) -> None:
 
     gwas_file = os.environ.get(
         "GWAS_FILE",
-        "/Users/zbb2/Desktop/Research/data/gwas/gwas_catalog_v1.0.2-associations_e111_r2024-06-17.tsv",
+        "/Users/zbb2/Desktop/PolymerGenomicsAPI/data/gwas/gwas_catalog_associations.tsv",
     )
 
     if not Path(gwas_file).is_file():

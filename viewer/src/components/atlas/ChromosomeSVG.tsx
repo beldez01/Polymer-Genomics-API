@@ -188,6 +188,28 @@ export function ChromosomeSVG({
             />
           );
         })}
+
+        {/* Telomere caps — teal tint at chromosome tips */}
+        {bands.length > 0 && (
+          <>
+            <rect
+              x={0}
+              y={0}
+              width={width}
+              height={Math.max(bpToY(bands[0].end), 1)}
+              fill={COLOR.accent.teal}
+              opacity={0.4}
+            />
+            <rect
+              x={0}
+              y={bpToY(bands[bands.length - 1].start)}
+              width={width}
+              height={Math.max(height - bpToY(bands[bands.length - 1].start), 1)}
+              fill={COLOR.accent.teal}
+              opacity={0.4}
+            />
+          </>
+        )}
       </g>
 
       {/* Chromosome outline */}

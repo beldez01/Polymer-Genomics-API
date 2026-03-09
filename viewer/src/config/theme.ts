@@ -97,6 +97,8 @@ export const COLOR = {
     isochores:        '#8B5CF6',
     methylation_atlas:'#f43f5e',
     gene_costs_v1:    '#10b981',
+    histone_peaks_encode_v1: '#FF0000',
+    gwas_catalog_ebi_v1:    '#E040FB',
   },
 
   // Isochore classes — earth tones, low-key
@@ -114,6 +116,23 @@ export const COLOR = {
     shore:    '#14b8a6',
     shelf:    '#3b82f6',
     open_sea: '#6b7280',
+  },
+
+  // Histone marks — ENCODE convention colors
+  histone: {
+    H3K4me3:  '#FF0000',  // red — active promoter
+    H3K27ac:  '#FF8C00',  // orange — active enhancer
+    H3K4me1:  '#FFD700',  // yellow — poised enhancer
+    H3K27me3: '#808080',  // gray — Polycomb repression
+    H3K9me3:  '#2F2F2F',  // dark — heterochromatin
+    H3K36me3: '#006400',  // dark green — transcribed body
+  },
+
+  // GWAS catalog
+  gwas: {
+    dot:      '#E040FB',  // magenta — GWAS hits
+    dotHigh:  '#FF1744',  // red — very significant hits
+    stem:     '#555555',  // lollipop stem
   },
 
   // Bioenergetic cost tiers

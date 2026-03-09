@@ -251,6 +251,7 @@ export function Sidebar({
             Methylation Probes
           </span>
         </button>
+        {anyActive && (
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {probeKeys.map((key) => {
             const l = apiLayerMap.get(key);
@@ -298,6 +299,7 @@ export function Sidebar({
             );
           })}
         </div>
+        )}
       </div>
     );
   }
@@ -332,6 +334,7 @@ export function Sidebar({
             Methylation Atlas
           </span>
         </button>
+        {anyActive && (
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {CELL_TYPE_KEYS.map((ct) => (
             <TealCheckbox
@@ -342,6 +345,7 @@ export function Sidebar({
             />
           ))}
         </div>
+        )}
       </div>
     );
   }
@@ -379,6 +383,7 @@ export function Sidebar({
             Sequence Markers
           </span>
         </div>
+        {anyActive && (
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {MOTIF_NAMES.map((name) => (
             <div key={name} className="flex items-center gap-1.5">
@@ -397,6 +402,7 @@ export function Sidebar({
             </div>
           ))}
         </div>
+        )}
       </div>
     );
   }

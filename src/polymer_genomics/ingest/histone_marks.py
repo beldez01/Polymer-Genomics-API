@@ -41,18 +41,24 @@ COLUMNS: list[str] = [
 # Mapping of (mark, cell_type) -> filename glob pattern.
 # Extend this dict for each ENCODE file you download.
 MARK_FILES: dict[tuple[str, str], str] = {
-    ("H3K4me3", "GM12878"):  "*H3K4me3*GM12878*.narrowPeak*",
-    ("H3K27ac", "GM12878"):  "*H3K27ac*GM12878*.narrowPeak*",
-    ("H3K4me1", "GM12878"):  "*H3K4me1*GM12878*.narrowPeak*",
-    ("H3K36me3", "GM12878"): "*H3K36me3*GM12878*.broadPeak*",
-    ("H3K27me3", "GM12878"): "*H3K27me3*GM12878*.broadPeak*",
-    ("H3K9me3", "GM12878"):  "*H3K9me3*GM12878*.broadPeak*",
-    ("H3K4me3", "K562"):     "*H3K4me3*K562*.narrowPeak*",
-    ("H3K27ac", "K562"):     "*H3K27ac*K562*.narrowPeak*",
-    ("H3K4me1", "K562"):     "*H3K4me1*K562*.narrowPeak*",
-    ("H3K36me3", "K562"):    "*H3K36me3*K562*.broadPeak*",
-    ("H3K27me3", "K562"):    "*H3K27me3*K562*.broadPeak*",
-    ("H3K9me3", "K562"):     "*H3K9me3*K562*.broadPeak*",
+    ("H3K4me3", "GM12878"):  "*H3K4me3*GM12878*.*Peak*",
+    ("H3K27ac", "GM12878"):  "*H3K27ac*GM12878*.*Peak*",
+    ("H3K4me1", "GM12878"):  "*H3K4me1*GM12878*.*Peak*",
+    ("H3K36me3", "GM12878"): "*H3K36me3*GM12878*.*Peak*",
+    ("H3K27me3", "GM12878"): "*H3K27me3*GM12878*.*Peak*",
+    ("H3K9me3", "GM12878"):  "*H3K9me3*GM12878*.*Peak*",
+    ("H3K4me3", "K562"):     "*H3K4me3*K562*.*Peak*",
+    ("H3K27ac", "K562"):     "*H3K27ac*K562*.*Peak*",
+    ("H3K4me1", "K562"):     "*H3K4me1*K562*.*Peak*",
+    ("H3K36me3", "K562"):    "*H3K36me3*K562*.*Peak*",
+    ("H3K27me3", "K562"):    "*H3K27me3*K562*.*Peak*",
+    ("H3K9me3", "K562"):     "*H3K9me3*K562*.*Peak*",
+    ("H3K4me3", "H1-hESC"):  "*H3K4me3*H1*hESC*.*Peak*",
+    ("H3K27ac", "H1-hESC"):  "*H3K27ac*H1*hESC*.*Peak*",
+    ("H3K4me1", "H1-hESC"):  "*H3K4me1*H1*hESC*.*Peak*",
+    ("H3K36me3", "H1-hESC"): "*H3K36me3*H1*hESC*.*Peak*",
+    ("H3K27me3", "H1-hESC"): "*H3K27me3*H1*hESC*.*Peak*",
+    ("H3K9me3", "H1-hESC"):  "*H3K9me3*H1*hESC*.*Peak*",
 }
 
 
@@ -295,7 +301,7 @@ async def main(builds: list[str] | None = None) -> None:
 
     histone_dir = os.environ.get(
         "HISTONE_DIR",
-        "/Users/zbb2/Desktop/Research/data/encode/histone/",
+        "/Users/zbb2/Desktop/PolymerGenomicsAPI/data/encode/histone/",
     )
 
     if not Path(histone_dir).is_dir():

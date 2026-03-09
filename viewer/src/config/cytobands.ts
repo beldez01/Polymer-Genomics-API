@@ -15,7 +15,7 @@ export const GIEMSA_COLORS: Record<string, string> = {
   gpos50:  '#808080',
   gpos75:  '#505050',
   gpos100: '#2A2A2A',
-  acen:    '#4ECDC4',
+  acen:    '#999999',
   gvar:    '#3A3A3A',
   stalk:   '#666666',
 };
