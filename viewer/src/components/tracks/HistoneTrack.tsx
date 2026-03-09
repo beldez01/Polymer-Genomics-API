@@ -17,6 +17,15 @@ const MARK_COLORS: Record<string, string> = {
 
 const MARK_ORDER = ['H3K4me3', 'H3K27ac', 'H3K4me1', 'H3K36me3', 'H3K27me3', 'H3K9me3'];
 
+const MARK_DESCRIPTIONS: Record<string, string> = {
+  H3K4me3:  'promoter',
+  H3K27ac:  'enhancer',
+  H3K4me1:  'poised enh.',
+  H3K36me3: 'tx body',
+  H3K27me3: 'Polycomb',
+  H3K9me3:  'heterochrom.',
+};
+
 function markColor(mark: string | null | undefined): string {
   if (!mark) return '#555555';
   return MARK_COLORS[mark] ?? '#555555';
@@ -117,6 +126,14 @@ export function HistoneTrack({
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillText(mark, 4, y + rowHeight / 2);
+      const desc = MARK_DESCRIPTIONS[mark];
+      if (desc) {
+        const markW = ctx.measureText(mark).width;
+        ctx.fillStyle = COLOR.text.faint;
+        ctx.font = "8px 'JetBrains Mono', monospace";
+        ctx.fillText(desc, 4 + markW + 4, y + rowHeight / 2);
+        ctx.font = "9px 'JetBrains Mono', monospace";
+      }
     }
 
     ctx.globalAlpha = 1.0;
@@ -135,7 +152,8 @@ export function HistoneTrack({
         if (ct) cellTypes.add(ct);
       }
       if (cellTypes.size > 0) {
-        ctx.fillStyle = COLOR.text.muted;
+        ctx.fillStyle = COLOR.text.secondary;
+        ctx.font = "10px 'JetBrains Mono', monospace";
         ctx.fillText([...cellTypes].join(', '), canvasWidth - 4, legendY);
       }
     }

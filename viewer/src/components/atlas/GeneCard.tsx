@@ -202,17 +202,17 @@ function InfoPanel({ title, children }: { title: string; children: React.ReactNo
       minWidth: 0,
       backgroundColor: COLOR.bg.elevated,
       border: `1px solid ${COLOR.border.subtle}`,
-      padding: `${SPACE[4]}px ${SPACE[5]}px`,
+      padding: `${SPACE[3]}px ${SPACE[4]}px`,
       display: 'flex',
       flexDirection: 'column',
-      gap: SPACE[3],
+      gap: SPACE[2],
     }}>
       <div style={{
         ...COMPONENT.sectionHeader,
         fontSize: GC_TYPE.sm,
         letterSpacing: '0.1em',
         textTransform: 'uppercase' as const,
-        marginBottom: SPACE[1],
+        marginBottom: 0,
       }}>
         {title}
       </div>
@@ -221,9 +221,9 @@ function InfoPanel({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-function KVRow({ label, value, labelWidth = 110 }: { label: string; value: React.ReactNode; labelWidth?: number }) {
+function KVRow({ label, value, labelWidth = 110 }: { label: React.ReactNode; value: React.ReactNode; labelWidth?: number }) {
   return (
-    <div style={{ display: 'flex', gap: SPACE[3], alignItems: 'baseline', minWidth: 0 }}>
+    <div style={{ display: 'flex', gap: SPACE[2], alignItems: 'baseline', minWidth: 0 }}>
       <span style={{
         color: COLOR.text.muted,
         fontSize: GC_TYPE.sm,
@@ -264,6 +264,10 @@ function StrandBadge({ strand }: { strand: string }) {
       {label}
     </span>
   );
+}
+
+function Abbr({ short, full }: { short: string; full: string }) {
+  return <abbr title={full} style={{ textDecoration: 'none', borderBottom: `1px dotted ${COLOR.text.faint}`, cursor: 'help', color: 'inherit' }}>{short}</abbr>;
 }
 
 function CostBar({ fracs }: { fracs: { frac: number | null; color: string; label: string }[] }) {
@@ -329,7 +333,7 @@ function LargeCostBar({ fracs }: { fracs: { frac: number | null; color: string; 
   );
 }
 
-function GaugeBar({ label, value, max = 1 }: { label: string; value: number | null; max?: number }) {
+function GaugeBar({ label, value, max = 1 }: { label: React.ReactNode; value: number | null; max?: number }) {
   if (value == null) return null;
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
@@ -583,7 +587,10 @@ function TissueExpression({ expression }: { expression: GeneCostData['expression
         textTransform: 'uppercase' as const,
         marginBottom: SPACE[3],
       }}>
-        Tissue Expression (GTEx)
+        Tissue Expression{' '}
+        <span style={{ fontSize: GC_TYPE.xs, fontWeight: 400, color: COLOR.text.muted, letterSpacing: '0.02em', textTransform: 'none' as const }}>
+          GTEx v10 · TPM = transcripts per million
+        </span>
       </div>
 
       <div style={{
@@ -732,7 +739,7 @@ function SectionLoading({ label }: { label: string }) {
     <div style={{
       backgroundColor: COLOR.bg.elevated,
       border: `1px solid ${COLOR.border.subtle}`,
-      padding: `${SPACE[5]}px ${SPACE[5]}px`,
+      padding: `${SPACE[3]}px ${SPACE[3]}px`,
       display: 'flex',
       alignItems: 'center',
       gap: SPACE[3],
@@ -761,7 +768,7 @@ function EmptySection({ label }: { label: string }) {
     <div style={{
       backgroundColor: COLOR.bg.elevated,
       border: `1px solid ${COLOR.border.subtle}`,
-      padding: `${SPACE[5]}px ${SPACE[5]}px`,
+      padding: `${SPACE[3]}px ${SPACE[3]}px`,
       textAlign: 'center',
     }}>
       <span style={{ color: COLOR.text.muted, fontSize: GC_TYPE.sm, fontFamily: FONT_FAMILY }}>
@@ -1052,10 +1059,10 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
       maxWidth: 1100,
       width: '100%',
       margin: '0 auto',
-      padding: `${SPACE[6]}px ${SPACE[6]}px`,
+      padding: `${SPACE[4]}px ${SPACE[4]}px`,
       display: 'flex',
       flexDirection: 'column',
-      gap: SPACE[5],
+      gap: SPACE[3],
     }}>
       {loading && <LoadingState />}
       {!loading && error && <ErrorState message={error} />}
@@ -1140,7 +1147,7 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
                   <KVRow label="Protein" value={cost.identity.protein_name} />
                 )}
                 <KVRow label="Length" value={cost.identity.protein_length != null ? `${cost.identity.protein_length} aa` : '—'} />
-                <KVRow label="MW" value={cost.elemental.mw_kda != null ? `${formatNum(cost.elemental.mw_kda, 1)} kDa` : '—'} />
+                <KVRow label={<Abbr short="MW" full="Molecular Weight" />} value={cost.elemental.mw_kda != null ? `${formatNum(cost.elemental.mw_kda, 1)} kDa` : '—'} />
                 <KVRow label="Cost/kDa" value={formatNum(cost.elemental.cost_per_kda, 1)} />
                 <KVRow label="N atoms" value={cost.elemental.n_protein?.toString() ?? '—'} />
                 <KVRow label="S atoms" value={cost.elemental.s_protein?.toString() ?? '—'} />
@@ -1153,17 +1160,17 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
                 minWidth: 280,
                 backgroundColor: COLOR.bg.elevated,
                 border: `1px solid ${COLOR.border.subtle}`,
-                padding: `${SPACE[4]}px ${SPACE[5]}px`,
+                padding: `${SPACE[3]}px ${SPACE[4]}px`,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: SPACE[3],
+                gap: SPACE[2],
               }}>
                 <div style={{
                   ...COMPONENT.sectionHeader,
                   fontSize: GC_TYPE.sm,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase' as const,
-                  marginBottom: SPACE[1],
+                  marginBottom: 0,
                 }}>
                   Amino Acid Composition
                 </div>
@@ -1194,7 +1201,7 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
             <div style={{
               backgroundColor: COLOR.bg.elevated,
               border: `1px solid ${COLOR.border.subtle}`,
-              padding: `${SPACE[6]}px ${SPACE[5]}px`,
+              padding: `${SPACE[3]}px ${SPACE[4]}px`,
               textAlign: 'center',
             }}>
               <span style={{
@@ -1215,14 +1222,12 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
           {/* E. Biosynthetic Cost with Context */}
           {cost && (
             <InfoPanel title="Biosynthetic Cost">
-              <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap' }}>
-                <KVRow label="ECPA (B20)" value={`${formatNum(cost.biosynthetic_cost.ecpa_b20)} ATP/aa`} />
-                <KVRow label="ECPA (H11)" value={`${formatNum(cost.biosynthetic_cost.ecpa_h11)} ATP/aa`} />
-              </div>
-              <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap' }}>
-                <KVRow label="C_protein" value={formatNum(cost.biosynthetic_cost.c_protein, 1)} />
-                <KVRow label="C_aa_synth" value={formatNum(cost.biosynthetic_cost.c_aa_synthesis, 1)} />
-                <KVRow label="C_translation" value={formatNum(cost.biosynthetic_cost.c_translation, 1)} />
+              <div style={{ display: 'flex', gap: SPACE[4], flexWrap: 'wrap' }}>
+                <KVRow label={<Abbr short="ECPA" full="Estimated Cost Per Amino acid (Barton 2010)" />} value={`${formatNum(cost.biosynthetic_cost.ecpa_b20)} ATP/aa`} labelWidth={80} />
+                <KVRow label="ECPA (H11)" value={`${formatNum(cost.biosynthetic_cost.ecpa_h11)} ATP/aa`} labelWidth={80} />
+                <KVRow label={<Abbr short="C_protein" full="Total protein cost" />} value={formatNum(cost.biosynthetic_cost.c_protein, 1)} labelWidth={80} />
+                <KVRow label={<Abbr short="C_aa_synth" full="Amino acid synthesis cost" />} value={formatNum(cost.biosynthetic_cost.c_aa_synthesis, 1)} labelWidth={80} />
+                <KVRow label={<Abbr short="C_translation" full="Ribosomal translation cost" />} value={formatNum(cost.biosynthetic_cost.c_translation, 1)} labelWidth={90} />
               </div>
               {cost.biosynthetic_cost.ecpa_b20 != null && (
                 <CostContextGauge ecpa={cost.biosynthetic_cost.ecpa_b20} />
@@ -1247,14 +1252,14 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
               <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', marginBottom: SPACE[2] }}>
                 <KVRow label="CDS length" value={cost.codon_optimization.cds_length_nt != null ? `${formatBp(cost.codon_optimization.cds_length_nt)} nt` : '—'} />
                 <KVRow label="Codons" value={cost.codon_optimization.n_codons?.toString() ?? '—'} labelWidth={60} />
-                <KVRow label="GC₃" value={formatPct(cost.codon_optimization.gc3)} labelWidth={36} />
+                <KVRow label={<Abbr short="GC₃" full="GC content at third (wobble) codon position" />} value={formatPct(cost.codon_optimization.gc3)} labelWidth={36} />
                 <KVRow label="GC_CDS" value={formatPct(cost.codon_optimization.gc_cds)} labelWidth={60} />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
-                <GaugeBar label="CAI" value={cost.codon_optimization.cai} />
-                <GaugeBar label="tAI" value={cost.codon_optimization.tai} />
-                <GaugeBar label="ENC" value={cost.codon_optimization.enc} max={61} />
-                <GaugeBar label="FOP" value={cost.codon_optimization.fop} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SPACE[2] }}>
+                <GaugeBar label={<Abbr short="CAI" full="Codon Adaptation Index — codon usage bias vs human optimal (0–1)" />} value={cost.codon_optimization.cai} />
+                <GaugeBar label={<Abbr short="tAI" full="tRNA Adaptation Index — translation efficiency from tRNA pool (0–1)" />} value={cost.codon_optimization.tai} />
+                <GaugeBar label={<Abbr short="ENC" full="Effective Number of Codons — codon diversity (6=max bias, 61=uniform)" />} value={cost.codon_optimization.enc} max={61} />
+                <GaugeBar label={<Abbr short="FOP" full="Frequency of Optimal Codons — fraction using preferred codons (0–1)" />} value={cost.codon_optimization.fop} />
               </div>
             </InfoPanel>
           )}

@@ -37,7 +37,7 @@ function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }
       fontSize: GC_TYPE.sm,
       letterSpacing: '0.1em',
       textTransform: 'uppercase' as const,
-      marginBottom: SPACE[1],
+      marginBottom: 0,
       display: 'flex',
       alignItems: 'baseline',
       gap: SPACE[3],
@@ -64,10 +64,10 @@ function SectionShell({ children }: { children: React.ReactNode }) {
     <div style={{
       backgroundColor: COLOR.bg.elevated,
       border: `1px solid ${COLOR.border.subtle}`,
-      padding: `${SPACE[4]}px ${SPACE[5]}px`,
+      padding: `${SPACE[3]}px ${SPACE[4]}px`,
       display: 'flex',
       flexDirection: 'column',
-      gap: SPACE[3],
+      gap: SPACE[2],
     }}>
       {children}
     </div>
@@ -97,7 +97,7 @@ export function ConstraintSection({ data }: { data: GeneConstraintData }) {
   const [width, setWidth] = useState(500);
   const c = data.constraint;
 
-  const GAUGE_H = 140;
+  const GAUGE_H = 110;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -292,7 +292,7 @@ export function ConstraintSection({ data }: { data: GeneConstraintData }) {
       <div style={{ padding: `${SPACE[3]}px ${SPACE[4]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
         <SectionHeader
           title="Evolutionary Constraint"
-          subtitle={data.gnomad_version ? `gnomAD ${data.gnomad_version}` : 'gnomAD'}
+          subtitle={`${data.gnomad_version ? `gnomAD ${data.gnomad_version}` : 'gnomAD'} · pLI: prob. LoF intolerant · LOEUF: LoF observed/expected upper bound`}
         />
       </div>
       <canvas
@@ -318,10 +318,10 @@ export function ProteinAbundanceSection({ data }: { data: ProteinAbundanceData }
     <SectionShell>
       <SectionHeader
         title="Protein Abundance"
-        subtitle={`PaxDb · ${data.identity.uniprot_id ?? ''} · ${sorted.length} tissues`}
+        subtitle={`PaxDb · ${data.identity.uniprot_id ?? ''} · ${sorted.length} tissues · ppm = parts per million`}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {sorted.map((t) => {
           const ppm = t.abundance_ppm ?? 0;
           const pct = (ppm / maxPpm) * 100;
@@ -332,7 +332,7 @@ export function ProteinAbundanceSection({ data }: { data: ProteinAbundanceData }
                 color: COLOR.text.muted,
                 fontSize: GC_TYPE.xs,
                 fontFamily: FONT_FAMILY,
-                width: 120,
+                width: 100,
                 flexShrink: 0,
                 textAlign: 'right' as const,
                 textTransform: 'capitalize' as const,
@@ -341,7 +341,7 @@ export function ProteinAbundanceSection({ data }: { data: ProteinAbundanceData }
               </span>
               <div style={{
                 flex: 1,
-                height: 12,
+                height: 8,
                 backgroundColor: COLOR.border.subtle,
                 overflow: 'hidden',
               }}>
@@ -458,7 +458,7 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
               display: 'flex',
               alignItems: 'center',
               gap: SPACE[1],
-              padding: `2px ${SPACE[2]}px`,
+              padding: `1px 6px`,
               backgroundColor: level === 'Not detected' ? 'transparent' : `${HPA_LEVEL_COLORS[level]}15`,
               border: `1px solid ${level === 'Not detected' ? COLOR.border.subtle : HPA_LEVEL_COLORS[level]}40`,
             }}
@@ -626,7 +626,7 @@ export function PathwaysSection({ data }: { data: GenePathwaysData }) {
         subtitle={`Reactome · ${pathways.length} pathways`}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[3] }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
         {sortedGroups.map(([hierarchy, members], gi) => {
           const color = HIERARCHY_COLORS[gi % HIERARCHY_COLORS.length];
           return (
@@ -661,7 +661,7 @@ export function PathwaysSection({ data }: { data: GenePathwaysData }) {
                     title={`${p.pathway_id} · ${p.pathway_hierarchy ?? ''}`}
                     style={{
                       display: 'inline-block',
-                      padding: `2px ${SPACE[2]}px`,
+                      padding: '1px 6px',
                       backgroundColor: `${color}10`,
                       border: `1px solid ${color}30`,
                       color: COLOR.text.secondary,
@@ -794,7 +794,7 @@ export function GeneSetsSection({ data }: { data: GeneSetsData }) {
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: 3,
+        gap: 2,
       }}>
         {ALL_HALLMARKS.map(h => {
           const isActive = memberSet.has(h);
@@ -807,7 +807,7 @@ export function GeneSetsSection({ data }: { data: GeneSetsData }) {
               key={h}
               title={h.replace(/_/g, ' ')}
               style={{
-                padding: `2px ${SPACE[2]}px`,
+                padding: '1px 6px',
                 backgroundColor: isActive ? `${catColor}18` : 'transparent',
                 border: `1px solid ${isActive ? catColor : COLOR.border.subtle}`,
                 color: isActive ? catColor : COLOR.text.faint,

@@ -498,7 +498,7 @@ export function AAHistogram({ proteinSeq }: { proteinSeq: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
 
-  const HIST_H = 200;
+  const HIST_H = 160;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -633,7 +633,7 @@ export function ProteinCostHeatmap({ proteinSeq }: { proteinSeq: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
 
-  const HEATMAP_H = 80;
+  const HEATMAP_H = 60;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -772,7 +772,7 @@ export function CdsGCPlot({ codonGC, cdsGCAvg }: { codonGC: number[]; cdsGCAvg: 
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
 
-  const PLOT_H = 150;
+  const PLOT_H = 120;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -954,7 +954,7 @@ export function CostContextGauge({ ecpa }: { ecpa: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
 
-  const GAUGE_H = 48;
+  const GAUGE_H = 36;
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1066,17 +1066,17 @@ export function ExonIntronGCStats({ exonGC, intronGC }: { exonGC: number; intron
     <div style={{
       backgroundColor: COLOR.bg.elevated,
       border: `1px solid ${COLOR.border.subtle}`,
-      padding: `${SPACE[4]}px ${SPACE[5]}px`,
+      padding: `${SPACE[3]}px ${SPACE[4]}px`,
       display: 'flex',
       flexDirection: 'column',
-      gap: SPACE[3],
+      gap: SPACE[2],
     }}>
       <div style={{
         ...COMPONENT.sectionHeader,
         fontSize: GC_TYPE.sm,
         letterSpacing: '0.1em',
         textTransform: 'uppercase' as const,
-        marginBottom: SPACE[1],
+        marginBottom: 0,
       }}>
         Exon / Intron GC
       </div>
