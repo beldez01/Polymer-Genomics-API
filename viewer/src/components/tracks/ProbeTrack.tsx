@@ -7,25 +7,12 @@ import { COLORS } from '@/config/colors';
 import { drawGridlines } from '@/lib/gridlines';
 
 
-const CONTEXT_COLORS: Record<string, string> = {
-  island:   '#10B981',  // emerald-500
-  shore:    '#06B6D4',  // cyan-500
-  shelf:    '#6366F1',  // indigo-500
-  open_sea: '#F59E0B',  // amber-500
-  opensea:  '#F59E0B',
+/** One color per array platform (gold / amber / brown). */
+const ARRAY_COLORS: Record<string, string> = {
+  probe_epic_v2: '#F0A500',  // gold
+  probe_epic_v1: '#d97706',  // amber
+  probe_450k:    '#92400e',  // brown
 };
-
-/** Per-array opacity so overlaid arrays are visually distinguishable. */
-const ARRAY_OPACITY: Record<string, number> = {
-  probe_epic_v2: 1.0,
-  probe_epic_v1: 0.7,
-  probe_450k:    0.5,
-};
-
-function contextColor(ctx: string | null | undefined): string {
-  if (!ctx) return '#F43F5E';  // rose-500
-  return CONTEXT_COLORS[ctx.toLowerCase()] ?? '#F43F5E';
-}
 
 export interface ProbeDataset {
   key: string;
@@ -84,23 +71,20 @@ export function ProbeTrack({
     const bpW = basePairWidth(viewStart, viewEnd, canvasWidth);
 
     for (const ds of resolvedDatasets) {
-      const opacity = ARRAY_OPACITY[ds.key] ?? 0.6;
+      const color = ARRAY_COLORS[ds.key] ?? '#F43F5E';
 
       for (let i = 0; i < ds.data.n; i++) {
         const pos = ds.data.ranges.start[i];
         if (pos < viewStart || pos > viewEnd) continue;
 
         const x = genomicToPixel(pos, viewStart, viewEnd, canvasWidth);
-        const cpgCtx = ds.data.mcols.cpg_context?.[i] as string | null;
         const probeId = ds.data.mcols.probe_id?.[i] as string | null;
-        const color = contextColor(cpgCtx);
 
         const markerSize = Math.min(8, Math.max(3, bpW * 0.4));
         const tipY = height - 6;
         const topY = tipY - markerSize * 1.6;
 
         ctx.save();
-        ctx.globalAlpha = opacity;
         ctx.shadowColor = color;
         ctx.shadowBlur = 3;
         ctx.fillStyle = color;
@@ -113,7 +97,7 @@ export function ProbeTrack({
         ctx.restore();
 
         ctx.strokeStyle = color;
-        ctx.globalAlpha = 0.6 * opacity;
+        ctx.globalAlpha = 0.6;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(x, topY);

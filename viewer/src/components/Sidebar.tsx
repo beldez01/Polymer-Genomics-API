@@ -256,13 +256,45 @@ export function Sidebar({
             const l = apiLayerMap.get(key);
             const active = activeLayers.includes(key);
             const suffix = l?.row_count != null ? ` \u00b7 ${formatCount(l.row_count)}` : '';
+            const arrayColor = LAYER_COLORS[key];
             return (
-              <TealCheckbox
+              <button
                 key={key}
-                active={active}
-                label={probeLabels[key] + suffix}
                 onClick={() => onToggleLayer(key)}
-              />
+                className="flex items-center gap-1.5"
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  border: `1.5px solid ${active ? TOGGLE_TEAL : COLOR.text.faint}`,
+                  backgroundColor: active ? TOGGLE_TEAL : 'transparent',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {active && (
+                    <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
+                      <path d="M1.5 4L3.2 5.7L6.5 2.3" stroke={COLOR.bg.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </span>
+                <span style={{
+                  color: active ? arrayColor : COLOR.text.faint,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                }}>
+                  {probeLabels[key] + suffix}
+                </span>
+              </button>
             );
           })}
         </div>
