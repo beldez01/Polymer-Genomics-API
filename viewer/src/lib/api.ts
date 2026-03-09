@@ -74,6 +74,7 @@ export interface LayerInfo {
 
 export interface SearchResult {
   gene_symbol: string;
+  chromosome?: string;
   type: string;
 }
 

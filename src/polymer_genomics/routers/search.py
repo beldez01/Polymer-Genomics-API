@@ -2,7 +2,7 @@ import time
 
 from fastapi import APIRouter, HTTPException, Query
 
-from polymer_genomics.constants import VALID_BUILDS
+from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.db import get_pool
 
 router = APIRouter(prefix="/v1/search", tags=["search"])
@@ -41,14 +41,15 @@ async def search(
 
         rows = await conn.fetch(
             """
-            SELECT gene_symbol, (gene_symbol = $4) AS exact_match
+            SELECT gene_symbol, MIN(chr_id) AS chr_id, (gene_symbol = $4) AS exact_match
             FROM (
-                SELECT DISTINCT gene_symbol
+                SELECT DISTINCT gene_symbol, chr_id
                 FROM gene.features
                 WHERE build = $1::genome_build
                   AND gene_symbol ILIKE $2
                   AND layer_id = $3
             ) sub
+            GROUP BY gene_symbol
             ORDER BY exact_match DESC, gene_symbol
             LIMIT 20
             """,
@@ -58,5 +59,12 @@ async def search(
             q,
         )
 
-    results = [{"gene_symbol": r["gene_symbol"], "type": "gene"} for r in rows]
+    results = [
+        {
+            "gene_symbol": r["gene_symbol"],
+            "chromosome": CHR_ID_TO_NAME.get(r["chr_id"], f"chr{r['chr_id']}") if r["chr_id"] is not None else None,
+            "type": "gene",
+        }
+        for r in rows
+    ]
     return {"results": results, "total": len(results)}

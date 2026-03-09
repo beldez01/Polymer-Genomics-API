@@ -724,6 +724,54 @@ function ErrorState({ message }: { message: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Section loading / empty states
+// ---------------------------------------------------------------------------
+
+function SectionLoading({ label }: { label: string }) {
+  return (
+    <div style={{
+      backgroundColor: COLOR.bg.elevated,
+      border: `1px solid ${COLOR.border.subtle}`,
+      padding: `${SPACE[5]}px ${SPACE[5]}px`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: SPACE[3],
+    }}>
+      <div style={{
+        width: 16, height: 2,
+        backgroundColor: COLOR.border.strong,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: 0, height: '100%', width: '60%',
+          backgroundColor: COLOR.accent.teal,
+          animation: 'gcSlide 1.2s ease-in-out infinite',
+        }} />
+      </div>
+      <span style={{ color: COLOR.text.muted, fontSize: GC_TYPE.sm, fontFamily: FONT_FAMILY }}>
+        Loading {label}&hellip;
+      </span>
+    </div>
+  );
+}
+
+function EmptySection({ label }: { label: string }) {
+  return (
+    <div style={{
+      backgroundColor: COLOR.bg.elevated,
+      border: `1px solid ${COLOR.border.subtle}`,
+      padding: `${SPACE[5]}px ${SPACE[5]}px`,
+      textAlign: 'center',
+    }}>
+      <span style={{ color: COLOR.text.muted, fontSize: GC_TYPE.sm, fontFamily: FONT_FAMILY }}>
+        No {label.toLowerCase()} data available for this gene.
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main GeneCard
 // ---------------------------------------------------------------------------
 
@@ -731,9 +779,10 @@ interface GeneCardProps {
   symbol: string;
   build: string;
   onBack: () => void;
+  standalone?: boolean;
 }
 
-export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
+export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gene, setGene] = useState<ParsedGene | null>(null);
@@ -756,6 +805,15 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
   const [atlasData, setAtlasData] = useState<ProteinAtlasData | null>(null);
   const [pathwaysData, setPathwaysData] = useState<GenePathwaysData | null>(null);
   const [geneSetsData, setGeneSetsData] = useState<GeneSetsData | null>(null);
+
+  // Section loading status
+  const [sectionStatus, setSectionStatus] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({
+    constraint: 'loading',
+    abundance: 'loading',
+    atlas: 'loading',
+    pathways: 'loading',
+    geneSets: 'loading',
+  });
 
   // Phase 1: fetch gene + cost
   useEffect(() => {
@@ -814,26 +872,29 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
     let cancelled = false;
     const upperSymbol = symbol.toUpperCase();
 
+    // Reset all section statuses
+    setSectionStatus({ constraint: 'loading', abundance: 'loading', atlas: 'loading', pathways: 'loading', geneSets: 'loading' });
+
     // All fetches are independent — fire in parallel, catch individually
     fetchGeneConstraint(build, upperSymbol)
-      .then(res => { if (!cancelled) setConstraintData(res.data); })
-      .catch(() => { /* silently skip — section just won't render */ });
+      .then(res => { if (!cancelled) { setConstraintData(res.data); setSectionStatus(s => ({ ...s, constraint: 'loaded' })); } })
+      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, constraint: 'error' })); });
 
     fetchProteinAbundance(build, upperSymbol)
-      .then(res => { if (!cancelled) setAbundanceData(res.data); })
-      .catch(() => {});
+      .then(res => { if (!cancelled) { setAbundanceData(res.data); setSectionStatus(s => ({ ...s, abundance: 'loaded' })); } })
+      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, abundance: 'error' })); });
 
     fetchProteinAtlas(build, upperSymbol)
-      .then(res => { if (!cancelled) setAtlasData(res.data); })
-      .catch(() => {});
+      .then(res => { if (!cancelled) { setAtlasData(res.data); setSectionStatus(s => ({ ...s, atlas: 'loaded' })); } })
+      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, atlas: 'error' })); });
 
     fetchGenePathways(build, upperSymbol)
-      .then(res => { if (!cancelled) setPathwaysData(res.data); })
-      .catch(() => {});
+      .then(res => { if (!cancelled) { setPathwaysData(res.data); setSectionStatus(s => ({ ...s, pathways: 'loaded' })); } })
+      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, pathways: 'error' })); });
 
     fetchGeneSets(build, upperSymbol)
-      .then(res => { if (!cancelled) setGeneSetsData(res.data); })
-      .catch(() => {});
+      .then(res => { if (!cancelled) { setGeneSetsData(res.data); setSectionStatus(s => ({ ...s, geneSets: 'loaded' })); } })
+      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, geneSets: 'error' })); });
 
     return () => { cancelled = true; };
   }, [build, symbol]);
@@ -1007,24 +1068,26 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
           {/* A. Header */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], flexWrap: 'wrap' }}>
-              <button
-                onClick={onBack}
-                style={{
-                  ...COMPONENT.button.ghost,
-                  padding: `${SPACE[1]}px ${SPACE[3]}px`,
-                  fontSize: GC_TYPE.sm,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = COLOR.accent.teal;
-                  e.currentTarget.style.color = COLOR.accent.teal;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = COLOR.border.strong;
-                  e.currentTarget.style.color = COLOR.text.secondary;
-                }}
-              >
-                &larr; Back
-              </button>
+              {!standalone && (
+                <button
+                  onClick={onBack}
+                  style={{
+                    ...COMPONENT.button.ghost,
+                    padding: `${SPACE[1]}px ${SPACE[3]}px`,
+                    fontSize: GC_TYPE.sm,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = COLOR.accent.teal;
+                    e.currentTarget.style.color = COLOR.accent.teal;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = COLOR.border.strong;
+                    e.currentTarget.style.color = COLOR.text.secondary;
+                  }}
+                >
+                  &larr; Back
+                </button>
+              )}
               <h1 style={{
                 fontSize: GC_TYPE['2xl'],
                 fontWeight: WEIGHT.bold,
@@ -1206,19 +1269,29 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
           {cost && <TissueExpression expression={cost.expression} />}
 
           {/* L. Evolutionary Constraint (gnomAD) */}
-          {constraintData && <ConstraintSection data={constraintData} />}
+          {constraintData ? <ConstraintSection data={constraintData} />
+            : sectionStatus.constraint === 'loading' ? <SectionLoading label="Evolutionary Constraint" />
+            : <EmptySection label="Evolutionary Constraint" />}
 
           {/* M. Protein Abundance (PaxDb) */}
-          {abundanceData && <ProteinAbundanceSection data={abundanceData} />}
+          {abundanceData ? <ProteinAbundanceSection data={abundanceData} />
+            : sectionStatus.abundance === 'loading' ? <SectionLoading label="Protein Abundance" />
+            : <EmptySection label="Protein Abundance" />}
 
           {/* N. Protein Atlas (HPA) */}
-          {atlasData && <ProteinAtlasSection data={atlasData} />}
+          {atlasData ? <ProteinAtlasSection data={atlasData} />
+            : sectionStatus.atlas === 'loading' ? <SectionLoading label="Protein Atlas" />
+            : <EmptySection label="Protein Atlas" />}
 
           {/* O. Pathways (Reactome) */}
-          {pathwaysData && <PathwaysSection data={pathwaysData} />}
+          {pathwaysData ? <PathwaysSection data={pathwaysData} />
+            : sectionStatus.pathways === 'loading' ? <SectionLoading label="Pathways" />
+            : <EmptySection label="Pathways" />}
 
           {/* P. Gene Sets (MSigDB Hallmark) */}
-          {geneSetsData && <GeneSetsSection data={geneSetsData} />}
+          {geneSetsData ? <GeneSetsSection data={geneSetsData} />
+            : sectionStatus.geneSets === 'loading' ? <SectionLoading label="Gene Sets" />
+            : <EmptySection label="Gene Sets" />}
 
           {/* K. Footer Actions */}
           <div style={{
@@ -1230,7 +1303,7 @@ export function GeneCard({ symbol, build, onBack }: GeneCardProps) {
             flexWrap: 'wrap',
           }}>
             <FooterLink href={viewerHref} label="Open in Viewer &rarr;" />
-            <FooterLink href={geneDetailHref} label="View Gene Detail &rarr;" />
+            {!standalone && <FooterLink href={geneDetailHref} label="View Gene Detail &rarr;" />}
           </div>
         </>
       )}
