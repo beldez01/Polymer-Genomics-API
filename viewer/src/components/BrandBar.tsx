@@ -64,7 +64,7 @@ export function BrandBar({ subtitle, children, sticky }: BrandBarProps) {
         {children}
         <Link href="/view/hg38/chr1:100000000-100100000" style={COMPONENT.button.small as React.CSSProperties}>Viewer</Link>
         <Link href="/atlas" style={COMPONENT.button.small as React.CSSProperties}>Atlas</Link>
-        <Link href="/docs"  style={COMPONENT.button.small as React.CSSProperties}>API</Link>
+        <Link href="/docs"  style={COMPONENT.button.small as React.CSSProperties}>API / MCP</Link>
       </div>
     </div>
   );

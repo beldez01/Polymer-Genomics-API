@@ -12,9 +12,12 @@ interface HeaderBarProps {
   end: number;
   onNavigate: (chr: string, start: number, end: number) => void;
   onBuildChange: (build: GenomeBuild) => void;
+  /** Optional copy-link button label + handler, shown next to coordinates */
+  copyLinkLabel?: string;
+  onCopyLink?: () => void;
 }
 
-export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }: HeaderBarProps) {
+export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, copyLinkLabel, onCopyLink }: HeaderBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ gene_symbol: string }[]>([]);
   const [open, setOpen] = useState(false);
@@ -134,18 +137,50 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }:
       </button>
 
       {/* Coordinates — absolutely centered in the bar */}
-      <span style={{
+      <div style={{
         position: 'absolute',
         left: '50%',
         transform: 'translateX(-50%)',
-        color: COLOR.text.secondary,
-        fontSize: TYPE.base.fontSize,
-        fontFamily: FONT_FAMILY,
+        display: 'flex',
+        alignItems: 'center',
+        gap: SPACE[2],
         whiteSpace: 'nowrap',
-        pointerEvents: 'none',
       }}>
-        {coords}
-      </span>
+        <span style={{
+          color: COLOR.text.secondary,
+          fontSize: TYPE.base.fontSize,
+          fontFamily: FONT_FAMILY,
+          pointerEvents: 'none',
+        }}>
+          {coords}
+        </span>
+        {onCopyLink && (
+          <button
+            onClick={onCopyLink}
+            style={{
+              backgroundColor: 'transparent',
+              color: COLOR.text.muted,
+              border: `1px solid ${COLOR.border.strong}`,
+              padding: `${SPACE[1]}px ${SPACE[2]}px`,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              cursor: 'pointer',
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = COLOR.accent.teal;
+              e.currentTarget.style.color = COLOR.accent.teal;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = COLOR.border.strong;
+              e.currentTarget.style.color = COLOR.text.muted;
+            }}
+            title="Copy shareable link with active layers"
+          >
+            {copyLinkLabel || 'Link'}
+          </button>
+        )}
+      </div>
 
       {/* Search — right */}
       <div ref={containerRef} className="flex items-center gap-1" style={{ position: 'relative', flexShrink: 0 }}>

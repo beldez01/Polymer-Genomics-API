@@ -160,15 +160,7 @@ function ViewerPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
 
-      <BrandBar>
-        <button
-          onClick={handleCopyLink}
-          style={{ ...COMPONENT.button.small, marginLeft: SPACE[2] }}
-          title="Copy shareable link with active layers"
-        >
-          {copyLabel}
-        </button>
-      </BrandBar>
+      <BrandBar />
 
       {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
       <HeaderBar
@@ -178,6 +170,8 @@ function ViewerPage() {
         end={end}
         onNavigate={handleNavigate}
         onBuildChange={setBuild}
+        copyLinkLabel={copyLabel}
+        onCopyLink={handleCopyLink}
       />
 
       <IdeogramBar
