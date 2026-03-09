@@ -25,6 +25,7 @@ from polymer_genomics.routers.gene_sets_router import router as gene_sets_router
 from polymer_genomics.routers.protein_atlas import router as protein_atlas_router
 from polymer_genomics.routers.reference import router as reference_router
 from polymer_genomics.routers.biophysics import router as biophysics_router
+from polymer_genomics.routers.correlation import router as correlation_router
 from polymer_genomics.routers.cpg_profile import router as cpg_profile_router
 
 
@@ -76,6 +77,7 @@ app.include_router(gene_sets_router)
 app.include_router(protein_atlas_router)
 app.include_router(reference_router)
 app.include_router(biophysics_router)
+app.include_router(correlation_router)
 app.include_router(cpg_profile_router)
 
 

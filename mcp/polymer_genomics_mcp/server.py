@@ -53,7 +53,8 @@ mcp = FastMCP(
         "- Physical constants → lookup_physical_constants (Lp, Manning ξ, elastic moduli, enzymatic rates)\n"
         "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
         "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
-        "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity — genome-wide pre-computed from Polymer Evolution Phase 1)"
+        "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity — genome-wide pre-computed from Polymer Evolution Phase 1)\n"
+        "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)"
     ),
     json_response=True,
 )
@@ -584,6 +585,53 @@ async def compute_region_biophysics(
         "properties": properties,
     }
     return await _get(f"/v1/biophysics/{build}/{region}", params)
+
+
+@mcp.tool()
+async def correlate_layers(
+    build: str,
+    region: str,
+    layer_a: str,
+    layer_b: str,
+    stat: str,
+    resolution: int = 10000,
+    field_a: str = "density",
+    field_b: str = "density",
+) -> dict:
+    """Compute cross-layer statistical correlation in a genomic region.
+
+    Bins both layers into fixed-size windows, pairs them on bin identity,
+    and computes the requested statistic on the paired vectors.
+
+    Available stats:
+    - pearson_r, spearman_rho: work on all layer combinations
+    - overlap_enrichment, jaccard, fisher_exact: count x count layers only
+
+    Use this when you need to test whether two genomic features co-vary —
+    e.g. "does CpG density correlate with conservation?" or "do regulatory
+    elements overlap with CpG islands more than expected?"
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
+        layer_a: First layer key (e.g. 'cpg_sites').
+        layer_b: Second layer key (e.g. 'encode_ccre_v4').
+        stat: Statistic — 'pearson_r', 'spearman_rho', 'overlap_enrichment',
+              'jaccard', or 'fisher_exact'.
+        resolution: Bin size in bp. Must be 1000, 10000, 100000, or 1000000.
+                    Default 10000.
+        field_a: Numeric field from layer_a (default 'density').
+        field_b: Numeric field from layer_b (default 'density').
+    """
+    params: dict = {
+        "layer_a": layer_a,
+        "layer_b": layer_b,
+        "stat": stat,
+        "resolution": str(resolution),
+        "field_a": field_a,
+        "field_b": field_b,
+    }
+    return await _get(f"/v1/correlate/{build}/{region}", params)
 
 
 def main():
