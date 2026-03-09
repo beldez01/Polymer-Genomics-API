@@ -56,11 +56,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange }:
   async function handleSubmit() {
     const trimmed = query.trim();
     if (/^cg\d{7,8}$/i.test(trimmed) || /^ch\.\d+\.\d+/i.test(trimmed)) {
-      try {
-        const res = await fetchProbe(build, trimmed);
-        const probe = res.data.probe;
-        onNavigate(probe.seqname, probe.start - 500, probe.start + 500);
-      } catch { /* fail silently */ }
+      window.location.href = `/probe/${build}/${trimmed}`;
       setOpen(false);
       setQuery('');
       return;

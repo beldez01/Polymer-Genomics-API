@@ -50,6 +50,17 @@ If `status == "truncated"`, results are **incomplete**. Never report truncated d
 | Available data layers | `list_layers` | Row counts, build support |
 | Full layer download | `bulk_download` | Presigned URL, 1-hour TTL |
 | Gene biosynthetic cost | `lookup_gene_cost` | Akashi-Gojobori + GTEx EWGC |
+| Gene expression profile | `lookup_gene_expression` | GTEx v10, 54-tissue median TPM |
+| Protein abundance | `lookup_protein_abundance` | PaxDb v6.0, tissue-specific PPM |
+| Gene constraint | `lookup_gene_constraint` | gnomAD pLI, LOEUF, Z-scores |
+| Gene pathways | `lookup_gene_pathways` | Reactome pathway memberships |
+| Gene sets | `lookup_gene_sets` | MSigDB Hallmark (50 sets) |
+| Protein atlas | `lookup_protein_atlas` | HPA tissue expression + subcellular |
+| NN thermodynamics | `lookup_nn_parameters` | SantaLucia/Xia/Sugimoto ΔH, ΔS, ΔG₃₇ |
+| Dinucleotide properties | `lookup_dinucleotide_properties` | ε₂₆₀, groove geometry, form propensity |
+| Amino acid properties | `lookup_amino_acid_properties` | MW, volume, hydrophobicity, pKa, cost |
+| Physical constants | `lookup_physical_constants` | Lp, Manning ξ, elastic moduli, rates |
+| Region biophysics | `compute_region_biophysics` | ΔG₃₇, ε₂₆₀, form propensity, groove (max 10kb) |
 
 ## Composition Patterns
 
@@ -84,6 +95,9 @@ batch_probes(probe_ids) → identify platform overlaps → query_region(neighbor
 | probe_epic_v1 | probe | EPIC v1 — 866K probes |
 | probe_450k | probe | 450K array — 486K probes |
 | isochores | isochore | GC composition — 10K segments |
+| chromatin_state | chromatin | ChromHMM 18-state (9 cell types) |
+| methylation_atlas | methylation | Loyfer 2023 — 39 cell/tissue types |
+| sequence_biophysics_l0 | biophysics | GC, stacking ΔG₃₇, Tm, curvature, groove, dipole, periodicity (1kb bins) |
 
 Use `list_layers(build)` to confirm current availability and row counts.
 

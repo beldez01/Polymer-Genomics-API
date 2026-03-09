@@ -271,6 +271,40 @@ def region_biophysics_query() -> str:
     """
 
 
+def region_histone_peaks_query() -> str:
+    """ENCODE histone modification peaks."""
+    return """
+        SELECT hp.start_pos, hp.end_pos,
+               hp.mark, hp.cell_type,
+               hp.signal_value, hp.p_value, hp.q_value,
+               hp.peak_offset
+        FROM regulatory.histone_peaks hp
+        WHERE hp.build = $1::genome_build
+          AND hp.chr_id = $2
+          AND hp.coord && int4range($3, $4)
+          AND hp.layer_id = $5
+        ORDER BY hp.start_pos
+        LIMIT $6
+    """
+
+
+def region_gwas_query() -> str:
+    """EBI GWAS Catalog associations (genome-wide significant)."""
+    return """
+        SELECT ga.start_pos, ga.end_pos,
+               ga.rsid, ga.p_value, ga.or_beta,
+               ga.ci_95, ga.trait, ga.mapped_gene,
+               ga.study_accession, ga.pubmed_id
+        FROM annotation.gwas_associations ga
+        WHERE ga.build = $1::genome_build
+          AND ga.chr_id = $2
+          AND ga.coord && int4range($3, $4)
+          AND ga.layer_id = $5
+        ORDER BY ga.start_pos
+        LIMIT $6
+    """
+
+
 def region_repeats_query() -> str:
     """Repeat element annotations (RepeatMasker)."""
     return """
@@ -776,6 +810,67 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_histone_peaks(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    marks, cell_types = [], []
+    signal_values, p_values, q_values, peak_offsets = [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        marks.append(r["mark"])
+        cell_types.append(r["cell_type"])
+        signal_values.append(r["signal_value"])
+        p_values.append(r["p_value"])
+        q_values.append(r["q_value"])
+        peak_offsets.append(r["peak_offset"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "mark": marks, "cell_type": cell_types,
+            "signal_value": signal_values, "p_value": p_values,
+            "q_value": q_values, "peak_offset": peak_offsets,
+        },
+        "n": len(rows),
+    }
+
+
+def _convert_gwas(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    rsids, p_values, or_betas, ci_95s = [], [], [], []
+    traits, mapped_genes, study_accessions, pubmed_ids = [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        rsids.append(r["rsid"])
+        p_values.append(r["p_value"])
+        or_betas.append(r["or_beta"])
+        ci_95s.append(r["ci_95"])
+        traits.append(r["trait"])
+        mapped_genes.append(r["mapped_gene"])
+        study_accessions.append(r["study_accession"])
+        pubmed_ids.append(r["pubmed_id"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "rsid": rsids, "p_value": p_values,
+            "or_beta": or_betas, "ci_95": ci_95s,
+            "trait": traits, "mapped_gene": mapped_genes,
+            "study_accession": study_accessions, "pubmed_id": pubmed_ids,
+        },
+        "n": len(rows),
+    }
+
+
 def _convert_repeats(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     names, classes, families, divergences = [], [], [], []
@@ -878,6 +973,14 @@ TRACK_REGISTRY: dict[str, dict] = {
     "biophysics": {
         "query_fn": region_biophysics_query,
         "convert_fn": _convert_biophysics,
+    },
+    "histone_mark": {
+        "query_fn": region_histone_peaks_query,
+        "convert_fn": _convert_histone_peaks,
+    },
+    "gwas": {
+        "query_fn": region_gwas_query,
+        "convert_fn": _convert_gwas,
     },
 }
 

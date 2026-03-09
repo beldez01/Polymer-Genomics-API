@@ -425,3 +425,38 @@ export async function fetchGeneSets(
 ): Promise<GeneSetsResponse> {
   return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/gene-sets`);
 }
+
+// --- CpG Profile ---
+
+export interface CpgProfileSection {
+  evidence_class: string;
+  scale: string;
+  status: string;
+  provenance?: { layer_key: string; version: string; content_hash: string | null };
+  rationale?: string;
+  [key: string]: unknown;
+}
+
+export interface CpgProfileResponse {
+  status: string;
+  coordinate_system: string;
+  query: { build: string; input: string; resolved_as: string };
+  layers_resolved: LayerResolved[];
+  data: {
+    site_identity: CpgProfileSection;
+    gene_context: CpgProfileSection;
+    nearby_gene_priors: CpgProfileSection;
+    regulatory_context: CpgProfileSection;
+    regional_conservation: CpgProfileSection;
+    regional_sequence_biophysics: CpgProfileSection;
+    methylation_biophysics_model: CpgProfileSection;
+  };
+  timing: { query_time_ms: number; db_time_ms: number };
+}
+
+export async function fetchCpgProfile(
+  build: string,
+  query: string,
+): Promise<CpgProfileResponse> {
+  return fetchJSON(`${API_BASE}/v1/cpg-profile/${build}/${encodeURIComponent(query)}`);
+}
