@@ -948,29 +948,21 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
       return;
     }
 
-    // Guard: gene > 100kb → skip sequence fetch
-    if (gene.geneLength > 100_000) {
-      setSeqSkipped(`Gene spans ${formatBp(gene.geneLength)} bp (>100kb limit). Sequence-derived sections unavailable.`);
-      return;
-    }
-
     let cancelled = false;
     setSeqLoading(true);
 
-    const region = `${gene.chr}:${gene.geneStart}-${gene.geneEnd}`;
-    fetchSequence(build, region)
-      .then((seqRes) => {
-        if (cancelled) return;
-        const genomicSeq = seqRes.sequence;
-
-        // Extract CDS subsequences
+    (async () => {
+      try {
+        // Step 1: Fetch CDS exons individually (always works, even for huge genes)
         const cdsSorted = ct.cdsFeatures.slice().sort((a, b) => a.start - b.start);
-        let cdsSeq = '';
-        for (const cds of cdsSorted) {
-          const relStart = cds.start - gene.geneStart;
-          const relEnd = cds.end - gene.geneStart + 1;
-          cdsSeq += genomicSeq.slice(relStart, relEnd);
-        }
+        const exonSeqs = await Promise.all(
+          cdsSorted.map(cds =>
+            fetchSequence(build, `${gene.chr}:${cds.start}-${cds.end}`)
+          )
+        );
+        if (cancelled) return;
+
+        let cdsSeq = exonSeqs.map(r => r.sequence).join('');
 
         // Strand handling
         if (gene.strand === '-') {
@@ -987,48 +979,53 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
         setProteinSeq(protein);
         setCodonGC(computeCodonGC(cdsSeq));
 
-        // Compute exon/intron GC
-        let exonBases = '';
-        let intronBases = '';
+        // Step 2: Exon/intron GC — only feasible for small genes (need full genomic span)
+        if (gene.geneLength <= 100_000) {
+          const region = `${gene.chr}:${gene.geneStart}-${gene.geneEnd}`;
+          const seqRes = await fetchSequence(build, region);
+          if (cancelled) return;
+          const genomicSeq = seqRes.sequence;
 
-        // All exon regions for this transcript
-        const exonFeats = ct.allFeatures
-          .filter(f => {
-            const ft = f.feature_type.toLowerCase();
-            return ft === 'cds' || ft === 'exon' || ft.includes('utr');
-          })
-          .sort((a, b) => a.start - b.start);
+          let exonBases = '';
+          let intronBases = '';
 
-        for (const feat of exonFeats) {
-          const relStart = feat.start - gene.geneStart;
-          const relEnd = feat.end - gene.geneStart + 1;
-          exonBases += genomicSeq.slice(relStart, relEnd);
-        }
+          const exonFeats = ct.allFeatures
+            .filter(f => {
+              const ft = f.feature_type.toLowerCase();
+              return ft === 'cds' || ft === 'exon' || ft.includes('utr');
+            })
+            .sort((a, b) => a.start - b.start);
 
-        // Intron = gene region minus exon regions
-        const exonCoverage = new Set<number>();
-        for (const feat of exonFeats) {
-          for (let pos = feat.start; pos <= feat.end; pos++) {
-            exonCoverage.add(pos);
+          for (const feat of exonFeats) {
+            const relStart = feat.start - gene.geneStart;
+            const relEnd = feat.end - gene.geneStart + 1;
+            exonBases += genomicSeq.slice(relStart, relEnd);
           }
-        }
-        // Collect intron bases by excluding exonic positions
-        for (let pos = gene.geneStart; pos <= gene.geneEnd; pos++) {
-          if (!exonCoverage.has(pos)) {
-            intronBases += genomicSeq[pos - gene.geneStart] ?? '';
+
+          const exonCoverage = new Set<number>();
+          for (const feat of exonFeats) {
+            for (let pos = feat.start; pos <= feat.end; pos++) {
+              exonCoverage.add(pos);
+            }
           }
+          for (let pos = gene.geneStart; pos <= gene.geneEnd; pos++) {
+            if (!exonCoverage.has(pos)) {
+              intronBases += genomicSeq[pos - gene.geneStart] ?? '';
+            }
+          }
+
+          setExonGC(gcFraction(exonBases));
+          setIntronGC(intronBases.length > 0 ? gcFraction(intronBases) : 0);
         }
 
-        setExonGC(gcFraction(exonBases));
-        setIntronGC(intronBases.length > 0 ? gcFraction(intronBases) : 0);
         setSeqLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (cancelled) return;
         console.warn('Sequence fetch failed:', err);
         setSeqSkipped('Sequence data unavailable.');
         setSeqLoading(false);
-      });
+      }
+    })();
 
     return () => { cancelled = true; };
   }, [gene, cost, build]);
