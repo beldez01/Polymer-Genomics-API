@@ -1,5 +1,5 @@
 # Polymer Genomics Platform — Development Roadmap
-*Last updated: 2026-03-04*
+*Last updated: 2026-03-09*
 
 ---
 
@@ -22,7 +22,7 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 | Component | Status | Notes |
 |-----------|--------|-------|
 | REST API | ✅ Live | 14 endpoints, FastAPI + asyncpg, response envelope |
-| MCP Server | ✅ Live | 11 tools, FastMCP, stdio transport |
+| MCP Server | ✅ Live | 33 tools (23 reference + 10 compute), FastMCP, stdio transport |
 | Frontend Viewer | ✅ Live | Canvas-based, multi-track, keyboard nav, Zustand |
 | R Client | ✅ Live | 8 functions, httr2, GRanges output |
 | Data Ingestion | ✅ Live | genes (3M), CpG (29M), probes (3 platforms), isochores, expression (56K), cCREs (927K), conservation (3.1M) |
@@ -36,6 +36,7 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 | Probe search | ✅ Live | `cg`/`ch` ID detection in search bar → navigate to probe ±500bp |
 | Gene → gene page link | ✅ Live | RegionContextPanel gene symbol links to `/gene/{build}/{symbol}` |
 | Agent harness cmd | ✅ Live | `.claude/commands/bioinfo.md` — coordinate conventions, tool composition patterns |
+| Methylation compute engine | ✅ Live | `engine/r_scripts/` — 8 R scripts, async subprocess bridge, session management |
 
 **Architectural invariants — do not revisit:**
 - GiST-indexed partitioned tables (not MongoDB, not generic SQL)
@@ -83,7 +84,7 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 
 **Goal:** Layer by layer, become the richest genomics reference database available. Every addition is a validated, publicly available dataset ingested via a reproducible pipeline.
 
-**Status:** 7/8 items complete (2.0, 2.1, 2.3, 2.5, 2.6+2.7, 2.8). Remaining: 2.4 MCP publish.
+**Status:** 7.5/8 items complete (2.0, 2.1, 2.3, 2.4 partial, 2.5, 2.6+2.7, 2.8). Remaining: 2.4 PyPI publish.
 
 ### ✅ 2.0 Methylation Reference Data Population
 *Completed 2026-03-03. Data exported, ingested, live in production.*
@@ -109,11 +110,21 @@ The core infrastructure is production-ready and live at **polymerbio.org** / **a
 - MCP tool `query_proximity` wraps the endpoint for agent consumption
 - Response includes `gene_bounds`, `radius`, and expanded `region` in query metadata
 
-### 2.4 MCP Server — PyPI Publish + Enhanced Descriptions
-*~3–4 hrs. See AGENT_HARNESS.md for full spec.*
-- Add `pyproject.toml` entry point: `polymer-genomics-mcp`
-- One-line install: `uv tool install polymer-genomics-mcp`
-- Enhance all 9 tool docstrings with "Use this when..." hints and example invocations
+### 2.4 MCP Server — Enhanced Descriptions + Compute Engine + PyPI Publish
+*Descriptions + compute engine completed 2026-03-09. PyPI publish remaining.*
+
+**✅ Completed:**
+- All 23 reference tool docstrings enhanced with "Use this when..." hints
+- 10 compute tools added (load_idats, normalize, filter_probes, run_limma, get_betas, get_m_values, volcano_plot, cluster_probes, session_status, cleanup_session_tool)
+- R/Bioconductor bridge via async subprocess (`compute.py` → `engine/r_scripts/*.R`)
+- Session management with .rds checkpoints in `/tmp/polymer/sessions/`
+- AGENT.md and bioinfo.md updated with compute tool documentation
+- Dockerfile for non-R users (`engine/Dockerfile`)
+- `pyproject.toml` entry point configured: `polymer-genomics-mcp`
+
+**Remaining:**
+- PyPI publish: `uv tool install polymer-genomics-mcp`
+- Bundle R scripts as package data for pip install (currently requires POLYMER_R_SCRIPTS env var or local clone)
 
 ### ✅ 2.5 Gene Expression Layer (GTEx)
 *Completed 2026-03-03.*

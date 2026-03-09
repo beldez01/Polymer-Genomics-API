@@ -1,0 +1,19 @@
+# R packages required for Polymer Methylation Compute Engine
+# Install with: Rscript -e "install.packages('BiocManager'); BiocManager::install(readLines('requirements_r.txt')[!grepl('^#|^$', readLines('requirements_r.txt'))])"
+
+# Core pipeline (Bioconductor)
+minfi
+sesame
+limma
+matrixStats
+maxprobes
+
+# Visualization
+ComplexHeatmap
+circlize
+ggplot2
+svglite
+
+# I/O
+jsonlite
+base64enc

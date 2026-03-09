@@ -101,12 +101,48 @@ batch_probes(probe_ids) → identify platform overlaps → query_region(neighbor
 
 Use `list_layers(build)` to confirm current availability and row counts.
 
-## R / Bioconductor Integration
+## Compute Tools (Methylation Pipeline)
 
-The API provides **reference data**. Statistical analysis uses R:
-- **API**: coordinate lookups, probe metadata, region annotation, sequence
-- **R**: differential methylation (limma), cell deconvolution (minfi), IDAT QC, pathway analysis
-- **Combine**: query API for coordinates → run R analysis → query API for locus context
+PREREQUISITES: Local R installation with Bioconductor packages,
+OR Docker container `polymerbio/methylation-toolkit`.
+
+WORKFLOW: `load_idats` → `normalize` → `filter_probes` → `run_limma` → visualize.
+Each step builds on previous. Session state persists on disk as .rds checkpoints.
+
+| Task | Tool | Notes |
+|------|------|-------|
+| Load IDAT files | `load_idats` | Creates session; auto-detects 450K/EPIC/EPICv2 |
+| Normalize | `normalize` | openSesame (EPICv2), funnorm (450K/EPIC) |
+| Filter probes | `filter_probes` | Removes SNP, sex chr, cross-reactive, failed |
+| Differential methylation | `run_limma` | limma eBayes on M-values; returns top DMPs |
+| Get beta values | `get_betas` | Methylation levels 0–1; inline or CSV |
+| Get M-values | `get_m_values` | Log2 ratio; inline or CSV |
+| Volcano plot | `volcano_plot` | From DMP results; returns base64 PNG |
+| Clustering heatmap | `cluster_probes` | Top variable probes; returns base64 PNG |
+| Check progress | `session_status` | Which steps completed, files generated |
+| Remove session | `cleanup_session_tool` | Deletes all session data |
+
+### Composition Pattern — Full Methylation Analysis
+
+```
+load_idats(idat_dir)          → session_id
+normalize(session_id)         → n_probes, method
+filter_probes(session_id)     → n_before, n_after
+run_limma(session_id, group)  → n_dmps, top_hits
+volcano_plot(session_id)      → image_base64
+
+# Then annotate hits with REFERENCE tools:
+batch_probes(top_probe_ids)             → gene symbols, coordinates
+lookup_gene_expression(gene)            → tissue context (GTEx)
+compute_region_biophysics(hit_region)   → mechanistic interpretation
+lookup_gene_pathways(gene)              → pathway memberships
+```
+
+### Without R Installed
+
+If R is not available, compute tools return a helpful error with install
+instructions. Reference tools (25+) work regardless — they hit polymerbio.org
+over HTTP and need only Python.
 
 ## Common Errors
 

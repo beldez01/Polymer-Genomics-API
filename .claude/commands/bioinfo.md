@@ -135,24 +135,45 @@ Use `list_layers(build)` to see current row counts and confirm availability.
 
 ---
 
-## R / Bioconductor Integration
+## Compute Tools (Methylation Pipeline)
 
-Some analyses require R tools beyond what the API provides:
-- Cell type deconvolution (minfi, FlowSorted.Blood.EPIC)
-- Differential methylation (limma, missMethyl)
-- IDAT-level QC (minfi, ewastools)
-- Bioconductor annotation packages (TxDb, org.Hs.eg.db)
+The MCP server includes 10 compute tools for end-to-end methylation analysis.
+These call local R scripts via subprocess — no manual Rscript commands needed.
 
-**For R tasks in Claude Code:** use the Bash tool to run Rscript.
+**Prerequisites:** Local R + Bioconductor packages (minfi, sesame, limma, etc.)
+OR Docker: `docker run polymerbio/methylation-toolkit`
 
-```bash
-Rscript /path/to/script.R --args param1 param2
+### Pipeline Workflow
+```
+load_idats(idat_dir)          → creates session, returns session_id
+normalize(session_id)         → preprocesses data (openSesame or funnorm)
+filter_probes(session_id)     → removes SNP/sex/crossreactive probes
+run_limma(session_id, group)  → differential methylation analysis
+volcano_plot(session_id)      → significance vs effect size plot
+cluster_probes(session_id)    → heatmap of top variable probes
 ```
 
-**Complementary roles:**
-- **API**: reference lookups, coordinate queries, region annotation, probe metadata
-- **R**: statistical testing, normalization, cell deconvolution, IDAT processing
-- **Combine**: query API for probe coordinates → run R analysis → query API for locus context
+### Tool Selection (Compute)
+| Task | Tool | Notes |
+|------|------|-------|
+| Have IDATs to load | `load_idats` | First step always; auto-detects array type |
+| Need preprocessing | `normalize` | openSesame for EPICv2, funnorm for 450K/EPIC |
+| Ready for analysis | `run_limma` | Requires group_column + optional contrast |
+| Want visualization | `volcano_plot` or `cluster_probes` | After run_limma / filter_probes |
+| Extract values | `get_betas` or `get_m_values` | Inline for ≤100 probes, CSV for more |
+| Check session | `session_status` | See completed steps |
+| Annotate results | Use REFERENCE tools below | batch_probes, lookup_gene_expression, etc. |
+
+### Full Analysis Composition
+```
+1. load_idats → normalize → filter_probes → run_limma    [compute tools]
+2. batch_probes(top_hits)                                  [reference: annotate probes]
+3. lookup_gene_expression(hit_gene)                        [reference: tissue context]
+4. compute_region_biophysics(hit_region)                   [reference: mechanistic]
+5. lookup_gene_pathways(hit_gene)                          [reference: pathways]
+```
+
+R does the statistics. polymerbio.org does the biology. Claude Code connects them.
 
 ---
 

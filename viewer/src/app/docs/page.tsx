@@ -312,6 +312,108 @@ layers = resp.json()`,
 const NAV_ITEMS = ENDPOINTS.map(e => ({ id: e.id, title: e.title, method: e.method }));
 
 // ---------------------------------------------------------------------------
+// MCP Tool Data
+// ---------------------------------------------------------------------------
+
+interface McpTool {
+  id: string;
+  name: string;
+  category: 'compute' | 'reference';
+  description: string;
+  params: { name: string; type: string; required: boolean; default?: string; description: string }[];
+}
+
+const MCP_COMPUTE_TOOLS: McpTool[] = [
+  {
+    id: 'load_idats', name: 'load_idats', category: 'compute',
+    description: 'Load Illumina IDAT files and create an analysis session. Auto-detects array type (450K, EPIC, EPICv2) and runs initial QC.',
+    params: [
+      { name: 'idat_directory', type: 'string', required: true, description: 'Path to directory containing .idat files' },
+      { name: 'sample_sheet', type: 'string', required: false, description: 'Path to SampleSheet.csv (auto-detected if omitted)' },
+    ],
+  },
+  {
+    id: 'normalize', name: 'normalize', category: 'compute',
+    description: 'Normalize methylation data. Supports openSesame (EPICv2), funnorm (450K/EPIC), quantile, noob, and raw.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'method', type: 'string', required: false, default: 'funnorm', description: 'Normalization method' },
+    ],
+  },
+  {
+    id: 'filter_probes', name: 'filter_probes', category: 'compute',
+    description: 'Filter probes by QC criteria: detection p-value failures, SNP loci, sex chromosomes, and cross-reactive probes.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'remove_snp', type: 'boolean', required: false, default: 'true', description: 'Remove probes at known SNP positions' },
+      { name: 'remove_sex', type: 'boolean', required: false, default: 'true', description: 'Remove sex chromosome probes' },
+      { name: 'remove_crossreactive', type: 'boolean', required: false, default: 'true', description: 'Remove cross-reactive probes' },
+    ],
+  },
+  {
+    id: 'run_limma', name: 'run_limma', category: 'compute',
+    description: 'Differential methylation analysis with limma eBayes on M-values. Returns top DMPs with delta-beta and adjusted p-values.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'group_column', type: 'string', required: true, description: 'Column name in sample sheet defining groups' },
+      { name: 'contrast', type: 'string', required: false, description: 'Explicit contrast (e.g. "TET2_mut-WT"). Auto-detected for 2 groups' },
+      { name: 'covariates', type: 'string[]', required: false, description: 'Covariate column names (e.g. ["Age", "Sex"])' },
+      { name: 'fdr', type: 'number', required: false, default: '0.05', description: 'FDR threshold' },
+    ],
+  },
+  {
+    id: 'get_betas', name: 'get_betas', category: 'compute',
+    description: 'Extract beta values (methylation levels 0\u20131). Returns inline for \u2264100 probes, writes CSV for larger requests.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'probes', type: 'string[]', required: false, description: 'Probe IDs to extract (all if omitted)' },
+    ],
+  },
+  {
+    id: 'get_m_values', name: 'get_m_values', category: 'compute',
+    description: 'Extract M-values (log2 ratio, used for statistics). Returns inline for \u2264100 probes, writes CSV for larger requests.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'probes', type: 'string[]', required: false, description: 'Probe IDs to extract (all if omitted)' },
+    ],
+  },
+  {
+    id: 'volcano_plot', name: 'volcano_plot', category: 'compute',
+    description: 'Generate a volcano plot from differential methylation results. Returns base64-encoded PNG for inline display.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'fdr', type: 'number', required: false, default: '0.05', description: 'FDR threshold for significance line' },
+      { name: 'deltabeta', type: 'number', required: false, default: '0.1', description: 'Delta-beta threshold for effect size lines' },
+    ],
+  },
+  {
+    id: 'cluster_probes', name: 'cluster_probes', category: 'compute',
+    description: 'Hierarchical clustering heatmap of the most variable probes. Returns base64-encoded PNG and cluster assignments.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+      { name: 'n_probes', type: 'integer', required: false, default: '1000', description: 'Number of top variable probes to include' },
+      { name: 'distance', type: 'string', required: false, default: 'euclidean', description: 'Distance metric' },
+    ],
+  },
+  {
+    id: 'session_status', name: 'session_status', category: 'compute',
+    description: 'Check which pipeline steps have been completed, list generated files, and report creation time.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID from load_idats' },
+    ],
+  },
+  {
+    id: 'cleanup_session_tool', name: 'cleanup_session_tool', category: 'compute',
+    description: 'Remove an analysis session and all its data. Deletes checkpoints, results, and plots permanently.',
+    params: [
+      { name: 'session_id', type: 'string', required: true, description: 'Session ID to remove' },
+    ],
+  },
+];
+
+const MCP_NAV_ITEMS = MCP_COMPUTE_TOOLS.map(t => ({ id: `mcp-${t.id}`, title: t.name }));
+
+// ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
@@ -480,6 +582,76 @@ export default function DocsPage() {
             {item.title}
           </a>
         ))}
+
+        {/* MCP Server section */}
+        <div style={{
+          padding: `${SPACE[6]}px ${SPACE[4]}px 0`,
+          marginTop: SPACE[4],
+          marginBottom: SPACE[4],
+          borderTop: `1px solid ${COLOR.border.subtle}`,
+        }}>
+          <div style={{
+            color: COLOR.accent.violet,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.08em',
+            paddingTop: SPACE[2],
+          }}>
+            MCP SERVER
+          </div>
+        </div>
+
+        <a
+          href="#mcp-overview"
+          style={{
+            display: 'block',
+            padding: `${SPACE[1] + 1}px ${SPACE[4]}px`,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            color: COLOR.text.tertiary,
+            textDecoration: 'none',
+            borderLeft: '2px solid transparent',
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = COLOR.text.primary;
+            e.currentTarget.style.borderLeftColor = COLOR.accent.violet;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = COLOR.text.tertiary;
+            e.currentTarget.style.borderLeftColor = 'transparent';
+          }}
+        >
+          Overview
+        </a>
+
+        {MCP_NAV_ITEMS.map(item => (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            style={{
+              display: 'block',
+              padding: `${SPACE[1] + 1}px ${SPACE[4]}px`,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              color: COLOR.text.tertiary,
+              textDecoration: 'none',
+              borderLeft: '2px solid transparent',
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = COLOR.text.primary;
+              e.currentTarget.style.borderLeftColor = COLOR.accent.violet;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = COLOR.text.tertiary;
+              e.currentTarget.style.borderLeftColor = 'transparent';
+            }}
+          >
+            {item.title}
+          </a>
+        ))}
       </nav>
 
       {/* ─── Main Content ─── */}
@@ -616,6 +788,272 @@ export default function DocsPage() {
               </div>
             </section>
           ))}
+
+          {/* ─── MCP Server Section ─── */}
+          <div style={{
+            borderTop: `1px solid ${COLOR.border.default}`,
+            marginTop: SPACE[8],
+            paddingTop: SPACE[8],
+          }}>
+            <section id="mcp-overview" style={{ marginBottom: SPACE[16], scrollMarginTop: SPACE[8] }}>
+              <h1 style={{
+                fontSize: TYPE.xl.fontSize,
+                fontWeight: WEIGHT.bold,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.primary,
+                marginBottom: SPACE[4],
+                letterSpacing: TYPE.xl.letterSpacing,
+              }}>
+                MCP Server
+              </h1>
+
+              <p style={{
+                fontSize: TYPE.base.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.tertiary,
+                lineHeight: 1.7,
+                marginBottom: SPACE[4],
+              }}>
+                The Polymer Genomics MCP server exposes 33 tools for AI agent
+                consumption via the{' '}
+                <span style={{ color: COLOR.accent.teal }}>Model Context Protocol</span>.
+                23 reference tools query polymerbio.org over HTTP.
+                10 compute tools run local R/Bioconductor analysis via subprocess.
+              </p>
+
+              {/* Architecture diagram */}
+              <div style={{
+                padding: SPACE[4],
+                backgroundColor: COLOR.bg.track,
+                border: `1px solid ${COLOR.border.subtle}`,
+                marginBottom: SPACE[6],
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  color: COLOR.text.secondary,
+                  lineHeight: 1.8,
+                }}>{`Claude Code
+    \u2502
+polymer-genomics MCP server (local)
+    \u251C\u2500 Reference tools (23)  \u2192 HTTP \u2192 api.polymerbio.org
+    \u251C\u2500 Compute tools  (10)  \u2192 Rscript subprocess
+    \u2514\u2500 Session state        \u2192 /tmp/polymer/sessions/`}</pre>
+              </div>
+
+              {/* Install */}
+              <div style={{
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.muted,
+                letterSpacing: '0.08em',
+                marginBottom: SPACE[2],
+                fontWeight: WEIGHT.medium,
+              }}>
+                INSTALL
+              </div>
+              <div style={{
+                padding: SPACE[3],
+                backgroundColor: COLOR.bg.track,
+                border: `1px solid ${COLOR.border.subtle}`,
+                marginBottom: SPACE[6],
+              }}>
+                <code style={{ fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY, color: COLOR.accent.teal }}>
+                  pip install polymer-genomics-mcp
+                </code>
+              </div>
+
+              {/* Claude Code config */}
+              <div style={{
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.muted,
+                letterSpacing: '0.08em',
+                marginBottom: SPACE[2],
+                fontWeight: WEIGHT.medium,
+              }}>
+                CLAUDE CODE CONFIG
+              </div>
+              <pre style={{
+                padding: SPACE[3],
+                backgroundColor: COLOR.bg.track,
+                border: `1px solid ${COLOR.border.subtle}`,
+                marginBottom: SPACE[6],
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.secondary,
+                lineHeight: 1.6,
+                overflowX: 'auto',
+              }}>{`{
+  "mcpServers": {
+    "polymer-genomics": {
+      "command": "polymer-genomics-mcp",
+      "env": {
+        "POLYMER_API_BASE": "https://api.polymerbio.org"
+      }
+    }
+  }
+}`}</pre>
+
+              {/* Pipeline workflow */}
+              <div style={{
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.muted,
+                letterSpacing: '0.08em',
+                marginBottom: SPACE[2],
+                fontWeight: WEIGHT.medium,
+              }}>
+                METHYLATION PIPELINE WORKFLOW
+              </div>
+              <div style={{
+                padding: SPACE[4],
+                backgroundColor: COLOR.bg.track,
+                border: `1px solid ${COLOR.border.subtle}`,
+                marginBottom: SPACE[6],
+              }}>
+                <pre style={{
+                  margin: 0,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  color: COLOR.text.secondary,
+                  lineHeight: 1.8,
+                }}>{`load_idats \u2192 normalize \u2192 filter_probes \u2192 run_limma
+                                            \u2502
+                                     volcano_plot / cluster_probes
+                                            \u2502
+                              batch_probes \u2192 lookup_gene_expression
+                              (annotate hits with reference tools)`}</pre>
+              </div>
+
+              {/* R requirements */}
+              <p style={{
+                fontSize: TYPE.base.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.tertiary,
+                lineHeight: 1.7,
+                marginBottom: SPACE[2],
+              }}>
+                Compute tools require local R with Bioconductor packages.
+                Reference tools work without R.
+              </p>
+              <pre style={{
+                padding: SPACE[3],
+                backgroundColor: COLOR.bg.track,
+                border: `1px solid ${COLOR.border.subtle}`,
+                marginBottom: SPACE[6],
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.secondary,
+                lineHeight: 1.6,
+                overflowX: 'auto',
+              }}>{`Rscript -e "install.packages('BiocManager')
+BiocManager::install(c('minfi','sesame','limma','matrixStats',
+  'maxprobes','ComplexHeatmap','circlize'))
+install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
+
+              <p style={{
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.muted,
+                lineHeight: 1.7,
+              }}>
+                Or use Docker:{' '}
+                <code style={{ color: COLOR.accent.teal }}>
+                  docker run polymerbio/methylation-toolkit
+                </code>
+              </p>
+            </section>
+
+            {/* Compute tools */}
+            {MCP_COMPUTE_TOOLS.map(tool => (
+              <section key={tool.id} id={`mcp-${tool.id}`} style={{ marginBottom: SPACE[12], scrollMarginTop: SPACE[8] }}>
+                <div style={{ marginBottom: SPACE[3] }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '1px 6px',
+                    fontSize: TYPE.xs.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: WEIGHT.bold,
+                    color: COLOR.bg.primary,
+                    backgroundColor: COLOR.accent.violet,
+                    marginRight: SPACE[2],
+                    letterSpacing: '0.04em',
+                  }}>
+                    MCP
+                  </span>
+                  <code style={{
+                    fontSize: TYPE.base.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    color: COLOR.accent.violet,
+                  }}>
+                    {tool.name}
+                  </code>
+                </div>
+
+                <p style={{
+                  fontSize: TYPE.base.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  color: COLOR.text.tertiary,
+                  lineHeight: 1.7,
+                  marginBottom: SPACE[4],
+                }}>
+                  {tool.description}
+                </p>
+
+                {/* Parameters */}
+                <div style={{ marginBottom: SPACE[4] }}>
+                  <div style={{
+                    fontSize: TYPE.xs.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    color: COLOR.text.muted,
+                    letterSpacing: '0.08em',
+                    marginBottom: SPACE[2],
+                    fontWeight: WEIGHT.medium,
+                  }}>
+                    PARAMETERS
+                  </div>
+                  {tool.params.map(p => (
+                    <div key={p.name} style={{
+                      display: 'flex',
+                      gap: SPACE[3],
+                      padding: `${SPACE[2]}px 0`,
+                      borderBottom: `1px solid ${COLOR.border.subtle}`,
+                      alignItems: 'baseline',
+                    }}>
+                      <code style={{
+                        fontSize: TYPE.sm.fontSize,
+                        fontFamily: FONT_FAMILY,
+                        color: COLOR.text.primary,
+                        flexShrink: 0,
+                        minWidth: 90,
+                      }}>
+                        {p.name}
+                      </code>
+                      <span style={{
+                        fontSize: TYPE.xs.fontSize,
+                        fontFamily: FONT_FAMILY,
+                        color: COLOR.text.muted,
+                        flexShrink: 0,
+                      }}>
+                        {p.type}
+                        {p.required && <span style={{ color: COLOR.accent.rose, marginLeft: 4 }}>*</span>}
+                        {p.default && <span> = {p.default}</span>}
+                      </span>
+                      <span style={{
+                        fontSize: TYPE.sm.fontSize,
+                        fontFamily: FONT_FAMILY,
+                        color: COLOR.text.tertiary,
+                      }}>
+                        {p.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         </div>
 
         {/* Right column — code examples (sticky) */}
@@ -654,6 +1092,129 @@ export default function DocsPage() {
               </div>
             </div>
           ))}
+
+          {/* ─── MCP Example Workflow ─── */}
+          <div style={{
+            borderTop: `1px solid ${COLOR.border.default}`,
+            marginTop: SPACE[4],
+            paddingTop: SPACE[8],
+          }}>
+            <div style={{
+              padding: `0 ${SPACE[4]}px`,
+              marginBottom: SPACE[2],
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              color: COLOR.accent.violet,
+              letterSpacing: '0.08em',
+              fontWeight: WEIGHT.medium,
+            }}>
+              MCP WORKFLOW EXAMPLE
+            </div>
+            <div style={{ padding: `0 ${SPACE[4]}px` }}>
+              <pre style={{
+                margin: 0,
+                padding: SPACE[3],
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                lineHeight: 1.8,
+                color: COLOR.text.secondary,
+                overflowX: 'auto',
+                whiteSpace: 'pre-wrap',
+              }}>{`# In Claude Code, the agent calls tools conversationally:
+
+> "Load my IDATs from ~/data/idats"
+
+load_idats(idat_directory="~/data/idats")
+\u2192 {session_id: "a1b2c3d4e5f6", n_samples: 18,
+   array_type: "EPICv2", n_probes: 1107072}
+
+> "Normalize with openSesame and filter"
+
+normalize(session_id="a1b2c3d4e5f6", method="opensesame")
+\u2192 {n_probes: 935620, method: "opensesame"}
+
+filter_probes(session_id="a1b2c3d4e5f6")
+\u2192 {n_before: 935620, n_after: 795423,
+   removed_counts: {snp: 42891, sex: 18234, ...}}
+
+> "Find DMPs between TET2_mut and WT"
+
+run_limma(session_id="a1b2c3d4e5f6",
+          group_column="Sample_Group")
+\u2192 {n_dmps: 0, contrast: "TET2_mut-WT",
+   n_tested: 795423, top_hits: [...]}
+
+> "Make a volcano plot"
+
+volcano_plot(session_id="a1b2c3d4e5f6")
+\u2192 {image_base64: "iVBOR...", n_significant: 0}
+
+# Then annotate hits with reference tools:
+
+batch_probes(build="hg38",
+  probe_ids=["cg08796240", "cg06545761"])
+\u2192 gene symbols, coordinates, CpG context
+
+lookup_gene_expression(build="hg38", symbol="VAC14")
+\u2192 GTEx 54-tissue expression profile`}</pre>
+            </div>
+
+            {/* Spacer for remaining compute tool descriptions */}
+            <div style={{ height: SPACE[8] }} />
+            <div style={{ padding: `0 ${SPACE[4]}px` }}>
+              <div style={{
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.accent.violet,
+                letterSpacing: '0.08em',
+                fontWeight: WEIGHT.medium,
+                marginBottom: SPACE[2],
+              }}>
+                SESSION STATE MACHINE
+              </div>
+              <pre style={{
+                margin: 0,
+                padding: SPACE[3],
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                lineHeight: 1.8,
+                color: COLOR.text.muted,
+              }}>{`load_idats \u2192 [raw.rds]
+    \u2502
+normalize \u2192 [normalized.rds]
+    \u2502
+filter_probes \u2192 [filtered.rds]
+    \u2502
+run_limma \u2192 [dmps.rds, dmps.csv]
+    \u2502
+volcano_plot / cluster_probes
+  \u2192 [volcano.svg, heatmap.svg]`}</pre>
+            </div>
+
+            <div style={{ height: SPACE[8] }} />
+            <div style={{ padding: `0 ${SPACE[4]}px` }}>
+              <div style={{
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.accent.violet,
+                letterSpacing: '0.08em',
+                fontWeight: WEIGHT.medium,
+                marginBottom: SPACE[2],
+              }}>
+                REFERENCE TOOLS (23)
+              </div>
+              <p style={{
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.muted,
+                lineHeight: 1.7,
+              }}>
+                All REST API endpoints above are also available as MCP tools
+                with the same parameters. The MCP server wraps each endpoint
+                so agents can call them without constructing HTTP requests.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
       </div>

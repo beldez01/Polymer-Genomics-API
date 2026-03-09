@@ -1,5 +1,5 @@
 # Polymer Genomics — Agent Harness Architecture
-*Last updated: 2026-03-02*
+*Last updated: 2026-03-09*
 
 ---
 
@@ -22,15 +22,17 @@ The harness solves this through pre-loaded domain context, explicit tool composi
 
 | Component | Status |
 |-----------|--------|
-| MCP Server — 9 tools, FastMCP, stdio | ✅ Complete |
+| MCP Server — 33 tools (23 reference + 10 compute), FastMCP, stdio | ✅ Complete |
 | R Client — 8 functions, httr2, GRanges | ✅ Complete |
-| Tool docstrings — basic, accurate | ✅ Adequate but sparse |
-| Domain context pre-loading | ❌ Missing |
-| Tool composition patterns | ❌ Not documented |
-| R/Bioconductor bridge | ❌ Not formalized |
+| Tool docstrings — enhanced with "Use this when" patterns | ✅ Complete |
+| Domain context pre-loading (`/bioinfo` slash command) | ✅ Complete |
+| Tool composition patterns (AGENT.md + bioinfo.md) | ✅ Complete |
+| R/Bioconductor bridge (async subprocess, JSON I/O) | ✅ Complete |
+| Methylation compute engine (10 tools, 8 R scripts) | ✅ Complete |
 | Output contracts (Pydantic models) | ❌ Returns bare dict |
 | MCP Resources for static context | ❌ Not implemented |
 | PyPI publishable | ❌ Pending |
+| Docker image for non-R users | ✅ Dockerfile ready (not yet built/published) |
 
 ---
 
@@ -50,165 +52,24 @@ Layer 1: MCP Tools              9 tools (already complete)
 
 ## Implementation Plan
 
-### Step 0 — Bioinformatics Harness Slash Command
-*2–4 hrs. Implement first — tests all routing patterns with the current API.*
+### Step 0 — Bioinformatics Harness Slash Command ✅ COMPLETE
+*Completed 2026-03-02.*
 
-Create `.claude/commands/bioinfo.md` at the project root. This is a Claude Code slash command that pre-loads domain knowledge when a user types `/bioinfo` before starting a genomics session.
-
-**Content to encode:**
-
-```markdown
-# Polymer Genomics — Bioinformatics Agent Context
-
-## Coordinate System
-- API is 1-based CLOSED. Region chr16:70699929-70700500 = 572 bp including both endpoints.
-- Internal DB is 0-based half-open (handled automatically by the API).
-- Never manually shift coordinates. Trust the API response values.
-
-## GRanges Response Format
-All region/gene/probe queries return GRanges-structured JSON:
-{
-  "seqnames": ["chr16", "chr16", ...],    # chromosome
-  "ranges": {"start": [n,...], "end": [n,...]},  # 1-based closed
-  "strand": ["+", "-", "*", ...],
-  "mcols": { "gene_symbol": [...], "feature_type": [...], ... }  # layer-specific columns
-}
-- "start" and "end" are already 1-based closed in the response.
-- mcols keys vary by layer_type. Always inspect before accessing.
-
-## Truncation Recovery
-- If status == "truncated", the query hit the row limit (default 1000, max 50000).
-- Recovery options (in order of preference):
-  1. Use aggregate_region with resolution=1000 for an overview first.
-  2. Split the region into sub-regions and query each.
-  3. Add layers= filter to reduce results per request.
-  4. Use bulk_download for full layer data.
-- NEVER report a truncated result as complete data.
-
-## Tool Selection Guide
-
-| Task | Primary Tool | Notes |
-|------|-------------|-------|
-| Find gene coordinates | lookup_gene | Returns exons, introns, UTRs |
-| What annotations are available | list_layers | Filter by layer_type |
-| Everything in a region | query_region | Use layers= to filter |
-| Probe by ID | lookup_probe | Returns chr, pos, gene, CpG context |
-| Multiple probes | batch_probes | Up to 10,000 per call |
-| Density overview of large region | aggregate_region | Use resolution=10000 or 100000 |
-| Gene symbol lookup / autocomplete | search | Prefix match |
-| Raw DNA sequence | get_sequence | Max 100,000 bp |
-| Full layer data | bulk_download | Returns presigned URL |
-
-## Tool Composition Patterns
-
-**Pattern: Analyze a gene locus**
-1. search(query=symbol) → verify gene exists
-2. lookup_gene(symbol) → get coordinates and structure
-3. query_region(region=gene_bounds, layers="cpg_sites,probe_epic_v2,dhs") → overlapping features
-4. aggregate_region(region=expanded_bounds, resolution=1000) → density profile
-
-**Pattern: Probe-to-locus context**
-1. lookup_probe(probe_id) → get coordinates
-2. query_region(region=probe±2kb, layers="gencode_v44,cpg_sites") → surrounding context
-3. get_sequence(region=probe±200bp) → raw sequence for manual inspection
-
-**Pattern: Large region overview → drill down**
-1. aggregate_region(region, resolution=100000) → coarse density
-2. Identify interesting subregion from density peaks
-3. query_region(subregion, layers=relevant_layers) → fine-grained features
-
-## Common Errors and Recovery
-
-| Error | Cause | Recovery |
-|-------|-------|----------|
-| REGION_TOO_LARGE | Region > 10Mb | Split into sub-regions |
-| BUILD_MISMATCH | Layer not available for requested build | list_layers to confirm build support |
-| LAYER_NOT_FOUND | layer_key not registered | list_layers to see valid keys |
-| status=truncated | Row limit hit | See Truncation Recovery above |
-| probe not found | Probe not on this array platform | Check probe_id prefix and platform |
-
-## R/Bioconductor Integration
-Some analyses require R tools beyond what the API provides:
-- Cell type deconvolution (minfi, FlowSorted packages)
-- Differential methylation (limma, missMethyl)
-- IDAT-level QC (minfi, ewastools)
-- Bioconductor annotation packages (TxDb, org.Hs.eg.db)
-
-For R tasks in Claude Code: use the Bash tool to run R scripts.
-Standard pattern:
-  Rscript /path/to/script.R --args param1 param2
-
-API and R are complementary:
-- Use API for: reference lookups, coordinate queries, region annotation, probe metadata
-- Use R for: statistical testing, normalization, cell deconvolution, IDAT processing
-- Combine: query API for probe coordinates → run R deconvolution → query API for locus context
-```
+`.claude/commands/bioinfo.md` created with coordinate conventions, tool selection guide, composition patterns, truncation recovery, and R/Bioconductor integration guidance. Updated 2026-03-09 with compute tool section.
 
 ---
 
-### Step 1 — Enhanced MCP Tool Descriptions
-*2–4 hrs. Improves agent performance immediately with no infrastructure changes.*
+### Step 1 — Enhanced MCP Tool Descriptions ✅ COMPLETE
+*Completed 2026-03-02.*
 
-For each of the 9 tools in `mcp/polymer_genomics_mcp/server.py`, enhance the docstring to include:
-
-1. **When to use this tool** (vs. alternatives)
-2. **Returns** — format, fields, and what truncation means
-3. **Common patterns** — one or two example invocations
-4. **Edge cases** — known quirks, error conditions
-
-Template:
-```python
-@mcp.tool()
-async def query_region(build: str, region: str, layers: str | None = None) -> dict:
-    """Query genomic features in a chromosomal region.
-
-    Returns all annotation features (genes, CpG sites, probes, isochores) that
-    overlap the specified region. Results are in GRanges format with 1-based
-    closed coordinates.
-
-    Use this when:
-    - You need all annotations overlapping a specific genomic interval.
-    - You already know the coordinates (use lookup_gene first if you only have a symbol).
-    - Prefer aggregate_region for regions > 500kb (summary statistics are faster).
-
-    Args:
-        build: Genome build ('hg38' or 'hg37').
-        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
-        layers: Comma-separated layer keys to query (e.g. 'cpg_sites,gencode_v44').
-                Omit to query all active layers. See list_layers() for valid keys.
-
-    Returns:
-        GRanges-structured JSON. Check status field: 'truncated' means row limit
-        was hit and results are incomplete. Use aggregate_region for overview,
-        then drill down into sub-regions.
-
-    Common patterns:
-        query_region('hg38', 'chr16:70699929-70700500')
-        query_region('hg38', 'chr7:117548628-117548880', layers='gencode_v44,cpg_sites')
-    """
-```
-
-Also add progress reporting to `aggregate_region` and `batch_probes` (long-running tools):
-```python
-async def aggregate_region(..., ctx: Context | None = None) -> dict:
-    if ctx:
-        await ctx.report_progress(0.0, 1.0, "Fetching binned statistics...")
-    result = await _get(...)
-    if ctx:
-        await ctx.report_progress(1.0, 1.0, "Complete")
-    return result
-```
+All 23 reference tool docstrings include "Use this when" hints, return format descriptions, and edge case notes. 10 compute tools added 2026-03-09 with full descriptions.
 
 ---
 
-### Step 2 — AGENT.md
-*2–3 hrs. Portable: works with any MCP client, not just Claude Code.*
+### Step 2 — AGENT.md ✅ COMPLETE
+*Completed 2026-03-02. Updated 2026-03-09 with compute tools section.*
 
-Create `mcp/AGENT.md` co-deployed with the MCP server. Any MCP client that implements the emerging AGENT.md convention will automatically load this as context.
-
-Content: coordinate conventions, layer types, GRanges format, common workflow patterns — portable version of the slash command without Claude Code–specific syntax.
-
-**Rule:** The slash command (Step 0) is for Claude Code users. AGENT.md is for any MCP client. Keep them in sync but don't duplicate at the expense of one being incomplete.
+`mcp/AGENT.md` co-deployed with MCP server. Covers coordinate conventions, 33-tool selection guide, composition patterns (including full methylation analysis workflow), layer catalog, and graceful degradation notes. Updated to include compute tool workflow pattern and "Without R Installed" section.
 
 ---
 
@@ -263,58 +124,61 @@ Priority order: `lookup_gene` → `lookup_probe` → `query_region` → `aggrega
 
 ---
 
-### Step 4 — R/Bioconductor Bridge
-*1–2 days. Enables R tool calls from within the MCP server for tasks that genuinely require Bioconductor.*
+### Step 4 — R/Bioconductor Bridge ✅ COMPLETE
+*Completed 2026-03-09. This is the core deliverable of the Polymer Methylation Ecosystem plan.*
 
-**Architecture decision: async subprocess pattern (not rpy2).**
-
-Rationale:
-- R crashes don't hang the MCP server
-- R dependencies isolated via `renv`
-- Scripts run identically from R console or MCP
-- Deployment flexibility (R can be on a different machine)
-- rpy2 has GIL blocking issues and complex Bioconductor dependency chains
+**Architecture:** async subprocess pattern (not rpy2), exactly as specified.
 
 **Implementation:**
 
-```python
-# mcp/polymer_genomics_mcp/r_bridge.py
-import asyncio
-import json
-import subprocess
-from pathlib import Path
+- `mcp/polymer_genomics_mcp/compute.py` — async subprocess runner + session manager (~150 lines)
+  - `call_r(script, args, timeout)` — runs Rscript with `cwd=R_SCRIPTS`, JSON I/O
+  - `create_session()` / `session_dir()` / `cleanup_session()` — session lifecycle
+  - `r_available()` / `require_r()` — graceful degradation when R not installed
+  - Sessions stored in `/tmp/polymer/sessions/{id}/` with `.rds` checkpoints
 
-R_SCRIPTS = Path(__file__).parent / "r_scripts"
+- `mcp/polymer_genomics_mcp/compute_tools.py` — 10 MCP tool definitions (~250 lines)
+  - Imported by `server.py` via `_register_compute_tools()` at module load
+  - Registration wrapped in try/except — reference tools work even if compute module fails
 
-async def call_r(script: str, args: dict, timeout: int = 120) -> dict:
-    """Call an R script asynchronously with JSON I/O."""
-    cmd = ["Rscript", str(R_SCRIPTS / f"{script}.R"), json.dumps(args)]
-    result = await asyncio.to_thread(
-        subprocess.run, cmd, capture_output=True, text=True, timeout=timeout
-    )
-    if result.returncode != 0:
-        raise RuntimeError(f"R error in {script}: {result.stderr.strip()}")
-    return json.loads(result.stdout)
+- `engine/r_scripts/` — 8 R scripts (~500 lines total), JSON-in/JSON-out contract:
+  - `utils.R` — shared helpers (parse_args, emit_json, stop_json, checkpoint I/O)
+  - `load_idats.R` — IDAT loading, array detection (450K/EPIC/EPICv2), initial QC
+  - `normalize.R` — 5 methods (openSesame, funnorm, quantile, noob, raw)
+  - `filter_probes.R` — detection p-val, SNP, sex chr, cross-reactive filtering
+  - `run_limma.R` — limma eBayes on M-values with delta-beta computation
+  - `volcano_plot.R` — ggplot2 volcano with base64 PNG output
+  - `cluster_probes.R` — ComplexHeatmap/heatmap clustering of top variable probes
+  - `get_values.R` — beta/M-value extraction (inline <=100 probes, CSV for more)
+
+- `engine/Dockerfile` — rocker/r-ver:4.5.0 + Bioconductor + Python MCP (~1.4 GB)
+- `engine/requirements_r.txt` — 11 R packages (minfi, sesame, limma, ComplexHeatmap, etc.)
+
+**10 compute tools registered:**
+
+| Tool | R Script | Purpose |
+|------|----------|---------|
+| `load_idats` | `load_idats.R` | Load IDATs, create session |
+| `normalize` | `normalize.R` | Normalize (openSesame/funnorm/etc.) |
+| `filter_probes` | `filter_probes.R` | QC filtering |
+| `run_limma` | `run_limma.R` | Differential methylation |
+| `get_betas` | `get_values.R` | Extract beta values |
+| `get_m_values` | `get_values.R` | Extract M-values |
+| `volcano_plot` | `volcano_plot.R` | Volcano plot visualization |
+| `cluster_probes` | `cluster_probes.R` | Clustering heatmap |
+| `session_status` | (Python only) | Check pipeline progress |
+| `cleanup_session_tool` | (Python only) | Remove session data |
+
+**Session state machine:**
+```
+load_idats → [raw.rds] → normalize → [normalized.rds] → filter → [filtered.rds]
+                                                              ↓
+                                                       run_limma → [dmps.rds]
+                                                              ↓
+                                                   volcano_plot / cluster_probes
 ```
 
-**R script convention** (`r_scripts/*.R`):
-```r
-#!/usr/bin/env Rscript
-args <- jsonlite::fromJSON(commandArgs(trailingOnly=TRUE)[1])
-# ... Bioconductor operations using args ...
-result <- list(...)
-cat(jsonlite::toJSON(result, auto_unbox=TRUE))
-```
-
-**Initial R tools to implement:**
-
-| Tool | Script | Bioconductor packages | Use case |
-|------|--------|-----------------------|----------|
-| `cell_deconvolution` | `cell_deconv.R` | minfi, FlowSorted.Blood.EPIC | Estimate cell type proportions from beta values |
-| `run_limma_dmps` | `limma_dmps.R` | limma, minfi | Differential methylation (two-group) |
-| `probe_qc` | `probe_qc.R` | minfi, ewastools | Flag probes by detection p, SNP overlap, crosshybridization |
-
-These are additive to the existing 9 MCP tools and do not replace them.
+**Verified:** All R scripts parse clean, Python→R bridge tested end-to-end (session create → R call → error handling → cleanup), 33 total tools register on MCP server.
 
 ---
 
@@ -392,17 +256,18 @@ Configure in Claude Code (`~/.claude/settings.json`):
 
 ## Implementation Sequence
 
-| Step | What | Time | Unlock |
+| Step | What | Time | Status |
 |------|------|------|--------|
-| 0 | Bioinformatics slash command | 2–4 hrs | Immediate agent quality improvement |
-| 1 | Enhanced tool descriptions | 2–4 hrs | Better tool selection, fewer errors |
-| 2 | AGENT.md | 2–3 hrs | Portable across all MCP clients |
-| 3 | Pydantic output contracts | 4–6 hrs | Schema-aware tool composition |
-| 4 | R/Bioconductor bridge | 1–2 days | Cell deconvolution, DMP testing from MCP |
-| 5 | MCP Resources | 3–4 hrs | Session-start context loading, reduced tool calls |
-| — | PyPI publish | 2–3 hrs | One-line install for any user |
+| 0 | Bioinformatics slash command | 2–4 hrs | ✅ Complete (2026-03-02) |
+| 1 | Enhanced tool descriptions | 2–4 hrs | ✅ Complete (2026-03-02) |
+| 2 | AGENT.md | 2–3 hrs | ✅ Complete (2026-03-02, updated 2026-03-09) |
+| 3 | Pydantic output contracts | 4–6 hrs | ❌ Pending |
+| 4 | R/Bioconductor bridge + compute engine | 1–2 days | ✅ Complete (2026-03-09) |
+| 5 | MCP Resources | 3–4 hrs | ❌ Pending |
+| — | PyPI publish | 2–3 hrs | ❌ Pending |
+| — | Docker image build + publish | 2–3 hrs | Dockerfile ready, not yet built |
 
-Steps 0–2 are purely additive documentation. Steps 3–5 require code changes. Do them in order.
+Steps 0–2, 4 are complete. Steps 3, 5, and PyPI publish remain.
 
 ---
 

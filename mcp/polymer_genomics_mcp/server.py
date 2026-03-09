@@ -54,7 +54,20 @@ mcp = FastMCP(
         "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
         "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
         "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity — genome-wide pre-computed from Polymer Evolution Phase 1)\n"
-        "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)"
+        "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n\n"
+        "COMPUTE TOOLS (requires local R + Bioconductor):\n"
+        "- Load IDATs → load_idats (creates analysis session)\n"
+        "- Normalize → normalize (openSesame for EPICv2, funnorm for 450K/EPIC)\n"
+        "- Filter probes → filter_probes (SNP, sex chr, cross-reactive)\n"
+        "- Differential methylation → run_limma (limma eBayes on M-values)\n"
+        "- Get beta values → get_betas (methylation levels 0-1)\n"
+        "- Get M-values → get_m_values (log2 ratio for statistics)\n"
+        "- Volcano plot → volcano_plot (from DMP results)\n"
+        "- Clustering heatmap → cluster_probes (top variable probes)\n"
+        "- Session status → session_status (check pipeline progress)\n"
+        "- Cleanup → cleanup_session_tool (remove session data)\n"
+        "WORKFLOW: load_idats → normalize → filter_probes → run_limma → visualize\n"
+        "Then annotate hits with REFERENCE tools: batch_probes, lookup_gene_expression, compute_region_biophysics"
     ),
     json_response=True,
 )
@@ -632,6 +645,20 @@ async def correlate_layers(
         "field_b": field_b,
     }
     return await _get(f"/v1/correlate/{build}/{region}", params)
+
+
+def _register_compute_tools() -> None:
+    """Register compute tools if engine is available."""
+    try:
+        from .compute_tools import register_compute_tools
+        register_compute_tools(mcp)
+    except Exception:
+        # Compute tools are optional — reference tools work without R
+        pass
+
+
+# Register compute tools at import time
+_register_compute_tools()
 
 
 def main():
