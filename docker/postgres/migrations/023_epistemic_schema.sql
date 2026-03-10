@@ -94,6 +94,14 @@ ALTER TABLE registry.layers
     ADD COLUMN IF NOT EXISTS training_domain TEXT;
 
 -- ============================================================
+-- Recreate active_layers view to include new columns
+-- (PostgreSQL expands SELECT * at view creation time)
+-- ============================================================
+CREATE OR REPLACE VIEW registry.active_layers AS
+SELECT * FROM registry.layers
+WHERE is_active = true AND is_default = true;
+
+-- ============================================================
 -- Index on evidence_class for filtered queries
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_layers_evidence_class
