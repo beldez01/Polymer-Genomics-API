@@ -10,6 +10,8 @@ async def list_layers(
     type: str | None = Query(None),
     build: str | None = Query(None),
     active: bool = Query(True),
+    evidence_class: str | None = Query(None),
+    tier: str | None = Query(None),
 ):
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -28,6 +30,14 @@ async def list_layers(
             query += f" AND genome_build = ${idx}::genome_build"
             params.append(build)
             idx += 1
+        if evidence_class:
+            query += f" AND evidence_class = ${idx}::polymer_evidence_class"
+            params.append(evidence_class)
+            idx += 1
+        if tier:
+            query += f" AND tier = ${idx}::polymer_tier"
+            params.append(tier)
+            idx += 1
         query += " ORDER BY layer_key, version"
         rows = await conn.fetch(query, *params)
 
@@ -41,6 +51,13 @@ async def list_layers(
             "license_class": r["license_class"],
             "row_count": r["row_count"],
             "is_default": r["is_default"],
+            "evidence_class": r["evidence_class"],
+            "tier": r["tier"],
+            "equilibrium_regime": r["equilibrium_regime"],
+            "statefulness": r["statefulness"],
+            "validation_status": r["validation_status"],
+            "interpretability": r["interpretability"],
+            "is_composite": r["is_composite"],
         }
         for r in rows
     ]
@@ -91,4 +108,14 @@ async def get_layer(layer_key: str):
         "content_hash": row["content_hash"],
         "is_default": row["is_default"],
         "metadata": row["metadata"],
+        "evidence_class": row["evidence_class"],
+        "tier": row["tier"],
+        "equilibrium_regime": row["equilibrium_regime"],
+        "statefulness": row["statefulness"],
+        "validation_status": row["validation_status"],
+        "interpretability": row["interpretability"],
+        "is_composite": row["is_composite"],
+        "context_conditions": row["context_conditions"],
+        "hypothesis_banner": row["hypothesis_banner"],
+        "falsification_path": row["falsification_path"],
     }

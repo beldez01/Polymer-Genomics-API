@@ -71,13 +71,16 @@ async def query_region(
 
         if layer_keys:
             layer_rows = await conn.fetch(
-                """SELECT id, layer_key, version, layer_type, content_hash
+                """SELECT id, layer_key, version, layer_type, content_hash,
+                          evidence_class, tier, validation_status, context_conditions
                    FROM registry.active_layers WHERE layer_key = ANY($1)""",
                 layer_keys,
             )
         else:
             layer_rows = await conn.fetch(
-                "SELECT id, layer_key, version, layer_type, content_hash FROM registry.active_layers"
+                """SELECT id, layer_key, version, layer_type, content_hash,
+                          evidence_class, tier, validation_status, context_conditions
+                   FROM registry.active_layers"""
             )
 
         layers_resolved = []
@@ -107,6 +110,10 @@ async def query_region(
                     "version": lr["version"],
                     "layer_id": str(lr["id"]),
                     "content_hash": lr["content_hash"],
+                    "evidence_class": lr["evidence_class"],
+                    "tier": lr["tier"],
+                    "validation_status": lr["validation_status"],
+                    "context_conditions": lr["context_conditions"],
                     "status": "ok",
                 }
             )

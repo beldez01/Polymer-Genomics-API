@@ -147,20 +147,34 @@ async def seed_layers(_txn_conn):
     await conn.execute("""
         INSERT INTO registry.layers
             (layer_key, version, name, layer_type, genome_build,
-             source, license_class, storage_type, row_count, is_active, is_default)
+             source, license_class, storage_type, row_count, is_active, is_default,
+             evidence_class, tier, equilibrium_regime, statefulness,
+             validation_status, interpretability, is_composite)
         VALUES
             ('probe_epic_v2', '1.0', 'EPIC v2 Probes', 'probe', 'hg38',
-             'derived:Illumina', 'derived', 'postgres', 935000, true, true),
+             'derived:Illumina', 'derived', 'postgres', 935000, true, true,
+             'D', 'intrinsic', 'equilibrium', 'reference_static',
+             'internally_validated', 'direct', false),
             ('cpg_sites', '1.0', 'CpG Sites', 'cpg', 'hg38',
-             'computed', 'public_domain', 'postgres', 28300000, true, true),
+             'computed', 'public_domain', 'postgres', 28300000, true, true,
+             'D', 'intrinsic', 'equilibrium', 'reference_static',
+             'externally_benchmarked', 'direct', false),
             ('gencode_v44', '1.0', 'GENCODE v44', 'gene_model', 'hg38',
-             'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true),
+             'gencodegenes.org', 'public_domain', 'postgres', 2700000, true, true,
+             'K', 'intrinsic', 'equilibrium', 'reference_static',
+             'externally_benchmarked', 'direct', true),
             ('gtex_v10', '1.0', 'GTEx v10 Expression', 'expression', 'hg38',
-             'GTEx v10', 'public_domain', 'postgres', 56000, true, true),
+             'GTEx v10', 'public_domain', 'postgres', 56000, true, true,
+             'M', 'active', 'non_equilibrium', 'reference_static',
+             'externally_validated', 'direct', false),
             ('encode_ccre_v4', '1.0', 'ENCODE cCREs V4', 'regulatory', 'hg38',
-             'ENCODE SCREEN V4', 'public_domain', 'postgres', 926535, true, true),
+             'ENCODE SCREEN V4', 'public_domain', 'postgres', 926535, true, true,
+             'S', 'active', 'non_equilibrium', 'reference_static',
+             'externally_validated', 'semi_interpretable', true),
             ('phylop_phastcons_100way', '1.0', 'PhyloP+PhastCons 100-way', 'conservation', 'hg38',
-             'UCSC 100-way', 'public_domain', 'postgres', 3100000, true, true)
+             'UCSC 100-way', 'public_domain', 'postgres', 3100000, true, true,
+             'S', 'intrinsic', 'equilibrium', 'reference_static',
+             'externally_benchmarked', 'semi_interpretable', false)
         ON CONFLICT (layer_key, version) DO NOTHING
     """)
     yield
