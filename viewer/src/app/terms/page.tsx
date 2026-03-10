@@ -132,8 +132,8 @@ export default function TermsPage() {
           <p style={bodyStyle}>
             If you believe that content on Polymer Genomics infringes your copyright, please submit a written
             notice to our designated agent at{' '}
-            <a href="mailto:legal@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
-              legal@polymerbio.org
+            <a href="mailto:polymergenomics@gmail.com" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              polymergenomics@gmail.com
             </a>{' '}
             containing: (1) identification of the copyrighted work claimed to be infringed, (2) identification of
             the allegedly infringing material, (3) your contact information, and (4) a statement made under penalty

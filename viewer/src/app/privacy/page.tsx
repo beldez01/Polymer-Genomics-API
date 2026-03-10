@@ -61,8 +61,8 @@ export default function PrivacyPage() {
           <p style={bodyStyle}>
             Polymer Genomics is the data controller for personal data processed through this platform.
             For data protection inquiries, contact:{' '}
-            <a href="mailto:privacy@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
-              privacy@polymerbio.org
+            <a href="mailto:polymergenomics@gmail.com" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              polymergenomics@gmail.com
             </a>
           </p>
         </div>
@@ -160,8 +160,8 @@ export default function PrivacyPage() {
           <h2 style={headingStyle}>Contact</h2>
           <p style={bodyStyle}>
             For privacy-related requests or questions, contact:{' '}
-            <a href="mailto:privacy@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
-              privacy@polymerbio.org
+            <a href="mailto:polymergenomics@gmail.com" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              polymergenomics@gmail.com
             </a>
           </p>
         </div>
