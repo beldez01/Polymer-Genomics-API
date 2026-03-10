@@ -27,6 +27,7 @@ from polymer_genomics.routers.reference import router as reference_router
 from polymer_genomics.routers.biophysics import router as biophysics_router
 from polymer_genomics.routers.correlation import router as correlation_router
 from polymer_genomics.routers.cpg_profile import router as cpg_profile_router
+from polymer_genomics.routers.intersect import router as intersect_router
 
 
 @asynccontextmanager
@@ -79,6 +80,7 @@ app.include_router(reference_router)
 app.include_router(biophysics_router)
 app.include_router(correlation_router)
 app.include_router(cpg_profile_router)
+app.include_router(intersect_router)
 
 
 @app.get("/health")

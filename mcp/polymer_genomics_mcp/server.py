@@ -716,6 +716,41 @@ async def lookup_clock_probes(
     return await _get("/v1/reference/clock-probes", params)
 
 
+@mcp.tool()
+async def intersect_layers(
+    build: str,
+    region: str,
+    filters: list[dict],
+    return_layers: list[str] | None = None,
+    limit: int = 1000,
+) -> dict:
+    """Find genomic positions satisfying multiple cross-layer conditions.
+
+    The killer feature: specify conditions across different annotation layers
+    and get positions that satisfy ALL of them. No other genomics API offers this.
+
+    Example: find 1kb windows with low stacking energy AND high conservation
+    AND overlapping a CpG island.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region 'chr16:70000000-71000000'.
+        filters: List of filter dicts, each with 'layer', 'op', and optionally 'field'/'value'.
+            Available layers: biophysics, conservation, cpg_sites, cpg_islands, ccre,
+            chromatin_state, breakpoints, nonb_dna, repeats.
+            Operators: 'overlaps', '>', '<', '>=', '<=', '==', '!=', 'between'.
+        return_layers: Optional list of layer keys to annotate intersecting positions with.
+        limit: Max results (default 1000, max 10000).
+    """
+    return await _post("/v1/query/intersect", {
+        "build": build,
+        "region": region,
+        "filters": filters,
+        "return_layers": return_layers,
+        "limit": limit,
+    })
+
+
 def _register_compute_tools() -> None:
     """Register compute tools if engine is available."""
     try:
