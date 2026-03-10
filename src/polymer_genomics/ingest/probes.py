@@ -595,7 +595,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'probe', $4,
-             'derived:sesameData', 'derived', 'postgres', true, true)
+             'derived:sesameData', 'proprietary_free_use', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

@@ -174,7 +174,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'pathway', $4,
-             'Reactome', 'public_domain', 'postgres', true, true)
+             'Reactome', 'cc_by_4_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

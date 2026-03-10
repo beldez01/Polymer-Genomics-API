@@ -107,7 +107,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'regulatory', $4,
-             'ENCODE SCREEN V4 (encodeproject.org)', 'public_domain', 'postgres', true, true)
+             'ENCODE SCREEN V4 (encodeproject.org)', 'cc_by_4_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

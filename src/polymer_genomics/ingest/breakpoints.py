@@ -175,8 +175,8 @@ async def main() -> None:
                     equilibrium_regime, statefulness, validation_status,
                     interpretability, is_composite)
                    VALUES ('breakpoints', '1.0', 'Breakpoint / Fragile Site Catalog',
-                           'annotation', 'hg38', 'HumCFS + Mitelman + COSMIC',
-                           'public_domain', 'postgres', 0, true, true,
+                           'regulatory', 'hg38', 'HumCFS + Mitelman + COSMIC',
+                           'mixed', 'postgres', 0, true, true,
                            'K', 'intrinsic', 'equilibrium', 'reference_static',
                            'externally_validated', 'direct', true)
                    ON CONFLICT (layer_key, version) DO UPDATE SET name = EXCLUDED.name

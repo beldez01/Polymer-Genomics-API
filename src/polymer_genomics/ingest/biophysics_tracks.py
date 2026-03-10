@@ -74,7 +74,7 @@ async def register_layer(conn: asyncpg.Connection, build: str) -> str:
         VALUES
             ($1, $2, $3, 'biophysics', $4,
              'Polymer Evolution Phase 1 (SantaLucia 1998, Bolshoy 1991, El Hassan 1997)',
-             'derived', 'postgres', true, true)
+             'mit', 'postgres', true, true)
         RETURNING id
         """,
         layer_key, version,

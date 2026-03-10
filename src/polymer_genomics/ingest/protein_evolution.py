@@ -180,7 +180,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'protein_evolution', $4,
-             'Ensembl_Compara', 'public_domain', 'postgres', true, true)
+             'Ensembl_Compara', 'apache_2_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

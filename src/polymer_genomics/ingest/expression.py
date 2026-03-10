@@ -236,7 +236,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'expression', $4,
-             'GTEx v10 (dbGaP phs000424)', 'public_domain', 'postgres', true, true)
+             'GTEx v10 (dbGaP phs000424)', 'open_access', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

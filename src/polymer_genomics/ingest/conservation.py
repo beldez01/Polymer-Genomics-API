@@ -133,7 +133,7 @@ async def register_layer(conn: asyncpg.Connection, build: str) -> str:
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'conservation', $4,
-             'UCSC 100-way vertebrate alignment (PhyloP + PhastCons)', 'public_domain', 'postgres', true, true)
+             'UCSC 100-way vertebrate alignment (PhyloP + PhastCons)', 'non_commercial', 'postgres', true, true)
         RETURNING id
         """,
         layer_key, version, f"PhyloP + PhastCons 100-way ({build})", build,

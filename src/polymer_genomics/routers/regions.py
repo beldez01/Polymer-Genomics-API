@@ -73,14 +73,16 @@ async def query_region(
         if layer_keys:
             layer_rows = await conn.fetch(
                 """SELECT id, layer_key, version, layer_type, content_hash,
-                          evidence_class, tier, validation_status, context_conditions
+                          evidence_class, tier, validation_status, context_conditions,
+                          license_class
                    FROM registry.active_layers WHERE layer_key = ANY($1)""",
                 layer_keys,
             )
         else:
             layer_rows = await conn.fetch(
                 """SELECT id, layer_key, version, layer_type, content_hash,
-                          evidence_class, tier, validation_status, context_conditions
+                          evidence_class, tier, validation_status, context_conditions,
+                          license_class
                    FROM registry.active_layers"""
             )
 
@@ -118,6 +120,7 @@ async def query_region(
                     "context_conditions": lr["context_conditions"],
                     "source": source_info.get("source", "Unknown"),
                     "source_license": source_info.get("license", "See polymerbio.org/data-sources"),
+                    "license_class": lr["license_class"],
                     "status": "ok",
                 }
             )

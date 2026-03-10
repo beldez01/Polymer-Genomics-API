@@ -1,0 +1,15 @@
+Compute Engine — Dependency Notice
+
+The Polymer Genomics methylation compute engine depends on R packages released
+under the GNU General Public License (GPL-2 and GPL-3), including packages from
+the Bioconductor project (minfi, sesame, limma, ComplexHeatmap, and others).
+
+If you redistribute the engine Dockerfile or the container image built from it,
+you must comply with the GPL terms of those dependencies. In particular, you must
+make the source code of the GPL-licensed packages available to recipients upon
+request, as required by the GPL.
+
+The Polymer Genomics source code itself (outside of these dependencies) is
+licensed under the MIT License. See the root LICENSE file.
+
+For the full text of the GPL, see: https://www.gnu.org/licenses/gpl-3.0.html

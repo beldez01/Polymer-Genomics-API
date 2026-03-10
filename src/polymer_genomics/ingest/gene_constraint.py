@@ -193,7 +193,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'constraint', $4,
-             'gnomAD', 'public_domain', 'postgres', true, true)
+             'gnomAD', 'odc_odbl_1_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

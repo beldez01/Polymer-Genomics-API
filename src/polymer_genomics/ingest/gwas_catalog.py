@@ -198,7 +198,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'gwas', $4,
-             'EBI_GWAS_Catalog', 'public_domain', 'postgres', true, true)
+             'EBI_GWAS_Catalog', 'cc0_1_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

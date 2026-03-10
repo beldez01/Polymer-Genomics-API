@@ -272,7 +272,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'gene_model', $4,
-             'gencodegenes.org', 'public_domain', 'postgres', true, true)
+             'gencodegenes.org', 'cc0_1_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

@@ -255,7 +255,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'gene_cost', $4,
-             'derived:UniProt+GTEx+CodonStatsDB', 'public_domain', 'postgres', true, true)
+             'derived:UniProt+GTEx+CodonStatsDB', 'mixed', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

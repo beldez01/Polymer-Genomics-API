@@ -453,7 +453,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'methylation', $4,
-             'Reinius2012/Salas2018', 'public_domain', 'object_storage', true, true)
+             'Reinius2012/Salas2018', 'artistic_2_0', 'object_storage', true, true)
         RETURNING id
         """,
         layer_key,
@@ -647,7 +647,7 @@ async def register_reference_layer(conn, build: str) -> str:
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'methylation', $4,
-             'Reinius2012/Salas2018', 'public_domain', 'postgres', true, true)
+             'Reinius2012/Salas2018', 'artistic_2_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

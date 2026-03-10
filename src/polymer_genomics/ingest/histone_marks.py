@@ -157,7 +157,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'histone_mark', $4,
-             'ENCODE', 'public_domain', 'postgres', true, true)
+             'ENCODE', 'cc_by_4_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

@@ -111,7 +111,7 @@ async def register_layer(conn: asyncpg.Connection, build: str) -> str:
         VALUES
             ($1, $2, $3, 'gene_profile', $4,
              'derived:gene.features+conservation+expression+bioenergetics',
-             'public_domain', 'postgres', true, true)
+             'derived', 'postgres', true, true)
         RETURNING id
         """,
         layer_key, version,

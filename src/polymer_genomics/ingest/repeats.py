@@ -132,7 +132,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'repeat', $4,
-             'UCSC_RepeatMasker', 'public_domain', 'postgres', true, true)
+             'UCSC_RepeatMasker', 'non_commercial', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

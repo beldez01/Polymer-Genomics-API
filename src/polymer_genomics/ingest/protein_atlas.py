@@ -200,7 +200,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'protein_atlas', $4,
-             'Human_Protein_Atlas', 'derived', 'postgres', true, true)
+             'Human_Protein_Atlas', 'cc_by_sa_3_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,
