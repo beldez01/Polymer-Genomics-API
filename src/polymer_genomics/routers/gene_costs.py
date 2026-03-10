@@ -147,6 +147,27 @@ async def get_gene_cost(build: str, symbol: str):
         "tissues": tissue_pairs,
     }
 
+    # Metabolic burden (if computed)
+    metabolic_burden = None
+    if row.get("burden_total") is not None:
+        burden_tissues = []
+        for tissue in _TISSUES:
+            bval = row.get(f"burden_{tissue}")
+            burden_tissues.append({
+                "tissue": tissue,
+                "burden": float(bval) if bval is not None else None,
+            })
+        burden_tissues.sort(
+            key=lambda t: t["burden"] if t["burden"] is not None else -1e9,
+            reverse=True,
+        )
+        metabolic_burden = {
+            "half_life_hours": row.get("half_life_hours"),
+            "turnover_rate": row.get("turnover_rate"),
+            "burden_total": row["burden_total"],
+            "tissues": burden_tissues,
+        }
+
     data = {
         "coordinates": coordinates,
         "identity": identity,
@@ -155,6 +176,7 @@ async def get_gene_cost(build: str, symbol: str):
         "composition": composition,
         "codon_optimization": codon_optimization,
         "expression": expression,
+        "metabolic_burden": metabolic_burden,
     }
 
     return build_envelope(

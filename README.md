@@ -62,4 +62,6 @@ FastAPI + PostgreSQL 16 backend, Next.js 16 + React 19 frontend with canvas-base
 
 ## License
 
-TBD
+MIT — see [LICENSE](LICENSE) for the source code license.
+
+Data served by this platform is subject to the licenses of the original data providers. See [Data Sources](https://polymerbio.org/data-sources) for details.

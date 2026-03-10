@@ -21,6 +21,9 @@ _nn_cache: dict[str, list[dict]] | None = None
 _dinuc_cache: list[dict] | None = None
 _aa_cache: list[dict] | None = None
 _constants_cache: list[dict] | None = None
+_sbs_cache: list[dict] | None = None
+_clock_meta_cache: list[dict] | None = None
+_clock_coeff_cache: dict[str, list[dict]] | None = None
 
 
 def _ref_envelope(
@@ -294,6 +297,173 @@ async def get_physical_constants(
     return _ref_envelope(
         query={"name": name, "category": category},
         data={"constants": entries, "n": len(entries)},
+        db_time_ms=db_time,
+        _start_time=start_time,
+    )
+
+
+# ── SBS Thermodynamic Spectrum ────────────────────────────────────────────
+
+async def _get_sbs_cache() -> list[dict]:
+    global _sbs_cache
+    if _sbs_cache is not None:
+        return _sbs_cache
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT channel, mutation_type, ref_base, alt_base, flanking_5, flanking_3, "
+            "trinuc_ref, trinuc_alt, dg_wt, dg_mut, delta_dg, source_citation "
+            "FROM mutation.sbs_spectrum ORDER BY mutation_type, channel"
+        )
+
+    _sbs_cache = [dict(r) for r in rows]
+    return _sbs_cache
+
+
+@router.get("/sbs-spectrum")
+async def get_sbs_spectrum(
+    mutation_type: str | None = Query(None, description="Filter by mutation type (e.g. 'C>A')"),
+    channel: str | None = Query(None, description="Specific SBS channel (e.g. 'A[C>A]G')"),
+):
+    """Return SBS thermodynamic spectrum.
+
+    96-channel COSMIC SBS trinucleotide mutation spectrum with nearest-neighbor
+    stacking energy perturbation (δΔG) computed from SantaLucia 1998 parameters.
+    Positive δΔG = destabilizing mutation.
+    """
+    start_time = time.monotonic()
+    db_start = time.monotonic()
+    cache = await _get_sbs_cache()
+    db_time = (time.monotonic() - db_start) * 1000
+
+    entries = cache
+    if channel:
+        channel = channel.upper()
+        entries = [e for e in entries if e["channel"] == channel]
+        if not entries:
+            raise HTTPException(404, {
+                "error": {"code": "NOT_FOUND",
+                          "message": f"SBS channel '{channel}' not found"}
+            })
+    elif mutation_type:
+        mutation_type = mutation_type.upper()
+        entries = [e for e in entries if e["mutation_type"] == mutation_type]
+        if not entries:
+            raise HTTPException(404, {
+                "error": {"code": "NOT_FOUND",
+                          "message": f"Mutation type '{mutation_type}' not found"}
+            })
+
+    return _ref_envelope(
+        query={"mutation_type": mutation_type, "channel": channel},
+        data={"channels": entries, "n": len(entries)},
+        db_time_ms=db_time,
+        _start_time=start_time,
+    )
+
+
+# ── Epigenetic Clock Probes ──────────────────────────────────────────────
+
+async def _get_clock_caches() -> tuple[list[dict], dict[str, list[dict]]]:
+    global _clock_meta_cache, _clock_coeff_cache
+    if _clock_meta_cache is not None and _clock_coeff_cache is not None:
+        return _clock_meta_cache, _clock_coeff_cache
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        meta_rows = await conn.fetch(
+            "SELECT clock_name, display_name, n_probes, tissue, outcome, "
+            "intercept, age_transform, platform, pmid, source_citation "
+            "FROM ref.clock_metadata ORDER BY clock_name"
+        )
+        coeff_rows = await conn.fetch(
+            "SELECT clock_name, probe_id, coefficient, source_citation "
+            "FROM ref.clock_coefficients ORDER BY clock_name, probe_id"
+        )
+
+    _clock_meta_cache = [dict(r) for r in meta_rows]
+
+    coeff_map: dict[str, list[dict]] = {}
+    for r in coeff_rows:
+        entry = {
+            "probe_id": r["probe_id"],
+            "coefficient": r["coefficient"],
+            "source": r["source_citation"],
+        }
+        coeff_map.setdefault(r["clock_name"], []).append(entry)
+    _clock_coeff_cache = coeff_map
+
+    return _clock_meta_cache, _clock_coeff_cache
+
+
+@router.get("/clock-probes")
+async def get_clock_probes(
+    clock: str | None = Query(None, description="Clock name (e.g. 'horvath_2013')"),
+    probe_id: str | None = Query(None, description="Probe ID to check clock membership (e.g. 'cg16867657')"),
+):
+    """Return epigenetic clock probe coefficients.
+
+    Query by clock name to get all probes for that clock, or by probe_id
+    to see which clocks use that probe and its coefficient in each.
+    Omit both to list all clocks with metadata.
+    """
+    start_time = time.monotonic()
+    db_start = time.monotonic()
+    meta_cache, coeff_cache = await _get_clock_caches()
+    db_time = (time.monotonic() - db_start) * 1000
+
+    if clock:
+        # Return all probes for a specific clock
+        clock = clock.lower()
+        meta = [m for m in meta_cache if m["clock_name"] == clock]
+        if not meta:
+            valid = [m["clock_name"] for m in meta_cache]
+            raise HTTPException(404, {
+                "error": {"code": "NOT_FOUND",
+                          "message": f"Clock '{clock}' not found. Valid: {valid}"}
+            })
+        probes = coeff_cache.get(clock, [])
+        return _ref_envelope(
+            query={"clock": clock},
+            data={"clock": meta[0], "probes": probes, "n_loaded": len(probes)},
+            db_time_ms=db_time,
+            _start_time=start_time,
+        )
+
+    if probe_id:
+        # Return all clocks that use this probe
+        probe_id = probe_id.strip()
+        memberships = []
+        for cname, probes in coeff_cache.items():
+            for p in probes:
+                if p["probe_id"] == probe_id:
+                    clock_meta = next((m for m in meta_cache if m["clock_name"] == cname), {})
+                    memberships.append({
+                        "clock_name": cname,
+                        "display_name": clock_meta.get("display_name"),
+                        "coefficient": p["coefficient"],
+                        "outcome": clock_meta.get("outcome"),
+                    })
+        if not memberships:
+            return _ref_envelope(
+                query={"probe_id": probe_id},
+                data={"probe_id": probe_id, "clocks": [], "n": 0,
+                      "message": "Probe not found in any loaded clock"},
+                db_time_ms=db_time,
+                _start_time=start_time,
+            )
+        return _ref_envelope(
+            query={"probe_id": probe_id},
+            data={"probe_id": probe_id, "clocks": memberships, "n": len(memberships)},
+            db_time_ms=db_time,
+            _start_time=start_time,
+        )
+
+    # Default: list all clocks with metadata
+    return _ref_envelope(
+        query={},
+        data={"clocks": meta_cache, "n": len(meta_cache)},
         db_time_ms=db_time,
         _start_time=start_time,
     )

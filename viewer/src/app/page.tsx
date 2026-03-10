@@ -222,7 +222,7 @@ export default function Home() {
         }}>
           Data provided as-is without warranty. Not intended as a substitute for professional
           medical advice, diagnosis, or treatment. Reference assembly coordinates may differ
-          from clinical-grade annotations. &copy; 2026 Polymer Genomics. All rights reserved.
+          from clinical-grade annotations. &copy; 2026 Polymer Genomics.
         </p>
       </footer>
     </main>

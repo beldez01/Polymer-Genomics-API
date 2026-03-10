@@ -109,7 +109,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'gene_set', $4,
-             'MSigDB', 'public_domain', 'postgres', true, true)
+             'MSigDB', 'cc_by_4.0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,

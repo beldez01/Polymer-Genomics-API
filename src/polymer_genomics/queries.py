@@ -260,7 +260,8 @@ def region_biophysics_query() -> str:
         SELECT b.start_pos, b.end_pos,
                b.gc_content, b.stacking_dg37, b.melting_temp,
                b.curvature, b.groove_width, b.dipole_density,
-               b.periodicity_power
+               b.periodicity_power,
+               b.mgw_mean, b.prot_mean, b.roll_mean, b.helt_mean
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -783,6 +784,7 @@ def _convert_chromatin_state(rows: list, chr_name: str) -> dict:
 def _convert_biophysics(rows: list, chr_name: str) -> dict:
     starts, ends, widths = [], [], []
     gc, stacking, tm, curv, groove, dipole, period = [], [], [], [], [], [], []
+    mgw, prot, roll, helt = [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -795,6 +797,10 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         groove.append(r["groove_width"])
         dipole.append(r["dipole_density"])
         period.append(r["periodicity_power"])
+        mgw.append(r["mgw_mean"])
+        prot.append(r["prot_mean"])
+        roll.append(r["roll_mean"])
+        helt.append(r["helt_mean"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -805,6 +811,8 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "melting_temp": tm, "curvature": curv,
             "groove_width": groove, "dipole_density": dipole,
             "periodicity_power": period,
+            "mgw_mean": mgw, "prot_mean": prot,
+            "roll_mean": roll, "helt_mean": helt,
         },
         "n": len(rows),
     }

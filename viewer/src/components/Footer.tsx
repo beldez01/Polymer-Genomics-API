@@ -65,6 +65,36 @@ export function Footer() {
           }}>
             API Docs
           </Link>
+          {DOT}
+          <Link href="/terms" style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}>
+            Terms
+          </Link>
+          {DOT}
+          <Link href="/privacy" style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}>
+            Privacy
+          </Link>
+          {DOT}
+          <Link href="/data-sources" style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}>
+            Data Sources
+          </Link>
         </div>
       </div>
 
@@ -105,7 +135,7 @@ export function Footer() {
           fontFamily: FONT_FAMILY,
           marginTop: SPACE[1],
         }}>
-          &copy; 2026 Polymer Genomics. All rights reserved.
+          &copy; 2026 Polymer Genomics
         </span>
       </div>
     </div>

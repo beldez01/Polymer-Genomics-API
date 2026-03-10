@@ -247,7 +247,7 @@ WHERE layer_key LIKE 'histone%';
 -- GWAS catalog
 UPDATE registry.layers SET
     evidence_class = 'S',
-    tier = 'mixed',
+    tier = 'active',
     equilibrium_regime = 'mixed',
     statefulness = 'reference_static',
     is_composite = true,
@@ -284,7 +284,7 @@ WHERE layer_key LIKE 'msigdb%';
 -- Gene profiles
 UPDATE registry.layers SET
     evidence_class = 'S',
-    tier = 'mixed',
+    tier = 'active',
     equilibrium_regime = 'mixed',
     statefulness = 'reference_static',
     is_composite = true,
@@ -293,3 +293,29 @@ UPDATE registry.layers SET
     validation_status = 'unvalidated',
     interpretability = 'semi_interpretable'
 WHERE layer_key LIKE 'gene_profile%';
+
+-- CpG islands
+UPDATE registry.layers SET
+    evidence_class = 'D',
+    tier = 'intrinsic',
+    equilibrium_regime = 'equilibrium',
+    statefulness = 'reference_static',
+    is_composite = false,
+    source_count = 1,
+    validation_status = 'externally_benchmarked',
+    interpretability = 'direct'
+WHERE layer_key = 'cpg_islands';
+
+-- ChromHMM 15-state (alternate key)
+UPDATE registry.layers SET
+    evidence_class = 'S',
+    tier = 'active',
+    equilibrium_regime = 'non_equilibrium',
+    statefulness = 'sample_specific',
+    is_composite = true,
+    derived_from_classes = ARRAY['M']::polymer_evidence_class[],
+    source_count = 1,
+    validation_status = 'externally_validated',
+    interpretability = 'semi_interpretable',
+    context_conditions = '{"model": "ChromHMM_15state", "marks": ["H3K4me3","H3K27ac","H3K27me3","H3K9me3","H3K36me3"]}'::jsonb
+WHERE layer_key = 'chromhmm_15state_v1';

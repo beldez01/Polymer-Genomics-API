@@ -53,8 +53,10 @@ mcp = FastMCP(
         "- Physical constants → lookup_physical_constants (Lp, Manning ξ, elastic moduli, enzymatic rates)\n"
         "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
         "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
-        "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity — genome-wide pre-computed from Polymer Evolution Phase 1)\n"
-        "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n\n"
+        "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity, MGW, ProT, Roll, HelT — genome-wide pre-computed)\n"
+        "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n"
+        "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
+        "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE coefficients)\n\n"
         "COMPUTE TOOLS (requires local R + Bioconductor):\n"
         "- Load IDATs → load_idats (creates analysis session)\n"
         "- Normalize → normalize (openSesame for EPICv2, funnorm for 450K/EPIC)\n"
@@ -656,6 +658,62 @@ async def correlate_layers(
         "field_b": field_b,
     }
     return await _get(f"/v1/correlate/{build}/{region}", params)
+
+
+@mcp.tool()
+async def lookup_sbs_spectrum(
+    mutation_type: str | None = None,
+    channel: str | None = None,
+) -> dict:
+    """Look up SBS thermodynamic spectrum for trinucleotide mutations.
+
+    Returns the 96-channel COSMIC SBS mutation spectrum with nearest-neighbor
+    stacking energy perturbation (δΔG) computed from SantaLucia 1998 parameters.
+    Each channel maps a trinucleotide mutation context to its thermodynamic
+    impact on DNA duplex stability. Positive δΔG = destabilizing mutation.
+
+    Use this when analyzing mutational signatures through a biophysical lens —
+    e.g. mapping COSMIC SBS signatures to energy perturbation profiles, or
+    understanding which mutations are thermodynamically costly.
+
+    Args:
+        mutation_type: Filter by mutation type (e.g. 'C>A', 'T>G'). Returns 16 channels.
+        channel: Specific SBS channel (e.g. 'A[C>A]G'). Returns 1 channel.
+    """
+    params: dict = {}
+    if mutation_type:
+        params["mutation_type"] = mutation_type
+    if channel:
+        params["channel"] = channel
+    return await _get("/v1/reference/sbs-spectrum", params)
+
+
+@mcp.tool()
+async def lookup_clock_probes(
+    clock: str | None = None,
+    probe_id: str | None = None,
+) -> dict:
+    """Look up epigenetic clock probe coefficients.
+
+    Returns probe weights for epigenetic age clocks: Horvath (2013, pan-tissue),
+    Hannum (2013, blood), PhenoAge (Levine 2018), GrimAge (Lu 2019), and
+    DunedinPACE (Belsky 2022). Query by clock name to get all probes, or by
+    probe_id to see which clocks use it.
+
+    Use this when checking whether a CpG probe is part of an epigenetic clock,
+    retrieving clock coefficients for age prediction, or understanding the
+    relative weight of a probe in age estimation.
+
+    Args:
+        clock: Clock name (e.g. 'horvath_2013', 'phenoage_2018'). Returns all probes for that clock.
+        probe_id: Probe ID (e.g. 'cg16867657'). Returns all clocks using this probe.
+    """
+    params: dict = {}
+    if clock:
+        params["clock"] = clock
+    if probe_id:
+        params["probe_id"] = probe_id
+    return await _get("/v1/reference/clock-probes", params)
 
 
 def _register_compute_tools() -> None:
