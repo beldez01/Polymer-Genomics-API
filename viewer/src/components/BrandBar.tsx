@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, COMPONENT } from '@/config/theme';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 
 interface BrandBarProps {
   /** Content shown after the brand name with a vertical divider */
@@ -10,9 +11,11 @@ interface BrandBarProps {
   children?: React.ReactNode;
   /** Make the bar sticky at viewport top */
   sticky?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export function BrandBar({ subtitle, children, sticky }: BrandBarProps) {
+export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandBarProps) {
+  const isMobile = useIsMobile();
   return (
     <div style={{
       height: 44,
@@ -60,11 +63,24 @@ export function BrandBar({ subtitle, children, sticky }: BrandBarProps) {
         </>
       )}
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? SPACE[1] : SPACE[2] }}>
         {children}
-        <Link href="/view/hg38/chr1:100000000-100100000" style={COMPONENT.button.small as React.CSSProperties}>Viewer</Link>
-        <Link href="/atlas" style={COMPONENT.button.small as React.CSSProperties}>Atlas</Link>
-        <Link href="/docs"  style={COMPONENT.button.small as React.CSSProperties}>API / MCP</Link>
+        {isMobile && onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            style={{
+              ...COMPONENT.button.small as React.CSSProperties,
+              padding: `${SPACE[1]}px ${SPACE[2]}px`,
+              lineHeight: 1,
+            }}
+            aria-label="Toggle sidebar"
+          >
+            &#9776;
+          </button>
+        )}
+        <Link href="/view/hg38/chr1:100000000-100100000" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Viewer</Link>
+        <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Atlas</Link>
+        <Link href="/docs"  style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'API' : 'API / MCP'}</Link>
       </div>
     </div>
   );

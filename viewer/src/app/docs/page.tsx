@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
+import { Footer } from '@/components/Footer';
+import { useIsMobile, useIsTablet } from '@/hooks/useBreakpoint';
+import { copyToClipboard } from '@/lib/clipboard';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
@@ -438,7 +441,16 @@ function MethodBadge({ method }: { method: string }) {
 
 function CodeTabs({ examples }: { examples: { curl: string; python: string; r: string } }) {
   const [tab, setTab] = useState<'curl' | 'python' | 'r'>('curl');
+  const [copyLabel, setCopyLabel] = useState('Copy');
   const tabs = ['curl', 'python', 'r'] as const;
+
+  const handleCopy = async () => {
+    const ok = await copyToClipboard(examples[tab]);
+    if (ok) {
+      setCopyLabel('Copied!');
+      setTimeout(() => setCopyLabel('Copy'), 1500);
+    }
+  };
 
   return (
     <div>
@@ -463,6 +475,23 @@ function CodeTabs({ examples }: { examples: { curl: string; python: string; r: s
             {t}
           </button>
         ))}
+        <button
+          onClick={handleCopy}
+          style={{
+            marginLeft: 'auto',
+            padding: `${SPACE[1]}px ${SPACE[3]}px`,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            fontWeight: WEIGHT.normal,
+            color: copyLabel === 'Copied!' ? COLOR.accent.teal : COLOR.text.muted,
+            backgroundColor: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'color 0.15s',
+          }}
+        >
+          {copyLabel}
+        </button>
       </div>
       <pre style={{
         margin: 0,
@@ -484,7 +513,8 @@ function CodeTabs({ examples }: { examples: { curl: string; python: string; r: s
 function ResponseBlock({ json }: { json: string }) {
   const [expanded, setExpanded] = useState(false);
   const lines = json.split('\n');
-  const preview = lines.slice(0, 4).join('\n') + (lines.length > 4 ? '\n  ...' : '');
+  const preview = lines.slice(0, 8).join('\n');
+  const needsTruncation = lines.length > 8;
 
   return (
     <div>
@@ -506,18 +536,31 @@ function ResponseBlock({ json }: { json: string }) {
       >
         Response {expanded ? '\u25B4' : '\u25BE'}
       </button>
-      <pre style={{
-        margin: 0,
-        padding: SPACE[3],
-        fontSize: TYPE.xs.fontSize,
-        fontFamily: FONT_FAMILY,
-        lineHeight: 1.6,
-        color: COLOR.text.tertiary,
-        overflowX: 'auto',
-        whiteSpace: 'pre-wrap',
-      }}>
-        {expanded ? json : preview}
-      </pre>
+      <div style={{ position: 'relative' }}>
+        <pre style={{
+          margin: 0,
+          padding: SPACE[3],
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          lineHeight: 1.6,
+          color: COLOR.text.tertiary,
+          overflowX: 'auto',
+          whiteSpace: 'pre-wrap',
+        }}>
+          {expanded ? json : preview}
+        </pre>
+        {!expanded && needsTruncation && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 32,
+            background: `linear-gradient(transparent, ${COLOR.bg.track})`,
+            pointerEvents: 'none',
+          }} />
+        )}
+      </div>
     </div>
   );
 }
@@ -527,14 +570,17 @@ function ResponseBlock({ json }: { json: string }) {
 // ---------------------------------------------------------------------------
 
 export default function DocsPage() {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: COLOR.bg.primary }}>
       <BrandBar subtitle="API Reference" />
 
-      <div style={{ display: 'flex', flex: 1 }}>
+      <div style={{ display: isMobile ? 'block' : 'flex', flex: 1 }}>
 
       {/* ─── Sidebar Nav ─── */}
-      <nav style={{
+      {!isTablet && (<nav style={{
         width: 200,
         flexShrink: 0,
         borderRight: `1px solid ${COLOR.border.subtle}`,
@@ -652,7 +698,7 @@ export default function DocsPage() {
             {item.title}
           </a>
         ))}
-      </nav>
+      </nav>)}
 
       {/* ─── Main Content ─── */}
       <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
@@ -660,9 +706,8 @@ export default function DocsPage() {
         {/* Left column — prose */}
         <div style={{
           flex: '3 1 0',
-          padding: `${SPACE[8]}px ${SPACE[8]}px`,
-          maxWidth: 680,
-          overflowY: 'auto',
+          padding: isMobile ? `${SPACE[6]}px ${SPACE[4]}px` : `${SPACE[8]}px ${SPACE[8]}px`,
+          ...(isMobile ? {} : { maxWidth: 680 }),
         }}>
           {/* Overview */}
           <h1 style={{
@@ -786,6 +831,15 @@ export default function DocsPage() {
                   </div>
                 ))}
               </div>
+
+              {isMobile && (
+                <div style={{ marginTop: SPACE[4] }}>
+                  <CodeTabs examples={ep.examples} />
+                  <div style={{ marginTop: SPACE[3] }}>
+                    <ResponseBlock json={ep.response} />
+                  </div>
+                </div>
+              )}
             </section>
           ))}
 
@@ -1057,11 +1111,10 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
         </div>
 
         {/* Right column — code examples (sticky) */}
-        <div style={{
+        {!isMobile && (<div style={{
           flex: '2 1 0',
           backgroundColor: COLOR.bg.track,
           borderLeft: `1px solid ${COLOR.border.subtle}`,
-          overflowY: 'auto',
           padding: `${SPACE[8]}px 0`,
         }}>
           {/* Spacer for overview section */}
@@ -1120,43 +1173,28 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
                 color: COLOR.text.secondary,
                 overflowX: 'auto',
                 whiteSpace: 'pre-wrap',
-              }}>{`# In Claude Code, the agent calls tools conversationally:
-
-> "Load my IDATs from ~/data/idats"
-
-load_idats(idat_directory="~/data/idats")
-\u2192 {session_id: "a1b2c3d4e5f6", n_samples: 18,
-   array_type: "EPICv2", n_probes: 1107072}
-
-> "Normalize with openSesame and filter"
-
-normalize(session_id="a1b2c3d4e5f6", method="opensesame")
-\u2192 {n_probes: 935620, method: "opensesame"}
-
-filter_probes(session_id="a1b2c3d4e5f6")
-\u2192 {n_before: 935620, n_after: 795423,
-   removed_counts: {snp: 42891, sex: 18234, ...}}
-
-> "Find DMPs between TET2_mut and WT"
-
-run_limma(session_id="a1b2c3d4e5f6",
-          group_column="Sample_Group")
-\u2192 {n_dmps: 0, contrast: "TET2_mut-WT",
-   n_tested: 795423, top_hits: [...]}
-
-> "Make a volcano plot"
-
-volcano_plot(session_id="a1b2c3d4e5f6")
-\u2192 {image_base64: "iVBOR...", n_significant: 0}
-
-# Then annotate hits with reference tools:
-
-batch_probes(build="hg38",
-  probe_ids=["cg08796240", "cg06545761"])
-\u2192 gene symbols, coordinates, CpG context
-
-lookup_gene_expression(build="hg38", symbol="VAC14")
-\u2192 GTEx 54-tissue expression profile`}</pre>
+              }}>
+                <span style={{ color: COLOR.text.muted }}>{'# In Claude Code, the agent calls tools conversationally:'}</span>{'\n\n'}
+                <span style={{ borderLeft: `2px solid ${COLOR.accent.teal}`, paddingLeft: 8, color: COLOR.text.primary }}>{`> "Load my IDATs from ~/data/idats"`}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'load_idats(idat_directory="~/data/idats")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 {session_id: "a1b2c3d4e5f6", n_samples: 18,\n   array_type: "EPICv2", n_probes: 1107072}'}</span>{'\n\n'}
+                <span style={{ borderLeft: `2px solid ${COLOR.accent.teal}`, paddingLeft: 8, color: COLOR.text.primary }}>{`> "Normalize with openSesame and filter"`}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'normalize(session_id="a1b2c3d4e5f6", method="opensesame")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 {n_probes: 935620, method: "opensesame"}'}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'filter_probes(session_id="a1b2c3d4e5f6")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 {n_before: 935620, n_after: 795423,\n   removed_counts: {snp: 42891, sex: 18234, ...}}'}</span>{'\n\n'}
+                <span style={{ borderLeft: `2px solid ${COLOR.accent.teal}`, paddingLeft: 8, color: COLOR.text.primary }}>{`> "Find DMPs between TET2_mut and WT"`}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'run_limma(session_id="a1b2c3d4e5f6",\n          group_column="Sample_Group")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 {n_dmps: 0, contrast: "TET2_mut-WT",\n   n_tested: 795423, top_hits: [...]}'}</span>{'\n\n'}
+                <span style={{ borderLeft: `2px solid ${COLOR.accent.teal}`, paddingLeft: 8, color: COLOR.text.primary }}>{`> "Make a volcano plot"`}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'volcano_plot(session_id="a1b2c3d4e5f6")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 {image_base64: "iVBOR...", n_significant: 0}'}</span>{'\n\n'}
+                <span style={{ color: COLOR.text.muted }}>{'# Then annotate hits with reference tools:'}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'batch_probes(build="hg38",\n  probe_ids=["cg08796240", "cg06545761"])'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 gene symbols, coordinates, CpG context'}</span>{'\n\n'}
+                <span style={{ color: COLOR.accent.violet }}>{'lookup_gene_expression(build="hg38", symbol="VAC14")'}</span>{'\n'}
+                <span style={{ color: COLOR.text.muted, paddingLeft: 8 }}>{'\u2192 GTEx 54-tissue expression profile'}</span>
+              </pre>
             </div>
 
             {/* Spacer for remaining compute tool descriptions */}
@@ -1215,9 +1253,11 @@ volcano_plot / cluster_probes
               </p>
             </div>
           </div>
-        </div>
+        </div>)}
       </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

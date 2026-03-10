@@ -1,6 +1,8 @@
 'use client';
 
 import { CHROMOSOMES, GENOME_LENGTH } from '@/config/chromosomes';
+import { useIsMobile } from '@/hooks/useBreakpoint';
+import { COLOR, FONT_FAMILY, COMPONENT } from '@/config/theme';
 
 interface IdeogramBarProps {
   currentChromosome: string;
@@ -8,6 +10,33 @@ interface IdeogramBarProps {
 }
 
 export function IdeogramBar({ currentChromosome, onSelectChromosome }: IdeogramBarProps) {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="w-full flex items-center flex-shrink-0"
+           style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 8px' }}>
+        <select
+          value={currentChromosome}
+          onChange={(e) => onSelectChromosome(e.target.value)}
+          style={{
+            ...COMPONENT.input.default,
+            width: '100%',
+            height: 24,
+            fontSize: 11,
+            padding: '0 8px',
+          }}
+        >
+          {CHROMOSOMES.map(chr => (
+            <option key={chr.name} value={chr.name}>
+              {chr.name} ({(chr.length / 1e6).toFixed(1)} Mb)
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full flex items-stretch flex-shrink-0"
          style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 8px', gap: 2 }}>

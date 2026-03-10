@@ -81,9 +81,10 @@ function directionArrow(position: number, center: number): string {
 
 export interface RegionContextPanelProps {
   context: RegionContext;
+  activeLayers?: string[];
 }
 
-export function RegionContextPanel({ context }: RegionContextPanelProps) {
+export function RegionContextPanel({ context, activeLayers = [] }: RegionContextPanelProps) {
   const { build } = useViewport();
   const isochoreColor = context.isochore.class
     ? (COLORS.isochore as Record<string, string>)[context.isochore.class] ?? '#333'
@@ -127,7 +128,7 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
             )}
           </>
         ) : (
-          <div style={styles.muted}>No isochore data</div>
+          <div style={styles.muted}>{activeLayers.includes('isochores') ? 'No isochore at this position' : 'Enable Isochores layer'}</div>
         )}
       </Section>
 
@@ -196,7 +197,9 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
 
       {/* COST */}
       <Section title="COST">
-        {context.cost ? (
+        {!activeLayers.includes('gene_costs_v1') && !context.cost ? (
+          <div style={styles.muted}>Enable Cost layer</div>
+        ) : context.cost ? (
           <>
             <div style={styles.value}>
               <span style={{ color: COLORS.accent.teal, fontWeight: 500 }}>{context.cost.geneSymbol}</span>
@@ -224,7 +227,7 @@ export function RegionContextPanel({ context }: RegionContextPanelProps) {
             )}
           </>
         ) : (
-          <div style={styles.muted}>No cost data</div>
+          <div style={styles.muted}>No cost data at this position</div>
         )}
       </Section>
 

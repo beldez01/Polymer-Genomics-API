@@ -8,7 +8,8 @@ import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
 import { GeneSearch } from '@/components/atlas/GeneSearch';
 import { GeneCard } from '@/components/atlas/GeneCard';
-import { COLOR, FONT_FAMILY } from '@/config/theme';
+import { Footer } from '@/components/Footer';
+import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -228,6 +229,9 @@ export default function AtlasPage() {
     }, 300);
   }, []);
 
+  const [aggBannerDismissed, setAggBannerDismissed] = useState(false);
+  const anyFailed = Object.values(chrStats).some(s => s.loaded && s.genes === null);
+
   const chrInfo = selectedChr ? getChromosomeByName(selectedChr) : null;
   const stats = selectedChr ? chrStats[selectedChr] : null;
 
@@ -255,13 +259,45 @@ export default function AtlasPage() {
         onClear={goBackFromGene}
       />
 
+      {anyFailed && !aggBannerDismissed && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: SPACE[3],
+          padding: `${SPACE[2]}px ${SPACE[4]}px`,
+        }}>
+          <span style={{
+            color: COLOR.text.muted,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+          }}>
+            Chromosome statistics temporarily unavailable
+          </span>
+          <button
+            onClick={() => setAggBannerDismissed(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: COLOR.text.muted,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              cursor: 'pointer',
+              padding: `0 ${SPACE[1]}px`,
+            }}
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Overview */}
       {showOverview && (
         <div style={{
           opacity: viewState === 'overview' ? 1 : 0,
           transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <KaryotypeOverview onSelectChromosome={selectChromosome} />
+          <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} />
         </div>
       )}
 
@@ -296,6 +332,7 @@ export default function AtlasPage() {
           />
         </div>
       )}
+      <Footer />
     </main>
   );
 }

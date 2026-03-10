@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { searchGenes, fetchGene, fetchProbe } from '@/lib/api';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import type { GenomeBuild } from '@/stores/viewport';
 
 interface HeaderBarProps {
@@ -24,6 +25,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
   const [isProbe, setIsProbe] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -137,50 +139,54 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
       </button>
 
       {/* Coordinates — absolutely centered in the bar */}
-      <div style={{
-        position: 'absolute',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: SPACE[2],
-        whiteSpace: 'nowrap',
-      }}>
-        <span style={{
-          color: COLOR.text.secondary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          pointerEvents: 'none',
+      {!isMobile && (
+        <div style={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: SPACE[2],
+          whiteSpace: 'nowrap',
         }}>
-          {coords}
-        </span>
-        {onCopyLink && (
-          <button
-            onClick={onCopyLink}
-            style={{
-              backgroundColor: 'transparent',
-              color: COLOR.text.muted,
-              border: `1px solid ${COLOR.border.strong}`,
-              padding: `${SPACE[1]}px ${SPACE[2]}px`,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-              cursor: 'pointer',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = COLOR.accent.teal;
-              e.currentTarget.style.color = COLOR.accent.teal;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = COLOR.border.strong;
-              e.currentTarget.style.color = COLOR.text.muted;
-            }}
-            title="Copy shareable link with active layers"
-          >
-            {copyLinkLabel || 'Link'}
-          </button>
-        )}
-      </div>
+          <span style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.base.fontSize,
+            fontFamily: FONT_FAMILY,
+            pointerEvents: 'none',
+          }}>
+            {coords}
+          </span>
+          {onCopyLink && (
+            <button
+              onClick={onCopyLink}
+              style={{
+                backgroundColor: 'transparent',
+                color: copyLinkLabel === 'Copied!' ? COLOR.accent.teal : COLOR.text.muted,
+                border: copyLinkLabel === 'Copied!' ? `1px solid ${COLOR.accent.teal}` : `1px solid ${COLOR.border.strong}`,
+                padding: `${SPACE[1]}px ${SPACE[2]}px`,
+                fontSize: TYPE.xs.fontSize,
+                fontFamily: FONT_FAMILY,
+                cursor: 'pointer',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = COLOR.accent.teal;
+                e.currentTarget.style.color = COLOR.accent.teal;
+              }}
+              onMouseLeave={(e) => {
+                if (copyLinkLabel !== 'Copied!') {
+                  e.currentTarget.style.borderColor = COLOR.border.strong;
+                  e.currentTarget.style.color = COLOR.text.muted;
+                }
+              }}
+              title="Copy shareable link with active layers"
+            >
+              {copyLinkLabel || 'Link'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Search — right */}
       <div ref={containerRef} className="flex items-center gap-1" style={{ position: 'relative', flexShrink: 0 }}>
@@ -189,10 +195,10 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSubmit(); }}
-          placeholder="chr17:7668421-7687490 or TP53"
+          placeholder={isMobile ? "Gene or region..." : "chr17:7668421-7687490 or TP53"}
           style={{
             ...COMPONENT.input.default,
-            width: 280,
+            width: isMobile ? 160 : 280,
           }}
         />
         <button

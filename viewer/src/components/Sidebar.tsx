@@ -431,7 +431,7 @@ export function Sidebar({
           {(() => {
             const l = apiLayerMap.get('isochores');
             const active = activeLayers.includes('isochores');
-            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
@@ -453,7 +453,7 @@ export function Sidebar({
           {(() => {
             const l = apiLayerMap.get('cpg_sites');
             const active = activeLayers.includes('cpg_sites');
-            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
@@ -479,7 +479,7 @@ export function Sidebar({
             const l = apiLayerMap.get('gencode_v44');
             if (!l) return null;
             const active = activeLayers.includes('gencode_v44');
-            const subLine = l.row_count != null ? formatCount(l.row_count) : undefined;
+            const subLine = l.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
@@ -500,7 +500,7 @@ export function Sidebar({
           {(() => {
             const l = apiLayerMap.get('histone_peaks_encode_v1');
             const active = activeLayers.includes('histone_peaks_encode_v1');
-            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
@@ -515,7 +515,7 @@ export function Sidebar({
           {(() => {
             const l = apiLayerMap.get('gwas_catalog_ebi_v1');
             const active = activeLayers.includes('gwas_catalog_ebi_v1');
-            const subLine = l?.row_count != null ? formatCount(l.row_count) : undefined;
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}

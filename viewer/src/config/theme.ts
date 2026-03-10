@@ -259,3 +259,9 @@ export const LAYOUT = {
   contextPanelWidth: 160,
   docsSidebarWidth: 200,
 } as const;
+
+// ---------------------------------------------------------------------------
+// Breakpoints
+// ---------------------------------------------------------------------------
+
+export const BREAKPOINT = { mobile: 640, tablet: 1024 } as const;

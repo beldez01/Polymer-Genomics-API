@@ -5,10 +5,10 @@ import { BrandBar } from '@/components/BrandBar';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
 
 const LAYERS = [
-  { name: 'Genes',      color: COLOR.layer.gencode_v44,   desc: 'GENCODE v44 \u00B7 63,000 transcripts' },
-  { name: 'CpG Sites',  color: COLOR.layer.cpg_sites,     desc: 'Islands, shores, shelves \u00B7 28M sites' },
-  { name: 'Probes',     color: COLOR.layer.probe_epic_v2, desc: 'EPIC v2, v1, 450K arrays' },
-  { name: 'Isochores',  color: COLOR.layer.isochores,     desc: 'GC composition structure' },
+  { name: 'Genes',      color: COLOR.layer.gencode_v44,   desc: 'GENCODE v44 \u00B7 63,000 transcripts', href: '/atlas' },
+  { name: 'CpG Sites',  color: COLOR.layer.cpg_sites,     desc: 'Islands, shores, shelves \u00B7 28M sites', href: '/view/hg38/chr17:7668421-7687490?layers=cpg_sites' },
+  { name: 'Probes',     color: COLOR.layer.probe_epic_v2, desc: 'EPIC v2, v1, 450K arrays', href: '/view/hg38/chr17:7668421-7687490?layers=probe_epic_v2' },
+  { name: 'Isochores',  color: COLOR.layer.isochores,     desc: 'GC composition structure', href: '/view/hg38/chr17:7668421-7687490?layers=isochores' },
 ] as const;
 
 function GhostButton({ href, children }: { href: string; children: React.ReactNode }) {
@@ -107,7 +107,7 @@ export default function Home() {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        padding: `${SPACE[24]}px 0`,
+        padding: `${SPACE[10]}px 0`,
       }}>
         <div style={{
           width: 120,
@@ -126,37 +126,54 @@ export default function Home() {
         gap: SPACE[6],
       }}>
         {LAYERS.map((layer) => (
-          <div
+          <Link
             key={layer.name}
+            href={layer.href}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: SPACE[4],
+              textDecoration: 'none',
+              cursor: 'pointer',
+              borderLeft: '3px solid transparent',
+              paddingLeft: SPACE[2],
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderLeftColor = COLOR.accent.teal;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderLeftColor = 'transparent';
             }}
           >
-            <div style={{
-              width: 10,
-              height: 10,
-              backgroundColor: layer.color,
-              flexShrink: 0,
-            }} />
-            <span style={{
-              color: COLOR.text.primary,
-              fontSize: TYPE.md.fontSize,
-              fontFamily: FONT_FAMILY,
-              fontWeight: WEIGHT.medium,
-              flexShrink: 0,
-            }}>
-              {layer.name}
-            </span>
-            <span style={{
-              color: COLOR.text.tertiary,
-              fontSize: TYPE.base.fontSize,
-              fontFamily: FONT_FAMILY,
-            }}>
-              {layer.desc}
-            </span>
-          </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: SPACE[4],
+              }}
+            >
+              <div style={{
+                width: 10,
+                height: 10,
+                backgroundColor: layer.color,
+                flexShrink: 0,
+              }} />
+              <span style={{
+                color: COLOR.text.primary,
+                fontSize: TYPE.md.fontSize,
+                fontFamily: FONT_FAMILY,
+                fontWeight: WEIGHT.medium,
+                flexShrink: 0,
+              }}>
+                {layer.name}
+              </span>
+              <span style={{
+                color: COLOR.text.tertiary,
+                fontSize: TYPE.base.fontSize,
+                fontFamily: FONT_FAMILY,
+              }}>
+                {layer.desc}
+              </span>
+            </div>
+          </Link>
         ))}
       </section>
 
@@ -164,7 +181,7 @@ export default function Home() {
       <div style={{
         display: 'flex',
         justifyContent: 'center',
-        padding: `${SPACE[24]}px 0`,
+        padding: `${SPACE[10]}px 0`,
       }}>
         <div style={{
           width: 120,
@@ -179,11 +196,33 @@ export default function Home() {
         paddingBottom: SPACE[12],
       }}>
         <p style={{
-          color: COLOR.text.faint,
+          color: COLOR.text.tertiary,
           fontSize: TYPE.base.fontSize,
           fontFamily: FONT_FAMILY,
         }}>
           hg38 &middot; hg37 &mdash; Polymer Genomics
+        </p>
+        <p style={{
+          color: COLOR.text.tertiary,
+          fontSize: TYPE.sm.fontSize,
+          fontFamily: FONT_FAMILY,
+          marginTop: SPACE[3],
+        }}>
+          Research Use Only &mdash; Not for clinical or diagnostic use
+        </p>
+        <p style={{
+          color: COLOR.text.muted,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          marginTop: SPACE[2],
+          maxWidth: 500,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          lineHeight: 1.6,
+        }}>
+          Data provided as-is without warranty. Not intended as a substitute for professional
+          medical advice, diagnosis, or treatment. Reference assembly coordinates may differ
+          from clinical-grade annotations. &copy; 2026 Polymer Genomics. All rights reserved.
         </p>
       </footer>
     </main>

@@ -80,16 +80,27 @@ export interface SearchResult {
 
 // --- API functions ---
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(
-      (body as Record<string, Record<string, string>>)?.error?.message ||
-        `API error: ${res.status}`,
-    );
+async function fetchJSON<T>(url: string, opts?: { timeout?: number; signal?: AbortSignal }): Promise<T> {
+  const timeout = opts?.timeout ?? 15000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  const signal = opts?.signal
+    ? AbortSignal.any([opts.signal, controller.signal])
+    : controller.signal;
+
+  try {
+    const res = await fetch(url, { signal });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(
+        (body as Record<string, Record<string, string>>)?.error?.message ||
+          `API error: ${res.status}`,
+      );
+    }
+    return res.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return res.json();
 }
 
 export async function fetchSequence(

@@ -460,29 +460,37 @@ export function GeneStructureDiagram({
         <div style={{
           padding: `${SPACE[2]}px ${SPACE[4]}px`,
           borderTop: `1px solid ${COLOR.border.subtle}`,
-          display: 'flex',
-          gap: SPACE[4],
-          flexWrap: 'wrap',
-          alignItems: 'center',
         }}>
-          {domainLegendItems.map((item, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
-              <div style={{
-                width: 10,
-                height: 10,
-                backgroundColor: item.color,
-                opacity: 0.8,
-                flexShrink: 0,
-              }} />
-              <span style={{
-                color: COLOR.text.muted,
-                fontSize: GC_TYPE.xs,
-                fontFamily: FONT_FAMILY,
-              }}>
-                {item.label} <span style={{ color: COLOR.text.faint }}>({item.range})</span>
-              </span>
-            </div>
-          ))}
+          <div style={{ color: COLOR.text.muted, fontSize: GC_TYPE.xs, fontFamily: FONT_FAMILY, marginBottom: SPACE[1] }}>
+            {domainLegendItems.length} domain{domainLegendItems.length !== 1 ? 's' : ''}
+          </div>
+          <div style={{
+            maxHeight: 120,
+            overflowY: 'auto',
+            display: 'flex',
+            gap: SPACE[4],
+            flexWrap: 'wrap',
+            alignItems: 'center',
+          }}>
+            {domainLegendItems.map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
+                <div style={{
+                  width: 10,
+                  height: 10,
+                  backgroundColor: item.color,
+                  opacity: 0.8,
+                  flexShrink: 0,
+                }} />
+                <span style={{
+                  color: COLOR.text.muted,
+                  fontSize: GC_TYPE.xs,
+                  fontFamily: FONT_FAMILY,
+                }}>
+                  {item.label} <span style={{ color: COLOR.text.faint }}>({item.range})</span>
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

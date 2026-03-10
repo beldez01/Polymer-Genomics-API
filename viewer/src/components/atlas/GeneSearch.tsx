@@ -19,6 +19,7 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
   const [searching, setSearching] = useState(false);
   const [searchDone, setSearchDone] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -46,6 +47,7 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
   function handleChange(value: string) {
     setQuery(value);
     setHighlightedIndex(-1);
+    setSearchError(null);
     clearTimeout(debounceRef.current);
     if (value.trim().length < 2) {
       setResults([]);
@@ -65,6 +67,7 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
       } catch {
         setResults([]);
         setSearchDone(true);
+        setSearchError('Search unavailable');
       } finally {
         setSearching(false);
       }
@@ -201,6 +204,29 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
           onFocus={(e) => { e.currentTarget.style.borderColor = COLOR.accent.teal; }}
           onBlur={(e) => { e.currentTarget.style.borderColor = COLOR.border.strong; }}
         />
+
+        {/* Error indicator */}
+        {searchError && !searching && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            marginTop: 2,
+            backgroundColor: COLOR.bg.track,
+            border: `1px solid ${COLOR.border.subtle}`,
+            zIndex: 50,
+            padding: `${SPACE[3]}px ${SPACE[4]}px`,
+          }}>
+            <span style={{
+              color: COLOR.accent.rose,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+            }}>
+              {searchError}
+            </span>
+          </div>
+        )}
 
         {/* Searching indicator */}
         {searching && query.trim().length >= 2 && !showDropdown && (

@@ -765,7 +765,43 @@ function ErrorState({ message }: { message: string }) {
 // Section loading / empty states
 // ---------------------------------------------------------------------------
 
-function SectionLoading({ label }: { label: string }) {
+function SectionLoading({ label, status, onRetry }: { label: string; status?: 'loading' | 'error'; onRetry?: () => void }) {
+  if (status === 'error') {
+    return (
+      <div style={{
+        backgroundColor: COLOR.bg.elevated,
+        border: `1px solid ${COLOR.border.subtle}`,
+        padding: `${SPACE[3]}px ${SPACE[3]}px`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: SPACE[3],
+      }}>
+        <span style={{ color: COLOR.accent.rose, fontSize: GC_TYPE.sm, fontFamily: FONT_FAMILY }}>
+          Failed to load {label}
+        </span>
+        {onRetry && (
+          <button
+            onClick={onRetry}
+            style={{
+              ...COMPONENT.button.small,
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = COLOR.accent.teal;
+              e.currentTarget.style.color = COLOR.accent.teal;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = COLOR.border.strong;
+              e.currentTarget.style.color = COLOR.text.secondary;
+            }}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{
       backgroundColor: COLOR.bg.elevated,
@@ -903,39 +939,35 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
     return () => { cancelled = true; };
   }, [build, symbol]);
 
+  // Fetch a single section by name (used for initial load and retry)
+  const fetchSection = useCallback((section: string, upperSymbol: string) => {
+    const fetchers: Record<string, () => Promise<void>> = {
+      constraint: () => fetchGeneConstraint(build, upperSymbol).then(res => { setConstraintData(res.data); setSectionStatus(s => ({ ...s, constraint: 'loaded' })); }),
+      abundance: () => fetchProteinAbundance(build, upperSymbol).then(res => { setAbundanceData(res.data); setSectionStatus(s => ({ ...s, abundance: 'loaded' })); }),
+      atlas: () => fetchProteinAtlas(build, upperSymbol).then(res => { setAtlasData(res.data); setSectionStatus(s => ({ ...s, atlas: 'loaded' })); }),
+      pathways: () => fetchGenePathways(build, upperSymbol).then(res => { setPathwaysData(res.data); setSectionStatus(s => ({ ...s, pathways: 'loaded' })); }),
+      geneSets: () => fetchGeneSets(build, upperSymbol).then(res => { setGeneSetsData(res.data); setSectionStatus(s => ({ ...s, geneSets: 'loaded' })); }),
+    };
+    const fn = fetchers[section];
+    if (!fn) return;
+    setSectionStatus(s => ({ ...s, [section]: 'loading' }));
+    fn().catch(() => { setSectionStatus(s => ({ ...s, [section]: 'error' })); });
+  }, [build]);
+
   // Phase 1b: fetch sections L–P (constraint, abundance, atlas, pathways, gene sets)
   // Fire-and-forget in parallel — each section handles its own null state gracefully
   useEffect(() => {
     if (!symbol) return;
-    let cancelled = false;
     const upperSymbol = symbol.toUpperCase();
 
     // Reset all section statuses
     setSectionStatus({ constraint: 'loading', abundance: 'loading', atlas: 'loading', pathways: 'loading', geneSets: 'loading' });
 
-    // All fetches are independent — fire in parallel, catch individually
-    fetchGeneConstraint(build, upperSymbol)
-      .then(res => { if (!cancelled) { setConstraintData(res.data); setSectionStatus(s => ({ ...s, constraint: 'loaded' })); } })
-      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, constraint: 'error' })); });
-
-    fetchProteinAbundance(build, upperSymbol)
-      .then(res => { if (!cancelled) { setAbundanceData(res.data); setSectionStatus(s => ({ ...s, abundance: 'loaded' })); } })
-      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, abundance: 'error' })); });
-
-    fetchProteinAtlas(build, upperSymbol)
-      .then(res => { if (!cancelled) { setAtlasData(res.data); setSectionStatus(s => ({ ...s, atlas: 'loaded' })); } })
-      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, atlas: 'error' })); });
-
-    fetchGenePathways(build, upperSymbol)
-      .then(res => { if (!cancelled) { setPathwaysData(res.data); setSectionStatus(s => ({ ...s, pathways: 'loaded' })); } })
-      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, pathways: 'error' })); });
-
-    fetchGeneSets(build, upperSymbol)
-      .then(res => { if (!cancelled) { setGeneSetsData(res.data); setSectionStatus(s => ({ ...s, geneSets: 'loaded' })); } })
-      .catch(() => { if (!cancelled) setSectionStatus(s => ({ ...s, geneSets: 'error' })); });
-
-    return () => { cancelled = true; };
-  }, [build, symbol]);
+    // All fetches are independent — fire in parallel via fetchSection
+    for (const section of ['constraint', 'abundance', 'atlas', 'pathways', 'geneSets']) {
+      fetchSection(section, upperSymbol);
+    }
+  }, [build, symbol, fetchSection]);
 
   // Phase 1c: fetch UniProt domains
   useEffect(() => {
@@ -1142,6 +1174,27 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
                 {gene.chr}:{formatBp(gene.geneStart)}–{formatBp(gene.geneEnd)}
               </span>
               <StrandBadge strand={gene.strand} />
+              <Link
+                href={viewerHref}
+                style={{
+                  ...COMPONENT.button.small,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  marginLeft: 'auto',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = COLOR.accent.teal;
+                  e.currentTarget.style.color = COLOR.accent.teal;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = COLOR.border.strong;
+                  e.currentTarget.style.color = COLOR.text.secondary;
+                }}
+              >
+                Open in Viewer &rarr;
+              </Link>
             </div>
             <div style={{ display: 'flex', gap: SPACE[4], alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ color: COLOR.text.muted, fontSize: GC_TYPE.sm, fontFamily: FONT_FAMILY }}>
@@ -1304,26 +1357,31 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
           {/* L. Evolutionary Constraint (gnomAD) */}
           {constraintData ? <ConstraintSection data={constraintData} />
             : sectionStatus.constraint === 'loading' ? <SectionLoading label="Evolutionary Constraint" />
+            : sectionStatus.constraint === 'error' ? <SectionLoading label="Evolutionary Constraint" status="error" onRetry={() => fetchSection('constraint', upperSymbol)} />
             : <EmptySection label="Evolutionary Constraint" />}
 
           {/* M. Protein Abundance (PaxDb) */}
           {abundanceData ? <ProteinAbundanceSection data={abundanceData} />
             : sectionStatus.abundance === 'loading' ? <SectionLoading label="Protein Abundance" />
+            : sectionStatus.abundance === 'error' ? <SectionLoading label="Protein Abundance" status="error" onRetry={() => fetchSection('abundance', upperSymbol)} />
             : <EmptySection label="Protein Abundance" />}
 
           {/* N. Protein Atlas (HPA) */}
           {atlasData ? <ProteinAtlasSection data={atlasData} />
             : sectionStatus.atlas === 'loading' ? <SectionLoading label="Protein Atlas" />
+            : sectionStatus.atlas === 'error' ? <SectionLoading label="Protein Atlas" status="error" onRetry={() => fetchSection('atlas', upperSymbol)} />
             : <EmptySection label="Protein Atlas" />}
 
           {/* O. Pathways (Reactome) */}
           {pathwaysData ? <PathwaysSection data={pathwaysData} />
             : sectionStatus.pathways === 'loading' ? <SectionLoading label="Pathways" />
+            : sectionStatus.pathways === 'error' ? <SectionLoading label="Pathways" status="error" onRetry={() => fetchSection('pathways', upperSymbol)} />
             : <EmptySection label="Pathways" />}
 
           {/* P. Gene Sets (MSigDB Hallmark) */}
           {geneSetsData ? <GeneSetsSection data={geneSetsData} />
             : sectionStatus.geneSets === 'loading' ? <SectionLoading label="Gene Sets" />
+            : sectionStatus.geneSets === 'error' ? <SectionLoading label="Gene Sets" status="error" onRetry={() => fetchSection('geneSets', upperSymbol)} />
             : <EmptySection label="Gene Sets" />}
 
           {/* K. Footer Actions */}

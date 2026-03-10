@@ -16,6 +16,7 @@ import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
 import { usePinchZoom } from '@/hooks/usePinchZoom';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { COLOR, FONT_FAMILY, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
@@ -36,6 +37,8 @@ function ViewerPage() {
   const [canvasWidth, setCanvasWidth] = useState(1200);
   const [showContext, setShowContext] = useState(true);
   const [copyLabel, setCopyLabel] = useState('Link');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
   const regionContext = useRegionContext(data, chr, start, end);
   usePinchZoom(containerRef);
 
@@ -160,7 +163,7 @@ function ViewerPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
 
-      <BrandBar />
+      <BrandBar onToggleSidebar={() => setMobileSidebarOpen(v => !v)} />
 
       {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
       <HeaderBar
@@ -180,6 +183,27 @@ function ViewerPage() {
       />
 
       <div className="flex flex-1 overflow-hidden">
+        {/* Mobile sidebar overlay */}
+        {isMobile && mobileSidebarOpen && (
+          <div
+            onClick={() => setMobileSidebarOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 199,
+            }}
+          />
+        )}
+        <div style={isMobile ? {
+          position: 'fixed',
+          left: mobileSidebarOpen ? 0 : -LAYOUT.sidebarWidth,
+          top: 44,
+          bottom: 0,
+          zIndex: 200,
+          transition: 'left 0.2s ease',
+          width: LAYOUT.sidebarWidth,
+        } : {}}>
         <Sidebar
           build={build}
           activeLayers={activeLayers}
@@ -202,6 +226,7 @@ function ViewerPage() {
           onToggleAllProbes={toggleAllProbes}
           onToggleAllCellTypes={toggleAllCellTypes}
         />
+        </div>
 
         <main
           ref={containerRef}
@@ -212,12 +237,13 @@ function ViewerPage() {
           {/* Loading progress bar — subtle teal line at top */}
           {loading && (
             <div style={{
-              position: 'absolute',
+              position: 'sticky',
               top: 0,
               left: 0,
               right: 0,
               height: 2,
-              zIndex: 20,
+              zIndex: 10,
+              flexShrink: 0,
               overflow: 'hidden',
               backgroundColor: COLOR.border.subtle,
             }}>
@@ -256,7 +282,7 @@ function ViewerPage() {
           </div>
         </main>
 
-        {showContext && <RegionContextPanel context={regionContext} />}
+        {showContext && !isMobile && <RegionContextPanel context={regionContext} activeLayers={activeLayers} />}
       </div>
 
       <Footer />
