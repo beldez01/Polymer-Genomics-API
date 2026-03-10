@@ -110,23 +110,34 @@ async def _post(path: str, json_body: dict) -> dict:
 
 
 @mcp.tool()
-async def list_layers(build: str = "hg38", layer_type: str | None = None) -> dict:
+async def list_layers(
+    build: str = "hg38",
+    layer_type: str | None = None,
+    evidence_class: str | None = None,
+    tier: str | None = None,
+) -> dict:
     """List available genomic data layers.
 
-    Returns metadata about registered annotation layers (gene models, CpG sites,
-    probes, isochores, methylation atlases). Use this to discover what data is
-    available before querying.
+    Returns metadata about registered annotation layers including epistemic
+    classification (evidence_class, tier, validation_status). Use this to
+    discover what data is available before querying.
 
     Use this when you need to check what data is loaded, confirm a layer_key
-    exists, or see row counts before a large query.
+    exists, filter by evidence quality, or see row counts before a large query.
 
     Args:
         build: Genome build ('hg38' or 'hg37'). Defaults to 'hg38'.
-        layer_type: Optional filter by type ('cpg', 'gene_model', 'probe', 'isochore', 'methylation').
+        layer_type: Optional filter by type ('cpg', 'gene_model', 'probe', etc.).
+        evidence_class: Optional filter by epistemic class ('M','R','D','S','K','H','L').
+        tier: Optional filter by biological tier ('intrinsic','constrained','active').
     """
     params = {"build": build}
     if layer_type:
         params["type"] = layer_type
+    if evidence_class:
+        params["evidence_class"] = evidence_class
+    if tier:
+        params["tier"] = tier
     return await _get("/v1/layers", params)
 
 
