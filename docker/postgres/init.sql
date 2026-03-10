@@ -47,7 +47,10 @@ CREATE TYPE layer_type AS ENUM (
     'genome', 'gene_model', 'cpg', 'probe', 'methylation', 'isochore', 'biophysics'
 );
 CREATE TYPE license_class AS ENUM (
-    'public_domain', 'derived', 'restricted', 'proprietary'
+    'public_domain', 'derived', 'restricted', 'proprietary',
+    'non_commercial', 'cc0_1_0', 'cc_by_4_0', 'cc_by_sa_3_0',
+    'odc_odbl_1_0', 'apache_2_0', 'artistic_2_0', 'mit',
+    'open_access', 'mixed', 'proprietary_free_use'
 );
 CREATE TYPE storage_location AS ENUM (
     'postgres', 'object_storage', 'both'
