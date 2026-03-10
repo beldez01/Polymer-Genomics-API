@@ -69,6 +69,7 @@ const DATA_SOURCES: SourceCategory[] = [
     sources: [
       { name: 'ENCODE', version: 'v3', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2012', url: 'https://www.encodeproject.org' },
       { name: 'Roadmap Epigenomics', version: '2015', license: 'Public Domain (NIH)', citation: 'Roadmap Consortium, Nature 2015', url: 'https://egg2.wustl.edu/roadmap/' },
+      { name: 'ChromHMM 15-state Model', version: '2012', license: 'Public Domain (NIH)', citation: 'Ernst & Kellis, Nat Methods 2012', url: 'https://compbio.mit.edu/ChromHMM/' },
     ],
   },
   {
@@ -93,6 +94,45 @@ const DATA_SOURCES: SourceCategory[] = [
     category: 'Mutations',
     sources: [
       { name: 'COSMIC SBS Signatures', version: 'v3.4', license: 'Free for non-commercial use', citation: 'Alexandrov et al., Nature 2020', url: 'https://cancer.sanger.ac.uk/signatures/' },
+    ],
+  },
+  {
+    category: 'Conservation & Evolution',
+    sources: [
+      { name: 'PhyloP 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Pollard et al., Genome Res 2010', url: 'https://genome.ucsc.edu' },
+      { name: 'PhastCons 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Siepel et al., Genome Res 2005', url: 'https://genome.ucsc.edu' },
+      { name: 'Ensembl Compara', version: 'v112', license: 'Apache 2.0', citation: 'Herrero et al., Database 2016', url: 'https://www.ensembl.org/info/genome/compara/' },
+    ],
+  },
+  {
+    category: 'Repeat Elements',
+    sources: [
+      { name: 'RepeatMasker', version: 'v4.1.5', license: 'Free for non-commercial use via UCSC; Open Source', citation: 'Smit, Hubley & Green, RepeatMasker Open-4.0', url: 'https://www.repeatmasker.org' },
+    ],
+  },
+  {
+    category: 'GWAS',
+    sources: [
+      { name: 'EBI GWAS Catalog', version: 'v1.0.4', license: 'CC0 1.0', citation: 'Buniello et al., Nucleic Acids Res 2019', url: 'https://www.ebi.ac.uk/gwas/' },
+    ],
+  },
+  {
+    category: 'Cell-Type Methylation',
+    sources: [
+      { name: 'FlowSorted.Blood.EPIC', version: '2018', license: 'Artistic License 2.0', citation: 'Salas et al., Genome Biol 2018', url: 'https://bioconductor.org/packages/FlowSorted.Blood.EPIC/' },
+    ],
+  },
+  {
+    category: 'Protein Properties & Turnover',
+    sources: [
+      { name: 'UniProt', version: '2024_05', license: 'CC BY 4.0', citation: 'UniProt Consortium, Nucleic Acids Res 2023', url: 'https://www.uniprot.org' },
+      { name: 'Protein Half-Lives', version: '2018', license: 'Published literature', citation: 'Mathieson et al., Nat Commun 2018', url: 'https://doi.org/10.1038/s41467-018-03106-1' },
+    ],
+  },
+  {
+    category: 'Computed Tracks',
+    sources: [
+      { name: 'Polymer Evolution Layer 0', version: 'v1.0', license: 'MIT', citation: 'Polymer Genomics — computed from SantaLucia/published parameters', url: 'https://polymerbio.org' },
     ],
   },
 ];
@@ -163,12 +203,38 @@ export default function DataSourcesPage() {
             fontSize: TYPE.sm.fontSize,
             fontFamily: FONT_FAMILY,
             margin: 0,
+            marginBottom: SPACE[3],
           }}>
             <strong style={{ color: COLOR.text.primary }}>Note on licenses:</strong>{' '}
             Human Protein Atlas data is licensed under CC BY-SA 3.0 (ShareAlike). Any derivative
             works incorporating HPA data must be shared under the same license.
             GTEx data served here consists of summary statistics (median TPM by tissue) and does
             not include individual-level data, which requires dbGaP authorization.
+          </p>
+          <p style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            margin: 0,
+            marginBottom: SPACE[3],
+          }}>
+            <strong style={{ color: COLOR.text.primary }}>Non-commercial restrictions:</strong>{' '}
+            Data sourced from UCSC Genome Browser (including PhyloP, PhastCons, RepeatMasker, and CpG Islands)
+            carries a non-commercial use restriction. COSMIC SBS Signatures are also restricted to non-commercial use.
+            gnomAD data is licensed under ODC-ODbL 1.0, which requires derivative databases to remain open.
+          </p>
+          <p style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            margin: 0,
+          }}>
+            <strong style={{ color: COLOR.text.primary }}>Epigenetic clock IP:</strong>{' '}
+            Some epigenetic clocks are protected by patents (e.g., GrimAge: US Patent 10,706,957).
+            DunedinPACE may have separate intellectual property protections.
+            Clock probe annotations served here are for informational and reference purposes only.
+            Computation of epigenetic age using these coefficients may require separate licensing
+            from the respective intellectual property holders.
           </p>
         </div>
 

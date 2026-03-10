@@ -7,6 +7,7 @@ from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
+from polymer_genomics.layer_licenses import LAYER_SOURCE_INFO
 from polymer_genomics.queries import TRACK_REGISTRY
 
 router = APIRouter(prefix="/v1/regions", tags=["regions"])
@@ -104,6 +105,7 @@ async def query_region(
 
             converted = track["convert_fn"](rows, chr_name)
             data[lr["layer_key"]] = converted
+            source_info = LAYER_SOURCE_INFO.get(lr["layer_type"], {})
             layers_resolved.append(
                 {
                     "layer_key": lr["layer_key"],
@@ -114,6 +116,8 @@ async def query_region(
                     "tier": lr["tier"],
                     "validation_status": lr["validation_status"],
                     "context_conditions": lr["context_conditions"],
+                    "source": source_info.get("source", "Unknown"),
+                    "source_license": source_info.get("license", "See polymerbio.org/data-sources"),
                     "status": "ok",
                 }
             )

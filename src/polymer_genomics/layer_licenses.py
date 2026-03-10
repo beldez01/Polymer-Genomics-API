@@ -1,0 +1,27 @@
+"""Source and license metadata for each data layer type."""
+
+LAYER_SOURCE_INFO = {
+    "cpg": {"source": "UCSC CpG Islands", "license": "Free for non-commercial use"},
+    "gene_model": {"source": "GENCODE v44", "license": "CC0 1.0"},
+    "probe": {"source": "Illumina Manifests", "license": "Illumina proprietary (free to use)"},
+    "isochore": {"source": "Computed from GRCh38", "license": "Public Domain"},
+    "methylation": {"source": "FlowSorted.Blood.EPIC (Salas 2018)", "license": "Artistic License 2.0"},
+    "conservation": {"source": "UCSC PhyloP/PhastCons 100-way", "license": "Free for non-commercial use"},
+    "regulatory": {"source": "ENCODE cCREs v4", "license": "CC BY 4.0"},
+    "expression": {"source": "GTEx v10", "license": "Open access (summary statistics)"},
+    "gene_cost": {"source": "Akashi-Gojobori 2002 / GTEx v10", "license": "Published literature / Open access"},
+    "protein_abundance": {"source": "PaxDb v5.0", "license": "CC BY 4.0"},
+    "protein_turnover": {"source": "Mathieson et al. 2018", "license": "Published literature"},
+    "protein_properties": {"source": "UniProt ProtParam", "license": "CC BY 4.0"},
+    "constraint": {"source": "gnomAD v4.1", "license": "ODC-ODbL 1.0"},
+    "protein_evolution": {"source": "Ensembl Compara v112", "license": "Apache 2.0"},
+    "protein_atlas": {"source": "Human Protein Atlas v23", "license": "CC BY-SA 3.0"},
+    "chromatin_state": {"source": "Roadmap Epigenomics / ChromHMM", "license": "Public Domain (NIH)"},
+    "repeat": {"source": "RepeatMasker (UCSC)", "license": "Free for non-commercial use"},
+    "biophysics": {"source": "Polymer Evolution L0 (computed)", "license": "MIT"},
+    "histone_mark": {"source": "ENCODE v3 ChIP-seq", "license": "CC BY 4.0"},
+    "gwas": {"source": "EBI GWAS Catalog", "license": "CC0 1.0"},
+    "clock": {"source": "Published literature (see polymerbio.org/data-sources)", "license": "Published literature; patent restrictions may apply"},
+    "sbs": {"source": "COSMIC SBS Signatures v3.4", "license": "Free for non-commercial use"},
+    "sequence": {"source": "GRCh38 / GRCh37", "license": "Public Domain"},
+}

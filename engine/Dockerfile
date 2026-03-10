@@ -1,6 +1,6 @@
 FROM rocker/r-ver:4.5.0
 
-LABEL maintainer="Polymer Bio"
+LABEL maintainer="Polymer Genomics"
 LABEL description="Polymer Methylation Toolkit — R + MCP server for methylation analysis"
 
 # System dependencies for R packages

@@ -7,6 +7,14 @@ PhenoAge (Levine 2018), GrimAge (Lu 2019), and DunedinPACE (Belsky 2022).
 Clock metadata is embedded inline. Probe coefficients are loaded from
 companion TSV files in ``data/clocks/`` or from embedded representative data.
 
+IMPORTANT — INTELLECTUAL PROPERTY NOTICE
+Clock probe annotations (probe membership and metadata) are provided for
+informational and reference purposes only. Some epigenetic clocks are
+protected by patents (e.g., GrimAge: US Patent 10,706,957). Computation
+of epigenetic age using these coefficients may require separate licensing
+from the respective intellectual property holders. Redistribution of
+coefficient weights should comply with the original publication licenses.
+
 Usage::
 
     uv run python -m polymer_genomics.ingest.epigenetic_clocks

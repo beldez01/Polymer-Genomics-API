@@ -57,6 +57,17 @@ export default function PrivacyPage() {
         </p>
 
         <div style={sectionStyle}>
+          <h2 style={headingStyle}>Data Controller</h2>
+          <p style={bodyStyle}>
+            Polymer Genomics is the data controller for personal data processed through this platform.
+            For data protection inquiries, contact:{' '}
+            <a href="mailto:privacy@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              privacy@polymerbio.org
+            </a>
+          </p>
+        </div>
+
+        <div style={sectionStyle}>
           <h2 style={headingStyle}>What We Collect</h2>
           <p style={bodyStyle}>
             Polymer Genomics collects minimal data necessary to operate the service:
@@ -84,8 +95,8 @@ export default function PrivacyPage() {
         <div style={sectionStyle}>
           <h2 style={headingStyle}>Cookies</h2>
           <p style={bodyStyle}>
-            This site does not use tracking cookies, advertising cookies, or third-party analytics.
-            Session-essential cookies may be set for basic functionality (e.g., theme preference).
+            We do not use tracking or advertising cookies. The Vercel hosting platform may set strictly
+            necessary cookies for load balancing and security. No third-party analytics are deployed.
             No data is shared with third parties for marketing or advertising purposes.
           </p>
         </div>
@@ -93,8 +104,9 @@ export default function PrivacyPage() {
         <div style={sectionStyle}>
           <h2 style={headingStyle}>GDPR (European Users)</h2>
           <p style={bodyStyle}>
-            Our lawful basis for processing server logs is legitimate interest in maintaining service
-            security and availability. Under the GDPR, you have the right to:
+            Our lawful bases for processing personal data are: (a) server logs — legitimate interest in
+            maintaining service security and availability; (b) API key management — contract performance;
+            (c) abuse prevention — legitimate interest. Under the GDPR, you have the right to:
           </p>
           <ul style={{ ...bodyStyle, paddingLeft: SPACE[6], marginTop: 0 }}>
             <li style={{ marginBottom: SPACE[2] }}>Access the personal data we hold about you</li>
@@ -117,9 +129,29 @@ export default function PrivacyPage() {
         </div>
 
         <div style={sectionStyle}>
+          <h2 style={headingStyle}>Cross-Border Data Transfer</h2>
+          <p style={bodyStyle}>
+            Our servers are located in the United States (Virginia). If you access the service from the
+            EU/EEA/UK, your data is transferred to the US. We rely on Standard Contractual Clauses (SCCs)
+            as the legal mechanism for such transfers.
+          </p>
+        </div>
+
+        <div style={sectionStyle}>
+          <h2 style={headingStyle}>Children</h2>
+          <p style={bodyStyle}>
+            This service is not directed at individuals under the age of 16. We do not knowingly collect
+            personal data from children. If you believe we have inadvertently collected data from a child
+            under 16, please contact us and we will promptly delete it.
+          </p>
+        </div>
+
+        <div style={sectionStyle}>
           <h2 style={headingStyle}>Data Retention</h2>
           <p style={bodyStyle}>
             Server logs are retained for up to 90 days for operational purposes and then automatically deleted.
+            Error logs are retained for 30 days. Database query logs are not retained beyond server logs.
+            Computed analysis sessions (MCP) are retained until user requests deletion or 30 days of inactivity.
             API key records are retained for the duration of the key&rsquo;s active use and deleted upon request.
           </p>
         </div>
