@@ -80,6 +80,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         )}
         <Link href="/view/hg38/chr1:100000000-100100000" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Viewer</Link>
         <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Atlas</Link>
+        <Link href="/dmp" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>DMP</Link>
         <Link href="/docs"  style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'API' : 'API / MCP'}</Link>
       </div>
     </div>
