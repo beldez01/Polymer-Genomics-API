@@ -5,6 +5,7 @@ import time
 
 from fastapi import APIRouter, HTTPException, Query
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
 from polymer_genomics.db import get_pool
@@ -101,11 +102,26 @@ async def get_gene_profile(build: str, symbol: str):
             """,
             build, symbol,
         )
+        resolved_alias = None
         if not identity:
-            raise HTTPException(
-                404,
-                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in profiles for {build}"}},
-            )
+            canonical = await resolve_alias(conn, symbol)
+            if canonical:
+                resolved_alias = symbol
+                identity = await conn.fetchrow(
+                    """
+                    SELECT id, ensembl_gene_id, gene_symbol, chr_id, start_pos, end_pos,
+                           strand, gene_length_bp, canonical_transcript, n_transcripts
+                    FROM profiles.gene_identity
+                    WHERE build = $1::genome_build AND UPPER(gene_symbol) = UPPER($2)
+                    LIMIT 1
+                    """,
+                    build, canonical,
+                )
+            if not identity:
+                raise HTTPException(
+                    404,
+                    {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in profiles for {build}"}},
+                )
 
         gene_pk = identity["id"]
 
@@ -204,7 +220,7 @@ async def get_gene_profile(build: str, symbol: str):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "symbol": symbol},
+        query={"build": build, "symbol": symbol, **({"resolved_alias": resolved_alias} if resolved_alias else {})},
         layers_resolved=[{
             "layer_key": layer["layer_key"],
             "version": layer["version"],
@@ -266,10 +282,22 @@ async def get_similar_genes(
             build, symbol,
         )
         if not query_gene:
-            raise HTTPException(
-                404,
-                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in profiles for {build}"}},
-            )
+            canonical = await resolve_alias(conn, symbol)
+            if canonical:
+                query_gene = await conn.fetchrow(
+                    """
+                    SELECT gi.id, gi.ensembl_gene_id, gi.gene_symbol
+                    FROM profiles.gene_identity gi
+                    WHERE gi.build = $1::genome_build AND UPPER(gi.gene_symbol) = UPPER($2)
+                    LIMIT 1
+                    """,
+                    build, canonical,
+                )
+            if not query_gene:
+                raise HTTPException(
+                    404,
+                    {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in profiles for {build}"}},
+                )
 
         # Fetch all layer_vectors for query gene
         query_vectors = await conn.fetch(

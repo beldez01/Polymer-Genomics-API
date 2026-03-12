@@ -4,6 +4,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
 from polymer_genomics.db import get_pool
@@ -52,11 +53,29 @@ async def get_protein_abundance(build: str, symbol: str):
         )
         db_time = (time.monotonic() - db_start) * 1000
 
+    resolved_alias = None
     if not rows:
-        raise HTTPException(
-            404,
-            {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in protein_abundance layer for {build}"}},
-        )
+        async with pool.acquire() as alias_conn:
+            canonical = await resolve_alias(alias_conn, symbol)
+        if canonical:
+            resolved_alias = symbol
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT *
+                    FROM bioenergetics.protein_abundance
+                    WHERE build = $1::genome_build
+                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND layer_id = $3
+                    ORDER BY abundance_ppm DESC
+                    """,
+                    build, canonical, layer["id"],
+                )
+        if not rows:
+            raise HTTPException(
+                404,
+                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in protein_abundance layer for {build}"}},
+            )
 
     # Build coordinates from first row (all rows are the same gene)
     first = rows[0]
@@ -96,7 +115,7 @@ async def get_protein_abundance(build: str, symbol: str):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "symbol": symbol},
+        query={"build": build, "symbol": symbol, **({"resolved_alias": resolved_alias} if resolved_alias else {})},
         layers_resolved=[
             {
                 "layer_key": layer["layer_key"],

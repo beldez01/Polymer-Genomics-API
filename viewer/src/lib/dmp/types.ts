@@ -51,3 +51,5 @@ export type SortField = 'probe_id' | 'delta_beta' | 'p_value' | 'adj_p_value' | 
 export type SortDir = 'asc' | 'desc';
 
 export type FilterMode = 'all' | 'significant' | 'hyper' | 'hypo';
+
+export type PlotTab = 'volcano' | 'manhattan' | 'clustering' | 'enrichment' | 'compare';

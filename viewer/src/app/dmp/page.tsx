@@ -1,14 +1,19 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
 import { UploadZone } from '@/components/dmp/UploadZone';
 import { VolcanoPlot } from '@/components/dmp/VolcanoPlot';
+import { ManhattanPlot } from '@/components/dmp/ManhattanPlot';
 import { ProbeDetail } from '@/components/dmp/ProbeDetail';
 import { ResultsTable } from '@/components/dmp/ResultsTable';
 import { SummaryBar } from '@/components/dmp/SummaryBar';
 import { ThresholdControls } from '@/components/dmp/ThresholdControls';
-import type { DMPDataset, DMPRow, ThresholdState } from '@/lib/dmp/types';
+import { EnrichmentPanel } from '@/components/dmp/EnrichmentPanel';
+import { ClusteringPanel } from '@/components/dmp/ClusteringPanel';
+import { ComparisonPanel } from '@/components/dmp/ComparisonPanel';
+import { IdatUploadZone } from '@/components/dmp/IdatUploadZone';
+import type { DMPDataset, DMPRow, ThresholdState, PlotTab } from '@/lib/dmp/types';
 import { computeSummary } from '@/lib/dmp/stats';
 import Link from 'next/link';
 
@@ -18,18 +23,33 @@ const DEFAULT_THRESHOLDS: ThresholdState = {
   deltaBetaCutoff: 0.05,
 };
 
+const TABS: { key: PlotTab; label: string }[] = [
+  { key: 'volcano', label: 'Volcano' },
+  { key: 'manhattan', label: 'Manhattan' },
+  { key: 'clustering', label: 'Clustering' },
+  { key: 'enrichment', label: 'Enrichment' },
+  { key: 'compare', label: 'Compare' },
+];
+
 export default function DMPPage() {
   const [dataset, setDataset] = useState<DMPDataset | null>(null);
   const [thresholds, setThresholds] = useState<ThresholdState>(DEFAULT_THRESHOLDS);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [homeHover, setHomeHover] = useState(false);
+  const [activeTab, setActiveTab] = useState<PlotTab>('volcano');
+  const [tabHover, setTabHover] = useState<PlotTab | null>(null);
 
   const rows: DMPRow[] = dataset?.rows ?? [];
 
   const summary = useMemo(() => computeSummary(rows, thresholds), [rows, thresholds]);
 
   const selectedRow = selectedIndex !== null ? rows[selectedIndex] ?? null : null;
+
+  const hasGenomic = useMemo(
+    () => rows.some(r => r.chr && r.pos),
+    [rows],
+  );
 
   const handleDataLoaded = useCallback((ds: DMPDataset) => {
     setDataset(ds);
@@ -42,7 +62,11 @@ export default function DMPPage() {
     setSelectedIndex(null);
     setHoveredIndex(null);
     setThresholds(DEFAULT_THRESHOLDS);
+    setActiveTab('volcano');
   }, []);
+
+  // Tabs that don't need a dataset loaded
+  const isIndependentTab = activeTab === 'clustering' || activeTab === 'compare';
 
   return (
     <div style={{
@@ -87,7 +111,7 @@ export default function DMPPage() {
           DMP Results Viewer
         </span>
 
-        {dataset && (
+        {(dataset || isIndependentTab) && (
           <button
             onClick={handleReset}
             style={{
@@ -109,7 +133,7 @@ export default function DMPPage() {
       </header>
 
       {/* Content */}
-      {!dataset ? (
+      {!dataset && !isIndependentTab ? (
         /* Upload state */
         <div style={{
           flex: 1,
@@ -150,6 +174,43 @@ export default function DMPPage() {
             <UploadZone onDataLoaded={handleDataLoaded} />
           </div>
 
+          {/* Quick-access tabs for independent features */}
+          <div style={{
+            display: 'flex',
+            gap: SPACE[3],
+            marginTop: SPACE[4],
+          }}>
+            <button
+              onClick={() => setActiveTab('clustering')}
+              style={COMPONENT.button.small}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = COLOR.accent.teal;
+                e.currentTarget.style.color = COLOR.accent.teal;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = COLOR.border.strong;
+                e.currentTarget.style.color = COLOR.text.secondary;
+              }}
+            >
+              Upload Beta Matrix
+            </button>
+            <button
+              onClick={() => setActiveTab('compare')}
+              style={COMPONENT.button.small}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = COLOR.accent.teal;
+                e.currentTarget.style.color = COLOR.accent.teal;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = COLOR.border.strong;
+                e.currentTarget.style.color = COLOR.text.secondary;
+              }}
+            >
+              Compare Studies
+            </button>
+            <IdatUploadZone onResultsReady={handleDataLoaded} />
+          </div>
+
           <div style={{
             color: COLOR.text.muted,
             fontSize: TYPE.xs.fontSize,
@@ -164,70 +225,231 @@ export default function DMPPage() {
           </div>
         </div>
       ) : (
-        /* Results state */
+        /* Results state with tabs */
         <div style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
-          {/* Summary bar */}
-          <SummaryBar summary={summary} filename={dataset.filename} />
-
-          {/* Main content: volcano + controls + detail */}
+          {/* Tab navigation */}
           <div style={{
-            flex: 1,
             display: 'flex',
-            overflow: 'hidden',
-            minHeight: 0,
+            alignItems: 'center',
+            gap: SPACE[1],
+            padding: `0 ${SPACE[4]}px`,
+            backgroundColor: COLOR.bg.elevated,
+            borderBottom: `1px solid ${COLOR.border.subtle}`,
+            flexShrink: 0,
           }}>
-            {/* Left column: volcano + thresholds */}
+            {TABS.map(tab => {
+              const isActive = activeTab === tab.key;
+              const isHovered = tabHover === tab.key;
+              // Disable Manhattan if no genomic coords and we have a dataset
+              const disabled = tab.key === 'manhattan' && dataset && !hasGenomic;
+              // Disable enrichment if no data
+              const needsData = tab.key === 'volcano' || tab.key === 'manhattan' || tab.key === 'enrichment';
+              const noData = needsData && !dataset;
+
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => !disabled && !noData && setActiveTab(tab.key)}
+                  onMouseEnter={() => setTabHover(tab.key)}
+                  onMouseLeave={() => setTabHover(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: isActive
+                      ? `2px solid ${COLOR.accent.teal}`
+                      : '2px solid transparent',
+                    color: disabled || noData
+                      ? COLOR.text.faint
+                      : isActive
+                        ? COLOR.accent.teal
+                        : isHovered
+                          ? COLOR.text.primary
+                          : COLOR.text.muted,
+                    fontSize: TYPE.xs.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: isActive ? WEIGHT.medium : WEIGHT.normal,
+                    padding: `${SPACE[2]}px ${SPACE[3]}px`,
+                    cursor: disabled || noData ? 'default' : 'pointer',
+                    transition: 'color 0.15s, border-color 0.15s',
+                    letterSpacing: '0.04em',
+                    opacity: disabled || noData ? 0.4 : 1,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+
+            {/* Summary stats in tab bar */}
+            {dataset && (
+              <div style={{
+                marginLeft: 'auto',
+                display: 'flex',
+                gap: SPACE[4],
+                alignItems: 'center',
+              }}>
+                <span style={{
+                  color: COLOR.text.tertiary,
+                  fontSize: TYPE.xs.fontSize,
+                  fontFamily: FONT_FAMILY,
+                }}>
+                  {dataset.filename}
+                </span>
+                <span style={{
+                  color: COLOR.text.muted,
+                  fontSize: TYPE.xs.fontSize,
+                  fontFamily: FONT_FAMILY,
+                }}>
+                  {summary.total.toLocaleString()} probes
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Summary bar (only for data-dependent tabs) */}
+          {dataset && (activeTab === 'volcano' || activeTab === 'manhattan') && (
+            <SummaryBar summary={summary} filename={dataset.filename} />
+          )}
+
+          {/* Tab content */}
+          {activeTab === 'volcano' && dataset && (
             <div style={{
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              minWidth: 0,
+              overflow: 'hidden',
             }}>
-              <ThresholdControls
-                thresholds={thresholds}
-                onChange={setThresholds}
-              />
-              <div style={{ flex: 1, minHeight: 300 }}>
-                <VolcanoPlot
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                overflow: 'hidden',
+                minHeight: 0,
+              }}>
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minWidth: 0,
+                }}>
+                  <ThresholdControls
+                    thresholds={thresholds}
+                    onChange={setThresholds}
+                  />
+                  <div style={{ flex: 1, minHeight: 300, overflow: 'hidden' }}>
+                    <VolcanoPlot
+                      rows={rows}
+                      thresholds={thresholds}
+                      selectedIndex={selectedIndex}
+                      onSelectIndex={setSelectedIndex}
+                      onHoverIndex={setHoveredIndex}
+                      hoveredIndex={hoveredIndex}
+                    />
+                  </div>
+                </div>
+                <div style={{
+                  width: 320,
+                  flexShrink: 0,
+                  borderLeft: `1px solid ${COLOR.border.subtle}`,
+                  overflowY: 'auto',
+                }}>
+                  <ProbeDetail row={selectedRow} />
+                </div>
+              </div>
+              <div style={{
+                maxHeight: 400,
+                overflowY: 'auto',
+                borderTop: `1px solid ${COLOR.border.subtle}`,
+              }}>
+                <ResultsTable
                   rows={rows}
                   thresholds={thresholds}
                   selectedIndex={selectedIndex}
                   onSelectIndex={setSelectedIndex}
-                  onHoverIndex={setHoveredIndex}
-                  hoveredIndex={hoveredIndex}
                 />
               </div>
             </div>
+          )}
 
-            {/* Right sidebar: probe detail */}
+          {activeTab === 'manhattan' && dataset && (
             <div style={{
-              width: 320,
-              flexShrink: 0,
-              borderLeft: `1px solid ${COLOR.border.subtle}`,
-              overflowY: 'auto',
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}>
-              <ProbeDetail row={selectedRow} />
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                overflow: 'hidden',
+                minHeight: 0,
+              }}>
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minWidth: 0,
+                }}>
+                  <ThresholdControls
+                    thresholds={thresholds}
+                    onChange={setThresholds}
+                  />
+                  <div style={{ flex: 1, minHeight: 300, overflow: 'hidden' }}>
+                    <ManhattanPlot
+                      rows={rows}
+                      thresholds={thresholds}
+                      selectedIndex={selectedIndex}
+                      onSelectIndex={setSelectedIndex}
+                      onHoverIndex={setHoveredIndex}
+                      hoveredIndex={hoveredIndex}
+                    />
+                  </div>
+                </div>
+                <div style={{
+                  width: 320,
+                  flexShrink: 0,
+                  borderLeft: `1px solid ${COLOR.border.subtle}`,
+                  overflowY: 'auto',
+                }}>
+                  <ProbeDetail row={selectedRow} />
+                </div>
+              </div>
+              <div style={{
+                maxHeight: 400,
+                overflowY: 'auto',
+                borderTop: `1px solid ${COLOR.border.subtle}`,
+              }}>
+                <ResultsTable
+                  rows={rows}
+                  thresholds={thresholds}
+                  selectedIndex={selectedIndex}
+                  onSelectIndex={setSelectedIndex}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom: results table */}
-          <div style={{
-            maxHeight: 400,
-            overflowY: 'auto',
-            borderTop: `1px solid ${COLOR.border.subtle}`,
-          }}>
-            <ResultsTable
-              rows={rows}
-              thresholds={thresholds}
-              selectedIndex={selectedIndex}
-              onSelectIndex={setSelectedIndex}
-            />
-          </div>
+          {activeTab === 'clustering' && (
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <ClusteringPanel />
+            </div>
+          )}
+
+          {activeTab === 'enrichment' && dataset && (
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <EnrichmentPanel rows={rows} thresholds={thresholds} />
+            </div>
+          )}
+
+          {activeTab === 'compare' && (
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <ComparisonPanel thresholds={thresholds} />
+            </div>
+          )}
         </div>
       )}
     </div>

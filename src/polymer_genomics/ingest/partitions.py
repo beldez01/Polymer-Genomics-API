@@ -51,6 +51,8 @@ ALLOWED_TABLES = frozenset({
     "repeats",
     # Phase 7: biophysics
     "sequence_properties",
+    # Phase 8: gene aliases
+    "aliases",
 })
 ALLOWED_BUILDS = frozenset({"hg37", "hg38"})
 

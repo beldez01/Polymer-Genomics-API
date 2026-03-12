@@ -2,6 +2,7 @@ import time
 
 from fastapi import APIRouter, HTTPException, Query
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
@@ -59,10 +60,24 @@ async def query_proximity(
         )
 
         if not gene_bounds:
-            raise HTTPException(
-                404,
-                {"error": {"code": "NOT_FOUND", "message": f"Gene '{gene}' not found in {build}"}},
-            )
+            canonical = await resolve_alias(conn, gene)
+            if canonical:
+                gene_bounds = await conn.fetchrow(
+                    """
+                    SELECT chr_id, MIN(start_pos) AS gene_start, MAX(end_pos) AS gene_end
+                    FROM gene.features
+                    WHERE build = $1::genome_build
+                      AND gene_symbol = $2
+                      AND layer_id = $3
+                    GROUP BY chr_id
+                    """,
+                    build, canonical, layer["id"],
+                )
+            if not gene_bounds:
+                raise HTTPException(
+                    404,
+                    {"error": {"code": "NOT_FOUND", "message": f"Gene '{gene}' not found in {build}"}},
+                )
 
         chr_id = gene_bounds["chr_id"]
         chr_name = CHR_ID_TO_NAME.get(chr_id, f"chr{chr_id}")

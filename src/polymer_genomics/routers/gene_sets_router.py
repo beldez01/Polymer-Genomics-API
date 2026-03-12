@@ -4,6 +4,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.constants import VALID_BUILDS
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
@@ -51,11 +52,29 @@ async def get_gene_sets(build: str, symbol: str):
         )
         db_time = (time.monotonic() - db_start) * 1000
 
+    resolved_alias = None
     if not rows:
-        raise HTTPException(
-            404,
-            {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in gene_set layer for {build}"}},
-        )
+        async with pool.acquire() as alias_conn:
+            canonical = await resolve_alias(alias_conn, symbol)
+        if canonical:
+            resolved_alias = symbol
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT collection, gene_set_name, gene_set_description, source
+                    FROM annotation.gene_sets
+                    WHERE build = $1::genome_build
+                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND layer_id = $3
+                    ORDER BY collection, gene_set_name
+                    """,
+                    build, canonical, layer["id"],
+                )
+        if not rows:
+            raise HTTPException(
+                404,
+                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in gene_set layer for {build}"}},
+            )
 
     data = {
         "gene_symbol": symbol.upper(),
@@ -73,7 +92,7 @@ async def get_gene_sets(build: str, symbol: str):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "symbol": symbol},
+        query={"build": build, "symbol": symbol, **({"resolved_alias": resolved_alias} if resolved_alias else {})},
         layers_resolved=[
             {
                 "layer_key": layer["layer_key"],

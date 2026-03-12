@@ -2,6 +2,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
@@ -54,11 +55,42 @@ async def get_gene(build: str, symbol: str):
         )
         db_time = (time.monotonic() - db_start) * 1000
 
+    resolved_alias = None
     if not rows:
-        raise HTTPException(
-            404,
-            {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in {build}"}},
-        )
+        # Try alias resolution before 404
+        async with pool.acquire() as conn:
+            canonical = await resolve_alias(conn, symbol)
+        if canonical:
+            resolved_alias = symbol
+            async with pool.acquire() as conn:
+                layer = await conn.fetchrow(
+                    "SELECT id, layer_key, version, content_hash FROM registry.active_layers "
+                    "WHERE layer_type = 'gene_model' AND genome_build = $1::genome_build",
+                    build,
+                )
+                rows = await conn.fetch(
+                    """
+                    SELECT chr_id, start_pos, end_pos, strand, gene_symbol,
+                           gene_id, transcript_id, feature_type
+                    FROM gene.features
+                    WHERE build = $1::genome_build
+                      AND gene_symbol = $2
+                      AND layer_id = $3
+                    ORDER BY start_pos
+                    LIMIT $4
+                    """,
+                    build,
+                    canonical,
+                    layer["id"],
+                    settings.max_returned_rows,
+                )
+        if not rows:
+            raise HTTPException(
+                404,
+                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in {build}"}},
+            )
+    else:
+        canonical = symbol
 
     # Build GRanges response
     starts, ends, widths, strands = [], [], [], []
@@ -92,7 +124,7 @@ async def get_gene(build: str, symbol: str):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "gene_symbol": symbol},
+        query={"build": build, "gene_symbol": symbol, **({"resolved_alias": resolved_alias} if resolved_alias else {})},
         layers_resolved=[
             {
                 "layer_key": layer["layer_key"],

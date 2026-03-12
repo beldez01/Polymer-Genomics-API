@@ -39,7 +39,8 @@ async def search(
         if not layer:
             return {"results": [], "total": 0}
 
-        rows = await conn.fetch(
+        # Direct symbol matches
+        direct_rows = await conn.fetch(
             """
             SELECT gene_symbol, MIN(chr_id) AS chr_id, (gene_symbol = $4) AS exact_match
             FROM (
@@ -59,12 +60,58 @@ async def search(
             q,
         )
 
+        # Alias matches — search aliases and join to gene.features for chr info
+        alias_rows = await conn.fetch(
+            """
+            SELECT a.canonical_symbol AS gene_symbol,
+                   a.alias AS matched_alias,
+                   MIN(f.chr_id) AS chr_id
+            FROM gene.aliases a
+            JOIN registry.active_layers al ON al.id = a.layer_id AND al.layer_type = 'gene_alias'
+            LEFT JOIN gene.features f
+                ON f.build = $1::genome_build
+                AND f.gene_symbol = a.canonical_symbol
+                AND f.layer_id = $3
+            WHERE a.alias ILIKE $2
+            GROUP BY a.canonical_symbol, a.alias
+            ORDER BY (UPPER(a.alias) = UPPER($4)) DESC, a.canonical_symbol
+            LIMIT 20
+            """,
+            build,
+            safe_q + "%",
+            layer["id"],
+            q,
+        )
+
+    # Build results: direct matches first, then alias matches (deduplicated)
+    direct_symbols = {r["gene_symbol"] for r in direct_rows}
+
     results = [
         {
             "gene_symbol": r["gene_symbol"],
             "chromosome": CHR_ID_TO_NAME.get(r["chr_id"], f"chr{r['chr_id']}") if r["chr_id"] is not None else None,
             "type": "gene",
+            "match_type": "direct",
         }
-        for r in rows
+        for r in direct_rows
     ]
+
+    seen_symbols = set(direct_symbols)
+    for r in alias_rows:
+        sym = r["gene_symbol"]
+        # Skip alias matches whose canonical symbol already appears as a direct match
+        if sym in seen_symbols:
+            continue
+        seen_symbols.add(sym)
+        results.append({
+            "gene_symbol": sym,
+            "chromosome": CHR_ID_TO_NAME.get(r["chr_id"], f"chr{r['chr_id']}") if r["chr_id"] is not None else None,
+            "type": "gene",
+            "match_type": "alias",
+            "matched_alias": r["matched_alias"],
+        })
+
+    # Cap at 20 total results
+    results = results[:20]
+
     return {"results": results, "total": len(results)}

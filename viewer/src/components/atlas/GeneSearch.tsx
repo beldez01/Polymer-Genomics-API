@@ -316,6 +316,16 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
                       ) : (
                         r.gene_symbol
                       )}
+                      {r.match_type === 'alias' && r.matched_alias && (
+                        <span style={{
+                          color: COLOR.text.muted,
+                          fontSize: TYPE.xs.fontSize,
+                          fontFamily: FONT_FAMILY,
+                          marginLeft: SPACE[2],
+                        }}>
+                          ({r.matched_alias})
+                        </span>
+                      )}
                     </span>
                     {r.chromosome && (
                       <span style={{

@@ -4,6 +4,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
+from polymer_genomics.aliases import resolve_alias
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
 from polymer_genomics.db import get_pool
@@ -61,11 +62,29 @@ async def get_gene_cost(build: str, symbol: str):
         )
         db_time = (time.monotonic() - db_start) * 1000
 
+    resolved_alias = None
     if not row:
-        raise HTTPException(
-            404,
-            {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in gene_cost layer for {build}"}},
-        )
+        async with pool.acquire() as alias_conn:
+            canonical = await resolve_alias(alias_conn, symbol)
+        if canonical:
+            resolved_alias = symbol
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    """
+                    SELECT *
+                    FROM bioenergetics.gene_costs
+                    WHERE build = $1::genome_build
+                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND layer_id = $3
+                    LIMIT 1
+                    """,
+                    build, canonical, layer["id"],
+                )
+        if not row:
+            raise HTTPException(
+                404,
+                {"error": {"code": "NOT_FOUND", "message": f"Gene '{symbol}' not found in gene_cost layer for {build}"}},
+            )
 
     # Build structured response with 7 groups
     coordinates = None
@@ -181,7 +200,7 @@ async def get_gene_cost(build: str, symbol: str):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "symbol": symbol},
+        query={"build": build, "symbol": symbol, **({"resolved_alias": resolved_alias} if resolved_alias else {})},
         layers_resolved=[
             {
                 "layer_key": layer["layer_key"],

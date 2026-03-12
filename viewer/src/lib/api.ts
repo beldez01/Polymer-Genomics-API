@@ -76,6 +76,8 @@ export interface SearchResult {
   gene_symbol: string;
   chromosome?: string;
   type: string;
+  match_type?: 'direct' | 'alias';
+  matched_alias?: string;
 }
 
 // --- API functions ---
