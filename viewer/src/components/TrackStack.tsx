@@ -1,6 +1,7 @@
 'use client';
 
 import type { ViewportData } from '@/lib/genomeFetcher';
+import type { LayerResolved } from '@/lib/api';
 import { SequenceTrack } from './tracks/SequenceTrack';
 import { GeneTrack } from './tracks/GeneTrack';
 import { CodonFrameTrack } from './tracks/CodonFrameTrack';
@@ -12,6 +13,7 @@ import { GCTrack } from './tracks/GCTrack';
 import { MethylationReferenceTrack } from './tracks/MethylationReferenceTrack';
 import { HistoneTrack } from './tracks/HistoneTrack';
 import { GwasTrack } from './tracks/GwasTrack';
+import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
@@ -30,7 +32,7 @@ export interface TrackStackProps {
   enabledMotifs?: string[];
 }
 
-function TrackRow({ label, children }: { label: string; children: React.ReactNode }) {
+function TrackRow({ label, evidenceClass, children }: { label: string; evidenceClass?: string | null; children: React.ReactNode }) {
   return (
     <div style={{
       borderBottom: `1px solid ${COLOR.border.subtle}`,
@@ -46,6 +48,7 @@ function TrackRow({ label, children }: { label: string; children: React.ReactNod
         justifyContent: 'flex-end',
         paddingRight: 8,
         paddingLeft: 4,
+        gap: 4,
         borderRight: `1px solid ${COLOR.border.subtle}`,
         color: COLOR.text.muted,
         fontSize: TYPE.xs.fontSize,
@@ -56,6 +59,7 @@ function TrackRow({ label, children }: { label: string; children: React.ReactNod
         userSelect: 'none',
       }}>
         {label}
+        <EvidenceBadge evidenceClass={evidenceClass} />
       </div>
       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
         {children}
@@ -79,6 +83,13 @@ export function TrackStack({
   const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
   const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
 
+  // Build layer_key → evidence_class lookup
+  const ecMap = new Map<string, string>();
+  for (const lr of data?.layersResolved ?? []) {
+    if (lr.evidence_class) ecMap.set(lr.layer_key, lr.evidence_class);
+  }
+  const ec = (key: string) => ecMap.get(key);
+
   if (error) {
     return (
       <div className="flex items-center justify-center h-full" style={{ backgroundColor: COLOR.bg.primary }}>
@@ -97,13 +108,13 @@ export function TrackStack({
 
       <div className="flex flex-col">
         {data?.layers?.isochores && (
-          <TrackRow label="Isochores">
+          <TrackRow label="Isochores" evidenceClass={ec('isochores')}>
             <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
           </TrackRow>
         )}
 
         {data?.sequence != null && (
-          <TrackRow label="Sequence">
+          <TrackRow label="Sequence" evidenceClass={ec('genome_sequence')}>
             <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} enabledMotifs={enabledMotifs} />
           </TrackRow>
         )}
@@ -115,13 +126,13 @@ export function TrackStack({
         )}
 
         {data?.layers?.gencode_v44 && (
-          <TrackRow label="Genes">
+          <TrackRow label="Genes" evidenceClass={ec('gencode_v44')}>
             <GeneTrack data={data.layers.gencode_v44} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} showCodons={showCodons} />
           </TrackRow>
         )}
 
         {data?.layers?.gene_costs_v1 && (
-          <TrackRow label="Cost">
+          <TrackRow label="Cost" evidenceClass={ec('gene_costs_v1')}>
             <CostTrack data={data.layers.gene_costs_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={36} />
           </TrackRow>
         )}
@@ -135,32 +146,32 @@ export function TrackStack({
             .map((k) => ({ key: k, data: data!.layers![k]! }));
           if (datasets.length === 0) return null;
           return (
-            <TrackRow label="Probes">
+            <TrackRow label="Probes" evidenceClass={ec('probe_epic_v2') ?? ec('probe_epic_v1') ?? ec('probe_450k')}>
               <ProbeTrack datasets={datasets} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
             </TrackRow>
           );
         })()}
 
         {data?.layers?.methylation_atlas && (
-          <TrackRow label="Meth Ref">
+          <TrackRow label="Meth Ref" evidenceClass={ec('methylation_atlas')}>
             <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} visibleCellTypes={visibleCellTypes} />
           </TrackRow>
         )}
 
         {data?.layers?.histone_peaks_encode_v1 && (
-          <TrackRow label="Histones">
+          <TrackRow label="Histones" evidenceClass={ec('histone_peaks_encode_v1')}>
             <HistoneTrack data={data.layers.histone_peaks_encode_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
           </TrackRow>
         )}
 
         {data?.layers?.gwas_catalog_ebi_v1 && (
-          <TrackRow label="GWAS">
+          <TrackRow label="GWAS" evidenceClass={ec('gwas_catalog_ebi_v1')}>
             <GwasTrack data={data.layers.gwas_catalog_ebi_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
           </TrackRow>
         )}
 
         {showGC && (
-          <TrackRow label="GC%">
+          <TrackRow label="GC%" evidenceClass={ec('sequence_biophysics_l0')}>
             <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}

@@ -5,11 +5,13 @@ import {
   fetchTile,
   type TileResponse,
   type GRanges,
+  type LayerResolved,
 } from './api';
 
 export interface ViewportData {
   sequence: string | null; // Raw DNA sequence (only at bp resolution)
   layers: Record<string, GRanges>; // Feature data per layer
+  layersResolved: LayerResolved[]; // Epistemic metadata per layer
   resolution: number; // The resolution tier used
 }
 
@@ -80,6 +82,7 @@ export async function fetchViewportData(
     return {
       sequence: seqResult?.sequence ?? null,
       layers: featureRes.data,
+      layersResolved: featureRes.layers_resolved ?? [],
       resolution: 1,
     };
   }
@@ -143,9 +146,18 @@ export async function fetchViewportData(
     }
   }
 
+  // Collect unique layers_resolved from all tiles
+  const resolvedMap = new Map<string, LayerResolved>();
+  for (const tile of tiles) {
+    for (const lr of tile.layers_resolved ?? []) {
+      if (!resolvedMap.has(lr.layer_key)) resolvedMap.set(lr.layer_key, lr);
+    }
+  }
+
   return {
     sequence: null,
     layers: mergedLayers,
+    layersResolved: Array.from(resolvedMap.values()),
     resolution,
   };
 }

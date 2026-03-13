@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { BrandBar } from '@/components/BrandBar';
 import { CoordinateRuler } from '@/components/CoordinateRuler';
 import { RegionContextPanel } from '@/components/RegionContextPanel';
+import { ExportButton } from '@/components/ExportButton';
 import { Footer } from '@/components/Footer';
 import { useRegionContext } from '@/hooks/useRegionContext';
 import { getChromosomeByName } from '@/config/chromosomes';
@@ -34,6 +35,7 @@ function ViewerPage() {
 
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const [canvasWidth, setCanvasWidth] = useState(1200);
   const [showContext, setShowContext] = useState(true);
   const [copyLabel, setCopyLabel] = useState('Link');
@@ -166,16 +168,25 @@ function ViewerPage() {
       <BrandBar onToggleSidebar={() => setMobileSidebarOpen(v => !v)} />
 
       {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
-      <HeaderBar
-        build={build}
-        chr={chr}
-        start={start}
-        end={end}
-        onNavigate={handleNavigate}
-        onBuildChange={setBuild}
-        copyLinkLabel={copyLabel}
-        onCopyLink={handleCopyLink}
-      />
+      <div className="flex items-center" style={{ backgroundColor: COLOR.bg.primary }}>
+        <div className="flex-1">
+          <HeaderBar
+            build={build}
+            chr={chr}
+            start={start}
+            end={end}
+            onNavigate={handleNavigate}
+            onBuildChange={setBuild}
+            copyLinkLabel={copyLabel}
+            onCopyLink={handleCopyLink}
+          />
+        </div>
+        {!isMobile && (
+          <div style={{ paddingRight: 12, flexShrink: 0 }}>
+            <ExportButton targetRef={exportRef} region={`${chr}:${start}-${end}`} build={build} />
+          </div>
+        )}
+      </div>
 
       <IdeogramBar
         currentChromosome={chr}
@@ -256,7 +267,7 @@ function ViewerPage() {
             </div>
           )}
 
-          <div ref={animRef} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform' }}>
+          <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform' }}>
             <div style={{ backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
               <CoordinateRuler
                 viewStart={start}

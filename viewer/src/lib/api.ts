@@ -26,6 +26,9 @@ export interface LayerResolved {
   version: string;
   layer_id: string;
   content_hash: string | null;
+  evidence_class?: string | null;
+  tier?: string | null;
+  validation_status?: string | null;
   status: string;
 }
 
