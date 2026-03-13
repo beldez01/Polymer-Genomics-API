@@ -29,6 +29,9 @@ mcp = FastMCP(
         "strand[], mcols{}. status='complete' or 'truncated'.\n"
         "TRUNCATION: If status='truncated', results are incomplete. Use aggregate_region "
         "for overview, then drill into sub-regions. Never report truncated data as complete.\n\n"
+        "START HERE:\n"
+        "- Evaluate any DNA sequence → evaluate_design (physics linter: thermodynamics, CpG islands, flags, 10-100kb)\n"
+        "- Compare multiple sequences → compare_sequences (side-by-side biophysical comparison with deltas)\n\n"
         "TOOL SELECTION:\n"
         "- Gene by name → lookup_gene (returns exons/introns/UTRs; supports aliases like OCT4→POU5F1, p53→TP53)\n"
         "- Probe by ID → lookup_probe (coordinates + CpG context + crossmap)\n"
@@ -56,7 +59,14 @@ mcp = FastMCP(
         "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity, MGW, ProT, Roll, HelT — genome-wide pre-computed)\n"
         "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n"
         "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
-        "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE coefficients)\n\n"
+        "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
+        "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n\n"
+        "WORKFLOW PATTERNS:\n"
+        "- Evaluate a construct: evaluate_design → review flags\n"
+        "- Compare designs: compare_sequences → check deltas_vs_reference\n"
+        "- Investigate a gene: lookup_gene → lookup_gene_expression → compute_region_biophysics\n"
+        "- Annotate methylation hits: batch_probes → lookup_gene → lookup_gene_expression\n"
+        "- Cross-layer analysis: query_region (multi-layer) → correlate_layers\n\n"
         "COMPUTE TOOLS (requires local R + Bioconductor):\n"
         "- Load IDATs → load_idats (creates analysis session)\n"
         "- Normalize → normalize (openSesame for EPICv2, funnorm for 450K/EPIC)\n"
@@ -696,16 +706,17 @@ async def lookup_clock_probes(
     """Look up epigenetic clock probe coefficients.
 
     Returns probe weights for epigenetic age clocks: Horvath (2013, pan-tissue),
-    Hannum (2013, blood), PhenoAge (Levine 2018), GrimAge (Lu 2019), and
-    DunedinPACE (Belsky 2022). Query by clock name to get all probes, or by
-    probe_id to see which clocks use it.
+    Hannum (2013, blood), PhenoAge (Levine 2018), GrimAge (Lu 2019),
+    DunedinPACE (Belsky 2022), and Retro-Age (retroelement clocks: retro_age_v2,
+    retro_age_450k, retro_age_panmammalian). Query by clock name to get all
+    probes, or by probe_id to see which clocks use it.
 
     Use this when checking whether a CpG probe is part of an epigenetic clock,
     retrieving clock coefficients for age prediction, or understanding the
     relative weight of a probe in age estimation.
 
     Args:
-        clock: Clock name (e.g. 'horvath_2013', 'phenoage_2018'). Returns all probes for that clock.
+        clock: Clock name (e.g. 'horvath_2013', 'phenoage_2018', 'retro_age_v2'). Returns all probes for that clock.
         probe_id: Probe ID (e.g. 'cg16867657'). Returns all clocks using this probe.
     """
     params: dict = {}
@@ -714,6 +725,41 @@ async def lookup_clock_probes(
     if probe_id:
         params["probe_id"] = probe_id
     return await _get("/v1/reference/clock-probes", params)
+
+
+@mcp.tool()
+async def lookup_probe_repeat_overlap(
+    probe_id: str | None = None,
+    platform: str | None = None,
+    repeat_class: str | None = None,
+    repeat_age: str | None = None,
+    limit: int = 100,
+) -> dict:
+    """Look up probes that overlap repeat elements (LINE, SINE, LTR, DNA transposons).
+
+    Returns which methylation array probes sit inside repeat elements, with
+    evolutionary age classification (young/intermediate/ancient) and divergence.
+
+    Use this when checking if a probe falls within a transposable element, or to
+    find all probes in a repeat class (e.g. all LTR-overlapping probes for ERV analysis).
+
+    Args:
+        probe_id: Optional probe ID (e.g. 'cg16867657'). Check one probe.
+        platform: Optional platform filter ('epic_v2', 'epic_v1', '450k').
+        repeat_class: Optional repeat class filter ('LINE', 'SINE', 'LTR', 'DNA').
+        repeat_age: Optional age filter ('young', 'intermediate', 'ancient').
+        limit: Max results (default 100, max 10000).
+    """
+    params: dict = {"limit": str(limit)}
+    if probe_id:
+        params["probe_id"] = probe_id
+    if platform:
+        params["platform"] = platform
+    if repeat_class:
+        params["repeat_class"] = repeat_class
+    if repeat_age:
+        params["repeat_age"] = repeat_age
+    return await _get("/v1/reference/probe-repeat-overlap", params)
 
 
 @mcp.tool()
@@ -748,6 +794,97 @@ async def intersect_layers(
         "filters": filters,
         "return_layers": return_layers,
         "limit": limit,
+    })
+
+
+@mcp.tool()
+async def evaluate_design(
+    sequence: str,
+    name: str = "unnamed",
+    analysis: str = "full",
+    salt_mm: float = 1000.0,
+    window_size: int = 100,
+) -> dict:
+    """Evaluate the biophysical properties of any DNA sequence (physics linter).
+
+    Takes a raw DNA sequence (10–100,000 bp, not a genomic coordinate) and
+    returns a structured biophysical assessment. This is the recommended
+    starting point for evaluating synthetic constructs, promoters, or any
+    designed DNA sequence.
+
+    Returns:
+    - summary: GC content, CpG count/density, melting temp, mean stacking ΔG₃₇
+    - cpg_islands: detected CpG islands (Gardiner-Garden & Frommer criteria)
+    - thermodynamics: stacking energy statistics + windowed profiles
+    - extinction: UV absorbance at 260 nm
+    - structural: A/Z-form propensity, groove geometry
+    - flags: actionable warnings (CpG islands, homopolymers, repeats, instability)
+
+    Example output (truncated):
+    {
+      "summary": {"gc_content": 0.52, "cpg_island_count": 1, "mean_stacking_dG37_kcal": -1.42},
+      "cpg_islands": [{"start": 1200, "end": 1850, "gc": 0.67, "obs_exp_cpg": 0.82}],
+      "flags": [{"type": "warning", "code": "CPG_ISLAND", "region": "1200-1850", "message": "..."}]
+    }
+
+    Does NOT use genomic coordinates — works on any arbitrary sequence.
+    For genomic region biophysics, use compute_region_biophysics instead.
+
+    Args:
+        sequence: DNA sequence (ACGT characters, Ns tolerated). 10–100,000 bp.
+        name: Label for this sequence (for your reference).
+        analysis: 'full' (default), 'thermodynamic', or 'structural'.
+        salt_mm: NaCl in mM (1000=standard SantaLucia, 150=physiological).
+        window_size: Window size in bp for profiles (default 100).
+    """
+    return await _post("/v1/evaluate", {
+        "sequence": sequence,
+        "name": name,
+        "analysis": analysis,
+        "salt_mm": salt_mm,
+        "window_size": window_size,
+    })
+
+
+@mcp.tool()
+async def compare_sequences(
+    sequences: dict[str, str],
+    analysis: str = "full",
+    salt_mm: float = 1000.0,
+    window_size: int = 100,
+) -> dict:
+    """Compare biophysical properties of multiple DNA sequences side-by-side.
+
+    Accepts 2–10 named sequences. Returns per-sequence evaluations plus a
+    delta table comparing each against the first (reference) sequence.
+
+    Use this when comparing codon-optimized variants, promoter candidates,
+    or assessing the biophysical impact of mutations.
+
+    Example output (truncated):
+    {
+      "reference": "wildtype",
+      "comparison": {
+        "wildtype": {"gc_content": 0.52, "cpg_island_count": 1, "flag_count": 3},
+        "optimized": {"gc_content": 0.48, "cpg_island_count": 0, "flag_count": 1}
+      },
+      "deltas_vs_reference": {
+        "optimized": {"delta_gc": -0.04, "delta_cpg_islands": -1, "delta_warnings": -2}
+      }
+    }
+
+    Args:
+        sequences: Dict mapping names to DNA sequences. First entry is the reference.
+                   Example: {"wildtype": "ATGCGA...", "v1": "ATGCGA...", "v2": "ATGCGA..."}
+        analysis: 'full' (default), 'thermodynamic', or 'structural'.
+        salt_mm: NaCl in mM (1000=standard, 150=physiological).
+        window_size: Window size in bp for profiles (default 100).
+    """
+    return await _post("/v1/compare", {
+        "sequences": sequences,
+        "analysis": analysis,
+        "salt_mm": salt_mm,
+        "window_size": window_size,
     })
 
 
