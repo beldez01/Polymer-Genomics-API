@@ -29,6 +29,8 @@ Polymer Genomics API must comply with the upstream license for any data they acc
 | Epigenetic clock coefficients | Published literature; patent restrictions may apply | See individual publications |
 | HumCFS / Mitelman (breakpoints) | Mixed — see individual sources | https://webs.iiitd.edu.in/raghava/humcfs/ |
 | Polymer Evolution L0 (biophysics) | MIT | This project |
+| Telescope HERV Annotation v2 (Bendall) | No explicit license (academic use) | https://github.com/mlbendall/telescope_annotation_db |
+| Retroelement-Age Clock (TruDiagnostic) | CC BY 4.0 | https://zenodo.org/records/11099870 |
 | Gene profiles, gene costs | Derived from multiple sources above | — |
 
 ## Compute Engine Dependencies

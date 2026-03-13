@@ -97,9 +97,14 @@ INTERSECT_TABLES: dict[str, dict] = {
         },
     },
     "repeats": {
-        "table": "annotation.repeat_elements",
+        "table": "annotation.repeats",
         "id_col": "layer_id",
-        "fields": {"repeat_class", "repeat_family"},
+        "fields": {"repeat_class", "repeat_family", "repeat_age", "is_active", "superfamily"},
+    },
+    "herv_loci": {
+        "table": "annotation.herv_loci",
+        "id_col": "layer_id",
+        "fields": {"subfamily", "n_fragments", "locus_length"},
     },
 }
 

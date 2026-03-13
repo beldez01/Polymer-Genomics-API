@@ -97,6 +97,30 @@ _CLOCK_METADATA = [
         "pmid": "35029144",
         "source_citation": "Belsky 2022 eLife 11:e73420",
     },
+    {
+        "clock_name": "retro_age_v2",
+        "display_name": "Retro-Age v2 (Retroelement Clock)",
+        "n_probes": 1378,
+        "tissue": "blood",
+        "outcome": "chronological_age",
+        "intercept": 62.0741981282895,
+        "age_transform": "linear",
+        "platform": "epic_v2",
+        "pmid": None,
+        "source_citation": "Zenodo doi:10.5281/zenodo.11099870 (CC BY 4.0)",
+    },
+    {
+        "clock_name": "retro_age_450k",
+        "display_name": "Retro-Age 450K (Retroelement Clock)",
+        "n_probes": 1317,
+        "tissue": "blood",
+        "outcome": "chronological_age",
+        "intercept": 78.1361629627562,
+        "age_transform": "linear",
+        "platform": "450k",
+        "pmid": None,
+        "source_citation": "Zenodo doi:10.5281/zenodo.11099870 (CC BY 4.0)",
+    },
 ]
 
 
@@ -186,12 +210,19 @@ _DUNEDINPACE_PROBES = [
 _DUNEDINPACE_CITATION = "Belsky 2022 eLife 11:e73420, Supplementary File 1"
 
 
+_RETRO_AGE_CITATION = "Zenodo doi:10.5281/zenodo.11099870 (CC BY 4.0)"
+
 _ALL_CLOCKS_PROBES = {
     "horvath_2013": (_HORVATH_PROBES, _HORVATH_CITATION),
     "hannum_2013": (_HANNUM_PROBES, _HANNUM_CITATION),
     "phenoage_2018": (_PHENOAGE_PROBES, _PHENOAGE_CITATION),
     "grimage_2019": (_GRIMAGE_PROBES, _GRIMAGE_CITATION),
     "dunedinpace_2022": (_DUNEDINPACE_PROBES, _DUNEDINPACE_CITATION),
+    # Retro-Age clocks: coefficients loaded from TSV only (no embedded probes).
+    # Run with --data-dir pointing to Zenodo download containing:
+    #   retro_age_v2.tsv, retro_age_450k.tsv
+    "retro_age_v2": ([], _RETRO_AGE_CITATION),
+    "retro_age_450k": ([], _RETRO_AGE_CITATION),
 }
 
 

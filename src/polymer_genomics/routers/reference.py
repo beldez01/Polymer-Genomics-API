@@ -467,3 +467,82 @@ async def get_clock_probes(
         db_time_ms=db_time,
         _start_time=start_time,
     )
+
+
+# ── Probe-Repeat Overlap ──────────────────────────────────────────────────
+
+
+@router.get("/probe-repeat-overlap")
+async def get_probe_repeat_overlap(
+    probe_id: str | None = Query(None, description="Probe ID (e.g. 'cg16867657')"),
+    platform: str | None = Query(None, description="Platform filter ('epic_v2', 'epic_v1', '450k')"),
+    repeat_class: str | None = Query(None, description="Repeat class filter ('LINE', 'SINE', 'LTR', 'DNA')"),
+    repeat_age: str | None = Query(None, description="Repeat age filter ('young', 'intermediate', 'ancient')"),
+    limit: int = Query(100, le=10000, description="Maximum results to return"),
+):
+    """Look up probes that overlap repeat elements.
+
+    Returns the probe-repeat cross-reference: which methylation probes sit
+    inside LINE, SINE, LTR, or DNA transposon elements, with evolutionary
+    age classification.
+
+    Query by probe_id to check if a specific probe is in a repeat, or
+    filter by repeat_class/repeat_age to find all probes in a category.
+    """
+    start_time = time.monotonic()
+
+    # Build dynamic query
+    conditions = []
+    params: list = []
+    idx = 1
+
+    if probe_id:
+        conditions.append(f"probe_id = ${idx}")
+        params.append(probe_id.strip())
+        idx += 1
+    if platform:
+        conditions.append(f"platform = ${idx}")
+        params.append(platform)
+        idx += 1
+    if repeat_class:
+        conditions.append(f"repeat_class = ${idx}")
+        params.append(repeat_class)
+        idx += 1
+    if repeat_age:
+        conditions.append(f"repeat_age = ${idx}::repeat_age_class")
+        params.append(repeat_age)
+        idx += 1
+
+    where = " AND ".join(conditions) if conditions else "TRUE"
+    sql = (
+        f"SELECT probe_id, platform, build, chr_id, pos, "
+        f"repeat_class, repeat_family, repeat_name, repeat_age, divergence_pct "
+        f"FROM probe.repeat_xref WHERE {where} "
+        f"ORDER BY probe_id LIMIT ${idx}"
+    )
+    params.append(limit)
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        db_start = time.monotonic()
+        rows = await conn.fetch(sql, *params)
+        db_time = (time.monotonic() - db_start) * 1000
+
+    entries = [dict(r) for r in rows]
+    # Convert repeat_age enum to string
+    for e in entries:
+        if e.get("repeat_age") is not None:
+            e["repeat_age"] = str(e["repeat_age"])
+
+    return _ref_envelope(
+        query={
+            "probe_id": probe_id,
+            "platform": platform,
+            "repeat_class": repeat_class,
+            "repeat_age": repeat_age,
+            "limit": limit,
+        },
+        data={"overlaps": entries, "n": len(entries)},
+        db_time_ms=db_time,
+        _start_time=start_time,
+    )

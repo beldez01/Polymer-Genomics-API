@@ -25,4 +25,8 @@ data/msigdb/
 data/paxdb/
 data/reactome/
 data/repeatmasker/
+data/herv/
+data/clocks/
+data/encode/
+data/gwas/
 .vercel

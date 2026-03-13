@@ -261,7 +261,8 @@ def region_biophysics_query() -> str:
                b.gc_content, b.stacking_dg37, b.melting_temp,
                b.curvature, b.groove_width, b.dipole_density,
                b.periodicity_power,
-               b.mgw_mean, b.prot_mean, b.roll_mean, b.helt_mean
+               b.mgw_mean, b.prot_mean, b.roll_mean, b.helt_mean,
+               b.delta_mgw, b.delta_prot, b.delta_roll, b.delta_helt
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -311,13 +312,29 @@ def region_repeats_query() -> str:
     return """
         SELECT r.start_pos, r.end_pos, r.strand,
                r.repeat_name, r.repeat_class, r.repeat_family,
-               r.divergence_pct
+               r.divergence_pct,
+               r.repeat_age, r.is_active, r.superfamily
         FROM annotation.repeats r
         WHERE r.build = $1::genome_build
           AND r.chr_id = $2
           AND r.coord && int4range($3, $4)
           AND r.layer_id = $5
         ORDER BY r.start_pos
+        LIMIT $6
+    """
+
+
+def region_herv_loci_query() -> str:
+    """Telescope HERV proviral loci."""
+    return """
+        SELECT h.start_pos, h.end_pos, h.strand,
+               h.locus_id, h.subfamily, h.n_fragments, h.locus_length
+        FROM annotation.herv_loci h
+        WHERE h.build = $1::genome_build
+          AND h.chr_id = $2
+          AND h.coord && int4range($3, $4)
+          AND h.layer_id = $5
+        ORDER BY h.start_pos
         LIMIT $6
     """
 
@@ -785,6 +802,7 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
     starts, ends, widths = [], [], []
     gc, stacking, tm, curv, groove, dipole, period = [], [], [], [], [], [], []
     mgw, prot, roll, helt = [], [], [], []
+    d_mgw, d_prot, d_roll, d_helt = [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -801,6 +819,10 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         prot.append(r["prot_mean"])
         roll.append(r["roll_mean"])
         helt.append(r["helt_mean"])
+        d_mgw.append(r["delta_mgw"])
+        d_prot.append(r["delta_prot"])
+        d_roll.append(r["delta_roll"])
+        d_helt.append(r["delta_helt"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -813,6 +835,8 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "periodicity_power": period,
             "mgw_mean": mgw, "prot_mean": prot,
             "roll_mean": roll, "helt_mean": helt,
+            "delta_mgw": d_mgw, "delta_prot": d_prot,
+            "delta_roll": d_roll, "delta_helt": d_helt,
         },
         "n": len(rows),
     }
@@ -882,6 +906,7 @@ def _convert_gwas(rows: list, chr_name: str) -> dict:
 def _convert_repeats(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     names, classes, families, divergences = [], [], [], []
+    ages, actives, superfamilies = [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -892,6 +917,9 @@ def _convert_repeats(rows: list, chr_name: str) -> dict:
         classes.append(r["repeat_class"])
         families.append(r["repeat_family"])
         divergences.append(r["divergence_pct"])
+        ages.append(r["repeat_age"])
+        actives.append(r["is_active"])
+        superfamilies.append(r["superfamily"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -900,6 +928,34 @@ def _convert_repeats(rows: list, chr_name: str) -> dict:
         "mcols": {
             "repeat_name": names, "repeat_class": classes,
             "repeat_family": families, "divergence_pct": divergences,
+            "repeat_age": ages, "is_active": actives,
+            "superfamily": superfamilies,
+        },
+        "n": len(rows),
+    }
+
+
+def _convert_herv_loci(rows: list, chr_name: str) -> dict:
+    starts, ends, widths, strands = [], [], [], []
+    locus_ids, subfamilies, n_frags, lengths = [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        strands.append(r["strand"] or "*")
+        locus_ids.append(r["locus_id"])
+        subfamilies.append(r["subfamily"])
+        n_frags.append(r["n_fragments"])
+        lengths.append(r["locus_length"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": strands,
+        "mcols": {
+            "locus_id": locus_ids, "subfamily": subfamilies,
+            "n_fragments": n_frags, "locus_length": lengths,
         },
         "n": len(rows),
     }
@@ -977,6 +1033,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "repeat": {
         "query_fn": region_repeats_query,
         "convert_fn": _convert_repeats,
+    },
+    "herv": {
+        "query_fn": region_herv_loci_query,
+        "convert_fn": _convert_herv_loci,
     },
     "biophysics": {
         "query_fn": region_biophysics_query,
