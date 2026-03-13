@@ -11,6 +11,7 @@
 > - Sprint 3 (Multi-key auth): DEFERRED — build when users need keys
 > - Sprint 4 (Developer landing + docs): COMPLETE
 > - Sprint 5 (MCP hardening): COMPLETE
+> - Sprint 6 (Design Evaluator frontend): COMPLETE
 
 ## Executive Summary
 
