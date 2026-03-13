@@ -139,8 +139,9 @@ cat(sprintf("  Matched: %d / %d probes in annotation\n",
             length(matched), length(probe_ids)))
 
 if (build == "hg38") {
-  cat("  NOTE: Coordinates are hg19. For hg38, liftOver would be needed.\n")
-  cat("  Using hg19 coordinates (positional offset is typically <10bp at probe resolution).\n")
+  cat("  WARNING: Annotation coordinates are hg19 (ilm10b4.hg19).\n")
+  cat("  For true hg38, liftOver is required — offsets can be thousands of bp.\n")
+  cat("  Output will contain hg19 coordinates labeled as the requested build.\n")
 }
 
 # Build coordinates data frame

@@ -16,7 +16,7 @@ import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
 // ---------------------------------------------------------------------------
 
 const BUILD = 'hg38';
-const LAYERS = ['gencode_v44', 'cpg_islands', 'probe_epic_v2'] as const;
+const LAYERS = ['gencode_v44', 'cpg_sites', 'probe_epic_v2'] as const;
 const AGG_RESOLUTION = 1_000_000;
 
 // ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ export default function AtlasPage() {
             ...prev,
             [chr.name]: {
               genes: sumBinCounts(agg, 'gencode_v44'),
-              cpgIslands: sumBinCounts(agg, 'cpg_islands'),
+              cpgIslands: sumBinCounts(agg, 'cpg_sites'),
               probes: sumBinCounts(agg, 'probe_epic_v2'),
               loaded: true,
             },

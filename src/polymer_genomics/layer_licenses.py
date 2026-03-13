@@ -24,4 +24,8 @@ LAYER_SOURCE_INFO = {
     "clock": {"source": "Published literature (see polymerbio.org/data-sources)", "license": "Published literature; patent restrictions may apply"},
     "sbs": {"source": "COSMIC SBS Signatures v3.4", "license": "Free for non-commercial use"},
     "sequence": {"source": "GRCh38 / GRCh37", "license": "Public Domain"},
+    "herv": {"source": "Telescope / HervQuant (HERV annotation)", "license": "Published literature"},
+    "dnashape": {"source": "DNAshapeR / GBshape", "license": "GPL-2.0"},
+    "nonb_dna": {"source": "Computed (G4/Z-DNA/cruciform motifs)", "license": "Public Domain"},
+    "breakpoint": {"source": "Mitelman Database / COSMIC", "license": "Free for non-commercial use"},
 }

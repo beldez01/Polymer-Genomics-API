@@ -91,7 +91,7 @@ def compute_thermodynamics(
             "cumulative_dg": round(cum_dg, 2),
         })
 
-    total_ds_salt = total_ds + 0.368 * (len(seq) - 1) * ln_na
+    total_ds_salt = total_ds + 0.368 * n_steps * ln_na
     total_dg_salt = total_dh - (273.15 + 37) * total_ds_salt / 1000.0
 
     return {

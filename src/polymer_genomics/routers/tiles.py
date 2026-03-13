@@ -147,7 +147,7 @@ async def get_tile(
         status="complete",
         query={
             "build": build,
-            "region": {"chr": chr_name, "start": tile_start, "end": tile_end},
+            "region": {"chr": chr_name, "start": tile_start + 1, "end": tile_end},
             "layers_requested": layer_keys or ["all_active"],
         },
         layers_resolved=layers_resolved,

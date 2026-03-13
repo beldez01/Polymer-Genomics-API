@@ -30,6 +30,7 @@ primary_region = "iad"
 
 [env]
   POLYMER_CORS_ORIGINS = "https://polymerbio.org,https://www.polymerbio.org,https://polymer-genomics.vercel.app,http://localhost:3000"
+  FASTA_DIR = "/data"
 
 [http_service]
   internal_port = 8000

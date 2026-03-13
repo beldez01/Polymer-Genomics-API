@@ -22,7 +22,7 @@ _CHRPOS_PATTERN = re.compile(r"^(chr[0-9XYM]+):(\d+)$", re.IGNORECASE)
 
 
 def _lp_from_gc(gc: float) -> float:
-    """Persistence length (nm) from GC content using Lee & Bhatt 2019 calibration.
+    """Persistence length (nm) from GC content using Shon et al. 2019 calibration.
 
     Linear fit: Lp = 49 + 43.75 * (gc - 0.30) for gc in [0.30, 0.64].
     Returns ~49 nm at GC=0.30, ~77 nm at GC=0.64.
@@ -383,7 +383,7 @@ async def get_cpg_profile(build: str, query: str):
     cpg_context = site_data.get("cpg_context")
     if cpg_context and gc_val is not None:
         lp_bare = round(_lp_from_gc(gc_val), 1)
-        lp_meth = 50.0  # Lee & Bhatt convergence value
+        lp_meth = 50.0  # Shon et al. 2019 convergence value
         delta_lp_pct = round((lp_meth - lp_bare) / lp_bare * 100, 1) if lp_bare > 0 else None
 
         meth_biophysics = _section(
@@ -394,7 +394,7 @@ async def get_cpg_profile(build: str, query: str):
             ddg_stacking=0.50,
             effect="stabilizing",
             rationale=(
-                "Persistence length model from Lee & Bhatt 2019 (Sci Adv): "
+                "Persistence length model from Shon et al. 2019 (Sci Adv): "
                 "CpG methylation converges Lp to ~50 nm regardless of GC content, "
                 "erasing sequence-dependent stiffness. "
                 "Stacking free energy shift from SantaLucia 1998: "

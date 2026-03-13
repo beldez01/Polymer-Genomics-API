@@ -196,7 +196,7 @@ def create_cell_type_parquet(
         probe_ids.append(probe_id)
         chrs.append(entry["chr"])
         chr_ids.append(entry["chr_id"])
-        positions.append(entry["pos"])
+        positions.append(entry["pos"] - 1)  # CSV is 1-based, convert to 0-based
         betas.append(beta)
 
     table = pa.table({
@@ -711,12 +711,12 @@ async def ingest_reference(
             entry["chr_id"],
             probe_id,
             pos_0based,
-            entry.get("Gran") or entry.get("gran"),
-            entry.get("Mono") or entry.get("mono"),
-            entry.get("NK") or entry.get("nk"),
-            entry.get("Bcell") or entry.get("bcell"),
-            entry.get("CD4T") or entry.get("cd4t"),
-            entry.get("CD8T") or entry.get("cd8t"),
+            entry.get("Gran") if "Gran" in entry else entry.get("gran"),
+            entry.get("Mono") if "Mono" in entry else entry.get("mono"),
+            entry.get("NK") if "NK" in entry else entry.get("nk"),
+            entry.get("Bcell") if "Bcell" in entry else entry.get("bcell"),
+            entry.get("CD4T") if "CD4T" in entry else entry.get("cd4t"),
+            entry.get("CD8T") if "CD8T" in entry else entry.get("cd8t"),
         ))
 
     # 4. Batch-load.

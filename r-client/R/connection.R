@@ -48,7 +48,7 @@ pg_connect <- function(base_url = "http://localhost:8000",
   req <- httr2::request(url)
 
   if (!is.null(.pg_env$api_key)) {
-    req <- httr2::req_headers(req, Authorization = paste("Bearer", .pg_env$api_key))
+    req <- httr2::req_headers(req, `X-API-Key` = .pg_env$api_key)
   }
 
   if (method == "GET" && length(params) > 0) {
@@ -67,7 +67,7 @@ pg_connect <- function(base_url = "http://localhost:8000",
   parsed <- httr2::resp_body_json(resp)
 
   if (status >= 400) {
-    msg <- parsed$error$message %||% paste("API error:", status)
+    msg <- parsed$detail$error$message %||% parsed$error$message %||% paste("API error:", status)
     stop(msg, call. = FALSE)
   }
 

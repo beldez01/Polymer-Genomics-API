@@ -71,8 +71,9 @@ export const useViewport = create<ViewportState>((set, get) => ({
   setBuild: (build) => set({ build }),
 
   setRegion: (chr, start, end) => {
+    const MAX_CHR_LENGTH = 250_000_000;
     const s = Math.max(1, Math.round(start));
-    const e = Math.max(s, Math.round(end));
+    const e = Math.min(MAX_CHR_LENGTH, Math.max(s, Math.round(end)));
     set({ chr, start: s, end: e, width: e - s + 1 });
   },
 
@@ -87,10 +88,11 @@ export const useViewport = create<ViewportState>((set, get) => ({
 
   zoomOut: (factor = 2) => {
     const { start, end } = get();
+    const MAX_CHR_LENGTH = 250_000_000;
     const center = (start + end) / 2;
     const halfWidth = (end - start + 1) * factor / 2;
     const newStart = Math.max(1, Math.round(center - halfWidth));
-    const newEnd = Math.round(center + halfWidth);
+    const newEnd = Math.min(MAX_CHR_LENGTH, Math.round(center + halfWidth));
     set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
   },
 
@@ -105,11 +107,14 @@ export const useViewport = create<ViewportState>((set, get) => ({
   },
 
   panRight: (fraction = 0.25) => {
+    const MAX_CHR_LENGTH = 250_000_000;
     const state = get();
     if (!Number.isFinite(state.start) || !Number.isFinite(state.end)) return;
     const width = state.end - state.start + 1;
     const shift = Math.max(1, Math.round(width * fraction));
-    set({ start: state.start + shift, end: state.end + shift, width });
+    const newEnd = Math.min(MAX_CHR_LENGTH, state.end + shift);
+    const newStart = Math.max(1, newEnd - width + 1);
+    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
   },
 
   zoomToBase: (chr, position) => {

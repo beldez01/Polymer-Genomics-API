@@ -131,17 +131,17 @@ async def ingest_dnashape(
 
         # Bulk UPDATE from staging table
         print("  Applying UPDATE from staging table...")
-        result = await conn.execute(f"""
+        result = await conn.execute("""
             UPDATE biophysics.sequence_properties bp
             SET mgw_mean  = s.mgw_mean,
                 prot_mean = s.prot_mean,
                 roll_mean = s.roll_mean,
                 helt_mean = s.helt_mean
             FROM _dnashape_staging s
-            WHERE bp.build = '{build}'::genome_build
+            WHERE bp.build = $1::genome_build
               AND bp.chr_id = s.chr_id
               AND bp.start_pos = s.start_pos
-        """)
+        """, build)
 
         updated = int(result.split()[-1]) if result else 0
         print(f"  Updated {updated:,} rows")

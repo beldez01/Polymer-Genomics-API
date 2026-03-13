@@ -37,15 +37,15 @@ class TestAliasLookup:
     async def test_alias_resolves_to_canonical(self, client: AsyncClient):
         """Known alias (e.g. OCT4) resolves to canonical symbol (POU5F1)."""
         resp = await client.get("/v1/genes/hg38/OCT4")
-        if resp.status_code == 200:
-            data = resp.json()
-            query = data.get("query", {})
-            assert query.get("resolved_alias") == "OCT4"
-            # The actual gene data should be for POU5F1
-            mcols = data.get("data", {}).get("mcols", {})
-            symbols = mcols.get("gene_symbol", [])
-            if symbols:
-                assert symbols[0] == "POU5F1"
+        if resp.status_code == 404:
+            pytest.skip("Alias data not loaded in test database")
+        assert resp.status_code == 200
+        data = resp.json()
+        query = data.get("query", {})
+        assert query.get("resolved_alias") == "OCT4"
+        mcols = data.get("data", {}).get("mcols", {})
+        symbols = mcols.get("gene_symbol", [])
+        assert symbols and symbols[0] == "POU5F1"
 
     async def test_unknown_alias_404s(self, client: AsyncClient):
         """Unknown gene name still returns 404."""
@@ -75,12 +75,15 @@ class TestAliasSearch:
     async def test_alias_match_has_type_alias(self, client: AsyncClient):
         """Alias matches include match_type 'alias' and matched_alias."""
         resp = await client.get("/v1/search?q=OCT4&build=hg38")
-        if resp.status_code == 200:
-            data = resp.json()
-            results = data.get("results", [])
-            alias_results = [r for r in results if r.get("match_type") == "alias"]
-            for r in alias_results:
-                assert "matched_alias" in r
+        if resp.status_code != 200:
+            pytest.skip("Search endpoint or alias data not available")
+        data = resp.json()
+        results = data.get("results", [])
+        alias_results = [r for r in results if r.get("match_type") == "alias"]
+        if not alias_results:
+            pytest.skip("No alias results returned — alias data may not be loaded")
+        for r in alias_results:
+            assert "matched_alias" in r
 
     async def test_direct_match_sorts_first(self, client: AsyncClient):
         """Direct matches always sort before alias matches."""

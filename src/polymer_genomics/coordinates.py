@@ -2,7 +2,9 @@
 
 import re
 
-_REGION_PATTERN = re.compile(r"^(chr[0-9XYM]+):(\d+)-(\d+)$")
+_REGION_PATTERN = re.compile(
+    r"^(chr(?:[1-9]|1[0-9]|2[0-2]|X|Y|M)):(\d+)-(\d+)$"
+)
 
 
 def db_to_api(start: int, end: int) -> dict:
@@ -22,4 +24,9 @@ def parse_region(region: str) -> dict:
     m = _REGION_PATTERN.match(region)
     if not m:
         raise ValueError(f"Invalid region format: {region!r}. Expected 'chrN:start-end'.")
-    return {"chr": m.group(1), "start": int(m.group(2)), "end": int(m.group(3))}
+    start, end = int(m.group(2)), int(m.group(3))
+    if start > end:
+        raise ValueError(
+            f"Invalid region: start ({start}) > end ({end}) in {region!r}."
+        )
+    return {"chr": m.group(1), "start": start, "end": end}

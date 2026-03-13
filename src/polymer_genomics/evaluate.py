@@ -15,7 +15,6 @@ import statistics
 from typing import Any
 
 from polymer_genomics.biophysics import (
-    compute_all,
     compute_thermodynamics,
     compute_extinction,
     compute_form_propensity,
@@ -71,7 +70,8 @@ def _cpg_observed_expected(seq: str) -> float:
     c_count = seq.count("C")
     g_count = seq.count("G")
     cpg = _cpg_count(seq)
-    expected = (c_count * g_count) / n if n > 0 else 0
+    n_dinuc = n - 1  # number of dinucleotide positions
+    expected = (c_count * g_count) / n_dinuc if n_dinuc > 0 else 0
     return cpg / expected if expected > 0 else 0.0
 
 
@@ -429,8 +429,11 @@ def evaluate_sequence(
 
     if thermo_result and thermo_result["summary"].get("n_steps", 0) > 0:
         ts = thermo_result["summary"]
-        summary["mean_stacking_dG37_kcal"] = ts["mean_delta_g_per_step"]
+        summary["mean_stacking_dG_salt_kcal"] = ts["mean_delta_g_per_step"]
         summary["total_stacking_dG37_kcal"] = ts["total_delta_g_37"]
+        summary["mean_stacking_dG37_kcal"] = round(
+            ts["total_delta_g_37"] / ts["n_steps"], 3
+        ) if ts["n_steps"] > 0 else 0
 
     if form_result and form_result["summary"].get("n_steps", 0) > 0:
         fs = form_result["summary"]

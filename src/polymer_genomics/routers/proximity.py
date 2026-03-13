@@ -50,7 +50,7 @@ async def query_proximity(
             SELECT chr_id, MIN(start_pos) AS gene_start, MAX(end_pos) AS gene_end
             FROM gene.features
             WHERE build = $1::genome_build
-              AND gene_symbol = $2
+              AND UPPER(gene_symbol) = UPPER($2)
               AND layer_id = $3
             GROUP BY chr_id
             """,
@@ -67,7 +67,7 @@ async def query_proximity(
                     SELECT chr_id, MIN(start_pos) AS gene_start, MAX(end_pos) AS gene_end
                     FROM gene.features
                     WHERE build = $1::genome_build
-                      AND gene_symbol = $2
+                      AND UPPER(gene_symbol) = UPPER($2)
                       AND layer_id = $3
                     GROUP BY chr_id
                     """,

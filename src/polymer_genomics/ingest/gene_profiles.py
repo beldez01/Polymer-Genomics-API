@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import bisect
+import statistics
 import logging
 import math
 import os
@@ -143,7 +145,7 @@ async def build_gene_universe(conn: asyncpg.Connection, build: str) -> list[dict
         length_bp = (r["end_pos"] - r["start_pos"]) if (r["end_pos"] and r["start_pos"]) else None
         tss = None
         if r["start_pos"] is not None and r["end_pos"] is not None:
-            tss = r["start_pos"] if r["strand"] == "+" else r["end_pos"]
+            tss = r["start_pos"] if r["strand"] == "+" else r["end_pos"] - 1
         genes.append({
             "gene_id": r["gene_id"],
             "gene_symbol": r["gene_symbol"],
@@ -202,7 +204,6 @@ async def fetch_intrinsic_layer(
             bin_ends = [r["end_pos"] for r in bins]
             bin_gc = [float(r["gc_content"]) if r["gc_content"] is not None else None for r in bins]
 
-            import bisect
             for g in chr_genes:
                 gs, ge = g["start_pos"], g["end_pos"]
                 # Find overlapping bins via bisect
@@ -382,7 +383,7 @@ async def fetch_expression_layer(
             tau = None
 
         sorted_tpms = sorted(tpms, reverse=True)
-        median_tpm = sorted(tpms)[len(tpms) // 2]
+        median_tpm = statistics.median(tpms)
         robust_max = sum(sorted_tpms[:3]) / min(3, len(sorted_tpms))
         n_detected = sum(1 for t in tpms if t > 1.0)
 

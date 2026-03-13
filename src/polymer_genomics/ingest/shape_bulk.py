@@ -2,7 +2,7 @@
 
 Usage::
     POSTGRES_HOST=localhost POSTGRES_PORT=15432 POSTGRES_DB=polymer_genomics_api \
-    POSTGRES_USER=polymer_genomics_api POSTGRES_USER_PASSWORD=sUSi45D98nZS7gx \
+    POSTGRES_USER=polymer_genomics_api POSTGRES_USER_PASSWORD=<password> \
     uv run python -m polymer_genomics.ingest.shape_bulk
 """
 from __future__ import annotations

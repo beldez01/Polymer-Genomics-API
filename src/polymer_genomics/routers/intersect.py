@@ -56,6 +56,7 @@ INTERSECT_TABLES: dict[str, dict] = {
             "gc_content", "stacking_dg37", "melting_temp", "curvature",
             "dipole_moment", "groove_width", "periodicity",
             "mgw_mean", "prot_mean", "roll_mean", "helt_mean",
+            "delta_mgw", "delta_prot", "delta_roll", "delta_helt",
         },
     },
     "conservation": {

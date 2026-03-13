@@ -46,9 +46,16 @@ main <- function() {
 
   # Build design matrix
   if (!is.null(covariates) && length(covariates) > 0) {
+    # Validate covariate names against sample sheet columns
+    missing_covs <- setdiff(covariates, colnames(pd))
+    if (length(missing_covs) > 0) {
+      stop_json(paste("Covariates not found in sample sheet:",
+                       paste(missing_covs, collapse = ", "),
+                       ". Available:", paste(colnames(pd), collapse = ", ")))
+    }
     cov_formula <- paste(
       "~ 0 + group",
-      paste0("pd$", covariates, collapse = " + "),
+      paste0("pd$`", covariates, "`", collapse = " + "),
       sep = " + "
     )
     design <- model.matrix(as.formula(cov_formula))

@@ -61,7 +61,14 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
   async function handleSubmit() {
     const trimmed = query.trim();
     if (/^cg\d{7,8}$/i.test(trimmed) || /^ch\.\d+\.\d+/i.test(trimmed)) {
-      window.location.href = `/probe/${build}/${trimmed}`;
+      try {
+        const res = await fetchProbe(build, trimmed);
+        const p = res.data.probe;
+        const padding = Math.max(500, Math.round((p.end - p.start) * 5));
+        onNavigate(p.seqname, Math.max(1, p.start - padding), p.end + padding);
+      } catch (e) {
+        console.error('Probe lookup failed:', e);
+      }
       setOpen(false);
       setQuery('');
       return;

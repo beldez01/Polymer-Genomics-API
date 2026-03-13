@@ -28,8 +28,26 @@ main <- function() {
     switch(method,
       "opensesame" = , "sesame" = {
         suppressPackageStartupMessages(library(sesame))
-        # sesame openSesame: canonical for EPICv2
-        betas <- openSesame(rgSet, prep = "QCDPB", func = getBetas)
+        # sesame >= 1.16 expects IDAT paths or SigDF, not RGChannelSet.
+        # Convert RGChannelSet to SigDF list first.
+        sdfs <- tryCatch(
+          RGChannelSetToSigDFs(rgSet),
+          error = function(e) {
+            # Fallback for older sesame that accepts RGChannelSet directly
+            NULL
+          }
+        )
+        if (!is.null(sdfs)) {
+          betas_list <- lapply(sdfs, function(sdf) {
+            sdf <- openSesame(sdf, prep = "QCDPB", func = NULL)
+            getBetas(sdf)
+          })
+          betas <- do.call(cbind, betas_list)
+          colnames(betas) <- sampleNames(rgSet)
+        } else {
+          # Older sesame: direct RGChannelSet path
+          betas <- openSesame(rgSet, prep = "QCDPB", func = getBetas)
+        }
         # Build GenomicRatioSet from betas
         grSet <- makeGenomicRatioSetFromMatrix(
           betas, what = "Beta",

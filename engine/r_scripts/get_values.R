@@ -63,11 +63,16 @@ main <- function() {
   csv_path <- file.path(session_dir, paste0(value_type, "_values.csv"))
   write.csv(mat, csv_path)
 
-  emit_json(list(
+  result <- list(
     n_probes = nrow(mat),
     n_samples = ncol(mat),
     file_path = csv_path
-  ))
+  )
+  if (exists("missing") && length(missing) > 0) {
+    result$n_missing <- length(missing)
+    result$missing_probes <- missing
+  }
+  emit_json(result)
 }
 
 main()

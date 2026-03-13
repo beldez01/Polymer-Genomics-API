@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -63,8 +64,15 @@ def create_session() -> str:
     return sid
 
 
+def _validate_session_id(session_id: str) -> None:
+    """Ensure session_id is alphanumeric/hyphens only (UUID format)."""
+    if not re.fullmatch(r"[a-zA-Z0-9\-]+", session_id):
+        raise ValueError(f"Invalid session ID: {session_id!r}")
+
+
 def session_dir(session_id: str) -> Path:
     """Return the session directory path, validated."""
+    _validate_session_id(session_id)
     d = SESSIONS_DIR / session_id
     if not d.exists():
         raise ValueError(f"Session not found: {session_id}")
@@ -93,7 +101,10 @@ def list_sessions() -> list[dict]:
 
 def cleanup_session(session_id: str) -> bool:
     """Remove a session directory."""
-    d = SESSIONS_DIR / session_id
+    _validate_session_id(session_id)
+    d = (SESSIONS_DIR / session_id).resolve()
+    if not str(d).startswith(str(SESSIONS_DIR.resolve())):
+        raise ValueError(f"Invalid session path: {session_id!r}")
     if d.exists():
         shutil.rmtree(d)
         return True

@@ -20,7 +20,7 @@ from polymer_genomics.ingest.seed_chromosomes import (
 
 @pytest.fixture
 async def admin_conn():
-    """Provide an asyncpg connection as the admin user."""
+    """Provide an asyncpg connection wrapped in a transaction that rolls back."""
     conn = await asyncpg.connect(
         host=os.environ.get("POSTGRES_HOST", "localhost"),
         port=int(os.environ.get("POSTGRES_PORT", "5432")),
@@ -28,11 +28,10 @@ async def admin_conn():
         user=os.environ.get("POSTGRES_ADMIN_USER", "admin"),
         password=os.environ.get("POSTGRES_PASSWORD", "dev_password"),
     )
+    tr = conn.transaction()
+    await tr.start()
     yield conn
-    # Reset lengths to NULL so tests are repeatable
-    await conn.execute(
-        "UPDATE ref.chromosomes SET length_hg37 = NULL, length_hg38 = NULL"
-    )
+    await tr.rollback()
     await conn.close()
 
 

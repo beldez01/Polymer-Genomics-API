@@ -176,7 +176,7 @@ def compute_gc_content(sequence: str, pos: int, window: int = GC_WINDOW) -> floa
         Fraction of G + C bases in the window, in ``[0.0, 1.0]``.
     """
     start = max(0, pos - window)
-    end = min(len(sequence), pos + window)
+    end = min(len(sequence), pos + window + 1)  # +1 for symmetric window
     subseq = sequence[start:end]
     if not subseq:
         return 0.0

@@ -83,7 +83,14 @@ main <- function() {
     n_xreact <- 0
     tryCatch({
       if (requireNamespace("maxprobes", quietly = TRUE)) {
-        xreactive <- maxprobes::xreactive_probes(array_type = "EPIC")
+        # Detect array type from annotation
+        arr_type <- tryCatch({
+          ann <- annotation(grSet)
+          if (grepl("EPICv2", ann["array"], ignore.case = TRUE)) "EPICv2"
+          else if (grepl("EPIC", ann["array"], ignore.case = TRUE)) "EPIC"
+          else "450K"
+        }, error = function(e) "EPIC")
+        xreactive <- maxprobes::xreactive_probes(array_type = arr_type)
         n_xreact <- length(intersect(xreactive, rownames(grSet)))
         if (n_xreact > 0) {
           grSet <- grSet[!rownames(grSet) %in% xreactive, ]

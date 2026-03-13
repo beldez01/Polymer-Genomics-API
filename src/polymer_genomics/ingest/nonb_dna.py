@@ -23,6 +23,8 @@ import re
 
 import asyncpg
 
+from polymer_genomics.constants import CHR_NAME_TO_ID
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Non-B DNA detection functions (pure Python, no external dependencies)
@@ -33,7 +35,7 @@ _G4_PATTERN = re.compile(r"G{3,}\w{1,7}G{3,}\w{1,7}G{3,}\w{1,7}G{3,}", re.IGNORE
 _G4_COMP = re.compile(r"C{3,}\w{1,7}C{3,}\w{1,7}C{3,}\w{1,7}C{3,}", re.IGNORECASE)
 
 # Z-DNA: alternating purine-pyrimidine ≥12bp
-_ZDNA_PATTERN = re.compile(r"(?:[GC][GC]){6,}|(?:[AC][GT]){6,}|(?:[GC][AT]){6,}", re.IGNORECASE)
+_ZDNA_PATTERN = re.compile(r"(?:[AG][CT]){6,}|(?:[CT][AG]){6,}", re.IGNORECASE)
 
 # Triplex: homopurine run ≥15bp (mirror repeat capable)
 _TRIPLEX_PU = re.compile(r"[AG]{15,}", re.IGNORECASE)
@@ -182,11 +184,6 @@ def iter_fasta_windows(fasta_path: str, window_size: int = 1000):
         yield from flush_chr(chr_name, seq_parts)
 
 
-# chr name → chr_id mapping
-_CHR_MAP = {f"chr{i}": i for i in range(1, 23)}
-_CHR_MAP.update({"chrX": 23, "chrY": 24, "chrM": 25})
-
-
 async def main() -> None:
     """Compute non-B DNA predictions and populate fragility.nonb_dna."""
     parser = argparse.ArgumentParser(description="Non-B DNA structure predictions")
@@ -235,7 +232,7 @@ async def main() -> None:
         batch: list[tuple] = []
 
         for chr_name, start, end, seq in iter_fasta_windows(args.fasta, args.window):
-            chr_id = _CHR_MAP.get(chr_name)
+            chr_id = CHR_NAME_TO_ID.get(chr_name)
             if chr_id is None:
                 continue
 

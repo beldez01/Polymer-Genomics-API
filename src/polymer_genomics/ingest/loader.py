@@ -118,16 +118,23 @@ async def compute_content_hash(
     schema = _validate_schema(schema)
     table = _validate_table(table)
 
-    rows = await conn.fetch(
-        f"SELECT * FROM {schema}.{table} WHERE layer_id = $1 ORDER BY id",
-        layer_id,
-    )
-
     hasher = hashlib.sha256()
-    for row in rows:
-        for val in row.values():
-            hasher.update(_encode_value(val))
-        hasher.update(b"\xff")  # row separator
+    batch_size = 5000
+
+    async with conn.transaction():
+        cursor = await conn.cursor(
+            f"SELECT * FROM {schema}.{table} WHERE layer_id = $1 ORDER BY id",
+            layer_id,
+        )
+        while True:
+            rows = await cursor.fetch(batch_size)
+            if not rows:
+                break
+            for row in rows:
+                for val in row.values():
+                    hasher.update(_encode_value(val))
+                hasher.update(b"\xff")  # row separator
+
     return f"sha256:{hasher.hexdigest()}"
 
 

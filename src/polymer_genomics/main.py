@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from polymer_genomics import __version__
 from polymer_genomics.db import close_pool, get_pool, init_pool
 from polymer_genomics.middleware import APIKeyMiddleware
 from polymer_genomics.routers.aggregation import router as aggregation_router
@@ -40,7 +41,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Polymer Genomics API",
-    version="0.1.0",
+    version=__version__,
     description="Curated genomic reference database for agents and bioinformaticians",
     lifespan=lifespan,
 )
@@ -97,4 +98,4 @@ async def health():
     pool = await get_pool()
     async with pool.acquire() as conn:
         count = await conn.fetchval("SELECT count(*) FROM ref.chromosomes")
-    return {"status": "ok", "version": "0.1.0", "db": "ok", "chromosome_count": count}
+    return {"status": "ok", "version": __version__, "db": "ok", "chromosome_count": count}

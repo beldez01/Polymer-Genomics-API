@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         validation_alias="POSTGRES_USER_PASSWORD",
     )
 
-    s3_endpoint: str = "http://localhost:9000"
+    s3_endpoint: str = "http://localhost:9000"  # Set to "" for real AWS (uses default endpoint)
     s3_public_endpoint: str | None = None  # Public URL for presigned URLs (falls back to s3_endpoint)
     s3_bucket: str = "polymer-genomics-api"
     s3_access_key: str = "minioadmin"

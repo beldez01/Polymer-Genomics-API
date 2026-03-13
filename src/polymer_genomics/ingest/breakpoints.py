@@ -139,11 +139,6 @@ _TRANSLOCATIONS: list[dict] = [
 ]
 
 
-# Chromosome name → chr_id mapping (1-22, X=23, Y=24, MT=25)
-_CHR_MAP = {str(i): i for i in range(1, 23)}
-_CHR_MAP.update({"X": 23, "Y": 24, "MT": 25})
-
-
 async def main() -> None:
     """Populate fragility.breakpoints table."""
     conn = await asyncpg.connect(
@@ -200,14 +195,15 @@ async def main() -> None:
         # Insert translocations
         n_tx = 0
         for tx in _TRANSLOCATIONS:
+            source = "COSMIC" if tx["source_id"].startswith("COSMIC:") else "Mitelman"
             await conn.execute(
                 """INSERT INTO fragility.breakpoints
                    (layer_id, build, chr_id, start_pos, end_pos,
                     breakpoint_type, name, gene_a, gene_b, source, source_id)
-                   VALUES ($1, 'hg38', $2, $3, $4, 'translocation', $5, $6, $7, 'Mitelman', $8)
+                   VALUES ($1, 'hg38', $2, $3, $4, 'translocation', $5, $6, $7, $8, $9)
                    ON CONFLICT DO NOTHING""",
                 layer_id, tx["chr"], tx["start"], tx["end"],
-                tx["name"], tx["gene_a"], tx.get("gene_b"), tx["source_id"],
+                tx["name"], tx["gene_a"], tx.get("gene_b"), source, tx["source_id"],
             )
             n_tx += 1
 

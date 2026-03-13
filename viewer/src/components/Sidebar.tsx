@@ -383,7 +383,6 @@ export function Sidebar({
             Sequence Markers
           </span>
         </div>
-        {anyActive && (
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {MOTIF_NAMES.map((name) => (
             <div key={name} className="flex items-center gap-1.5">
@@ -402,7 +401,6 @@ export function Sidebar({
             </div>
           ))}
         </div>
-        )}
       </div>
     );
   }

@@ -64,11 +64,15 @@ def read_gmt(gmt_path: str | Path) -> list[dict]:
             gene_symbols = [g.strip() for g in fields[2:] if g.strip()]
 
             # Determine collection from gene set name prefix
-            # Hallmark sets start with "HALLMARK_"
             if gene_set_name.startswith("HALLMARK_"):
                 collection = "H"
+            elif gene_set_name.startswith("KEGG_"):
+                collection = "C2"
+            elif gene_set_name.startswith("REACTOME_"):
+                collection = "C2"
+            elif gene_set_name.startswith("GO_"):
+                collection = "C5"
             else:
-                # Infer from standard MSigDB naming conventions
                 collection = "H"  # Default for hallmark GMT file
 
             for symbol in gene_symbols:

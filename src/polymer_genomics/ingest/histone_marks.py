@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import gzip
 import os
 from pathlib import Path
 
@@ -79,7 +80,8 @@ def read_peak_bed(
     is_narrow = ".narrowPeak" in path.name
     rows: list[dict] = []
 
-    with open(path) as f:
+    opener = gzip.open if path.name.endswith(".gz") else open
+    with opener(path, "rt") as f:
         for line in f:
             if line.startswith("#") or line.startswith("track") or line.startswith("browser"):
                 continue
