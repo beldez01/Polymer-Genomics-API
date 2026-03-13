@@ -66,6 +66,16 @@ export function Footer() {
             API Docs
           </Link>
           {DOT}
+          <Link href="/developers" style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+          }}>
+            Developers
+          </Link>
+          {DOT}
           <Link href="/terms" style={{
             color: COLOR.text.tertiary,
             fontSize: TYPE.sm.fontSize,

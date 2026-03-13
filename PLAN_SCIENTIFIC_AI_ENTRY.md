@@ -4,6 +4,12 @@
 > **Goal:** Make Polymer Genomics visible and useful to the scientific AI ecosystem
 > **Scope:** API, MCP, frontend, developer experience, commercial readiness
 > **Excludes:** Phase 2-3.5 track ingestion (deferred), foundation model building, clinical features
+>
+> **Status:**
+> - Sprint 1 (evaluate_design + compare): COMPLETE
+> - Sprint 2 (Python SDK): COMPLETE
+> - Sprint 3 (Multi-key auth): DEFERRED — build when users need keys
+> - Sprint 4 (Developer landing + docs): COMPLETE
 
 ## Executive Summary
 

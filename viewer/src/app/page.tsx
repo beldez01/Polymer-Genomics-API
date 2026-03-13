@@ -9,6 +9,8 @@ const LAYERS = [
   { name: 'CpG Sites',  color: COLOR.layer.cpg_sites,     desc: 'Islands, shores, shelves \u00B7 28M sites', href: '/view/hg38/chr17:7668421-7687490?layers=cpg_sites' },
   { name: 'Probes',     color: COLOR.layer.probe_epic_v2, desc: 'EPIC v2, v1, 450K arrays', href: '/view/hg38/chr17:7668421-7687490?layers=probe_epic_v2' },
   { name: 'Isochores',  color: COLOR.layer.isochores,     desc: 'GC composition structure', href: '/view/hg38/chr17:7668421-7687490?layers=isochores' },
+  { name: 'Biophysics', color: '#10b981',                 desc: 'Stacking energy, groove geometry, form propensity', href: '/developers' },
+  { name: 'Physical Constants', color: '#6366f1',         desc: 'Persistence length, elastic moduli, enzymatic rates', href: '/docs' },
 ] as const;
 
 function GhostButton({ href, children }: { href: string; children: React.ReactNode }) {
@@ -77,7 +79,7 @@ export default function Home() {
           textAlign: 'center',
           marginBottom: SPACE[2],
         }}>
-          Curated genomic reference data
+          DNA as a physical material
         </p>
         <p style={{
           color: COLOR.text.tertiary,
@@ -87,7 +89,7 @@ export default function Home() {
           textAlign: 'center',
           marginBottom: SPACE[10],
         }}>
-          Base-pair resolution
+          Computed, served, composable &mdash; base-pair resolution
         </p>
 
         <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -99,6 +101,9 @@ export default function Home() {
           </GhostButton>
           <GhostButton href="/docs">
             API Docs
+          </GhostButton>
+          <GhostButton href="/developers">
+            For Developers
           </GhostButton>
         </div>
       </section>
