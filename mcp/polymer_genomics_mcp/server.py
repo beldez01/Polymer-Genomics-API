@@ -12,6 +12,7 @@ Configure via environment variables:
 
 from __future__ import annotations
 
+import atexit
 import os
 
 import httpx
@@ -87,6 +88,24 @@ mcp = FastMCP(
 _client: httpx.AsyncClient | None = None
 
 
+def _shutdown_client() -> None:
+    """Close the httpx client at interpreter exit."""
+    import asyncio
+
+    if _client is not None:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_client.aclose())
+            else:
+                loop.run_until_complete(_client.aclose())
+        except Exception:
+            pass
+
+
+atexit.register(_shutdown_client)
+
+
 async def get_client() -> httpx.AsyncClient:
     """Return a lazily-initialized async HTTP client (singleton)."""
     global _client
@@ -96,7 +115,7 @@ async def get_client() -> httpx.AsyncClient:
             headers["X-API-Key"] = API_KEY
         _client = httpx.AsyncClient(
             base_url=API_BASE,
-            timeout=30.0,
+            timeout=120.0,
             headers=headers,
         )
     return _client
@@ -105,17 +124,171 @@ async def get_client() -> httpx.AsyncClient:
 async def _get(path: str, params: dict | None = None) -> dict:
     """Perform a GET request against the Polymer Genomics API."""
     client = await get_client()
-    resp = await client.get(path, params=params)
-    resp.raise_for_status()
+    try:
+        resp = await client.get(path, params=params)
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        return {
+            "error": f"API returned {exc.response.status_code}",
+            "detail": exc.response.text[:500],
+            "path": path,
+        }
     return resp.json()
 
 
 async def _post(path: str, json_body: dict) -> dict:
     """Perform a POST request against the Polymer Genomics API."""
     client = await get_client()
-    resp = await client.post(path, json=json_body)
-    resp.raise_for_status()
+    try:
+        resp = await client.post(path, json=json_body)
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        return {
+            "error": f"API returned {exc.response.status_code}",
+            "detail": exc.response.text[:500],
+            "path": path,
+        }
     return resp.json()
+
+
+# -- Summary builders --------------------------------------------------------
+# Deterministic text summaries prepended to tool results so AI agents get a
+# quick overview without needing to parse deeply nested JSON.
+
+
+def _summarize_gene(data: dict) -> str:
+    """Build one-line summary from gene lookup response."""
+    try:
+        d = data.get("data", {})
+        layer_key = next(iter(d), None)
+        if not layer_key:
+            return ""
+        layer = d[layer_key]
+        seqnames = layer.get("seqnames", [])
+        starts = layer.get("ranges", {}).get("start", [])
+        ends = layer.get("ranges", {}).get("end", [])
+        mcols = layer.get("mcols", {})
+        symbols = mcols.get("gene_symbol", [])
+        features = mcols.get("feature_type", [])
+
+        symbol = symbols[0] if symbols else "?"
+        chrom = seqnames[0] if seqnames else "?"
+        gene_start = min(starts) if starts else 0
+        gene_end = max(ends) if ends else 0
+        span_kb = (gene_end - gene_start) / 1000
+        n_exons = sum(1 for f in features if f == "exon")
+        strand = layer.get("strand", ["+"])[0]
+        return (
+            f"{symbol} on {chrom}:{gene_start}-{gene_end} "
+            f"({span_kb:.1f} kb, {strand} strand). "
+            f"{n_exons} exons, {len(seqnames)} total features."
+        )
+    except Exception:
+        return ""
+
+
+def _summarize_expression(data: dict, symbol: str) -> str:
+    """Build summary from expression response."""
+    try:
+        d = data.get("data", {})
+        tissues = d.get("tissues", {})
+        if not tissues:
+            return ""
+        sorted_t = sorted(tissues.items(), key=lambda x: x[1], reverse=True)
+        top3 = sorted_t[:3]
+        n_expressed = sum(1 for _, v in tissues.items() if v > 1.0)
+        top_str = ", ".join(f"{t} ({v:.1f})" for t, v in top3)
+        return (
+            f"{symbol}: expressed in {n_expressed}/{len(tissues)} tissues. "
+            f"Highest: {top_str} TPM."
+        )
+    except Exception:
+        return ""
+
+
+def _summarize_evaluate(data: dict) -> str:
+    """Build summary from evaluate_design response."""
+    try:
+        s = data.get("summary", {})
+        flags = data.get("flags", [])
+        fc = data.get("flag_counts", {})
+        n_warnings = fc.get("warning", 0)
+        n_info = fc.get("info", 0)
+        gc = s.get("gc_content", 0)
+        dg = s.get("mean_stacking_dG37_kcal", 0)
+        length = s.get("length_bp", 0)
+        cpg_n = s.get("cpg_island_count", 0)
+        parts = [f"{length} bp, GC={gc:.1%}, mean ΔG₃₇={dg:.2f} kcal/mol"]
+        if cpg_n:
+            parts.append(f"{cpg_n} CpG island{'s' if cpg_n > 1 else ''}")
+        parts.append(f"{n_warnings} warning{'s' if n_warnings != 1 else ''}, {n_info} info")
+        if n_warnings > 0:
+            codes = [f["code"] for f in flags if f.get("type") == "warning"]
+            parts.append(f"warnings: {', '.join(codes)}")
+        return ". ".join(parts) + "."
+    except Exception:
+        return ""
+
+
+def _summarize_constraint(data: dict, symbol: str) -> str:
+    """Build summary from constraint response."""
+    try:
+        d = data.get("data", {})
+        pli = d.get("pLI", "?")
+        loeuf = d.get("oe_lof_upper", "?")
+        mis_z = d.get("mis_z", "?")
+        if isinstance(pli, (int, float)):
+            tolerance = "highly constrained" if pli > 0.9 else "moderately constrained" if pli > 0.5 else "tolerant of LoF"
+            return f"{symbol}: pLI={pli:.3f} ({tolerance}), LOEUF={loeuf}, missense Z={mis_z}."
+        return ""
+    except Exception:
+        return ""
+
+
+def _summarize_region(data: dict, region: str) -> str:
+    """Build summary from query_region response."""
+    try:
+        d = data.get("data", {})
+        parts = [region]
+        for layer_key, layer_data in d.items():
+            n = len(layer_data.get("seqnames", []))
+            parts.append(f"{layer_key}: {n} features")
+        status = data.get("status", "complete")
+        if status == "truncated":
+            parts.append("TRUNCATED — use aggregate_region or narrow the region")
+        return ". ".join(parts) + "."
+    except Exception:
+        return ""
+
+
+def _summarize_biophysics(data: dict, region: str) -> str:
+    """Build summary from compute_region_biophysics response."""
+    try:
+        d = data.get("data", {})
+        mcols = d.get("mcols", {})
+        dg_vals = mcols.get("stacking_dG37_kcal", [])
+        if not dg_vals:
+            return ""
+        nums = [v for v in dg_vals if isinstance(v, (int, float))]
+        if not nums:
+            return ""
+        mean_dg = sum(nums) / len(nums)
+        min_dg = min(nums)
+        max_dg = max(nums)
+        n_steps = len(nums)
+        return (
+            f"{region}: {n_steps} dinucleotide steps. "
+            f"Mean ΔG₃₇={mean_dg:.2f}, range [{min_dg:.2f}, {max_dg:.2f}] kcal/mol."
+        )
+    except Exception:
+        return ""
+
+
+def _with_summary(data: dict, summary: str) -> dict:
+    """Prepend _summary to a response dict if summary is non-empty."""
+    if summary and not data.get("error"):
+        return {"_summary": summary, **data}
+    return data
 
 
 # -- Tools -----------------------------------------------------------------
@@ -128,14 +301,25 @@ async def list_layers(
     evidence_class: str | None = None,
     tier: str | None = None,
 ) -> dict:
-    """List available genomic data layers.
+    """List available genomic data layers with epistemic metadata.
 
-    Returns metadata about registered annotation layers including epistemic
-    classification (evidence_class, tier, validation_status). Use this to
-    discover what data is available before querying.
+    Returns metadata about every registered annotation layer: layer_key,
+    layer_type, row_count, evidence_class, tier, validation_status, and
+    content_hash. Use this to discover what data is available.
 
-    Use this when you need to check what data is loaded, confirm a layer_key
-    exists, filter by evidence quality, or see row counts before a large query.
+    Example output (truncated):
+    {"layers": [
+      {"layer_key": "gencode_v44", "layer_type": "gene_model", "row_count": 1234567,
+       "evidence_class": "R", "tier": "constrained"},
+      {"layer_key": "cpg_sites", "layer_type": "cpg", "row_count": 29000000, ...}
+    ]}
+
+    Key output fields:
+    - layer_key: identifier to pass to query_region, correlate_layers, etc.
+    - row_count: total features in the layer (helps gauge query size)
+    - evidence_class: M=measured, R=reference, D=derived, S=statistical, etc.
+
+    Does NOT return the actual data — use query_region or aggregate_region for that.
 
     Args:
         build: Genome build ('hg38' or 'hg37'). Defaults to 'hg38'.
@@ -161,12 +345,24 @@ async def query_region(
 ) -> dict:
     """Query genomic features in a chromosomal region.
 
-    Returns all annotation features (genes, CpG sites, probes, isochores) that
-    overlap the specified region. Results are in GRanges format with 1-based
-    closed coordinates.
+    Returns all annotation features (genes, CpG sites, probes, isochores, etc.)
+    overlapping the region. Results in GRanges format: seqnames[], ranges.start[],
+    ranges.end[], strand[], mcols{}.
 
-    Use this when you need all annotations overlapping a specific interval.
-    Use lookup_gene first if you only have a gene symbol.
+    Example output (truncated):
+    {"status": "complete", "data": {
+      "gencode_v44": {"seqnames": ["chr17"], "ranges": {"start": [7668402], "end": [7687550]},
+                      "mcols": {"gene_symbol": ["TP53"], "feature_type": ["exon"]}},
+      "cpg_sites": {"seqnames": ["chr17","chr17"], ...}
+    }}
+
+    Key output fields per layer:
+    - seqnames[]: chromosome
+    - ranges.start[], ranges.end[]: 1-based closed coordinates
+    - mcols{}: layer-specific annotation columns
+
+    Does NOT return biophysical properties — use compute_region_biophysics for ΔG₃₇/groove/form.
+    Does NOT return expression — use lookup_gene_expression.
     Prefer aggregate_region for regions > 500kb to avoid truncation.
 
     Args:
@@ -178,7 +374,8 @@ async def query_region(
     params = {}
     if layers:
         params["layers"] = layers
-    return await _get(f"/v1/regions/{build}/{region}", params)
+    data = await _get(f"/v1/regions/{build}/{region}", params)
+    return _with_summary(data, _summarize_region(data, region))
 
 
 @mcp.tool()
@@ -191,8 +388,12 @@ async def get_sequence(
     Returns the nucleotide sequence (ACGT) for the specified region.
     Maximum 100,000 bp per request.
 
-    Use this when you need the actual nucleotide content — e.g. to inspect
-    CpG density, motif context, or primer design around a locus.
+    Example output:
+    {"sequence": "ATGCGATCGATCG...", "length": 1000, "region": "chr17:7668402-7669401"}
+
+    Does NOT return annotations — use query_region for that.
+    Does NOT compute biophysics — use evaluate_design (for arbitrary sequences)
+    or compute_region_biophysics (for genomic coordinates).
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -206,19 +407,35 @@ async def lookup_gene(
     build: str,
     symbol: str,
 ) -> dict:
-    """Look up a gene by symbol.
+    """Look up a gene by symbol, returning exon/intron/UTR structure.
 
-    Returns all gene features (exons, introns, UTRs, etc.) for the specified
-    gene symbol. Results are in GRanges format.
+    Supports gene aliases (e.g., OCT4 → POU5F1, p53 → TP53).
+    Returns GRanges JSON with one row per genomic feature
+    (exon, intron, 5'UTR, 3'UTR, CDS).
 
-    Use this when you have a gene symbol and need its coordinates, transcript
-    structure, or exon boundaries. Use search first if unsure of the exact symbol.
+    Example output (truncated):
+    {"data": {"gencode_v44": {
+      "seqnames": ["chr17","chr17",...],
+      "ranges": {"start": [7668402,...], "end": [7669690,...]},
+      "mcols": {"gene_symbol": ["TP53",...], "feature_type": ["exon","intron",...],
+                "transcript_id": ["ENST00000269305",...]}
+    }}}
+
+    Key output fields in mcols:
+    - gene_symbol: canonical symbol (alias resolved)
+    - feature_type: exon, intron, 5UTR, 3UTR, CDS
+    - transcript_id: ENSEMBL transcript ID
+
+    Does NOT return: expression data (use lookup_gene_expression), constraint
+    scores (use lookup_gene_constraint), pathways (use lookup_gene_pathways),
+    or biophysical properties (use compute_region_biophysics with the coordinates).
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        symbol: Gene symbol (e.g. 'VAC14', 'BRCA1', 'TP53').
+        symbol: Gene symbol (e.g. 'VAC14', 'BRCA1', 'TP53'). Aliases auto-resolved.
     """
-    return await _get(f"/v1/genes/{build}/{symbol}")
+    data = await _get(f"/v1/genes/{build}/{symbol}")
+    return _with_summary(data, _summarize_gene(data))
 
 
 @mcp.tool()
@@ -228,15 +445,26 @@ async def lookup_probe(
 ) -> dict:
     """Look up a methylation array probe by ID.
 
-    Returns probe coordinates, gene symbol, CpG context, and cross-platform
-    mappings (450k, EPIC v1, EPIC v2).
+    Returns probe coordinates, associated gene, CpG context (island/shore/shelf/
+    open_sea), and cross-platform availability (450K, EPIC v1, EPIC v2).
 
-    Use this when you have a probe ID (cg/ch prefix) and need its genomic
-    position, associated gene, or cross-platform availability.
+    Example output:
+    {"data": {"probe_id": "cg08796240", "chr": "chr16", "pos": 70699929,
+     "gene_symbol": "VAC14", "cpg_context": "island", "strand": "+",
+     "platforms": {"450k": true, "epic_v1": true, "epic_v2": true}}}
+
+    Key output fields:
+    - cpg_context: island, shore, shelf, or open_sea
+    - platforms: which arrays include this probe
+    - gene_symbol: nearest gene (may be null for intergenic probes)
+
+    Does NOT return methylation beta values — use get_betas (compute tool).
+    Does NOT return clock membership — use lookup_clock_probes.
+    For multiple probes, use batch_probes instead (max 10,000).
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        probe_id: Probe identifier (e.g. 'cg08796240').
+        probe_id: Probe identifier (e.g. 'cg08796240', 'ch.1.1234').
     """
     return await _get(f"/v1/probes/{build}/{probe_id}")
 
@@ -248,12 +476,20 @@ async def batch_probes(
 ) -> dict:
     """Look up multiple probes at once (batch, max 10,000).
 
-    Use this when you have a list of probe IDs — more efficient than calling
-    lookup_probe in a loop. Returns the same fields as lookup_probe for each.
+    Returns the same fields as lookup_probe for each probe. Far more efficient
+    than calling lookup_probe in a loop.
+
+    Example output (truncated):
+    {"data": {"found": 95, "not_found": 5, "probes": [
+      {"probe_id": "cg08796240", "chr": "chr16", "pos": 70699929, "gene_symbol": "VAC14", ...},
+      ...
+    ]}}
+
+    Does NOT return methylation values — use get_betas after loading IDATs.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        probe_ids: List of probe identifiers.
+        probe_ids: List of probe identifiers (max 10,000).
     """
     return await _post(f"/v1/probes/{build}/batch", {"probe_ids": probe_ids})
 
@@ -265,12 +501,22 @@ async def aggregate_region(
     resolution: int = 1000,
     layers: str | None = None,
 ) -> dict:
-    """Get binned density/summary statistics for a region.
+    """Get binned density/summary statistics for a large region.
 
-    Returns feature counts and density per bin for visualization or overview.
+    Returns feature counts per bin. Use this BEFORE query_region for regions
+    > 500kb to avoid truncation and identify density hotspots.
 
-    Use this BEFORE query_region for large regions (>500kb) to avoid truncation.
-    Identifies density hotspots to drill into with query_region.
+    Example output (truncated):
+    {"data": {"gencode_v44": {"bins": [
+      {"start": 70000000, "end": 70001000, "count": 3, "density": 0.003},
+      ...
+    ]}}}
+
+    Key output fields per bin:
+    - count: number of features in this bin
+    - density: features per bp
+
+    Does NOT return individual features — drill into hotspots with query_region.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -291,13 +537,23 @@ async def lookup_gene_cost(
 ) -> dict:
     """Look up bioenergetic cost metrics for a gene.
 
-    Returns biosynthetic cost (Akashi-Gojobori ECPAgene), elemental composition
-    (N, S, C atoms), amino acid composition fractions, codon optimization
-    metrics (CAI, tAI, ENC), and tissue-specific expression with energetic
-    weighted gene cost (EWGC) from GTEx.
+    Returns biosynthetic cost (Akashi-Gojobori ECPAgene in ATP equivalents),
+    elemental composition (N, S, C atoms), amino acid composition fractions,
+    codon optimization metrics (CAI, tAI, ENC), and tissue-specific
+    expression-weighted gene cost (EWGC) from GTEx.
 
-    Use this when analyzing gene economy — biosynthetic investment per protein,
-    codon bias, or tissue-weighted energetic cost.
+    Example output (truncated):
+    {"data": {"symbol": "ALB", "ecpa_gene": 23456.7, "cai": 0.78, "enc": 51.2,
+     "amino_acid_fractions": {"L": 0.12, "A": 0.09, ...},
+     "ewgc_by_tissue": {"Liver": 98765.4, "Blood": 1234.5, ...}}}
+
+    Key output fields:
+    - ecpa_gene: total ATP cost to synthesize one protein molecule
+    - ewgc_by_tissue: cost × expression = metabolic investment per tissue
+    - cai: Codon Adaptation Index (higher = more optimized)
+
+    Does NOT return expression alone — use lookup_gene_expression.
+    Does NOT return constraint — use lookup_gene_constraint.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -311,20 +567,31 @@ async def lookup_gene_expression(
     build: str,
     symbol: str,
 ) -> dict:
-    """Look up tissue expression profile for a gene (GTEx v10).
+    """Look up tissue expression profile for a gene (GTEx v10, 54 tissues).
 
-    Returns median TPM across 54 human tissues from GTEx v10. Includes
-    summary statistics (median, max, tissue count) and per-tissue values
-    sorted by expression level.
+    Returns median TPM across 54 human tissues. Includes summary statistics
+    (median, max, tissue count, breadth) and per-tissue values sorted by
+    expression level.
 
-    Use this when you need to know where a gene is expressed, compare
-    tissue-specific expression, or identify tissue-enriched genes.
+    Example output (truncated):
+    {"data": {"symbol": "ALB", "summary": {"max_tpm": 45678.9, "max_tissue": "Liver",
+     "n_expressed": 3, "median_tpm": 0.1},
+     "tissues": {"Liver": 45678.9, "Kidney - Cortex": 12.3, ...}}}
+
+    Key output fields:
+    - tissues{}: tissue name → median TPM (sorted by expression)
+    - summary.max_tissue: where the gene is most highly expressed
+    - summary.n_expressed: number of tissues with TPM > 1
+
+    Does NOT return protein abundance — use lookup_protein_abundance (PaxDb).
+    Does NOT return protein localization — use lookup_protein_atlas (HPA).
 
     Args:
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'ALB').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/expression")
+    data = await _get(f"/v1/genes/{build}/{symbol}/expression")
+    return _with_summary(data, _summarize_expression(data, symbol))
 
 
 @mcp.tool()
@@ -340,12 +607,16 @@ async def query_proximity(
     and returns all overlapping features. Equivalent to lookup_gene +
     query_region but in a single call.
 
-    Use this when you want to find what CpG sites, probes, or other
-    annotations are near a gene.
+    Example output (truncated):
+    {"data": {"gencode_v44": {...}, "cpg_sites": {...}, "probe_epic_v2": {...}},
+     "query": {"gene": "TP53", "radius": 5000, "resolved_region": "chr17:7663402-7692550"}}
+
+    Does NOT return biophysical properties — chain with compute_region_biophysics.
+    Does NOT return expression — use lookup_gene_expression separately.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        gene: Gene symbol (e.g. 'TP53', 'BRCA1', 'VAC14').
+        gene: Gene symbol (e.g. 'TP53', 'BRCA1', 'VAC14'). Aliases auto-resolved.
         radius: Base pairs to expand on each side. Default 5000.
         layers: Optional comma-separated layer keys.
     """
@@ -360,14 +631,18 @@ async def search(
     query: str,
     build: str = "hg38",
 ) -> dict:
-    """Search for genes by symbol prefix.
+    """Search for genes by symbol prefix (also searches aliases/synonyms).
 
-    Returns matching gene symbols. Use this to find gene names before
-    calling lookup_gene.
+    Returns matching gene symbols with their canonical names. Use this
+    before lookup_gene when unsure of the exact symbol.
 
-    Use this when unsure of the exact gene symbol, or to autocomplete a
-    partial name. Always call this before lookup_gene if the symbol might
-    have aliases or ambiguous capitalization.
+    Example output:
+    {"results": [
+      {"symbol": "BRCA1", "name": "BRCA1 DNA repair associated", "chr": "chr17"},
+      {"symbol": "BRCA2", "name": "BRCA2 DNA repair associated", "chr": "chr13"}
+    ]}
+
+    Does NOT return gene structure — follow up with lookup_gene.
 
     Args:
         query: Search term (minimum 2 characters). Case-insensitive prefix match.
@@ -384,7 +659,14 @@ async def lookup_protein_abundance(
     """Look up tissue-specific protein abundance for a gene (PaxDb v6.0).
 
     Returns protein abundance in parts per million (PPM) from mass spectrometry
-    across multiple tissues. Shows where a protein is most abundant.
+    across multiple human tissues.
+
+    Example output (truncated):
+    {"data": {"symbol": "ALB", "tissues": {"Plasma": 54000.0, "Liver": 23000.0, ...},
+     "summary": {"max_ppm": 54000.0, "max_tissue": "Plasma"}}}
+
+    Does NOT return RNA expression — use lookup_gene_expression (GTEx TPM).
+    Does NOT return protein localization — use lookup_protein_atlas (HPA).
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -398,17 +680,29 @@ async def lookup_gene_constraint(
     build: str,
     symbol: str,
 ) -> dict:
-    """Look up evolutionary constraint metrics for a gene (gnomAD).
+    """Look up evolutionary constraint metrics for a gene (gnomAD v4).
 
     Returns loss-of-function intolerance (pLI, LOEUF), missense constraint
-    (mis_z), and synonymous constraint (syn_z) from gnomAD. Lower LOEUF
-    means more constrained (intolerant of loss-of-function variants).
+    (mis_z), and synonymous constraint (syn_z). Lower LOEUF = more constrained.
+
+    Example output:
+    {"data": {"symbol": "TP53", "pLI": 0.999, "oe_lof_upper": 0.13,
+     "mis_z": 3.42, "syn_z": 0.87}}
+
+    Key output fields:
+    - pLI: probability of loss-of-function intolerance (>0.9 = highly constrained)
+    - oe_lof_upper: LOEUF — observed/expected LoF upper bound (<0.35 = constrained)
+    - mis_z: missense Z-score (>3 = missense-constrained)
+
+    Does NOT return expression — use lookup_gene_expression.
+    Does NOT return pathways — use lookup_gene_pathways.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'TET2', 'BRCA1').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/constraint")
+    data = await _get(f"/v1/genes/{build}/{symbol}/constraint")
+    return _with_summary(data, _summarize_constraint(data, symbol))
 
 
 @mcp.tool()
@@ -418,8 +712,18 @@ async def lookup_gene_pathways(
 ) -> dict:
     """Look up Reactome pathway memberships for a gene.
 
-    Returns all pathways a gene participates in, with pathway hierarchy
-    and evidence codes. Use this to understand a gene's biological context.
+    Returns all pathways a gene participates in, with pathway hierarchy,
+    evidence codes, and top-level category.
+
+    Example output (truncated):
+    {"data": {"symbol": "TP53", "pathways": [
+      {"pathway_id": "R-HSA-6791312", "name": "TP53 Regulates Transcription of Cell Cycle Genes",
+       "top_category": "Cell Cycle", "evidence": "TAS"},
+      ...
+    ], "n_pathways": 42}}
+
+    Does NOT return gene sets — use lookup_gene_sets (MSigDB Hallmark).
+    Does NOT return expression — use lookup_gene_expression.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -435,8 +739,16 @@ async def lookup_gene_sets(
 ) -> dict:
     """Look up MSigDB Hallmark gene set memberships for a gene.
 
-    Returns which of the 50 Hallmark gene sets (e.g. OXIDATIVE_PHOSPHORYLATION,
-    MYC_TARGETS) a gene belongs to. Standard for functional interpretation.
+    Returns which of the 50 Hallmark gene sets a gene belongs to.
+    Standard for functional interpretation of gene lists.
+
+    Example output:
+    {"data": {"symbol": "MYC", "gene_sets": [
+      "HALLMARK_MYC_TARGETS_V1", "HALLMARK_MYC_TARGETS_V2",
+      "HALLMARK_E2F_TARGETS", "HALLMARK_G2M_CHECKPOINT"
+    ], "n_sets": 4}}
+
+    Does NOT return Reactome pathways — use lookup_gene_pathways.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
@@ -456,6 +768,15 @@ async def lookup_protein_atlas(
     (Not detected/Low/Medium/High) and subcellular localization across
     26 compartments. Bridges RNA expression to protein reality.
 
+    Example output (truncated):
+    {"data": {"symbol": "TP53", "tissue_expression": [
+      {"tissue": "Liver", "level": "Medium", "cell_type": "hepatocytes"},
+      ...
+    ], "subcellular": ["Nucleoplasm", "Cytosol"]}}
+
+    Does NOT return RNA expression — use lookup_gene_expression (GTEx).
+    Does NOT return protein abundance — use lookup_protein_abundance (PaxDb PPM).
+
     Args:
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'ALB', 'BRCA1').
@@ -469,11 +790,14 @@ async def bulk_download(
 ) -> dict:
     """Get a presigned download URL for bulk layer data.
 
-    Returns a temporary (1-hour) download URL for the full dataset of a layer.
-    Useful for downloading complete probe manifests, CpG site lists, etc.
+    Returns a temporary (1-hour) download URL for the complete dataset.
 
-    Use this when you need the full dataset for offline analysis — e.g. all
-    937K EPIC v2 probes or all 29M CpG sites. Not for ad-hoc queries.
+    Example output:
+    {"url": "https://storage.googleapis.com/...", "expires_in": 3600,
+     "layer_key": "probe_epic_v2", "row_count": 937000}
+
+    Use this for offline analysis — e.g. all 937K EPIC v2 probes.
+    Does NOT return data directly — download from the returned URL.
 
     Args:
         layer_key: Layer identifier (e.g. 'probe_epic_v2', 'cpg_sites').
@@ -489,16 +813,22 @@ async def lookup_nn_parameters(
     """Look up nearest-neighbor thermodynamic parameters.
 
     Returns ΔH (kcal/mol), ΔS (cal/mol·K), ΔG₃₇ (kcal/mol) per dinucleotide
-    step in 1 M NaCl at 37°C. Sources: SantaLucia 1998 (DNA/DNA),
+    step in 1 M NaCl at 37 C. Sources: SantaLucia 1998 (DNA/DNA),
     Xia/Turner 1998 (RNA/RNA), Sugimoto 1995 (RNA/DNA).
 
-    Use this when you need thermodynamic stability parameters for duplex
-    formation — e.g. melting temperature prediction, hybridization energy,
-    or stacking free energy per dinucleotide step.
+    Example output (for dinucleotide='CG'):
+    {"data": {"dinucleotide": "CG", "dH_kcal": -10.6, "dS_cal": -27.2,
+     "dG37_kcal": -2.17, "duplex_type": "dna_dna", "source": "SantaLucia 1998"}}
+
+    Key output fields:
+    - dG37_kcal: stacking free energy at 37 C (more negative = more stable)
+    - dH_kcal, dS_cal: enthalpy/entropy components
+
+    Does NOT compute over a sequence — use evaluate_design or compute_region_biophysics.
 
     Args:
         duplex_type: Duplex type — 'dna_dna', 'rna_rna', or 'rna_dna'.
-        dinucleotide: Optional specific dinucleotide (e.g. 'CG', 'AA').
+        dinucleotide: Optional specific dinucleotide (e.g. 'CG', 'AA'). Omit for all 16.
     """
     params: dict = {"duplex_type": duplex_type}
     if dinucleotide:
@@ -517,14 +847,16 @@ async def lookup_dinucleotide_properties(
     (El Hassan & Calladine 1997, Ho 1994), and groove geometry (major/minor
     groove width and depth) per dinucleotide step.
 
-    Use this when you need optical properties for concentration measurements,
-    structural propensity for non-B DNA prediction, or groove dimensions
-    for protein-DNA interaction analysis.
+    Example output (for dinucleotide='CG'):
+    {"data": {"dinucleotide": "CG", "extinction_260_M_cm": 7600,
+     "a_form_propensity": 0.85, "z_form_propensity": 0.92,
+     "major_groove_width_A": 11.2, "minor_groove_width_A": 5.9}}
+
+    Does NOT compute over a sequence — use evaluate_design for that.
 
     Args:
-        dinucleotide: Optional specific dinucleotide (e.g. 'CG').
-        property_set: Which properties to return — 'all', 'extinction',
-                      'groove', or 'form_propensity'.
+        dinucleotide: Optional specific dinucleotide (e.g. 'CG'). Omit for all 16.
+        property_set: Which properties — 'all', 'extinction', 'groove', or 'form_propensity'.
     """
     params: dict = {"property_set": property_set}
     if dinucleotide:
@@ -539,18 +871,20 @@ async def lookup_amino_acid_properties(
 ) -> dict:
     """Look up amino acid biophysical reference properties.
 
-    Returns molecular weight (Da), van der Waals volume (Å³, Zamyatnin 1972),
-    solvent-accessible surface area (Å²), hydrophobicity (Kyte-Doolittle,
-    Wimley-White, Eisenberg scales), side-chain pKa, charge at pH 7,
-    and biosynthetic cost (Akashi-Gojobori ATP equivalents).
+    Returns molecular weight (Da), van der Waals volume (A^3), SASA (A^2),
+    hydrophobicity (Kyte-Doolittle, Wimley-White, Eisenberg), pKa, charge
+    at pH 7, and biosynthetic cost (Akashi-Gojobori ATP equivalents).
 
-    Use this when you need per-residue physical properties for protein
-    analysis — sequence-based predictions, cost calculations, or
-    hydrophobicity profiling.
+    Example output (for residue='W'):
+    {"data": {"residue": "W", "name": "Tryptophan", "mw_da": 204.23,
+     "volume_A3": 163.3, "hydrophobicity_kd": -0.9, "cost_atp": 74.3,
+     "pka_sidechain": null, "charge_ph7": 0}}
+
+    Does NOT return gene-level cost — use lookup_gene_cost for protein cost.
 
     Args:
-        residue: Optional one-letter amino acid code (e.g. 'M', 'W').
-        scale: Hydrophobicity scale filter — 'all', 'kd', 'ww', or 'eisenberg'.
+        residue: Optional one-letter amino acid code (e.g. 'M', 'W'). Omit for all 20.
+        scale: Hydrophobicity scale — 'all', 'kd', 'ww', or 'eisenberg'.
     """
     params: dict = {"scale": scale}
     if residue:
@@ -563,20 +897,23 @@ async def lookup_physical_constants(
     name: str | None = None,
     category: str | None = None,
 ) -> dict:
-    """Look up scalar biophysical constants.
+    """Look up scalar biophysical constants with citations.
 
-    Returns named physical/chemical constants with values, units, experimental
-    context, and primary literature citations. Includes persistence length
-    (multiple conditions), Manning condensation parameter, elastic moduli,
-    polymerase/ribosome rates, nucleosome thermodynamics, and more.
+    Returns named constants with values, units, experimental context,
+    and primary literature references. Categories: mechanics, kinetics,
+    electrostatics, nucleosome, thermodynamics.
 
-    Use this when you need canonical published values for biophysical
-    calculations — e.g. DNA stiffness, charge density, or enzymatic rates.
+    Example output (for name='lp_bdna_physiological_nm'):
+    {"data": {"name": "lp_bdna_physiological_nm", "value": 50.0, "unit": "nm",
+     "context": "B-DNA in 150 mM NaCl, 25C", "source": "Hagerman 1988",
+     "category": "mechanics"}}
+
+    Does NOT compute over sequences — these are scalar reference values.
 
     Args:
         name: Optional exact constant name (e.g. 'lp_bdna_physiological_nm').
-        category: Optional category filter (e.g. 'mechanics', 'kinetics',
-                  'electrostatics', 'nucleosome').
+        category: Optional category filter ('mechanics', 'kinetics', 'electrostatics',
+                  'nucleosome', 'thermodynamics').
     """
     params: dict = {}
     if name:
@@ -594,33 +931,42 @@ async def compute_region_biophysics(
     salt_mm: float = 1000.0,
     properties: str = "all",
 ) -> dict:
-    """Compute sequence-derived biophysical properties for a genomic region.
+    """Compute per-dinucleotide biophysical properties for a genomic region.
 
     Fetches the DNA sequence and applies published lookup tables to compute
-    per-dinucleotide profiles: thermodynamic stability (SantaLucia ΔG₃₇),
-    extinction coefficients (Tataurov ε₂₆₀), A/Z-form propensity, and
-    groove geometry. Returns GRanges format (each dinucleotide = one 2-bp range).
+    profiles: stacking ΔG₃₇ (SantaLucia), extinction ε₂₆₀ (Tataurov),
+    A/Z-form propensity, and groove geometry. Each dinucleotide step = one row.
 
-    Use this when you need to analyze the biophysical landscape of a genomic
-    region — e.g. thermodynamic stability profile, structural propensity
-    for non-B DNA, or groove accessibility variation.
+    Example output (truncated):
+    {"data": {"seqnames": ["chr17","chr17",...],
+     "ranges": {"start": [7668402,7668403,...], "end": [7668403,7668404,...]},
+     "mcols": {"stacking_dG37_kcal": [-1.44,-2.17,...], "extinction_260": [7200,7600,...],
+               "a_form_propensity": [0.5,0.85,...], "z_form_propensity": [0.1,0.92,...],
+               "major_groove_width_A": [11.7,11.2,...]}}}
 
+    Key output fields in mcols:
+    - stacking_dG37_kcal: free energy per step (more negative = more stable)
+    - z_form_propensity: Z-DNA propensity (>0.5 = Z-form prone)
+    - major/minor_groove_width_A: groove dimensions in angstroms
+
+    Does NOT work on arbitrary sequences — use evaluate_design for non-genomic DNA.
     Maximum 10,000 bp per request.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
-        duplex_type: Duplex type for NN params — 'dna_dna' (default for genomic DNA).
-        salt_mm: NaCl concentration in mM. 1000 = standard (1 M), 150 = physiological.
-        properties: Comma-separated properties to compute: 'thermodynamics', 'extinction',
-                    'form_propensity', 'groove', or 'all' (default).
+        region: Genomic region 'chr16:70699930-70700000' (1-based closed, max 10kb).
+        duplex_type: 'dna_dna' (default), 'rna_rna', or 'rna_dna'.
+        salt_mm: NaCl in mM. 1000 = standard (1 M), 150 = physiological.
+        properties: Comma-separated: 'thermodynamics', 'extinction', 'form_propensity',
+                    'groove', or 'all' (default).
     """
     params: dict = {
         "duplex_type": duplex_type,
         "salt_mm": str(salt_mm),
         "properties": properties,
     }
-    return await _get(f"/v1/biophysics/{build}/{region}", params)
+    data = await _get(f"/v1/biophysics/{build}/{region}", params)
+    return _with_summary(data, _summarize_biophysics(data, region))
 
 
 @mcp.tool()
@@ -636,26 +982,26 @@ async def correlate_layers(
 ) -> dict:
     """Compute cross-layer statistical correlation in a genomic region.
 
-    Bins both layers into fixed-size windows, pairs them on bin identity,
-    and computes the requested statistic on the paired vectors.
+    Bins both layers into fixed-size windows, pairs them, and computes
+    the requested statistic.
 
     Available stats:
-    - pearson_r, spearman_rho: work on all layer combinations
-    - overlap_enrichment, jaccard, fisher_exact: count x count layers only
+    - pearson_r, spearman_rho: continuous correlation (all layer combos)
+    - overlap_enrichment, jaccard, fisher_exact: binary overlap (count layers)
 
-    Use this when you need to test whether two genomic features co-vary —
-    e.g. "does CpG density correlate with conservation?" or "do regulatory
-    elements overlap with CpG islands more than expected?"
+    Example output:
+    {"data": {"stat": "pearson_r", "value": 0.42, "p_value": 1.2e-8,
+     "n_bins": 100, "layer_a": "cpg_sites", "layer_b": "gencode_v44"}}
+
+    Does NOT return individual features — use query_region for that.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
+        region: Genomic region 'chr16:70699930-70700000' (1-based closed).
         layer_a: First layer key (e.g. 'cpg_sites').
-        layer_b: Second layer key (e.g. 'encode_ccre_v4').
-        stat: Statistic — 'pearson_r', 'spearman_rho', 'overlap_enrichment',
-              'jaccard', or 'fisher_exact'.
-        resolution: Bin size in bp. Must be 1000, 10000, 100000, or 1000000.
-                    Default 10000.
+        layer_b: Second layer key (e.g. 'gencode_v44').
+        stat: 'pearson_r', 'spearman_rho', 'overlap_enrichment', 'jaccard', or 'fisher_exact'.
+        resolution: Bin size in bp (1000, 10000, 100000, or 1000000). Default 10000.
         field_a: Numeric field from layer_a (default 'density').
         field_b: Numeric field from layer_b (default 'density').
     """
@@ -677,18 +1023,24 @@ async def lookup_sbs_spectrum(
 ) -> dict:
     """Look up SBS thermodynamic spectrum for trinucleotide mutations.
 
-    Returns the 96-channel COSMIC SBS mutation spectrum with nearest-neighbor
-    stacking energy perturbation (δΔG) computed from SantaLucia 1998 parameters.
-    Each channel maps a trinucleotide mutation context to its thermodynamic
-    impact on DNA duplex stability. Positive δΔG = destabilizing mutation.
+    Returns 96-channel COSMIC SBS mutation spectrum with nearest-neighbor
+    stacking energy perturbation (deltaG) from SantaLucia 1998. Each channel
+    maps a trinucleotide context to thermodynamic impact. Positive = destabilizing.
 
-    Use this when analyzing mutational signatures through a biophysical lens —
-    e.g. mapping COSMIC SBS signatures to energy perturbation profiles, or
-    understanding which mutations are thermodynamically costly.
+    Example output (for channel='A[C>A]G'):
+    {"data": {"channel": "A[C>A]G", "mutation_type": "C>A",
+     "ref_trinuc": "ACG", "alt_trinuc": "AAG",
+     "dG37_ref_kcal": -3.61, "dG37_alt_kcal": -2.89, "delta_dG37_kcal": 0.72}}
+
+    Key output fields:
+    - delta_dG37_kcal: energy perturbation (positive = destabilizing, negative = stabilizing)
+
+    Does NOT compute mutation impact on a specific sequence — it provides per-channel
+    reference values. For sequence-specific analysis, use evaluate_design + compare_sequences.
 
     Args:
-        mutation_type: Filter by mutation type (e.g. 'C>A', 'T>G'). Returns 16 channels.
-        channel: Specific SBS channel (e.g. 'A[C>A]G'). Returns 1 channel.
+        mutation_type: Filter by type (e.g. 'C>A', 'T>G'). Returns 16 channels.
+        channel: Specific channel (e.g. 'A[C>A]G'). Returns 1 entry.
     """
     params: dict = {}
     if mutation_type:
@@ -705,19 +1057,24 @@ async def lookup_clock_probes(
 ) -> dict:
     """Look up epigenetic clock probe coefficients.
 
-    Returns probe weights for epigenetic age clocks: Horvath (2013, pan-tissue),
-    Hannum (2013, blood), PhenoAge (Levine 2018), GrimAge (Lu 2019),
-    DunedinPACE (Belsky 2022), and Retro-Age (retroelement clocks: retro_age_v2,
-    retro_age_450k, retro_age_panmammalian). Query by clock name to get all
-    probes, or by probe_id to see which clocks use it.
+    Returns probe weights for: Horvath (2013, pan-tissue), Hannum (2013, blood),
+    PhenoAge (Levine 2018), GrimAge (Lu 2019), DunedinPACE (Belsky 2022),
+    Retro-Age (retro_age_v2, retro_age_450k, retro_age_panmammalian).
 
-    Use this when checking whether a CpG probe is part of an epigenetic clock,
-    retrieving clock coefficients for age prediction, or understanding the
-    relative weight of a probe in age estimation.
+    Query by clock name → all probes for that clock.
+    Query by probe_id → all clocks using that probe.
+
+    Example output (for clock='horvath_2013', truncated):
+    {"data": {"clock": "horvath_2013", "n_probes": 353, "probes": [
+      {"probe_id": "cg16867657", "coefficient": 0.0217, "intercept_contrib": 0.0012},
+      ...
+    ]}}
+
+    Does NOT return methylation values — load IDATs first with compute tools.
 
     Args:
-        clock: Clock name (e.g. 'horvath_2013', 'phenoage_2018', 'retro_age_v2'). Returns all probes for that clock.
-        probe_id: Probe ID (e.g. 'cg16867657'). Returns all clocks using this probe.
+        clock: Clock name (e.g. 'horvath_2013', 'phenoage_2018', 'retro_age_v2').
+        probe_id: Probe ID (e.g. 'cg16867657'). Returns all clocks using it.
     """
     params: dict = {}
     if clock:
@@ -735,19 +1092,25 @@ async def lookup_probe_repeat_overlap(
     repeat_age: str | None = None,
     limit: int = 100,
 ) -> dict:
-    """Look up probes that overlap repeat elements (LINE, SINE, LTR, DNA transposons).
+    """Look up probes overlapping repeat elements (LINE, SINE, LTR, DNA transposons).
 
-    Returns which methylation array probes sit inside repeat elements, with
-    evolutionary age classification (young/intermediate/ancient) and divergence.
+    Returns which probes sit inside transposable elements, with evolutionary
+    age classification (young/intermediate/ancient) and sequence divergence.
 
-    Use this when checking if a probe falls within a transposable element, or to
-    find all probes in a repeat class (e.g. all LTR-overlapping probes for ERV analysis).
+    Example output (truncated):
+    {"data": {"probes": [
+      {"probe_id": "cg16867657", "repeat_name": "L1HS", "repeat_class": "LINE",
+       "repeat_age": "young", "divergence_pct": 2.1, "platform": "epic_v2"},
+      ...
+    ], "total": 42}}
+
+    Does NOT return probe coordinates — use lookup_probe for position/gene/context.
 
     Args:
-        probe_id: Optional probe ID (e.g. 'cg16867657'). Check one probe.
-        platform: Optional platform filter ('epic_v2', 'epic_v1', '450k').
-        repeat_class: Optional repeat class filter ('LINE', 'SINE', 'LTR', 'DNA').
-        repeat_age: Optional age filter ('young', 'intermediate', 'ancient').
+        probe_id: Optional probe ID. Check one probe for repeat overlap.
+        platform: Optional filter ('epic_v2', 'epic_v1', '450k').
+        repeat_class: Optional filter ('LINE', 'SINE', 'LTR', 'DNA').
+        repeat_age: Optional filter ('young', 'intermediate', 'ancient').
         limit: Max results (default 100, max 10000).
     """
     params: dict = {"limit": str(limit)}
@@ -772,20 +1135,31 @@ async def intersect_layers(
 ) -> dict:
     """Find genomic positions satisfying multiple cross-layer conditions.
 
-    The killer feature: specify conditions across different annotation layers
-    and get positions that satisfy ALL of them. No other genomics API offers this.
+    Specify conditions across different annotation layers and get positions
+    that satisfy ALL of them simultaneously.
 
-    Example: find 1kb windows with low stacking energy AND high conservation
-    AND overlapping a CpG island.
+    Example: find positions with low stacking energy AND in a CpG island:
+    filters=[
+      {"layer": "biophysics", "field": "stacking_dG37", "op": ">", "value": -1.0},
+      {"layer": "cpg_islands", "op": "overlaps"}
+    ]
+
+    Example output (truncated):
+    {"data": {"n_hits": 42, "positions": [
+      {"chr": "chr16", "start": 70699950, "end": 70699960,
+       "annotations": {"stacking_dG37": -0.85, "cpg_context": "island"}},
+      ...
+    ]}}
+
+    Available filter layers: biophysics, conservation, cpg_sites, cpg_islands,
+    ccre, chromatin_state, breakpoints, nonb_dna, repeats.
+    Operators: 'overlaps', '>', '<', '>=', '<=', '==', '!=', 'between'.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
         region: Genomic region 'chr16:70000000-71000000'.
-        filters: List of filter dicts, each with 'layer', 'op', and optionally 'field'/'value'.
-            Available layers: biophysics, conservation, cpg_sites, cpg_islands, ccre,
-            chromatin_state, breakpoints, nonb_dna, repeats.
-            Operators: 'overlaps', '>', '<', '>=', '<=', '==', '!=', 'between'.
-        return_layers: Optional list of layer keys to annotate intersecting positions with.
+        filters: List of filter dicts with 'layer', 'op', and optionally 'field'/'value'.
+        return_layers: Optional layer keys to annotate hits with.
         limit: Max results (default 1000, max 10000).
     """
     return await _post("/v1/query/intersect", {
@@ -807,43 +1181,50 @@ async def evaluate_design(
 ) -> dict:
     """Evaluate the biophysical properties of any DNA sequence (physics linter).
 
-    Takes a raw DNA sequence (10–100,000 bp, not a genomic coordinate) and
-    returns a structured biophysical assessment. This is the recommended
-    starting point for evaluating synthetic constructs, promoters, or any
-    designed DNA sequence.
+    Takes a raw DNA sequence (10-100,000 bp, NOT a genomic coordinate) and returns
+    a structured biophysical assessment. This is the recommended starting point
+    for evaluating synthetic constructs, promoters, or any designed DNA.
 
     Returns:
-    - summary: GC content, CpG count/density, melting temp, mean stacking ΔG₃₇
+    - summary: GC content, CpG count/density, melting temp, mean stacking dG37
     - cpg_islands: detected CpG islands (Gardiner-Garden & Frommer criteria)
     - thermodynamics: stacking energy statistics + windowed profiles
-    - extinction: UV absorbance at 260 nm
+    - extinction: UV absorbance at 260 nm (for concentration measurements)
     - structural: A/Z-form propensity, groove geometry
-    - flags: actionable warnings (CpG islands, homopolymers, repeats, instability)
+    - flags: actionable warnings and info (CpG islands, homopolymers, repeats, instability)
+    - flag_counts: {"warning": N, "info": M}
 
     Example output (truncated):
-    {
-      "summary": {"gc_content": 0.52, "cpg_island_count": 1, "mean_stacking_dG37_kcal": -1.42},
-      "cpg_islands": [{"start": 1200, "end": 1850, "gc": 0.67, "obs_exp_cpg": 0.82}],
-      "flags": [{"type": "warning", "code": "CPG_ISLAND", "region": "1200-1850", "message": "..."}]
-    }
+    {"summary": {"length_bp": 4521, "gc_content": 0.523, "cpg_island_count": 1,
+      "mean_stacking_dG37_kcal": -1.42, "melting_temp_estimate_C": 84.2},
+     "cpg_islands": [{"start": 1200, "end": 1850, "gc": 0.67, "obs_exp_cpg": 0.82}],
+     "thermodynamics": {"stacking_dG37": {"mean": -1.42, "sd": 0.31, "min": -2.17, "max": -0.58}},
+     "flags": [{"type": "warning", "code": "CPG_ISLAND", "region": "1200-1850",
+       "message": "CpG island detected — susceptible to methylation-mediated silencing"}],
+     "flag_counts": {"warning": 1, "info": 2}}
+
+    Flag codes: CPG_ISLAND (warning), LOW_STABILITY (info), HIGH_STABILITY (info),
+    HIGH_GC (info), LOW_GC (info), Z_FORM_PRONE (warning), HOMOPOLYMER (warning),
+    DINUC_REPEAT (warning).
 
     Does NOT use genomic coordinates — works on any arbitrary sequence.
-    For genomic region biophysics, use compute_region_biophysics instead.
+    For genomic regions, use compute_region_biophysics instead.
 
     Args:
-        sequence: DNA sequence (ACGT characters, Ns tolerated). 10–100,000 bp.
-        name: Label for this sequence (for your reference).
+        sequence: DNA sequence (ACGT, Ns tolerated). 10-100,000 bp.
+        name: Label for this sequence.
         analysis: 'full' (default), 'thermodynamic', or 'structural'.
-        salt_mm: NaCl in mM (1000=standard SantaLucia, 150=physiological).
-        window_size: Window size in bp for profiles (default 100).
+        salt_mm: NaCl in mM (1000=standard, 150=physiological).
+        window_size: Window size in bp for windowed profiles (default 100).
     """
-    return await _post("/v1/evaluate", {
+    data = await _post("/v1/evaluate", {
         "sequence": sequence,
         "name": name,
         "analysis": analysis,
         "salt_mm": salt_mm,
         "window_size": window_size,
     })
+    return _with_summary(data, _summarize_evaluate(data))
 
 
 @mcp.tool()
@@ -855,27 +1236,33 @@ async def compare_sequences(
 ) -> dict:
     """Compare biophysical properties of multiple DNA sequences side-by-side.
 
-    Accepts 2–10 named sequences. Returns per-sequence evaluations plus a
+    Accepts 2-10 named sequences. Returns per-sequence evaluations plus a
     delta table comparing each against the first (reference) sequence.
 
     Use this when comparing codon-optimized variants, promoter candidates,
     or assessing the biophysical impact of mutations.
 
     Example output (truncated):
-    {
-      "reference": "wildtype",
-      "comparison": {
-        "wildtype": {"gc_content": 0.52, "cpg_island_count": 1, "flag_count": 3},
-        "optimized": {"gc_content": 0.48, "cpg_island_count": 0, "flag_count": 1}
-      },
-      "deltas_vs_reference": {
-        "optimized": {"delta_gc": -0.04, "delta_cpg_islands": -1, "delta_warnings": -2}
-      }
-    }
+    {"reference": "wildtype",
+     "comparison": {
+       "wildtype":  {"gc_content": 0.52, "cpg_island_count": 1, "flag_count": 3},
+       "optimized": {"gc_content": 0.48, "cpg_island_count": 0, "flag_count": 1}
+     },
+     "deltas_vs_reference": {
+       "optimized": {"delta_gc": -0.04, "delta_cpg_islands": -1,
+                     "flags_added": [], "flags_removed": ["CPG_ISLAND at 1200-1850"]}
+     }}
+
+    Key output fields:
+    - comparison{}: side-by-side metrics per sequence
+    - deltas_vs_reference{}: changes relative to first sequence
+    - flags_added/flags_removed: new or resolved biophysical issues
+
+    Does NOT align sequences — it evaluates each independently and compares metrics.
 
     Args:
-        sequences: Dict mapping names to DNA sequences. First entry is the reference.
-                   Example: {"wildtype": "ATGCGA...", "v1": "ATGCGA...", "v2": "ATGCGA..."}
+        sequences: Dict mapping names to DNA sequences. First entry = reference.
+                   Example: {"wildtype": "ATGCGA...", "v1": "ATGCGA..."}
         analysis: 'full' (default), 'thermodynamic', or 'structural'.
         salt_mm: NaCl in mM (1000=standard, 150=physiological).
         window_size: Window size in bp for profiles (default 100).

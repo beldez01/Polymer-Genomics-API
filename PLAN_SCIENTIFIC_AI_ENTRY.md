@@ -10,6 +10,7 @@
 > - Sprint 2 (Python SDK): COMPLETE
 > - Sprint 3 (Multi-key auth): DEFERRED — build when users need keys
 > - Sprint 4 (Developer landing + docs): COMPLETE
+> - Sprint 5 (MCP hardening): COMPLETE
 
 ## Executive Summary
 
