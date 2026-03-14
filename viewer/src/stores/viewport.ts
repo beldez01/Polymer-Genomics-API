@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { MOTIF_NAMES } from '@/lib/motifs';
 
 export type GenomeBuild = 'hg37' | 'hg38';
 
@@ -41,6 +42,7 @@ export interface ViewportState {
   toggleMotif: (motifName: string) => void;
   toggleAllProbes: () => void;
   toggleAllCellTypes: () => void;
+  toggleAllMotifs: () => void;
 }
 
 /**
@@ -186,5 +188,12 @@ export const useViewport = create<ViewportState>((set, get) => ({
           ? state.activeLayers
           : [...state.activeLayers, 'methylation_atlas'],
       };
+    }),
+  toggleAllMotifs: () =>
+    set((state) => {
+      if (state.enabledMotifs.length > 0) {
+        return { enabledMotifs: [] };
+      }
+      return { enabledMotifs: [...MOTIF_NAMES] };
     }),
 }));

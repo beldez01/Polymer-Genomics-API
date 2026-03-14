@@ -6,6 +6,15 @@ import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/co
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import type { GenomeBuild } from '@/stores/viewport';
 
+const ZOOM_PRESETS = [
+  { label: '1 bp',   width: 50 },
+  { label: '1 kb',   width: 1_000 },
+  { label: '10 kb',  width: 10_000 },
+  { label: '100 kb', width: 100_000 },
+  { label: '1 Mb',   width: 1_000_000 },
+  { label: '10 Mb',  width: 10_000_000 },
+];
+
 interface HeaderBarProps {
   build: GenomeBuild;
   chr: string;
@@ -16,9 +25,16 @@ interface HeaderBarProps {
   /** Optional copy-link button label + handler, shown next to coordinates */
   copyLinkLabel?: string;
   onCopyLink?: () => void;
+  /** Navigation controls */
+  onPanLeft?: () => void;
+  onPanRight?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomPreset?: (width: number) => void;
+  viewportWidth?: number;
 }
 
-export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, copyLinkLabel, onCopyLink }: HeaderBarProps) {
+export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, copyLinkLabel, onCopyLink, onPanLeft, onPanRight, onZoomIn, onZoomOut, onZoomPreset, viewportWidth }: HeaderBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ gene_symbol: string }[]>([]);
   const [open, setOpen] = useState(false);
@@ -145,6 +161,34 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
         {build}
       </button>
 
+      {/* Navigation controls */}
+      {!isMobile && onPanLeft && onPanRight && onZoomIn && onZoomOut && (
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+          <button onClick={onPanLeft} style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
+          <button onClick={onPanRight} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
+          <div style={{ width: SPACE[1] }} />
+          <button onClick={onZoomIn} style={COMPONENT.button.small} title="Zoom in 2x">+</button>
+          <button onClick={onZoomOut} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
+          {onZoomPreset && (
+            <>
+              <div style={{ width: SPACE[1] }} />
+              {ZOOM_PRESETS.map((p) => {
+                const isActive = viewportWidth != null && Math.abs(viewportWidth - p.width) < p.width * 0.2;
+                return (
+                  <button
+                    key={p.label}
+                    onClick={() => onZoomPreset(p.width)}
+                    style={isActive ? COMPONENT.button.smallActive : COMPONENT.button.small}
+                  >
+                    {p.label}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Coordinates — absolutely centered in the bar */}
       {!isMobile && (
         <div style={{
@@ -155,6 +199,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
           alignItems: 'center',
           gap: SPACE[2],
           whiteSpace: 'nowrap',
+          pointerEvents: 'none',
         }}>
           <span style={{
             color: COLOR.text.secondary,
@@ -176,6 +221,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
                 fontFamily: FONT_FAMILY,
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, color 0.15s',
+                pointerEvents: 'auto',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = COLOR.accent.teal;
@@ -196,7 +242,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
       )}
 
       {/* Search — right */}
-      <div ref={containerRef} className="flex items-center gap-1" style={{ position: 'relative', flexShrink: 0 }}>
+      <div ref={containerRef} className="flex items-center gap-1" style={{ position: 'relative', flexShrink: 0, marginLeft: 'auto' }}>
         <input
           type="text"
           value={query}

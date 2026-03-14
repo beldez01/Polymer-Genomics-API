@@ -5,13 +5,34 @@
 > **Scope:** API, MCP, frontend, developer experience, commercial readiness
 > **Excludes:** Phase 2-3.5 track ingestion (deferred), foundation model building, clinical features
 >
-> **Status:**
-> - Sprint 1 (evaluate_design + compare): COMPLETE
-> - Sprint 2 (Python SDK): COMPLETE
-> - Sprint 3 (Multi-key auth): DEFERRED — build when users need keys
-> - Sprint 4 (Developer landing + docs): COMPLETE
-> - Sprint 5 (MCP hardening): COMPLETE
-> - Sprint 6 (Design Evaluator frontend): COMPLETE
+> **Status (updated 2026-03-13):**
+> - Sprint 1 (evaluate_design + compare): COMPLETE — deployed to Fly.io
+> - Sprint 2 (Python SDK): COMPLETE — `sdk/python/`, 24 tests passing, not yet on PyPI
+> - Sprint 3 (Multi-key auth): DEFERRED — build when users need API keys
+> - Sprint 4 (Developer landing + docs): COMPLETE — `/developers` page live on Vercel
+> - Sprint 5 (MCP hardening): COMPLETE — 6 summary builders, 29 enhanced docstrings, 39 tools loading
+> - Sprint 6 (Design Evaluator frontend): COMPLETE — `/evaluate` page live on Vercel, evidence badges + PNG export wired in (commit `cf2b1d3`)
+> - Sprint 7 (Outreach assets): NOT STARTED
+>
+> **Expansion Blueprint (docs/plans/2026-03-09-expansion-implementation-plan.md): ALL 16 TASKS COMPLETE**
+> - Phase 1A (Epistemic Foundation, Tasks 1-6): COMPLETE — schema, classification, API metadata, MCP filtering
+> - Phase 1B (Moat Layers, Tasks 7-10): COMPLETE — SBS spectrum, clocks, metabolic burden, DNAshape (abs + delta)
+> - Phase 1C (UI + API, Tasks 11-15): COMPLETE — breakpoints, non-B DNA, intersection, badges, export
+> - Task 16 (Deploy): COMPLETE
+> - Bonus: gene aliases (032), HERV loci (034), repeats enrichment (033), probe-repeat xref (035), IP/licensing, DMP viewer, 48-bug codebase audit
+> - 35 database migrations total (002-035)
+>
+> **Deployment verified 2026-03-13:**
+> - API: Fly.io (`polymer-genomics-api`, region iad) — 26 layers on hg38 confirmed
+> - Frontend: Vercel (polymerbio.org) — all pages serving
+> - Branch: `feat/epistemic-schema`, latest commit `cf2b1d3`
+>
+> **Codebase Audit (2026-03-13):** 48 bugs fixed in commit `e844c44`
+> - **CRITICAL (3):** Hardcoded production DB password in `scripts/run_prod_migrations.py` and `ingest/shape_bulk.py` docstring (replaced with env var / placeholder). Falsy-zero bug in `ingest/methylation.py` silently dropped 0.0 beta values for 6 cell-type columns.
+> - **HIGH (8):** Case-sensitive gene lookups in `routers/genes.py` and `routers/proximity.py` (added `UPPER()` normalization). Hardcoded `array_type="EPIC"` in `engine/r_scripts/filter_probes.R` (now auto-detects EPICv2/EPIC/450K). Stale `openSesame` path in `normalize.R` (updated for sesame ≥1.16 with fallback). Unvalidated covariate names in `run_limma.R` (added validation + backtick quoting). Coordinate system mismatch in methylation atlas ingest (1-based to 0-based conversion added).
+> - **MEDIUM (13):** Salt correction using `len(seq)-1` instead of N-free `n_steps` in `biophysics.py`. Wrong auth header format in `r-client/R/connection.R` (`Bearer` → `X-API-Key`). R-client gene endpoint parsing assumed envelope wrapper. Missing `FASTA_DIR` in `fly.toml` env. S3 client passing empty string endpoint to boto3 (now `None` for real AWS). Tile endpoint reporting 0-based start in response. SQL injection in `ingest/dnashape.py` and `ingest/methyl_dnashape.py` (f-string → parameterized). MCP timeout too short (30→120s) + missing error handling. Viewer: dead `/probe` route, disabled motif checkboxes, no zoom clamp, wrong atlas endpoint.
+> - **LOW (17):** Phantom citation "Lee & Bhatt 2019" → "Shon et al. 2019" in `cpg_profile.py`. Missing layer license entries. Duplicated version strings (centralized to `__version__`). Incomplete `.env.example`. Misleading hg38 comment in methylation export script. Destructive test teardown → transaction rollback. Silent test skips → explicit `pytest.skip()`. CpG O/E formula denominator. GC window off-by-one in CpG ingest. Gene set collection inference. Gene profile TSS calculation for minus strand. Stale imports in `evaluate.py`. Z-DNA regex fix in nonb_dna ingest. Dead code cleanup in breakpoints ingest. MCP Docker entry point. Missing probes info in get_values.R fallback. Histone ingest gzip handling.
+> - **Remaining known issues:** No transaction wrapping on multi-step ingestions. Memory pressure risk in repeats/chromatin ingest for large chromosomes. Production DB password exposed in git history (rotation recommended).
 
 ## Executive Summary
 
@@ -19,7 +40,11 @@ Seven sprints over ~10 weeks. The plan builds outward from the single highest-le
 
 ---
 
-## Sprint 1: The Product (Week 1-2)
+## Sprint 1: The Product (Week 1-2) — COMPLETE
+
+> **Shipped:** `POST /v1/evaluate` + `POST /v1/compare` endpoints, `evaluate_design` + `compare_sequences` MCP tools.
+> **Files created:** `src/polymer_genomics/evaluate.py`, `src/polymer_genomics/routers/evaluate.py`, `src/polymer_genomics/routers/compare.py`, `tests/test_evaluate.py`
+> **Key decisions:** Implemented as pure-computation endpoints (no DB), reuses biophysics.py functions. 9 flag rules active. MCP tools wrap API calls.
 
 ### 1.1 `POST /v1/evaluate` — Sequence Biophysical Evaluation
 
@@ -235,7 +260,12 @@ Response:
 
 ---
 
-## Sprint 2: Python SDK (Week 3)
+## Sprint 2: Python SDK (Week 3) — COMPLETE
+
+> **Shipped:** `polymer-genomics` Python package with typed client, 5 exception classes, 24 tests.
+> **Files created:** `sdk/python/` tree — `pyproject.toml` (hatchling), `src/polymer_genomics/{__init__,client,exceptions}.py`, `tests/test_client.py`, `README.md`
+> **Key decisions:** httpx client, typed exceptions (PolymerAPIError base → Auth/NotFound/Validation/RateLimit), mock transport for testing (no real server needed). NOT yet published to PyPI.
+> **Tests:** 24 passing — construction (5), error handling (8), exception hierarchy (2), request building via mock transport (9).
 
 ### 2.1 Package: `polymer-genomics`
 
@@ -462,7 +492,9 @@ Register `polymer-genomics` on PyPI. Ensure name is available (check first).
 
 ---
 
-## Sprint 3: Multi-Key Auth + Usage Tracking (Week 4)
+## Sprint 3: Multi-Key Auth + Usage Tracking (Week 4) — DEFERRED
+
+> **Decision:** Deferred on 2026-03-12. API key auth is machine-to-machine (not user login), so it can be built when actual users need keys. Current state: single `POLYMER_API_KEY` env var, no key management UI. Build this when the first external user requests access.
 
 ### 3.1 Multi-Key API Key System
 
@@ -567,7 +599,12 @@ Return `429 Too Many Requests` with `Retry-After` header when exceeded.
 
 ---
 
-## Sprint 4: Developer Landing + Docs (Week 5-6)
+## Sprint 4: Developer Landing + Docs (Week 5-6) — COMPLETE
+
+> **Shipped:** `/developers` page, updated home page tagline, BrandBar + Footer nav links.
+> **Files created:** `viewer/src/app/developers/page.tsx` (~300 lines)
+> **Files modified:** `viewer/src/app/page.tsx` (tagline → "DNA as a physical material", added "For Developers" button, added Biophysics + Physical Constants layer cards), `viewer/src/components/BrandBar.tsx` (added Developers link, desktop only), `viewer/src/components/Footer.tsx` (added Developers link)
+> **Key decisions:** Live TryIt widget calling `/api/v1/evaluate` on production. Three use-case cards (Synthetic Biology, AI Scientists, Epigenetic Clocks). Data inventory grid showing 29M CpGs, 937K probes, etc. Code examples for Python/MCP/curl. All inline styles using existing theme tokens.
 
 ### 4.1 API Landing Page
 
@@ -634,7 +671,13 @@ Document each of the 33 tools with example calls and example outputs.
 
 ---
 
-## Sprint 5: MCP Hardening (Week 6-7)
+## Sprint 5: MCP Hardening (Week 6-7) — COMPLETE
+
+> **Shipped:** 6 deterministic summary builders, enhanced docstrings on all 29 reference tools, `_with_summary()` helper.
+> **Files modified:** `mcp/polymer_genomics_mcp/server.py` (~700 lines rewritten)
+> **Summary builders:** `_summarize_gene`, `_summarize_expression`, `_summarize_evaluate`, `_summarize_constraint`, `_summarize_region`, `_summarize_biophysics` — template-based (not LLM-generated), prepend `_summary` key to JSON responses.
+> **Docstring enhancements:** Every reference tool now includes example output JSON, key output field descriptions, and "Does NOT return" negative capability sections. 39 total tools load cleanly (29 reference + 10 compute).
+> **Key decisions:** Summaries are deterministic string templates for speed/reliability. Applied to 6 high-traffic tools: `lookup_gene`, `query_region`, `lookup_gene_expression`, `lookup_gene_constraint`, `compute_region_biophysics`, `evaluate_design`.
 
 ### 5.1 Summary Response Parameter
 
@@ -709,7 +752,14 @@ Add:
 
 ---
 
-## Sprint 6: Compare + Design Evaluator Frontend (Week 7-8)
+## Sprint 6: Compare + Design Evaluator Frontend (Week 7-8) — COMPLETE (evaluate only)
+
+> **Shipped:** `/evaluate` page with full biophysical results display, Canvas 2D profile charts, FASTA upload, JSON export.
+> **Files created:** `viewer/src/app/evaluate/page.tsx` (~500 lines)
+> **Files modified:** `viewer/src/components/BrandBar.tsx` (added Evaluate nav link)
+> **Components (all in single file):** `ProfileChart` (Canvas 2D, HiDPI/Retina, ResizeObserver), `MetricCard` (value + label + accent), `FlagList` (color-coded warnings/info), `CpgIslandTable` (HTML table), `niceStep()` (gridline utility)
+> **Key decisions:** Pure Canvas 2D rendering (no chart library), consistent with genome browser. HiDPI via dpr scaling. Calls `POST /api/v1/evaluate` via fetch. "Try Example" button with pre-loaded sequence. FASTA upload strips headers.
+> **NOT shipped:** Comparison mode (section 6.2) — the `/v1/compare` endpoint exists but the frontend comparison UI was not built. Could be added later as a tab or secondary input panel.
 
 ### 6.1 Design Evaluator Page
 
@@ -766,7 +816,7 @@ Add:
 
 ---
 
-## Sprint 7: Outreach Assets (Week 9-10)
+## Sprint 7: Outreach Assets (Week 9-10) — NOT STARTED
 
 ### 7.1 Preprint Draft Outline
 
@@ -823,26 +873,25 @@ Add:
 
 ```
 Sprint 1 (evaluate_design, compare) ──────────────────────┐
+    │                                                       │  ✅ DONE
+    ▼                                                       │
+Sprint 2 (Python SDK) ── uses evaluate/compare endpoints   │  ✅ DONE (not on PyPI)
+    │                                                       │
+    ╳ ─── Sprint 3 (Auth + Usage) ── DEFERRED ─────────────│
     │                                                       │
     ▼                                                       │
-Sprint 2 (Python SDK) ── uses evaluate/compare endpoints   │
+Sprint 4 (Developer Landing) ── shipped without auth ──────┤  ✅ DONE
+    │                                                       │
+Sprint 5 (MCP Hardening) ── ran in parallel ───────────────┤  ✅ DONE
     │                                                       │
     ▼                                                       │
-Sprint 3 (Auth + Usage) ── SDK needs API keys              │
-    │                                                       │
-    ▼                                                       │
-Sprint 4 (Developer Landing) ── needs SDK + auth to demo ──┤
-    │                                                       │
-Sprint 5 (MCP Hardening) ── independent, can parallel ─────┤
-    │                                                       │
-    ▼                                                       │
-Sprint 6 (Frontend evaluate page) ── needs evaluate API ───┘
+Sprint 6 (Frontend evaluate page) ── evaluate only ────────┘  ✅ DONE
     │
     ▼
-Sprint 7 (Outreach) ── needs everything above
+Sprint 7 (Outreach) ── NOT STARTED
 ```
 
-**Parallelizable**: Sprints 4+5 can run concurrently. Sprint 6 can start after Sprint 1.
+**Execution order was:** 1 → 2 → (3 deferred) → 4 → 5 → 6. All shipped in a single session on 2026-03-12/13.
 
 ---
 
@@ -868,3 +917,24 @@ Sprint 7 (Outreach) ── needs everything above
 | No adoption after outreach | Medium | High | Target 3 specific people, not mailing lists. Offer to compute on their sequences for free |
 | Rate limiting too aggressive for legitimate use | Low | Medium | Default 100/hr for free tier is generous. Monitor and adjust |
 | Preprint scooped | Very Low | Medium | No one else is building this. The platform IS the novelty |
+
+---
+
+## Remaining Work
+
+### Must do
+- **Sprint 7 (Outreach):** Preprint outline, conference targets, outreach emails — the activation step
+- **PyPI publish:** `polymer-genomics` package is built and tested but not on PyPI yet
+- **Sprint 3 (Auth):** Build when the first external user requests API access
+
+### Could do
+- **Compare frontend (Sprint 6.2):** The `/v1/compare` API exists but the frontend comparison UI was not built
+- **Quickstart guide (Sprint 4.3):** Structured tutorial page at `/docs/quickstart` — not yet created
+- **MCP integration guide (Sprint 4.4):** Dedicated doc page showing Claude Code config — not yet created
+- **Usage tracking:** No request logging beyond Fly.io metrics — build alongside Sprint 3
+
+### Production inventory (verified 2026-03-13)
+- 26 data layers on hg38
+- 39 MCP tools (29 reference + 10 compute)
+- 5 frontend pages: home, viewer, atlas, evaluate, developers, DMP, docs
+- Python SDK: 24 tests, typed exceptions, context manager support

@@ -30,6 +30,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
   const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType, toggleMotif, toggleAllProbes, toggleAllCellTypes } = useViewport();
+  const { toggleAllMotifs } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
@@ -179,6 +180,12 @@ function ViewerPage() {
             onBuildChange={setBuild}
             copyLinkLabel={copyLabel}
             onCopyLink={handleCopyLink}
+            onPanLeft={panLeft}
+            onPanRight={panRight}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onZoomPreset={handleZoomPreset}
+            viewportWidth={width}
           />
         </div>
         {!isMobile && (
@@ -191,6 +198,9 @@ function ViewerPage() {
       <IdeogramBar
         currentChromosome={chr}
         onSelectChromosome={handleSelectChromosome}
+        viewStart={start}
+        viewEnd={end}
+        onNavigate={handleNavigate}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -219,11 +229,6 @@ function ViewerPage() {
           build={build}
           activeLayers={activeLayers}
           onToggleLayer={toggleLayer}
-          onZoomIn={zoomIn}
-          onZoomOut={zoomOut}
-          onPanLeft={panLeft}
-          onPanRight={panRight}
-          onZoomPreset={handleZoomPreset}
           viewportWidth={width}
           resolution={data?.resolution ?? null}
           showCodons={showCodons}
@@ -236,6 +241,7 @@ function ViewerPage() {
           onToggleMotif={toggleMotif}
           onToggleAllProbes={toggleAllProbes}
           onToggleAllCellTypes={toggleAllCellTypes}
+          onToggleAllMotifs={toggleAllMotifs}
         />
         </div>
 

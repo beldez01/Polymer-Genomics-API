@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
+import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
 
 const LAYERS = [
@@ -195,41 +196,7 @@ export default function Home() {
         }} />
       </div>
 
-      {/* ─── Footer ─── */}
-      <footer style={{
-        textAlign: 'center',
-        paddingBottom: SPACE[12],
-      }}>
-        <p style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-        }}>
-          hg38 &middot; hg37 &mdash; Polymer Genomics
-        </p>
-        <p style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.sm.fontSize,
-          fontFamily: FONT_FAMILY,
-          marginTop: SPACE[3],
-        }}>
-          Research Use Only &mdash; Not for clinical or diagnostic use
-        </p>
-        <p style={{
-          color: COLOR.text.muted,
-          fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
-          marginTop: SPACE[2],
-          maxWidth: 500,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          lineHeight: 1.6,
-        }}>
-          Data provided as-is without warranty. Not intended as a substitute for professional
-          medical advice, diagnosis, or treatment. Reference assembly coordinates may differ
-          from clinical-grade annotations. &copy; 2026 Polymer Genomics.
-        </p>
-      </footer>
+      <Footer />
     </main>
   );
 }

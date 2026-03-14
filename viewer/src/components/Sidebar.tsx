@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchLayers, type LayerInfo } from '@/lib/api';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, TYPE, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 import type { GenomeBuild } from '@/stores/viewport';
 import { MOTIF_NAMES } from '@/lib/motifs';
 
@@ -45,15 +45,6 @@ const CELL_TYPE_KEYS = [
   { key: 'CD8T',  label: 'CD8T' },
 ] as const;
 
-const ZOOM_PRESETS = [
-  { label: '1 bp',   width: 50 },
-  { label: '1 kb',   width: 1_000 },
-  { label: '10 kb',  width: 10_000 },
-  { label: '100 kb', width: 100_000 },
-  { label: '1 Mb',   width: 1_000_000 },
-  { label: '10 Mb',  width: 10_000_000 },
-];
-
 /** Teal color for all toggle indicators. */
 const TOGGLE_TEAL = COLOR.accent.teal;
 const TOGGLE_TEAL_DIM = COLOR.accent.teal + '4D';
@@ -62,11 +53,6 @@ interface SidebarProps {
   build: GenomeBuild;
   activeLayers: string[];
   onToggleLayer: (layerKey: string) => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onPanLeft: () => void;
-  onPanRight: () => void;
-  onZoomPreset: (width: number) => void;
   viewportWidth: number;
   resolution: number | null;
   showCodons: boolean;
@@ -79,17 +65,13 @@ interface SidebarProps {
   onToggleMotif: (motifName: string) => void;
   onToggleAllProbes?: () => void;
   onToggleAllCellTypes?: () => void;
+  onToggleAllMotifs?: () => void;
 }
 
 export function Sidebar({
   build,
   activeLayers,
   onToggleLayer,
-  onZoomIn,
-  onZoomOut,
-  onPanLeft,
-  onPanRight,
-  onZoomPreset,
   viewportWidth,
   resolution,
   showCodons,
@@ -102,6 +84,7 @@ export function Sidebar({
   onToggleMotif,
   onToggleAllProbes,
   onToggleAllCellTypes,
+  onToggleAllMotifs,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
 
@@ -367,7 +350,11 @@ export function Sidebar({
         backgroundColor: anyActive ? COLOR.bg.track : 'transparent',
         borderBlockEnd: `1px solid ${COLOR.bg.track}`,
       }}>
-        <div className="flex items-center gap-1.5">
+        <button
+          onClick={onToggleAllMotifs}
+          className="flex items-center gap-1.5"
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', width: '100%' }}
+        >
           <span style={{
             width: 8,
             height: 8,
@@ -382,7 +369,8 @@ export function Sidebar({
           }}>
             Sequence Markers
           </span>
-        </div>
+        </button>
+        {anyActive && (
         <div style={{ paddingLeft: 14, marginTop: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {MOTIF_NAMES.map((name) => (
             <div key={name} className="flex items-center gap-1.5">
@@ -401,6 +389,7 @@ export function Sidebar({
             </div>
           ))}
         </div>
+        )}
       </div>
     );
   }
@@ -534,40 +523,6 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* ─── Navigation ─── */}
-      <div style={{ padding: `${SPACE[2]}px ${SPACE[2]}px`, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
-        <div style={{
-          color: COLOR.text.tertiary,
-          fontSize: 9,
-          fontFamily: FONT_FAMILY,
-          marginBottom: SPACE[1],
-          letterSpacing: '0.08em',
-          fontWeight: WEIGHT.medium,
-        }}>
-          NAVIGATION
-        </div>
-        <div className="flex gap-1" style={{ marginBottom: SPACE[1] }}>
-          <button onClick={() => onPanLeft()}  style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
-          <button onClick={() => onPanRight()} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
-          <div style={{ width: SPACE[1] }} />
-          <button onClick={() => onZoomIn()}  style={COMPONENT.button.small} title="Zoom in 2x">+</button>
-          <button onClick={() => onZoomOut()} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {ZOOM_PRESETS.map((p) => {
-            const isActive = Math.abs(viewportWidth - p.width) < p.width * 0.2;
-            return (
-              <button
-                key={p.label}
-                onClick={() => onZoomPreset(p.width)}
-                style={isActive ? COMPONENT.button.smallActive : COMPONENT.button.small}>
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* ─── Info ─── */}
       <div style={{
         padding: `${SPACE[3]}px ${SPACE[3]}px`,
@@ -584,6 +539,7 @@ export function Sidebar({
           <div>{resolution === 1 ? 'Base-pair resolution' : `${resolution?.toLocaleString() ?? '\u2014'} bp tiles`}</div>
           <div style={{ marginTop: SPACE[1], color: COLOR.text.faint }}>Arrow keys: pan</div>
           <div style={{ color: COLOR.text.faint }}>+/&#x2212;: zoom &middot; i: context</div>
+          <div style={{ color: COLOR.text.faint }}>&#x2318;+Scroll: zoom &middot; Pinch: zoom</div>
         </div>
       </div>
     </div>

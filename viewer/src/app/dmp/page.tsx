@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
+import { BrandBar } from '@/components/BrandBar';
+import { Footer } from '@/components/Footer';
 import { UploadZone } from '@/components/dmp/UploadZone';
 import { VolcanoPlot } from '@/components/dmp/VolcanoPlot';
 import { ManhattanPlot } from '@/components/dmp/ManhattanPlot';
@@ -15,7 +17,6 @@ import { ComparisonPanel } from '@/components/dmp/ComparisonPanel';
 import { IdatUploadZone } from '@/components/dmp/IdatUploadZone';
 import type { DMPDataset, DMPRow, ThresholdState, PlotTab } from '@/lib/dmp/types';
 import { computeSummary } from '@/lib/dmp/stats';
-import Link from 'next/link';
 
 const DEFAULT_THRESHOLDS: ThresholdState = {
   pValueCutoff: 1.301, // -log10(0.05)
@@ -36,7 +37,6 @@ export default function DMPPage() {
   const [thresholds, setThresholds] = useState<ThresholdState>(DEFAULT_THRESHOLDS);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [homeHover, setHomeHover] = useState(false);
   const [activeTab, setActiveTab] = useState<PlotTab>('volcano');
   const [tabHover, setTabHover] = useState<PlotTab | null>(null);
 
@@ -76,47 +76,12 @@ export default function DMPPage() {
       flexDirection: 'column',
       fontFamily: FONT_FAMILY,
     }}>
-      {/* Header bar */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: SPACE[4],
-        padding: `${SPACE[2]}px ${SPACE[4]}px`,
-        borderBottom: `1px solid ${COLOR.border.subtle}`,
-        backgroundColor: COLOR.bg.elevated,
-        height: 44,
-        flexShrink: 0,
-      }}>
-        <Link
-          href="/"
-          onMouseEnter={() => setHomeHover(true)}
-          onMouseLeave={() => setHomeHover(false)}
-          style={{
-            color: homeHover ? COLOR.accent.teal : COLOR.text.muted,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            textDecoration: 'none',
-            transition: 'color 0.15s',
-          }}
-        >
-          Polymer Genomics
-        </Link>
-        <span style={{ color: COLOR.text.faint, fontSize: TYPE.sm.fontSize }}>/</span>
-        <span style={{
-          color: COLOR.text.primary,
-          fontSize: TYPE.sm.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-        }}>
-          DMP Results Viewer
-        </span>
-
+      <BrandBar subtitle="DMP Results Viewer">
         {(dataset || isIndependentTab) && (
           <button
             onClick={handleReset}
             style={{
               ...COMPONENT.button.small,
-              marginLeft: 'auto',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = COLOR.accent.teal;
@@ -130,7 +95,7 @@ export default function DMPPage() {
             New File
           </button>
         )}
-      </header>
+      </BrandBar>
 
       {/* Content */}
       {!dataset && !isIndependentTab ? (
@@ -452,6 +417,8 @@ export default function DMPPage() {
           )}
         </div>
       )}
+
+      <Footer />
     </div>
   );
 }

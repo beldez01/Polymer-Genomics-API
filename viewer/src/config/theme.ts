@@ -103,11 +103,11 @@ export const COLOR = {
 
   // Isochore classes — earth tones, low-key
   isochore: {
-    L1: '#1a3a5c',
-    L2: '#1f3a4a',
-    H1: '#2a4a3a',
-    H2: '#3a4a2a',
-    H3: '#5c3a1a',
+    L1: '#2a5a8c',
+    L2: '#2f5a6a',
+    H1: '#3a7a5a',
+    H2: '#5a7a3a',
+    H3: '#8c5a2a',
   },
 
   // CpG context — greens/blues by proximity to island

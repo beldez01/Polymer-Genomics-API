@@ -10,6 +10,44 @@
 
 **Design Doc:** `docs/plans/2026-03-09-expansion-blueprint-design.md` (approved)
 
+> **Status (updated 2026-03-13):**
+>
+> **Phase 1A (Epistemic Foundation): COMPLETE**
+> - Task 1: Epistemic ENUMs migration (023) — COMPLETE (commit `218daaf`)
+> - Task 2: Classify existing layers (024) — COMPLETE (commit `31ab841`)
+> - Task 3: Update Layers API for epistemic metadata — COMPLETE (commit `6b03675`)
+> - Task 4: Epistemic metadata in region query envelope — COMPLETE (commit `6b03675`)
+> - Task 5: MCP `list_layers` epistemic filtering — COMPLETE (commit `c762e88`)
+> - Task 6: Full test suite — COMPLETE (commit `e844c44`, 48 bug fixes)
+>
+> **Phase 1B (Moat Layers): COMPLETE**
+> - Task 7: SBS thermodynamic spectrum (025) — COMPLETE (commit `60912c7`)
+> - Task 8: Epigenetic clock coefficients (026) — COMPLETE (commit `60912c7`)
+> - Task 9: Metabolic burden with turnover (027) — COMPLETE (commit `60912c7`)
+> - Task 10: DNAshapeR tracks (028 + 031) — COMPLETE (commit `60912c7` + `d9c42a3`)
+>   - Both absolute shape (MGW, ProT, Roll, HelT) AND methylation delta (δMGW, δProT, δRoll, δHelT) computed and ingested
+>   - Migrations: 028_dnashape.sql (absolute) + 031_methyl_dnashape.sql (delta)
+>   - Ingestion: dnashape.py, methyl_dnashape.py, shape_bulk.py
+>
+> **Phase 1C (UI + API Expansion): COMPLETE**
+> - Task 11: Breakpoint catalog (029) — COMPLETE (commit `b687224`)
+> - Task 12: Non-B DNA structure predictions (030) — COMPLETE (commit `b687224`)
+> - Task 13: Cross-layer intersection endpoint — COMPLETE (commit `b687224`)
+> - Task 14: Evidence class badges on tracks — COMPLETE (commit `b687224` + `cf2b1d3`)
+> - Task 15: SVG/PNG export with figure legend — COMPLETE (commit `b687224` + `cf2b1d3`)
+> - Task 16: Deploy Phase 1A to production — COMPLETE (Fly.io + Vercel deployed)
+>
+> **Additional work completed beyond original plan:**
+> - Gene alias/synonym support across all endpoints (032, commit `af980b5`)
+> - HERV loci layer (034, commit `d9c42a3`)
+> - Repeats enrichment (033, commit `d9c42a3`)
+> - Probe-repeat cross-reference (035, commit `d9c42a3`)
+> - IP/licensing compliance — data sources, ToS, privacy, source metadata (commit `67aa02b`)
+> - DMP Results Viewer at /dmp (commit `584d953`)
+> - Comprehensive codebase audit — 48 bug fixes (commit `e844c44`)
+>
+> **ALL 16 TASKS COMPLETE. Plan fully executed.**
+
 ---
 
 ## Phase 1A: Epistemic Foundation
