@@ -17,16 +17,14 @@ const LABEL_AREA_WIDTH = 220;
 const LEFT_LABEL_AREA = 120;
 const CHR_LEFT_OFFSET = LEFT_LABEL_AREA;
 const TOTAL_WIDTH = LEFT_LABEL_AREA + CHR_WIDTH + LABEL_AREA_WIDTH + 24;
-const LEADER_GAP = 10; // gap between chr edge and leader line start
-const LABEL_HEIGHT = 24; // vertical space per label
-const MIN_LABEL_GAP = 6; // minimum gap between labels
+const LEADER_GAP = 10;
+const LABEL_HEIGHT = 24;
+const MIN_LABEL_GAP = 6;
 
 /**
  * Map a gene's band name (e.g. "7q34") to a y-position on the chromosome SVG.
- * Finds the band in the cytoband data and returns its midpoint.
  */
 function bandToY(bandName: string, bands: CytoBand[], chrLength: number, height: number): number | null {
-  // Strip the chromosome prefix if present (e.g. "Xp21.2" → look for "p21.2" in chrX bands)
   const cleanBand = bandName.replace(/^(chr)?(\d+|X|Y)/i, '');
   const band = bands.find(b => b.name === cleanBand || b.name === bandName);
   if (!band) return null;
@@ -35,8 +33,8 @@ function bandToY(bandName: string, bands: CytoBand[], chrLength: number, height:
 }
 
 /**
- * Greedy vertical distribution to prevent label overlap.
- * Pushes labels apart while staying close to their ideal positions.
+ * Two-pass label distribution: push down, then push back up if overflow.
+ * Guarantees no overlap and respects both top and bottom bounds.
  */
 function distributeLabels(
   idealYs: { y: number; idx: number }[],
@@ -46,27 +44,82 @@ function distributeLabels(
 ): number[] {
   if (idealYs.length === 0) return [];
 
-  // Sort by ideal y position
   const sorted = [...idealYs].sort((a, b) => a.y - b.y);
-  const result = new Array<number>(idealYs.length);
+  const positions = new Array<number>(sorted.length);
+  const step = labelH + minGap;
+  const maxY = Math.max(0, maxH - labelH);
 
-  // Place labels greedily, pushing down when overlapping
+  // Pass 1: greedy push-down from top
   let lastBottom = -Infinity;
-  for (const item of sorted) {
-    const y = Math.max(item.y, lastBottom + minGap);
-    const clamped = Math.min(y, maxH - labelH);
-    result[item.idx] = Math.max(0, clamped);
-    lastBottom = result[item.idx] + labelH;
+  for (let i = 0; i < sorted.length; i++) {
+    positions[i] = Math.max(sorted[i].y, lastBottom + minGap);
+    lastBottom = positions[i] + labelH;
+  }
+
+  // Pass 2: if bottom labels overflow, push chain back up
+  if (positions[positions.length - 1] > maxY) {
+    positions[positions.length - 1] = maxY;
+    for (let i = positions.length - 2; i >= 0; i--) {
+      const maxAllowed = positions[i + 1] - step;
+      if (positions[i] > maxAllowed) {
+        positions[i] = maxAllowed;
+      }
+    }
+    // Re-clamp top if chain was pushed too far up
+    if (positions[0] < 0) {
+      positions[0] = 0;
+      for (let i = 1; i < positions.length; i++) {
+        const minAllowed = positions[i - 1] + step;
+        if (positions[i] < minAllowed) {
+          positions[i] = minAllowed;
+        }
+      }
+    }
+  }
+
+  // Map back to original indices
+  const result = new Array<number>(idealYs.length);
+  for (let i = 0; i < sorted.length; i++) {
+    result[sorted[i].idx] = Math.max(0, Math.min(positions[i], maxY));
   }
 
   return result;
 }
 
 /**
- * Filter to major cytobands (e.g. p11, q21) excluding sub-bands and centromere.
+ * Collapse sub-bands into major band regions.
+ * e.g. p13.3, p13.2, p13.11 → one "p13" region spanning their full extent.
+ * Excludes centromere bands (acen).
  */
-function getMajorBands(bands: CytoBand[]): CytoBand[] {
-  return bands.filter(b => /^[pq]\d{1,2}$/.test(b.name) && b.gieStain !== 'acen');
+interface MajorBand {
+  name: string;
+  start: number;
+  end: number;
+}
+
+function getMajorBands(bands: CytoBand[]): MajorBand[] {
+  const majorMap = new Map<string, { start: number; end: number }>();
+
+  for (const b of bands) {
+    if (b.gieStain === 'acen') continue;
+    // Extract major band prefix: p13.3 → p13, q22.1 → q22, p11 → p11
+    const match = b.name.match(/^([pq]\d{1,2})/);
+    if (!match) continue;
+    const major = match[1];
+    const existing = majorMap.get(major);
+    if (existing) {
+      existing.start = Math.min(existing.start, b.start);
+      existing.end = Math.max(existing.end, b.end);
+    } else {
+      majorMap.set(major, { start: b.start, end: b.end });
+    }
+  }
+
+  return Array.from(majorMap.entries()).map(([name, range]) => ({
+    name,
+    start: range.start,
+    end: range.end,
+  }));
 }
 
 export function HighResChromosome({ chr }: HighResChromosomeProps) {
@@ -76,21 +129,20 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
 
   // Calculate height proportional to chromosome length (chr1 = CHR_HEIGHT)
   const maxLen = 248956422; // chr1
-  const height = chr.name === 'chrM' ? 80 : Math.max(80, Math.round((chr.length / maxLen) * CHR_HEIGHT));
+  const height = chr.name === 'chrM' ? 80 : Math.max(120, Math.round((chr.length / maxLen) * CHR_HEIGHT));
 
   // Map genes to y-positions
   const genePositions = useMemo(() => {
     const positioned: { gene: GeneFact; idealY: number; idx: number }[] = [];
 
     genes.forEach((gene, idx) => {
-      if (!gene.band) return; // chrM genes have no band
+      if (!gene.band) return;
       const y = bandToY(gene.band, bands, chr.length, height);
       if (y !== null) {
         positioned.push({ gene, idealY: y, idx });
       }
     });
 
-    // Distribute labels to avoid overlap
     const idealYs = positioned.map(p => ({ y: p.idealY, idx: p.idx }));
     const distributedYs = distributeLabels(idealYs, LABEL_HEIGHT, MIN_LABEL_GAP, height);
 
@@ -100,7 +152,7 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
     }));
   }, [genes, bands, chr.length, height]);
 
-  // Left-side cytoband label positions
+  // Left-side cytoband label positions — collapsed major bands
   const bandPositions = useMemo(() => {
     const majorBands = getMajorBands(bands);
     const positioned = majorBands.map((band, idx) => {
@@ -164,32 +216,16 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
 
           return (
             <g key={band.name}>
-              {/* Dot on chromosome left edge */}
-              <circle
-                cx={dotX}
-                cy={idealY}
-                r={2}
-                fill={COLOR.border.strong}
-              />
-              {/* Dashed leader line from dot leftward to label */}
+              <circle cx={dotX} cy={idealY} r={2} fill={COLOR.border.strong} />
               <line
-                x1={dotX - 2}
-                y1={idealY}
-                x2={lineEndX}
-                y2={labelY + LABEL_HEIGHT / 2}
-                stroke={COLOR.border.strong}
-                strokeWidth={0.75}
-                strokeDasharray="2,2"
+                x1={dotX - 2} y1={idealY}
+                x2={lineEndX} y2={labelY + LABEL_HEIGHT / 2}
+                stroke={COLOR.border.strong} strokeWidth={0.75} strokeDasharray="2,2"
               />
-              {/* Band name text */}
               <text
-                x={textX}
-                y={labelY + LABEL_HEIGHT / 2}
-                fill={COLOR.text.muted}
-                fontSize={TYPE.xs.fontSize}
-                fontFamily={FONT_FAMILY}
-                textAnchor="end"
-                dominantBaseline="central"
+                x={textX} y={labelY + LABEL_HEIGHT / 2}
+                fill={COLOR.text.muted} fontSize={TYPE.xs.fontSize}
+                fontFamily={FONT_FAMILY} textAnchor="end" dominantBaseline="central"
               >
                 {band.name}
               </text>
@@ -205,40 +241,22 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
 
           return (
             <g key={gene.symbol}>
-              {/* Horizontal leader line from chromosome edge */}
               <line
-                x1={lineStartX}
-                y1={idealY}
-                x2={lineEndX}
-                y2={labelY + LABEL_HEIGHT / 2}
-                stroke={COLOR.text.faint}
-                strokeWidth={0.75}
-                strokeDasharray="2,2"
+                x1={lineStartX} y1={idealY}
+                x2={lineEndX} y2={labelY + LABEL_HEIGHT / 2}
+                stroke={COLOR.text.faint} strokeWidth={0.75} strokeDasharray="2,2"
               />
-              {/* Small dot on chromosome edge */}
-              <circle
-                cx={lineStartX - 2}
-                cy={idealY}
-                r={2.5}
-                fill={COLOR.accent.teal}
-              />
-              {/* Gene symbol */}
+              <circle cx={lineStartX - 2} cy={idealY} r={2.5} fill={COLOR.accent.teal} />
               <text
-                x={textX}
-                y={labelY + 8}
-                fill={COLOR.accent.teal}
-                fontSize={TYPE.sm.fontSize}
-                fontFamily={FONT_FAMILY}
-                fontWeight={WEIGHT.medium}
+                x={textX} y={labelY + 8}
+                fill={COLOR.accent.teal} fontSize={TYPE.sm.fontSize}
+                fontFamily={FONT_FAMILY} fontWeight={WEIGHT.medium}
               >
                 {gene.symbol}
               </text>
-              {/* Band location */}
               <text
-                x={textX}
-                y={labelY + 20}
-                fill={COLOR.text.faint}
-                fontSize={TYPE.xs.fontSize}
+                x={textX} y={labelY + 20}
+                fill={COLOR.text.faint} fontSize={TYPE.xs.fontSize}
                 fontFamily={FONT_FAMILY}
               >
                 {gene.band}
