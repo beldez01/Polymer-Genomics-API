@@ -83,6 +83,37 @@ function InfoBlock({ text }: { text: string }) {
 }
 
 /**
+ * Static reference counts per chromosome (GENCODE v44 / UCSC CGI / EPIC v2).
+ * Used as fallback when aggregation API data hasn't loaded.
+ */
+const REFERENCE_COUNTS: Record<string, { genes: number; cpgIslands: number; probes: number }> = {
+  chr1:  { genes: 2058, cpgIslands: 28846, probes: 97108 },
+  chr2:  { genes: 1309, cpgIslands: 20782, probes: 73979 },
+  chr3:  { genes: 1078, cpgIslands: 15570, probes: 56811 },
+  chr4:  { genes: 757,  cpgIslands: 12068, probes: 46063 },
+  chr5:  { genes: 923,  cpgIslands: 14507, probes: 51741 },
+  chr6:  { genes: 1057, cpgIslands: 16338, probes: 55940 },
+  chr7:  { genes: 989,  cpgIslands: 15433, probes: 52800 },
+  chr8:  { genes: 683,  cpgIslands: 11439, probes: 43413 },
+  chr9:  { genes: 786,  cpgIslands: 12098, probes: 38448 },
+  chr10: { genes: 733,  cpgIslands: 12462, probes: 43266 },
+  chr11: { genes: 1298, cpgIslands: 14556, probes: 49497 },
+  chr12: { genes: 1034, cpgIslands: 14008, probes: 47668 },
+  chr13: { genes: 327,  cpgIslands: 7573,  probes: 28249 },
+  chr14: { genes: 830,  cpgIslands: 10275, probes: 32990 },
+  chr15: { genes: 613,  cpgIslands: 9626,  probes: 32021 },
+  chr16: { genes: 873,  cpgIslands: 12890, probes: 37095 },
+  chr17: { genes: 1197, cpgIslands: 15438, probes: 43584 },
+  chr18: { genes: 270,  cpgIslands: 5729,  probes: 20736 },
+  chr19: { genes: 1472, cpgIslands: 15168, probes: 36519 },
+  chr20: { genes: 544,  cpgIslands: 7739,  probes: 24227 },
+  chr21: { genes: 234,  cpgIslands: 3098,  probes: 10764 },
+  chr22: { genes: 488,  cpgIslands: 6229,  probes: 18221 },
+  chrX:  { genes: 842,  cpgIslands: 12662, probes: 38109 },
+  chrY:  { genes: 71,   cpgIslands: 491,   probes: 1002  },
+};
+
+/**
  * Extract a specific property value from chromosomeFeatures physicalProperties.
  */
 function findProperty(chrName: string, termMatch: RegExp): string | null {
@@ -106,8 +137,13 @@ export function ChromosomeInfoPanel({ chr, geneCount, cpgIslandCount, probeCount
   const qArmLen = chr.length - chr.centromereEnd;
   const isCircular = chr.name === 'chrM';
 
-  const geneDensity = geneCount !== null
-    ? (geneCount / (chr.length / 1_000_000)).toFixed(1) + '/Mb'
+  const ref = REFERENCE_COUNTS[chr.name];
+  const effectiveGenes = geneCount ?? ref?.genes ?? null;
+  const effectiveCpg = cpgIslandCount ?? ref?.cpgIslands ?? null;
+  const effectiveProbes = probeCount ?? ref?.probes ?? null;
+
+  const geneDensity = effectiveGenes !== null
+    ? (effectiveGenes / (chr.length / 1_000_000)).toFixed(1) + '/Mb'
     : '—';
 
   const gcContent = findProperty(chr.name, /^GC/i);
@@ -172,7 +208,7 @@ export function ChromosomeInfoPanel({ chr, geneCount, cpgIslandCount, probeCount
         <SectionHeader title="Genomic Features" />
         <StatRow
           label="Genes"
-          value={geneCount !== null ? geneCount.toLocaleString() : '—'}
+          value={effectiveGenes !== null ? effectiveGenes.toLocaleString() : '—'}
           color={COLOR.layer.gencode_v44}
         />
         <StatRow
@@ -182,12 +218,12 @@ export function ChromosomeInfoPanel({ chr, geneCount, cpgIslandCount, probeCount
         />
         <StatRow
           label="CpG islands"
-          value={cpgIslandCount !== null ? cpgIslandCount.toLocaleString() : '—'}
+          value={effectiveCpg !== null ? effectiveCpg.toLocaleString() : '—'}
           color={COLOR.layer.cpg_sites}
         />
         <StatRow
           label="EPIC v2 probes"
-          value={probeCount !== null ? probeCount.toLocaleString() : '—'}
+          value={effectiveProbes !== null ? effectiveProbes.toLocaleString() : '—'}
           color={COLOR.layer.probe_epic_v2}
         />
       </div>
