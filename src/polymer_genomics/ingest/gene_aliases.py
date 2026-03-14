@@ -110,10 +110,10 @@ async def register_layer(conn: asyncpg.Connection) -> str:
     layer_id = await conn.fetchval(
         """
         INSERT INTO registry.layers
-            (layer_key, version, name, layer_type,
+            (layer_key, version, name, layer_type, genome_build,
              source, license_class, storage_type, is_active, is_default)
         VALUES
-            ($1, $2, $3, 'gene_alias',
+            ($1, $2, $3, 'gene_alias', 'hg38',
              'NCBI', 'public_domain', 'postgres', true, true)
         RETURNING id
         """,
