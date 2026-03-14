@@ -230,7 +230,7 @@ export default function AtlasPage() {
   }, []);
 
   const [aggBannerDismissed, setAggBannerDismissed] = useState(false);
-  const anyFailed = Object.values(chrStats).some(s => s.loaded && s.genes === null);
+  const anyFailed = Object.entries(chrStats).some(([name, s]) => name !== 'chrM' && s.loaded && s.genes === null);
 
   const chrInfo = selectedChr ? getChromosomeByName(selectedChr) : null;
   const stats = selectedChr ? chrStats[selectedChr] : null;

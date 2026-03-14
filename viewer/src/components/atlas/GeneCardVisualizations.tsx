@@ -111,7 +111,7 @@ export function GeneStructureDiagram({
   // Dynamic height: base 80 + domain rows
   const DOMAIN_BAR_H = 14;
   const DOMAIN_ROW_GAP = 4;
-  const DOMAIN_LABEL_H = 14;
+  const DOMAIN_LABEL_H = 26;
   const DOMAIN_TOP_GAP = 6;
   const DOMAIN_SECTION_H = hasDomains
     ? DOMAIN_TOP_GAP + numDomainRows * (DOMAIN_BAR_H + DOMAIN_ROW_GAP) + DOMAIN_LABEL_H
@@ -303,6 +303,9 @@ export function GeneStructureDiagram({
     if (hasDomains && cdsDraws.length > 0) {
       const domainBaseY = cy + CDS_H / 2 + 18 + DOMAIN_TOP_GAP; // below exon labels
 
+      // Collect pending labels for collision pass
+      const pendingLabels: { text: string; x: number; width: number; row: number; color: string; baseY: number }[] = [];
+
       for (let di = 0; di < domains!.length; di++) {
         const domain = domains![di];
         const row = domainRows[di];
@@ -354,25 +357,56 @@ export function GeneStructureDiagram({
           }
         }
 
-        // Domain label
+        // Collect label for deferred rendering
         const totalPxStart = segments[0].px_start;
         const totalPxEnd = segments[segments.length - 1].px_end;
         const totalPxW = totalPxEnd - totalPxStart;
         const labelCenterX = totalPxStart + totalPxW / 2;
 
-        // Build label: short type prefix + description
         let label = domain.description;
         if (!label && domain.type !== 'Domain') label = domain.type;
         if (label.length > 30) label = label.slice(0, 28) + '\u2026';
 
         ctx.font = `${GC_TYPE.xs - 2}px ${FONT_FAMILY}`;
-        ctx.fillStyle = color;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-
         const labelMetrics = ctx.measureText(label);
         const labelX = Math.max(MARGIN_L + labelMetrics.width / 2, Math.min(W - MARGIN_R - labelMetrics.width / 2, labelCenterX));
-        ctx.fillText(label, labelX, barY + DOMAIN_BAR_H + 2);
+
+        pendingLabels.push({
+          text: label,
+          x: labelX,
+          width: labelMetrics.width,
+          row,
+          color,
+          baseY: barY + DOMAIN_BAR_H + 2,
+        });
+      }
+
+      // Collision pass: stagger overlapping labels within same row
+      const uniqueRows = [...new Set(pendingLabels.map(l => l.row))];
+      for (const row of uniqueRows) {
+        const rowLabels = pendingLabels.filter(l => l.row === row).sort((a, b) => a.x - b.x);
+        let subRow = 0;
+        for (let i = 0; i < rowLabels.length; i++) {
+          if (i > 0) {
+            const prev = rowLabels[i - 1];
+            const gap = rowLabels[i].x - prev.x;
+            if (gap < (prev.width + rowLabels[i].width) / 2 + 4) {
+              subRow = subRow === 0 ? 1 : 0;
+            } else {
+              subRow = 0;
+            }
+          }
+          rowLabels[i].baseY += subRow * 12;
+        }
+      }
+
+      // Draw all labels
+      for (const label of pendingLabels) {
+        ctx.font = `${GC_TYPE.xs - 2}px ${FONT_FAMILY}`;
+        ctx.fillStyle = label.color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(label.text, label.x, label.baseY);
       }
     }
 

@@ -14,7 +14,9 @@ interface HighResChromosomeProps {
 const CHR_WIDTH = 64;
 const CHR_HEIGHT = 680;
 const LABEL_AREA_WIDTH = 220;
-const TOTAL_WIDTH = CHR_WIDTH + LABEL_AREA_WIDTH + 24; // chr + gap + labels
+const LEFT_LABEL_AREA = 120;
+const CHR_LEFT_OFFSET = LEFT_LABEL_AREA;
+const TOTAL_WIDTH = LEFT_LABEL_AREA + CHR_WIDTH + LABEL_AREA_WIDTH + 24;
 const LEADER_GAP = 10; // gap between chr edge and leader line start
 const LABEL_HEIGHT = 24; // vertical space per label
 const MIN_LABEL_GAP = 6; // minimum gap between labels
@@ -60,6 +62,13 @@ function distributeLabels(
   return result;
 }
 
+/**
+ * Filter to major cytobands (e.g. p11, q21) excluding sub-bands and centromere.
+ */
+function getMajorBands(bands: CytoBand[]): CytoBand[] {
+  return bands.filter(b => /^[pq]\d{1,2}$/.test(b.name) && b.gieStain !== 'acen');
+}
+
 export function HighResChromosome({ chr }: HighResChromosomeProps) {
   const bands = getBandsForChromosome(chr.name);
   const facts = CHROMOSOME_FACTS[chr.name];
@@ -91,6 +100,23 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
     }));
   }, [genes, bands, chr.length, height]);
 
+  // Left-side cytoband label positions
+  const bandPositions = useMemo(() => {
+    const majorBands = getMajorBands(bands);
+    const positioned = majorBands.map((band, idx) => {
+      const idealY = ((band.start + band.end) / 2 / chr.length) * height;
+      return { band, idealY, idx };
+    });
+
+    const idealYs = positioned.map(p => ({ y: p.idealY, idx: p.idx }));
+    const distributedYs = distributeLabels(idealYs, LABEL_HEIGHT, MIN_LABEL_GAP, height);
+
+    return positioned.map(p => ({
+      ...p,
+      labelY: distributedYs[p.idx] ?? p.idealY,
+    }));
+  }, [bands, chr.length, height]);
+
   if (chr.name === 'chrM') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height }}>
@@ -111,7 +137,7 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
   return (
     <div style={{ position: 'relative', width: TOTAL_WIDTH, height }}>
       {/* Chromosome SVG */}
-      <div style={{ position: 'absolute', left: 0, top: 0 }}>
+      <div style={{ position: 'absolute', left: CHR_LEFT_OFFSET, top: 0 }}>
         <ChromosomeSVG
           chrName={chr.name}
           bands={bands}
@@ -130,9 +156,51 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
         height={height}
         style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}
       >
+        {/* Left-side cytoband labels */}
+        {bandPositions.map(({ band, idealY, labelY }) => {
+          const dotX = CHR_LEFT_OFFSET - 2;
+          const lineEndX = LEFT_LABEL_AREA - 12;
+          const textX = lineEndX - 4;
+
+          return (
+            <g key={band.name}>
+              {/* Dot on chromosome left edge */}
+              <circle
+                cx={dotX}
+                cy={idealY}
+                r={2}
+                fill={COLOR.border.strong}
+              />
+              {/* Dashed leader line from dot leftward to label */}
+              <line
+                x1={dotX - 2}
+                y1={idealY}
+                x2={lineEndX}
+                y2={labelY + LABEL_HEIGHT / 2}
+                stroke={COLOR.border.strong}
+                strokeWidth={0.75}
+                strokeDasharray="2,2"
+              />
+              {/* Band name text */}
+              <text
+                x={textX}
+                y={labelY + LABEL_HEIGHT / 2}
+                fill={COLOR.text.muted}
+                fontSize={TYPE.xs.fontSize}
+                fontFamily={FONT_FAMILY}
+                textAnchor="end"
+                dominantBaseline="central"
+              >
+                {band.name}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Right-side gene labels */}
         {genePositions.map(({ gene, idealY, labelY }) => {
-          const lineStartX = CHR_WIDTH + LEADER_GAP;
-          const lineEndX = CHR_WIDTH + LEADER_GAP + 36;
+          const lineStartX = CHR_LEFT_OFFSET + CHR_WIDTH + LEADER_GAP;
+          const lineEndX = CHR_LEFT_OFFSET + CHR_WIDTH + LEADER_GAP + 36;
           const textX = lineEndX + 8;
 
           return (

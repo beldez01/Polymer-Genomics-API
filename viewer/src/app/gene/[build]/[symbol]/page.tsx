@@ -3,7 +3,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import { BrandBar } from '@/components/BrandBar';
 import { GeneCard } from '@/components/atlas/GeneCard';
-import { COLOR, SPACE, FONT_FAMILY } from '@/config/theme';
+import { Footer } from '@/components/Footer';
+import { COLOR, FONT_FAMILY } from '@/config/theme';
 
 export default function GenePage() {
   const params = useParams<{ build: string; symbol: string }>();
@@ -32,24 +33,7 @@ export default function GenePage() {
         />
       </div>
 
-      <footer
-        style={{
-          textAlign: 'center',
-          padding: `${SPACE[6]}px ${SPACE[4]}px`,
-          borderTop: `1px solid ${COLOR.border.subtle}`,
-        }}
-      >
-        <p
-          style={{
-            color: COLOR.text.faint,
-            fontSize: '0.85rem',
-            fontFamily: FONT_FAMILY,
-            margin: 0,
-          }}
-        >
-          {build} &middot; GENCODE v44 &middot; Polymer Genomics
-        </p>
-      </footer>
+      <Footer />
     </div>
   );
 }

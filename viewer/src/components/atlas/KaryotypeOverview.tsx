@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CHROMOSOMES, ChromosomeInfo } from '@/config/chromosomes';
+import { CHROMOSOMES, GENOME_LENGTH, ChromosomeInfo } from '@/config/chromosomes';
 import { getBandsForChromosome } from '@/config/cytobands';
 import { ChromosomeSVG } from './ChromosomeSVG';
 import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
@@ -45,7 +45,7 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        gap: SPACE[3],
+        gap: SPACE[4],
         flexWrap: 'nowrap',
       }}>
         {KARYOTYPE_ORDER.map(chr => {
@@ -104,7 +104,7 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
               />
               <span style={{
                 color: isHovered ? COLOR.accent.teal : COLOR.text.tertiary,
-                fontSize: 9,
+                fontSize: 11,
                 fontFamily: FONT_FAMILY,
                 fontWeight: isHovered ? WEIGHT.medium : WEIGHT.normal,
                 letterSpacing: '0.02em',
@@ -144,7 +144,7 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
           />
           <span style={{
             color: hoveredChr === 'chrM' ? COLOR.accent.teal : COLOR.text.tertiary,
-            fontSize: 9,
+            fontSize: 11,
             fontFamily: FONT_FAMILY,
             transition: 'color 0.15s',
             userSelect: 'none',
@@ -153,6 +153,96 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
           </span>
         </div>
       </div>
+
+      {/* Genome Overview summary */}
+      {chrStats && (() => {
+        const entries = Object.entries(chrStats).filter(([name]) => name !== 'chrM');
+        const allLoaded = entries.every(([, s]) => s.loaded);
+        if (!allLoaded) return null;
+        const anyData = entries.some(([, s]) => s.genes !== null);
+        if (!anyData) return null;
+        const totalGenes = entries.reduce((s, [, v]) => s + (v.genes ?? 0), 0);
+        const totalCpg = entries.reduce((s, [, v]) => s + (v.cpgIslands ?? 0), 0);
+        const totalProbes = entries.reduce((s, [, v]) => s + (v.probes ?? 0), 0);
+        const genomeSizeGb = (GENOME_LENGTH / 1_000_000_000).toFixed(2);
+
+        const statItemStyle = {
+          display: 'flex' as const,
+          flexDirection: 'column' as const,
+          alignItems: 'center' as const,
+          gap: SPACE[1],
+        };
+        const statValueStyle = {
+          color: COLOR.text.secondary,
+          fontSize: TYPE.base.fontSize,
+          fontFamily: FONT_FAMILY,
+          fontWeight: WEIGHT.medium,
+        };
+        const statLabelStyle = {
+          color: COLOR.text.muted,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+        };
+
+        return (
+          <div style={{
+            maxWidth: 800,
+            margin: `${SPACE[8]}px auto 0`,
+            backgroundColor: COLOR.bg.elevated,
+            border: `1px solid ${COLOR.border.subtle}`,
+            padding: `${SPACE[5]}px ${SPACE[6]}px`,
+          }}>
+            <div style={{
+              color: COLOR.accent.teal,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+              marginBottom: SPACE[4],
+            }}>
+              Genome Overview
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-around',
+              flexWrap: 'wrap',
+              gap: SPACE[4],
+              marginBottom: SPACE[4],
+            }}>
+              <div style={statItemStyle}>
+                <span style={statValueStyle}>{genomeSizeGb} Gb</span>
+                <span style={statLabelStyle}>Genome size</span>
+              </div>
+              <div style={statItemStyle}>
+                <span style={statValueStyle}>24</span>
+                <span style={statLabelStyle}>Chromosomes</span>
+              </div>
+              <div style={statItemStyle}>
+                <span style={statValueStyle}>{totalGenes.toLocaleString()}</span>
+                <span style={statLabelStyle}>Total genes</span>
+              </div>
+              <div style={statItemStyle}>
+                <span style={statValueStyle}>{totalCpg.toLocaleString()}</span>
+                <span style={statLabelStyle}>CpG islands</span>
+              </div>
+              <div style={statItemStyle}>
+                <span style={statValueStyle}>{totalProbes.toLocaleString()}</span>
+                <span style={statLabelStyle}>EPIC v2 probes</span>
+              </div>
+            </div>
+            <p style={{
+              color: COLOR.text.tertiary,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              lineHeight: 1.6,
+              margin: 0,
+            }}>
+              The human reference genome (GRCh38/hg38) spans {genomeSizeGb} Gb across 22 autosomes, two sex chromosomes, and a 16.6 kb circular mitochondrial genome. Per-chromosome annotations are aggregated from GENCODE v44, CpG island annotations, and Illumina EPIC v2 probe mappings.
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 }

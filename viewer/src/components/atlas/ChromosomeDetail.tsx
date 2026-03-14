@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ChromosomeInfo } from '@/config/chromosomes';
 import { getCentromereType, getDenverGroupForChromosome } from '@/config/denverGroups';
 import { HighResChromosome } from './HighResChromosome';
@@ -97,6 +98,19 @@ export function ChromosomeDetail({ chr, geneCount, cpgIslandCount, probeCount, o
               Group {group.label}
             </span>
           )}
+          <Link
+            href={`/atlas/${chr.name}`}
+            style={{
+              color: COLOR.text.tertiary,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              textDecoration: 'none',
+              marginLeft: 'auto',
+              letterSpacing: '0.02em',
+            }}
+          >
+            View Analysis &rarr;
+          </Link>
         </div>
       </div>
 

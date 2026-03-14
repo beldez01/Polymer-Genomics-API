@@ -86,9 +86,9 @@ export interface SearchResult {
 // --- API functions ---
 
 async function fetchJSON<T>(url: string, opts?: { timeout?: number; signal?: AbortSignal }): Promise<T> {
-  const timeout = opts?.timeout ?? 15000;
+  const timeout = opts?.timeout ?? 30000;
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
+  const timer = setTimeout(() => controller.abort('timeout'), timeout);
   const signal = opts?.signal
     ? AbortSignal.any([opts.signal, controller.signal])
     : controller.signal;
@@ -103,6 +103,11 @@ async function fetchJSON<T>(url: string, opts?: { timeout?: number; signal?: Abo
       );
     }
     return res.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error('Request timed out — the server may be processing complex data. Try again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }

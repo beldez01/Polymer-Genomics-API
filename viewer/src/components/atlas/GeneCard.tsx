@@ -728,7 +728,8 @@ function LoadingState() {
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const isTimeout = message.includes('timed out');
   return (
     <div style={{
       display: 'flex',
@@ -746,7 +747,7 @@ function ErrorState({ message }: { message: string }) {
         fontWeight: WEIGHT.bold,
         letterSpacing: '-0.03em',
       }}>
-        404
+        {isTimeout ? 'Timeout' : '404'}
       </span>
       <span style={{
         color: COLOR.text.tertiary,
@@ -757,6 +758,26 @@ function ErrorState({ message }: { message: string }) {
       }}>
         {message}
       </span>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          style={{
+            ...COMPONENT.button.ghost,
+            cursor: 'pointer',
+            marginTop: SPACE[2],
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = COLOR.accent.teal;
+            e.currentTarget.style.color = COLOR.accent.teal;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = COLOR.border.strong;
+            e.currentTarget.style.color = COLOR.text.secondary;
+          }}
+        >
+          Retry
+        </button>
+      )}
     </div>
   );
 }
@@ -889,6 +910,8 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
     geneSets: 'loading',
   });
 
+  const [retryCount, setRetryCount] = useState(0);
+
   // Phase 1: fetch gene + cost
   useEffect(() => {
     if (!symbol) return;
@@ -932,12 +955,17 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
       })
       .catch((err: Error) => {
         if (cancelled) return;
-        setError(err.message ?? `Gene "${upperSymbol}" not found.`);
+        const msg = err.message ?? '';
+        if (msg.includes('timed out')) {
+          setError(`Loading "${upperSymbol}" timed out. This gene may have complex annotations — please try again.`);
+        } else {
+          setError(msg || `Gene "${upperSymbol}" not found.`);
+        }
         setLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [build, symbol]);
+  }, [build, symbol, retryCount]);
 
   // Fetch a single section by name (used for initial load and retry)
   const fetchSection = useCallback((section: string, upperSymbol: string) => {
@@ -1128,7 +1156,7 @@ export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCard
       gap: SPACE[3],
     }}>
       {loading && <LoadingState />}
-      {!loading && error && <ErrorState message={error} />}
+      {!loading && error && <ErrorState message={error} onRetry={() => { setError(null); setRetryCount(c => c + 1); }} />}
 
       {!loading && !error && gene && (
         <>
