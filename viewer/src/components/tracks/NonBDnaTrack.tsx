@@ -91,24 +91,26 @@ export function NonBDnaTrack({
 
       if (rEnd < viewStart || rStart > viewEnd) continue;
 
-      const midpoint = (rStart + rEnd) / 2;
-      const bin = Math.min(
-        binCount - 1,
-        Math.max(0, Math.floor(((midpoint - viewStart) / span) * binCount)),
-      );
+      // Spread feature across all bins it overlaps
+      const clippedStart = Math.max(rStart, viewStart);
+      const clippedEnd = Math.min(rEnd, viewEnd);
+      const binFirst = Math.max(0, Math.floor(((clippedStart - viewStart) / span) * binCount));
+      const binLast = Math.min(binCount - 1, Math.floor(((clippedEnd - viewStart) / span) * binCount));
 
-      binCounts[bin]++;
+      for (let bin = binFirst; bin <= binLast; bin++) {
+        binCounts[bin]++;
 
-      for (const key of STACK_ORDER) {
-        const val = data.mcols[MCOL_KEYS[key]]?.[i];
-        if (typeof val === 'number') {
-          binned[key][bin] += val;
+        for (const key of STACK_ORDER) {
+          const val = data.mcols[MCOL_KEYS[key]]?.[i];
+          if (typeof val === 'number') {
+            binned[key][bin] += val;
+          }
         }
-      }
 
-      const tot = data.mcols.total_nonb_density?.[i];
-      if (typeof tot === 'number') {
-        binTotal[bin] += tot;
+        const tot = data.mcols.total_nonb_density?.[i];
+        if (typeof tot === 'number') {
+          binTotal[bin] += tot;
+        }
       }
     }
 
