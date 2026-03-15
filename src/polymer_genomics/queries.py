@@ -1189,6 +1189,10 @@ TRACK_REGISTRY: dict[str, dict] = {
         "query_fn": region_biophysics_query,
         "convert_fn": _convert_biophysics,
     },
+    "sequence_biophysics": {
+        "query_fn": region_biophysics_query,
+        "convert_fn": _convert_biophysics,
+    },
     "histone_mark": {
         "query_fn": region_histone_peaks_query,
         "convert_fn": _convert_histone_peaks,

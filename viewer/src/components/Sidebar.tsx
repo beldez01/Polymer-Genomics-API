@@ -515,30 +515,30 @@ export function Sidebar({
 
           {/* 10. Repeats */}
           {(() => {
-            const l = apiLayerMap.get('repeat');
-            const active = activeLayers.includes('repeat');
+            const l = apiLayerMap.get('repeatmasker_v1');
+            const active = activeLayers.includes('repeatmasker_v1');
             const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
                 name={l ? cleanName(l.name || 'Repeats') : 'Repeats'}
                 subLine={subLine}
-                onClick={() => onToggleLayer('repeat')}
+                onClick={() => onToggleLayer('repeatmasker_v1')}
               />
             );
           })()}
 
           {/* 11. HERVs */}
           {(() => {
-            const l = apiLayerMap.get('herv_loci');
-            const active = activeLayers.includes('herv_loci');
+            const l = apiLayerMap.get('herv_loci_v1');
+            const active = activeLayers.includes('herv_loci_v1');
             const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
                 name={l ? cleanName(l.name || 'HERVs') : 'HERVs'}
                 subLine={subLine}
-                onClick={() => onToggleLayer('herv_loci')}
+                onClick={() => onToggleLayer('herv_loci_v1')}
               />
             );
           })()}
@@ -560,15 +560,15 @@ export function Sidebar({
 
           {/* 13. Breakpoints */}
           {(() => {
-            const l = apiLayerMap.get('breakpoint');
-            const active = activeLayers.includes('breakpoint');
+            const l = apiLayerMap.get('breakpoints');
+            const active = activeLayers.includes('breakpoints');
             const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
               <AnnotationRow
                 active={active}
                 name={l ? cleanName(l.name || 'Breakpoints') : 'Breakpoints'}
                 subLine={subLine}
-                onClick={() => onToggleLayer('breakpoint')}
+                onClick={() => onToggleLayer('breakpoints')}
               />
             );
           })()}

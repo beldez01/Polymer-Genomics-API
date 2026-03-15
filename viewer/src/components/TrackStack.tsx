@@ -176,15 +176,15 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        {data?.layers?.repeat && (
-          <TrackRow label="Repeats" evidenceClass={ec('repeat')}>
-            <RepeatTrack data={data.layers.repeat} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={70} />
+        {data?.layers?.repeatmasker_v1 && (
+          <TrackRow label="Repeats" evidenceClass={ec('repeatmasker_v1')}>
+            <RepeatTrack data={data.layers.repeatmasker_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={70} />
           </TrackRow>
         )}
 
-        {data?.layers?.herv_loci && (
-          <TrackRow label="HERVs" evidenceClass={ec('herv_loci')}>
-            <HervTrack data={data.layers.herv_loci} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
+        {data?.layers?.herv_loci_v1 && (
+          <TrackRow label="HERVs" evidenceClass={ec('herv_loci_v1')}>
+            <HervTrack data={data.layers.herv_loci_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
           </TrackRow>
         )}
 
@@ -194,9 +194,9 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        {data?.layers?.breakpoint && (
-          <TrackRow label="Breakpoints" evidenceClass={ec('breakpoint')}>
-            <BreakpointTrack data={data.layers.breakpoint} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+        {data?.layers?.breakpoints && (
+          <TrackRow label="Breakpoints" evidenceClass={ec('breakpoints')}>
+            <BreakpointTrack data={data.layers.breakpoints} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
 
