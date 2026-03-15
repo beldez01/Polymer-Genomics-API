@@ -61,7 +61,8 @@ mcp = FastMCP(
         "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n"
         "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
         "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
-        "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n\n"
+        "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n"
+        "- Data validation → validate_layer (row counts, value ranges, null fractions per layer)\n\n"
         "WORKFLOW PATTERNS:\n"
         "- Evaluate a construct: evaluate_design → review flags\n"
         "- Compare designs: compare_sequences → check deltas_vs_reference\n"
@@ -1273,6 +1274,24 @@ async def compare_sequences(
         "salt_mm": salt_mm,
         "window_size": window_size,
     })
+
+
+@mcp.tool()
+async def validate_layer(
+    layer_key: str | None = None,
+    build: str = "hg38",
+) -> dict:
+    """Run validation checks on a data layer.
+
+    Checks row counts, value ranges, and null fractions against per-layer
+    specifications. Omit layer_key to validate all layers.
+
+    Returns pass/fail for each check with summary counts.
+    """
+    params: dict = {"build": build}
+    if layer_key:
+        params["layer_key"] = layer_key
+    return await _get("/v1/reference/validation", params)
 
 
 def _register_compute_tools() -> None:

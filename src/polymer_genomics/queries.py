@@ -372,6 +372,23 @@ def region_breakpoints_query() -> str:
     """
 
 
+def region_fragility_query() -> str:
+    """Composite fragility score (1kb bins)."""
+    return """
+        SELECT f.start_pos, f.end_pos,
+               f.nonb_component, f.curvature_component,
+               f.stacking_component, f.breakpoint_proximity,
+               f.fragility_score, f.fragility_class
+        FROM fragility.composite_score f
+        WHERE f.build = $1::genome_build
+          AND f.chr_id = $2
+          AND f.coord && int4range($3, $4)
+          AND f.layer_id = $5
+        ORDER BY f.start_pos
+        LIMIT $6
+    """
+
+
 # ---------------------------------------------------------------------------
 # Row converter functions
 # ---------------------------------------------------------------------------
@@ -1062,6 +1079,35 @@ def _convert_breakpoints(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_fragility(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    nonb, curv, stack, bp_prox = [], [], [], []
+    scores, classes = [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        nonb.append(r["nonb_component"])
+        curv.append(r["curvature_component"])
+        stack.append(r["stacking_component"])
+        bp_prox.append(r["breakpoint_proximity"])
+        scores.append(r["fragility_score"])
+        classes.append(r["fragility_class"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "nonb_component": nonb, "curvature_component": curv,
+            "stacking_component": stack, "breakpoint_proximity": bp_prox,
+            "fragility_score": scores, "fragility_class": classes,
+        },
+        "n": len(rows),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Declarative track registry
 # ---------------------------------------------------------------------------
@@ -1158,6 +1204,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "breakpoint": {
         "query_fn": region_breakpoints_query,
         "convert_fn": _convert_breakpoints,
+    },
+    "fragility": {
+        "query_fn": region_fragility_query,
+        "convert_fn": _convert_fragility,
     },
 }
 

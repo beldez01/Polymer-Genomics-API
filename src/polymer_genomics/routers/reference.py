@@ -546,3 +546,61 @@ async def get_probe_repeat_overlap(
         db_time_ms=db_time,
         _start_time=start_time,
     )
+
+
+# ── Validation ──────────────────────────────────────────────────────────────
+
+
+@router.get("/validation")
+async def get_validation_report(
+    build: str = Query("hg38", description="Genome build"),
+    layer_key: str | None = Query(None, description="Validate a single layer (omit for all)"),
+):
+    """Run integrity validation checks on data layers.
+
+    Checks row counts, value ranges, and null fractions against per-layer
+    specifications.  Returns a report with pass/fail for each check.
+    """
+    from polymer_genomics.validation.runner import run_layer_validation, run_all_validations
+
+    start_time = time.monotonic()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        db_start = time.monotonic()
+        if layer_key:
+            results = {layer_key: await run_layer_validation(conn, layer_key, build)}
+        else:
+            results = await run_all_validations(conn, build)
+        db_time = (time.monotonic() - db_start) * 1000
+
+    report: dict = {}
+    total_checks = 0
+    total_passed = 0
+    for lk, checks in results.items():
+        layer_results = []
+        for c in checks:
+            total_checks += 1
+            if c.passed:
+                total_passed += 1
+            layer_results.append({
+                "check": c.check_name,
+                "passed": c.passed,
+                "message": c.message,
+                "actual": c.actual,
+                "expected": c.expected,
+            })
+        report[lk] = layer_results
+
+    return _ref_envelope(
+        query={"build": build, "layer_key": layer_key},
+        data={
+            "report": report,
+            "summary": {
+                "total_checks": total_checks,
+                "passed": total_passed,
+                "failed": total_checks - total_passed,
+            },
+        },
+        db_time_ms=db_time,
+        _start_time=start_time,
+    )

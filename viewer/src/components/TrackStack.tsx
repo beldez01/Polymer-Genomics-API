@@ -18,6 +18,7 @@ import { DNAShapeTrack } from './tracks/DNAShapeTrack';
 import { NonBDnaTrack } from './tracks/NonBDnaTrack';
 import { HervTrack } from './tracks/HervTrack';
 import { BreakpointTrack } from './tracks/BreakpointTrack';
+import { FragilityTrack } from './tracks/FragilityTrack';
 import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
@@ -196,6 +197,12 @@ export function TrackStack({
         {data?.layers?.breakpoint && (
           <TrackRow label="Breakpoints" evidenceClass={ec('breakpoint')}>
             <BreakpointTrack data={data.layers.breakpoint} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.fragility && (
+          <TrackRow label="Fragility" evidenceClass={ec('fragility')}>
+            <FragilityTrack data={data.layers.fragility} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
 

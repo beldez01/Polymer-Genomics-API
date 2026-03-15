@@ -165,6 +165,16 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "abundance_ppm": "avg(abundance_ppm)",
         },
     },
+    "fragility": {
+        "table": "fragility.composite_score",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "fragility_score": "avg(fragility_score)",
+            "nonb_component": "avg(nonb_component)",
+            "curvature_component": "avg(curvature_component)",
+        },
+    },
 }
 
 # ---------------------------------------------------------------------------
