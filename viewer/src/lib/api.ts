@@ -533,3 +533,30 @@ export async function fetchClockDetail(clock: string): Promise<ClockDetailRespon
 export async function fetchClockProbeSearch(probeId: string): Promise<ClockProbeResponse> {
   return fetchJSON(`${API_BASE}/v1/reference/clock-probes?probe_id=${encodeURIComponent(probeId)}`);
 }
+
+// ─── Transposome ────────────────────────────────────────────────────
+import type { TEFamily, TEFamilyDetail } from './transposome-types';
+import { MOCK_FAMILIES, MOCK_HERVK_DETAIL } from './transposome-mock';
+
+export interface TEFamiliesResponse {
+  status: string;
+  data: { families: TEFamily[] };
+}
+
+export interface TEFamilyDetailResponse {
+  status: string;
+  data: TEFamilyDetail;
+}
+
+export async function fetchTEFamilies(): Promise<TEFamiliesResponse> {
+  // TODO: Replace with real API call when Exp 02 data is ready
+  // return fetchJSON<TEFamiliesResponse>(`${API_BASE}/v1/transposome/families`);
+  return { status: 'ok', data: { families: MOCK_FAMILIES } };
+}
+
+export async function fetchTEFamilyDetail(familyId: string): Promise<TEFamilyDetailResponse> {
+  // TODO: Replace with real API call
+  // return fetchJSON<TEFamilyDetailResponse>(`${API_BASE}/v1/transposome/family/${encodeURIComponent(familyId)}`);
+  void familyId;
+  return { status: 'ok', data: MOCK_HERVK_DETAIL };
+}

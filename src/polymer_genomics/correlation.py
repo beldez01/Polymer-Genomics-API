@@ -96,6 +96,10 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "groove_width": "avg(groove_width)",
             "dipole_density": "avg(dipole_density)",
             "periodicity_power": "avg(periodicity_power)",
+            "bubble_propensity": "avg(bubble_propensity)",
+            "melting_width": "avg(melting_width)",
+            "sbs_c_to_t_ddg": "avg(sbs_c_to_t_ddg)",
+            "sbs_c_to_a_ddg": "avg(sbs_c_to_a_ddg)",
         },
     },
     "conservation": {

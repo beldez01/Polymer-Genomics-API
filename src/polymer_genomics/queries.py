@@ -262,7 +262,9 @@ def region_biophysics_query() -> str:
                b.curvature, b.groove_width, b.dipole_density,
                b.periodicity_power,
                b.mgw_mean, b.prot_mean, b.roll_mean, b.helt_mean,
-               b.delta_mgw, b.delta_prot, b.delta_roll, b.delta_helt
+               b.delta_mgw, b.delta_prot, b.delta_roll, b.delta_helt,
+               b.melting_cooperativity, b.bubble_propensity, b.melting_width,
+               b.sbs_c_to_a_ddg, b.sbs_c_to_g_ddg, b.sbs_c_to_t_ddg, b.sbs_t_to_a_ddg
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -834,6 +836,8 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
     gc, stacking, tm, curv, groove, dipole, period = [], [], [], [], [], [], []
     mgw, prot, roll, helt = [], [], [], []
     d_mgw, d_prot, d_roll, d_helt = [], [], [], []
+    melt_coop, bubble, melt_w = [], [], []
+    sbs_ca, sbs_cg, sbs_ct, sbs_ta = [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -854,6 +858,13 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         d_prot.append(r["delta_prot"])
         d_roll.append(r["delta_roll"])
         d_helt.append(r["delta_helt"])
+        melt_coop.append(r["melting_cooperativity"])
+        bubble.append(r["bubble_propensity"])
+        melt_w.append(r["melting_width"])
+        sbs_ca.append(r["sbs_c_to_a_ddg"])
+        sbs_cg.append(r["sbs_c_to_g_ddg"])
+        sbs_ct.append(r["sbs_c_to_t_ddg"])
+        sbs_ta.append(r["sbs_t_to_a_ddg"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -868,6 +879,11 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "roll_mean": roll, "helt_mean": helt,
             "delta_mgw": d_mgw, "delta_prot": d_prot,
             "delta_roll": d_roll, "delta_helt": d_helt,
+            "melting_cooperativity": melt_coop,
+            "bubble_propensity": bubble,
+            "melting_width": melt_w,
+            "sbs_c_to_a_ddg": sbs_ca, "sbs_c_to_g_ddg": sbs_cg,
+            "sbs_c_to_t_ddg": sbs_ct, "sbs_t_to_a_ddg": sbs_ta,
         },
         "n": len(rows),
     }
