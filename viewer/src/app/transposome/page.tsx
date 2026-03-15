@@ -5,6 +5,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { ModeTabs } from '@/components/transposome/ModeTabs';
 import { LensPanel } from '@/components/transposome/LensPanel';
+import { LandscapeCanvas } from '@/components/transposome/LandscapeCanvas';
 import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT } from '@/config/theme';
 import { fetchTEFamilies } from '@/lib/api';
 import { useTransposome, filterFamilies } from '@/stores/transposome';
@@ -138,23 +139,13 @@ export default function TransposomePage() {
           <LensPanel />
         </div>
 
-        {/* Center - Landscape placeholder */}
+        {/* Center - Landscape Canvas */}
         <div style={{
           position: 'relative',
           overflow: 'hidden',
           background: COLOR.bg.primary,
         }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            color: COLOR.text.faint,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-          }}>
-            Landscape Canvas — {filteredFamilies.length} families
-          </div>
+          <LandscapeCanvas families={filteredFamilies} allFamilies={store.families} />
         </div>
 
         {/* Right Panel - Inspector placeholder */}
