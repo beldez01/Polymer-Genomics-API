@@ -49,7 +49,7 @@ async def test_stats_region_length(client, seed_genomic_data):
     """Query metadata should include region_length_bp."""
     resp = await client.get("/v1/stats/hg38/chr16:70699930-70700000?layers=cpg_sites")
     body = resp.json()
-    assert body["query"]["region_length_bp"] == 70  # 70700000 - 70699930
+    assert body["query"]["region_length_bp"] == 71  # 1-based closed: 70700000 - 70699930 + 1 = 71
 
 
 async def test_stats_invalid_build(client):
