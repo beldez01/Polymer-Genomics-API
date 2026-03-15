@@ -145,28 +145,7 @@ export function DNAShapeTrack({
       ctx.stroke();
     }
 
-    // ---- Legend (top-right corner) ----------------------------------------
-    const legendX = canvasWidth - 8;
-    const legendY = 6;
-    const lineH = 11;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.font = "9px 'JetBrains Mono', monospace";
-
-    for (let i = 0; i < series.length; i++) {
-      const s = series[i];
-      const y = legendY + i * lineH;
-
-      // Colored dot
-      ctx.beginPath();
-      ctx.arc(legendX - ctx.measureText(s.param.label).width - 6, y + 4, 3, 0, Math.PI * 2);
-      ctx.fillStyle = s.param.color;
-      ctx.fill();
-
-      // Label
-      ctx.fillStyle = COLOR.text.tertiary;
-      ctx.fillText(s.param.label, legendX, y);
-    }
+    // Legend moved to Sidebar
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
   return <canvas ref={canvasRef} className="block" />;

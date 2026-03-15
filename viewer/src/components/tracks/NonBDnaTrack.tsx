@@ -200,45 +200,7 @@ export function NonBDnaTrack({
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Legend in top-right corner
-    if (canvasWidth >= 200) {
-      const legendX = canvasWidth - 6;
-      let legendY = margin + 2;
-      const lineH = 10;
-
-      ctx.font = "8px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'top';
-
-      for (let s = STACK_ORDER.length - 1; s >= 0; s--) {
-        const key = STACK_ORDER[s];
-        const color = STACK_COLORS[key];
-        const label = LEGEND_LABELS[key];
-
-        // Color swatch
-        ctx.fillStyle = color + 'AA';
-        ctx.fillRect(legendX - ctx.measureText(label).width - 10, legendY + 1, 6, 6);
-
-        // Label
-        ctx.fillStyle = COLOR.canvas.axisLabel;
-        ctx.fillText(label, legendX, legendY);
-
-        legendY += lineH;
-      }
-
-      // Total line legend entry
-      ctx.setLineDash([3, 2]);
-      ctx.strokeStyle = COLOR.nonb.total;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(legendX - ctx.measureText('Total').width - 10, legendY + 4);
-      ctx.lineTo(legendX - ctx.measureText('Total').width - 4, legendY + 4);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      ctx.fillStyle = COLOR.canvas.axisLabel;
-      ctx.fillText('Total', legendX, legendY);
-    }
+    // Legend moved to Sidebar
 
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 

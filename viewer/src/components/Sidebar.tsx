@@ -549,12 +549,32 @@ export function Sidebar({
             const active = activeLayers.includes('nonb_dna');
             const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
-              <AnnotationRow
-                active={active}
-                name={l ? cleanName(l.name || 'Non-B DNA') : 'Non-B DNA'}
-                subLine={subLine}
-                onClick={() => onToggleLayer('nonb_dna')}
-              />
+              <div style={{
+                borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+              }}>
+                <AnnotationRow
+                  active={active}
+                  name={l ? cleanName(l.name || 'Non-B DNA') : 'Non-B DNA'}
+                  subLine={subLine}
+                  onClick={() => onToggleLayer('nonb_dna')}
+                />
+                {active && (
+                  <div style={{ paddingLeft: 14, paddingBottom: 4, display: 'flex', flexWrap: 'wrap', gap: '1px 8px' }}>
+                    {([
+                      ['G4', COLOR.nonb.g4],
+                      ['Z-DNA', COLOR.nonb.zdna],
+                      ['Cruciform', COLOR.nonb.cruciform],
+                      ['R-loop', COLOR.nonb.rloop],
+                      ['Triplex', COLOR.nonb.triplex],
+                    ] as const).map(([label, color]) => (
+                      <span key={label} className="flex items-center gap-1" style={{ fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, color: COLOR.text.faint }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: color, flexShrink: 0 }} />
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })()}
 
@@ -577,11 +597,30 @@ export function Sidebar({
           {(() => {
             const active = activeLayers.includes('sequence_biophysics_l0');
             return (
-              <AnnotationRow
-                active={active}
-                name="DNA Shape"
-                onClick={() => onToggleLayer('sequence_biophysics_l0')}
-              />
+              <div style={{
+                borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+              }}>
+                <AnnotationRow
+                  active={active}
+                  name="DNA Shape"
+                  onClick={() => onToggleLayer('sequence_biophysics_l0')}
+                />
+                {active && (
+                  <div style={{ paddingLeft: 14, paddingBottom: 4, display: 'flex', flexWrap: 'wrap', gap: '1px 8px' }}>
+                    {([
+                      ['MGW', COLOR.shape.mgw],
+                      ['ProT', COLOR.shape.prot],
+                      ['Roll', COLOR.shape.roll],
+                      ['HelT', COLOR.shape.helt],
+                    ] as const).map(([label, color]) => (
+                      <span key={label} className="flex items-center gap-1" style={{ fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, color: COLOR.text.faint }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })()}
 
