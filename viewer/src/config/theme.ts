@@ -143,6 +143,52 @@ export const COLOR = {
     very_expensive: '#ef4444',
   },
 
+  // Repeat classes
+  repeat: {
+    SINE: '#f59e0b',  // amber — Alus
+    LINE: '#3b82f6',  // blue — L1, L2
+    LTR:  '#ef4444',  // red — ERVs
+    DNA:  '#22c55e',  // green — transposons
+    Simple_repeat: '#6b7280',
+    Satellite: '#a855f7',
+    Other: '#555555',
+  },
+
+  // HERV subfamilies
+  herv: {
+    'HERV-K': '#ef4444',
+    'HERV-H': '#f59e0b',
+    'HERV-W': '#3b82f6',
+    'HERV-E': '#22c55e',
+    'HERV-L': '#8b5cf6',
+    Other: '#6b7280',
+  },
+
+  // Non-B DNA structures
+  nonb: {
+    g4:        '#4ECDC4',  // teal — G-quadruplex
+    zdna:      '#ef4444',  // red — Z-DNA
+    cruciform: '#f59e0b',  // amber — cruciform/hairpin
+    rloop:     '#8b5cf6',  // violet — R-loops
+    triplex:   '#22c55e',  // green — triplex/H-DNA
+    total:     '#888888',  // gray — total density
+  },
+
+  // Breakpoint types
+  breakpoint: {
+    fragile_site:    '#ef4444',
+    translocation:   '#f59e0b',
+    constitutional:  '#8b5cf6',
+  },
+
+  // DNA shape parameters
+  shape: {
+    mgw:  '#4ECDC4',  // teal — minor groove width
+    prot: '#f59e0b',  // amber — propeller twist
+    roll: '#ef4444',  // red — roll
+    helt: '#3b82f6',  // blue — helix twist
+  },
+
   // Canvas-specific
   canvas: {
     background:   '#0A0A0A',

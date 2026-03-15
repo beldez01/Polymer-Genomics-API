@@ -13,6 +13,11 @@ import { GCTrack } from './tracks/GCTrack';
 import { MethylationReferenceTrack } from './tracks/MethylationReferenceTrack';
 import { HistoneTrack } from './tracks/HistoneTrack';
 import { GwasTrack } from './tracks/GwasTrack';
+import { RepeatTrack } from './tracks/RepeatTrack';
+import { DNAShapeTrack } from './tracks/DNAShapeTrack';
+import { NonBDnaTrack } from './tracks/NonBDnaTrack';
+import { HervTrack } from './tracks/HervTrack';
+import { BreakpointTrack } from './tracks/BreakpointTrack';
 import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
@@ -167,6 +172,36 @@ export function TrackStack({
         {data?.layers?.gwas_catalog_ebi_v1 && (
           <TrackRow label="GWAS" evidenceClass={ec('gwas_catalog_ebi_v1')}>
             <GwasTrack data={data.layers.gwas_catalog_ebi_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.repeat && (
+          <TrackRow label="Repeats" evidenceClass={ec('repeat')}>
+            <RepeatTrack data={data.layers.repeat} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={70} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.herv_loci && (
+          <TrackRow label="HERVs" evidenceClass={ec('herv_loci')}>
+            <HervTrack data={data.layers.herv_loci} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.nonb_dna && (
+          <TrackRow label="Non-B DNA" evidenceClass={ec('nonb_dna')}>
+            <NonBDnaTrack data={data.layers.nonb_dna} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.breakpoint && (
+          <TrackRow label="Breakpoints" evidenceClass={ec('breakpoint')}>
+            <BreakpointTrack data={data.layers.breakpoint} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+          </TrackRow>
+        )}
+
+        {data?.layers?.sequence_biophysics_l0 && (
+          <TrackRow label="DNA Shape" evidenceClass={ec('sequence_biophysics_l0')}>
+            <DNAShapeTrack data={data.layers.sequence_biophysics_l0} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
           </TrackRow>
         )}
 

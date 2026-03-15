@@ -339,6 +339,37 @@ def region_herv_loci_query() -> str:
     """
 
 
+def region_nonb_dna_query() -> str:
+    """Non-B DNA structure predictions at 1kb resolution."""
+    return """
+        SELECT n.start_pos, n.end_pos,
+               n.g4_density, n.z_dna_density, n.cruciform_density,
+               n.r_loop_score, n.triplex_density, n.total_nonb_density
+        FROM fragility.nonb_dna n
+        WHERE n.build = $1::genome_build
+          AND n.chr_id = $2
+          AND n.coord && int4range($3, $4)
+          AND n.layer_id = $5
+        ORDER BY n.start_pos
+        LIMIT $6
+    """
+
+
+def region_breakpoints_query() -> str:
+    """Curated breakpoint and fragile site catalog."""
+    return """
+        SELECT b.start_pos, b.end_pos,
+               b.breakpoint_type, b.name, b.gene_a, b.gene_b, b.source
+        FROM fragility.breakpoints b
+        WHERE b.build = $1::genome_build
+          AND b.chr_id = $2
+          AND b.coord && int4range($3, $4)
+          AND b.layer_id = $5
+        ORDER BY b.start_pos
+        LIMIT $6
+    """
+
+
 # ---------------------------------------------------------------------------
 # Row converter functions
 # ---------------------------------------------------------------------------
@@ -961,6 +992,60 @@ def _convert_herv_loci(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_nonb_dna(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    g4, zdna, cruciform, rloop, triplex, total = [], [], [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        g4.append(r["g4_density"])
+        zdna.append(r["z_dna_density"])
+        cruciform.append(r["cruciform_density"])
+        rloop.append(r["r_loop_score"])
+        triplex.append(r["triplex_density"])
+        total.append(r["total_nonb_density"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "g4_density": g4, "z_dna_density": zdna,
+            "cruciform_density": cruciform, "r_loop_score": rloop,
+            "triplex_density": triplex, "total_nonb_density": total,
+        },
+        "n": len(rows),
+    }
+
+
+def _convert_breakpoints(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    types, names, genes_a, genes_b, sources = [], [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        types.append(r["breakpoint_type"])
+        names.append(r["name"])
+        genes_a.append(r["gene_a"])
+        genes_b.append(r["gene_b"])
+        sources.append(r["source"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "breakpoint_type": types, "name": names,
+            "gene_a": genes_a, "gene_b": genes_b, "source": sources,
+        },
+        "n": len(rows),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Declarative track registry
 # ---------------------------------------------------------------------------
@@ -1049,6 +1134,14 @@ TRACK_REGISTRY: dict[str, dict] = {
     "gwas": {
         "query_fn": region_gwas_query,
         "convert_fn": _convert_gwas,
+    },
+    "nonb_dna": {
+        "query_fn": region_nonb_dna_query,
+        "convert_fn": _convert_nonb_dna,
+    },
+    "breakpoint": {
+        "query_fn": region_breakpoints_query,
+        "convert_fn": _convert_breakpoints,
     },
 }
 

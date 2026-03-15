@@ -513,7 +513,79 @@ export function Sidebar({
             );
           })()}
 
-          {/* 10. GC% — toggle, always last */}
+          {/* 10. Repeats */}
+          {(() => {
+            const l = apiLayerMap.get('repeat');
+            const active = activeLayers.includes('repeat');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'Repeats') : 'Repeats'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('repeat')}
+              />
+            );
+          })()}
+
+          {/* 11. HERVs */}
+          {(() => {
+            const l = apiLayerMap.get('herv_loci');
+            const active = activeLayers.includes('herv_loci');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'HERVs') : 'HERVs'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('herv_loci')}
+              />
+            );
+          })()}
+
+          {/* 12. Non-B DNA */}
+          {(() => {
+            const l = apiLayerMap.get('nonb_dna');
+            const active = activeLayers.includes('nonb_dna');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'Non-B DNA') : 'Non-B DNA'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('nonb_dna')}
+              />
+            );
+          })()}
+
+          {/* 13. Breakpoints */}
+          {(() => {
+            const l = apiLayerMap.get('breakpoint');
+            const active = activeLayers.includes('breakpoint');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'Breakpoints') : 'Breakpoints'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('breakpoint')}
+              />
+            );
+          })()}
+
+          {/* 14. DNA Shape */}
+          {(() => {
+            const active = activeLayers.includes('sequence_biophysics_l0');
+            return (
+              <AnnotationRow
+                active={active}
+                name="DNA Shape"
+                onClick={() => onToggleLayer('sequence_biophysics_l0')}
+              />
+            );
+          })()}
+
+          {/* 15. GC% — toggle, always last */}
           <AnnotationRow
             active={showGC}
             name="GC%"
