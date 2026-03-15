@@ -482,3 +482,54 @@ export async function fetchCpgProfile(
 ): Promise<CpgProfileResponse> {
   return fetchJSON(`${API_BASE}/v1/cpg-profile/${build}/${encodeURIComponent(query)}`);
 }
+
+// --- Epigenetic Clocks ---
+
+export interface ClockMetadata {
+  clock_name: string;
+  display_name: string;
+  n_probes: number;
+  tissue: string;
+  outcome: string;
+  intercept: number | null;
+  age_transform: string;
+  platform: string;
+  pmid: string | null;
+  source_citation: string;
+}
+
+export interface ClockProbe {
+  probe_id: string;
+  coefficient: number;
+  source_citation: string;
+}
+
+export interface ClockListResponse {
+  status: string;
+  query: Record<string, unknown>;
+  data: { clocks: ClockMetadata[]; n: number };
+}
+
+export interface ClockDetailResponse {
+  status: string;
+  query: { clock: string };
+  data: { clock: ClockMetadata; probes: ClockProbe[]; n_loaded: number };
+}
+
+export interface ClockProbeResponse {
+  status: string;
+  query: { probe_id: string };
+  data: { clocks: Array<ClockMetadata & { coefficient: number }>; n: number };
+}
+
+export async function fetchClockList(): Promise<ClockListResponse> {
+  return fetchJSON(`${API_BASE}/v1/reference/clock-probes`);
+}
+
+export async function fetchClockDetail(clock: string): Promise<ClockDetailResponse> {
+  return fetchJSON(`${API_BASE}/v1/reference/clock-probes?clock=${encodeURIComponent(clock)}`);
+}
+
+export async function fetchClockProbeSearch(probeId: string): Promise<ClockProbeResponse> {
+  return fetchJSON(`${API_BASE}/v1/reference/clock-probes?probe_id=${encodeURIComponent(probeId)}`);
+}

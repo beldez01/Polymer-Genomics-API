@@ -34,6 +34,8 @@ export function Footer() {
       <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
         <Link href="/atlas" style={linkStyle}>Atlas</Link>
         {DOT}
+        <Link href="/clocks" style={linkStyle}>Clocks</Link>
+        {DOT}
         <Link href="/docs" style={linkStyle}>API Docs</Link>
         {DOT}
         <Link href="/developers" style={linkStyle}>Dev</Link>
