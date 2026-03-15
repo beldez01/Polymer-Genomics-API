@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useCallback } from 'react';
 import { BrandBar } from '@/components/BrandBar';
-import { Footer } from '@/components/Footer';
 import { ModeTabs } from '@/components/transposome/ModeTabs';
 import { LensPanel } from '@/components/transposome/LensPanel';
 import { LandscapeCanvas } from '@/components/transposome/LandscapeCanvas';
@@ -47,22 +46,6 @@ export default function TransposomePage() {
   const totalBp = store.families.reduce((sum, f) => sum + f.total_bp, 0);
   const genomeFraction = ((totalBp / 3_088_269_832) * 100).toFixed(1);
   const totalProbes = store.families.reduce((sum, f) => sum + f.epic_v2_probes, 0);
-
-  const STAT_VALUE: React.CSSProperties = {
-    fontSize: 18,
-    fontWeight: WEIGHT.bold,
-    color: COLOR.text.primary,
-    fontFamily: FONT_FAMILY,
-  };
-
-  const STAT_LABEL: React.CSSProperties = {
-    fontSize: 9,
-    fontWeight: WEIGHT.medium,
-    color: COLOR.text.faint,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    fontFamily: FONT_FAMILY,
-  };
 
   // Center panel content (loading / error / canvas)
   let centerContent: React.ReactNode;
@@ -120,7 +103,7 @@ export default function TransposomePage() {
   }
 
   return (
-    <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <main style={{ backgroundColor: COLOR.bg.primary, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <BrandBar subtitle="Transposome Explorer" sticky>
         <input
           type="text"
@@ -140,59 +123,47 @@ export default function TransposomePage() {
         />
       </BrandBar>
 
-      {/* Hero Header */}
-      <div style={{ padding: '32px 24px 20px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>
-        <h1 style={{
-          color: COLOR.accent.teal,
-          fontSize: TYPE.xl.fontSize,
-          fontWeight: WEIGHT.bold,
-          letterSpacing: '0.06em',
-          fontFamily: FONT_FAMILY,
-          margin: 0,
-          textTransform: 'uppercase',
-        }}>
-          TRANSPOSOME EXPLORER
-        </h1>
-        <p style={{
-          fontStyle: 'italic',
-          fontSize: 12,
-          color: COLOR.text.muted,
-          fontFamily: FONT_FAMILY,
-          margin: '4px 0 12px',
-        }}>
-          Mechanics, Age, Awakening
-        </p>
-        <p style={{
-          fontSize: TYPE.sm.fontSize,
-          color: COLOR.text.tertiary,
-          fontFamily: FONT_FAMILY,
-          maxWidth: 900,
-          lineHeight: 1.7,
-          margin: '0 0 16px',
-        }}>
-          Transposable elements are not a side note to genome biology. They are a vast population of latent
-          genomic entities, each with distinct age, sequence architecture, repression logic, and failure modes.
-          This explorer renders the transposome as a navigable landscape, linking repeat families to biophysical
-          properties, silencing mechanisms, assay observability, and reactivation potential.
-        </p>
+      {/* Hero Header — compact to fit in single viewport */}
+      <div style={{ padding: '12px 24px 10px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <h1 style={{
+            color: COLOR.accent.teal,
+            fontSize: TYPE.lg.fontSize,
+            fontWeight: WEIGHT.bold,
+            letterSpacing: '0.06em',
+            fontFamily: FONT_FAMILY,
+            margin: 0,
+            textTransform: 'uppercase',
+          }}>
+            TRANSPOSOME EXPLORER
+          </h1>
+          <span style={{
+            fontStyle: 'italic',
+            fontSize: 11,
+            color: COLOR.text.muted,
+            fontFamily: FONT_FAMILY,
+          }}>
+            Mechanics, Age, Awakening
+          </span>
+        </div>
 
-        {/* Stats bar */}
-        <div style={{ display: 'flex', gap: SPACE[8], flexWrap: 'wrap' }}>
-          <div>
-            <div style={STAT_VALUE}>{store.families.length}</div>
-            <div style={STAT_LABEL}>Families</div>
+        {/* Stats bar — inline with header */}
+        <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.families.length}</span>
+            <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>families</span>
           </div>
-          <div>
-            <div style={STAT_VALUE}>5,633,664</div>
-            <div style={STAT_LABEL}>Annotated Elements</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>5.6M</span>
+            <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>elements</span>
           </div>
-          <div>
-            <div style={STAT_VALUE}>{genomeFraction}%</div>
-            <div style={STAT_LABEL}>Genome Fraction</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{genomeFraction}%</span>
+            <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>of genome</span>
           </div>
-          <div>
-            <div style={STAT_VALUE}>{totalProbes.toLocaleString()}</div>
-            <div style={STAT_LABEL}>EPIC v2 Probes</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{totalProbes.toLocaleString()}</span>
+            <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>EPIC v2 probes</span>
           </div>
         </div>
       </div>
@@ -241,8 +212,6 @@ export default function TransposomePage() {
           <FamilyInspector />
         </div>
       </div>
-
-      <Footer />
     </main>
   );
 }
