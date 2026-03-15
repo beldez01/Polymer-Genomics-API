@@ -925,16 +925,19 @@ Sprint 7 (Outreach) ── NOT STARTED
 ### Must do
 - **Sprint 7 (Outreach):** Preprint outline, conference targets, outreach emails — the activation step
 - **PyPI publish:** `polymer-genomics` package is built and tested but not on PyPI yet
+- **Rotate production DB password:** Exposed in git history (flagged in 2026-03-13 audit, commit `e844c44` replaced with env var but old password remains in history)
+
+### Build when needed
 - **Sprint 3 (Auth):** Build when the first external user requests API access
+- **Usage tracking:** No request logging beyond Fly.io metrics — build alongside Sprint 3
 
 ### Could do
 - **Compare frontend (Sprint 6.2):** The `/v1/compare` API exists but the frontend comparison UI was not built
 - **Quickstart guide (Sprint 4.3):** Structured tutorial page at `/docs/quickstart` — not yet created
 - **MCP integration guide (Sprint 4.4):** Dedicated doc page showing Claude Code config — not yet created
-- **Usage tracking:** No request logging beyond Fly.io metrics — build alongside Sprint 3
 
 ### Production inventory (verified 2026-03-13)
 - 26 data layers on hg38
 - 39 MCP tools (29 reference + 10 compute)
-- 5 frontend pages: home, viewer, atlas, evaluate, developers, DMP, docs
+- Frontend pages: home, viewer, atlas, evaluate, developers, DMP, docs
 - Python SDK: 24 tests, typed exceptions, context manager support
