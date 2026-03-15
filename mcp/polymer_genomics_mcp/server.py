@@ -36,7 +36,8 @@ mcp = FastMCP(
         "TOOL SELECTION:\n"
         "- Gene by name → lookup_gene (returns exons/introns/UTRs; supports aliases like OCT4→POU5F1, p53→TP53)\n"
         "- Probe by ID → lookup_probe (coordinates + CpG context + crossmap)\n"
-        "- Everything in a region → query_region (use layers= to filter)\n"
+        "- Everything in a region → query_region (use layers= to filter, fields= to select mcols, cursor= to paginate)\n"
+        "- Region summary stats → region_stats (mean/median/sd/min/max/percentiles, no individual rows)\n"
         "- Large region overview → aggregate_region (binned density)\n"
         "- Annotations near a gene → query_proximity (gene + radius, single call)\n"
         "- Gene search → search (prefix match, min 2 chars; also searches gene aliases/synonyms)\n"
@@ -343,6 +344,8 @@ async def query_region(
     build: str,
     region: str,
     layers: str | None = None,
+    fields: str | None = None,
+    cursor: str | None = None,
 ) -> dict:
     """Query genomic features in a chromosomal region.
 
@@ -371,12 +374,56 @@ async def query_region(
         region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
         layers: Optional comma-separated layer keys to query (e.g. 'cpg_sites,gencode_v44').
                 Omit to query all active layers.
+        fields: Optional comma-separated mcols field names to return (e.g. 'gc_content,stacking_dg37').
+                Omit to return all fields. Reduces response size significantly.
+        cursor: Opaque pagination cursor from a previous response's pagination.{layer_key}.next_cursor.
+                Use to fetch the next page of results.
     """
     params = {}
     if layers:
         params["layers"] = layers
+    if fields:
+        params["fields"] = fields
+    if cursor:
+        params["cursor"] = cursor
     data = await _get(f"/v1/regions/{build}/{region}", params)
     return _with_summary(data, _summarize_region(data, region))
+
+
+@mcp.tool()
+async def region_stats(
+    build: str,
+    region: str,
+    layers: str | None = None,
+    fields: str | None = None,
+) -> dict:
+    """Get summary statistics for data layers in a genomic region.
+
+    Returns mean, median, sd, min, max, and percentiles (p25, p75) for
+    continuous layers, or count + density for count-mode layers.
+    Much smaller than query_region — ideal when you only need summary numbers.
+
+    Example output:
+    {"data": {
+      "sequence_biophysics_l0": {
+        "gc_content": {"n": 301, "mean": 0.412, "median": 0.41, "sd": 0.05, "min": 0.29, "max": 0.56, "p25": 0.38, "p75": 0.45},
+        "stacking_dg37": {"n": 301, "mean": -1.42, ...}
+      },
+      "cpg_sites": {"count": 152, "density": 0.000507}
+    }}
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
+        layers: Optional comma-separated layer keys (e.g. 'sequence_biophysics_l0').
+        fields: Optional comma-separated field names to include in stats (e.g. 'gc_content,stacking_dg37').
+    """
+    params = {}
+    if layers:
+        params["layers"] = layers
+    if fields:
+        params["fields"] = fields
+    return await _get(f"/v1/stats/{build}/{region}", params)
 
 
 @mcp.tool()

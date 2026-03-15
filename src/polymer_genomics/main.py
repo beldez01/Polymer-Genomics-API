@@ -30,6 +30,7 @@ from polymer_genomics.routers.correlation import router as correlation_router
 from polymer_genomics.routers.cpg_profile import router as cpg_profile_router
 from polymer_genomics.routers.intersect import router as intersect_router
 from polymer_genomics.routers.evaluate import router as evaluate_router
+from polymer_genomics.routers.stats import router as stats_router
 
 
 @asynccontextmanager
@@ -91,6 +92,7 @@ app.include_router(correlation_router)
 app.include_router(cpg_profile_router)
 app.include_router(intersect_router)
 app.include_router(evaluate_router)
+app.include_router(stats_router)
 
 
 @app.get("/health")

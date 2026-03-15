@@ -179,6 +179,8 @@ class PolymerClient:
         build: str,
         region: str,
         layers: Optional[List[str]] = None,
+        fields: Optional[List[str]] = None,
+        cursor: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Query all features in a genomic region (GRanges format).
 
@@ -190,11 +192,120 @@ class PolymerClient:
             Region string, e.g. ``"chr17:7668402-7687550"``.
         layers : list of str, optional
             Layer keys to query. Omit for all active layers.
+        fields : list of str, optional
+            mcols field names to return. Omit for all fields.
+        cursor : str, optional
+            Opaque pagination cursor from a previous response.
         """
         params: Dict[str, str] = {}
         if layers:
             params["layers"] = ",".join(layers)
+        if fields:
+            params["fields"] = ",".join(fields)
+        if cursor:
+            params["cursor"] = cursor
         return self._get(f"/v1/regions/{build}/{region}", params=params)
+
+    def region_all(
+        self,
+        build: str,
+        region: str,
+        layers: Optional[List[str]] = None,
+        fields: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Auto-paginate through all results in a genomic region.
+
+        Calls ``region()`` repeatedly, following pagination cursors until
+        all data is retrieved. Returns a merged response.
+
+        Parameters
+        ----------
+        build : str
+            ``"hg38"`` or ``"hg37"``.
+        region : str
+            Region string.
+        layers : list of str, optional
+            Layer keys to query.
+        fields : list of str, optional
+            mcols field names to return.
+        """
+        result = self.region(build, region, layers=layers, fields=fields)
+        all_data = dict(result.get("data", {}))
+
+        # Follow cursors until no more pages
+        pagination = result.get("pagination")
+        while pagination:
+            # Pick the first layer that has a next_cursor
+            next_cursor = None
+            for _layer_key, page_info in pagination.items():
+                if page_info.get("next_cursor"):
+                    next_cursor = page_info["next_cursor"]
+                    break
+
+            if not next_cursor:
+                break
+
+            page = self.region(
+                build, region, layers=layers, fields=fields, cursor=next_cursor
+            )
+
+            # Merge data arrays
+            for layer_key, layer_data in page.get("data", {}).items():
+                if layer_key in all_data:
+                    existing = all_data[layer_key]
+                    for key in ("seqnames", "strand"):
+                        if key in existing and key in layer_data:
+                            existing[key].extend(layer_data[key])
+                    if "ranges" in existing and "ranges" in layer_data:
+                        for rk in ("start", "end", "width"):
+                            if rk in existing["ranges"] and rk in layer_data["ranges"]:
+                                existing["ranges"][rk].extend(layer_data["ranges"][rk])
+                    if "mcols" in existing and "mcols" in layer_data:
+                        for mk, mv in layer_data["mcols"].items():
+                            if mk in existing["mcols"]:
+                                existing["mcols"][mk].extend(mv)
+                            else:
+                                existing["mcols"][mk] = mv
+                    existing["n"] = existing.get("n", 0) + layer_data.get("n", 0)
+                else:
+                    all_data[layer_key] = layer_data
+
+            pagination = page.get("pagination")
+
+        result["data"] = all_data
+        result["status"] = "complete"
+        result.pop("pagination", None)
+        return result
+
+    def stats(
+        self,
+        build: str,
+        region: str,
+        layers: Optional[List[str]] = None,
+        fields: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Get summary statistics for data layers in a region.
+
+        Returns mean, median, sd, min, max, p25, p75 for continuous layers,
+        or count + density for count-mode layers.
+
+        Parameters
+        ----------
+        build : str
+            ``"hg38"`` or ``"hg37"``.
+        region : str
+            Region string.
+        layers : list of str, optional
+            Layer keys to query.
+        fields : list of str, optional
+            Field names to include in stats.
+        """
+        params: Dict[str, str] = {}
+        if layers:
+            params["layers"] = ",".join(layers)
+        if fields:
+            params["fields"] = ",".join(fields)
+        return self._get(f"/v1/stats/{build}/{region}", params=params)
 
     def sequence(self, build: str, region: str) -> Dict[str, Any]:
         """Get raw DNA sequence for a genomic region (max 100 kb)."""
