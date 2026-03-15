@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { ModeTabs } from '@/components/transposome/ModeTabs';
@@ -10,17 +10,23 @@ import { FamilyInspector } from '@/components/transposome/FamilyInspector';
 import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT } from '@/config/theme';
 import { fetchTEFamilies } from '@/lib/api';
 import { useTransposome, filterFamilies } from '@/stores/transposome';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 
 export default function TransposomePage() {
   const store = useTransposome();
+  const isMobile = useIsMobile();
 
   // Data loading
-  useEffect(() => {
+  const loadData = useCallback(() => {
     fetchTEFamilies()
       .then((res) => store.setFamilies(res.data.families))
       .catch((err) => store.setError(err instanceof Error ? err.message : 'Failed to load families'));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Filtered families
   const filteredFamilies = useMemo(
@@ -58,9 +64,81 @@ export default function TransposomePage() {
     fontFamily: FONT_FAMILY,
   };
 
+  // Center panel content (loading / error / canvas)
+  let centerContent: React.ReactNode;
+  if (store.loading) {
+    centerContent = (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100%', flexDirection: 'column', gap: 8,
+      }}>
+        <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+        <div style={{
+          width: 200, height: 4, borderRadius: 2,
+          background: COLOR.bg.surface, overflow: 'hidden',
+        }}>
+          <div style={{
+            width: '40%', height: '100%', borderRadius: 2,
+            background: `linear-gradient(90deg, ${COLOR.bg.surface}, ${COLOR.accent.teal}, ${COLOR.bg.surface})`,
+            animation: 'shimmer 1.5s infinite',
+          }} />
+        </div>
+        <span style={{ color: COLOR.text.faint, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY }}>
+          Loading transposome data...
+        </span>
+      </div>
+    );
+  } else if (store.error) {
+    centerContent = (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100%', flexDirection: 'column', gap: 12,
+      }}>
+        <span style={{ color: COLOR.accent.rose, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY }}>
+          {store.error}
+        </span>
+        <button
+          onClick={() => { store.setLoading(true); store.setError(null); loadData(); }}
+          style={{
+            backgroundColor: 'transparent',
+            border: `1px solid ${COLOR.border.strong}`,
+            color: COLOR.text.secondary,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.xs.fontSize,
+            padding: '4px 12px',
+            cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  } else {
+    centerContent = (
+      <LandscapeCanvas families={filteredFamilies} allFamilies={store.families} />
+    );
+  }
+
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <BrandBar subtitle="Transposome Explorer" sticky />
+      <BrandBar subtitle="Transposome Explorer" sticky>
+        <input
+          type="text"
+          placeholder="Search families..."
+          value={store.searchQuery}
+          onChange={(e) => store.setSearchQuery(e.target.value)}
+          style={{
+            backgroundColor: COLOR.bg.track,
+            border: `1px solid ${COLOR.border.strong}`,
+            color: COLOR.text.secondary,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.xs.fontSize,
+            padding: '4px 10px',
+            width: 180,
+            outline: 'none',
+          }}
+        />
+      </BrandBar>
 
       {/* Hero Header */}
       <div style={{ padding: '32px 24px 20px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>
@@ -122,36 +200,40 @@ export default function TransposomePage() {
       {/* Mode Tabs */}
       <ModeTabs activeTab="landscape" onTabChange={() => {}} />
 
-      {/* Three-Panel Layout */}
+      {/* Three-Panel Layout (single column on mobile) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '220px 1fr 300px',
+        gridTemplateColumns: isMobile ? '1fr' : '220px 1fr 300px',
         flex: 1,
-        minHeight: 500,
+        minHeight: isMobile ? undefined : 500,
         overflow: 'hidden',
       }}>
-        {/* Left Rail */}
-        <div style={{
-          borderRight: `1px solid ${COLOR.border.subtle}`,
-          background: COLOR.bg.elevated,
-          overflowY: 'auto',
-          padding: '16px 12px',
-        }}>
-          <LensPanel />
-        </div>
+        {/* Left Rail — hidden on mobile */}
+        {!isMobile && (
+          <div style={{
+            borderRight: `1px solid ${COLOR.border.subtle}`,
+            background: COLOR.bg.elevated,
+            overflowY: 'auto',
+            padding: '16px 12px',
+          }}>
+            <LensPanel />
+          </div>
+        )}
 
         {/* Center - Landscape Canvas */}
         <div style={{
           position: 'relative',
           overflow: 'hidden',
           background: COLOR.bg.primary,
+          ...(isMobile ? { height: 400 } : {}),
         }}>
-          <LandscapeCanvas families={filteredFamilies} allFamilies={store.families} />
+          {centerContent}
         </div>
 
         {/* Right Panel - Family Inspector */}
         <div style={{
-          borderLeft: `1px solid ${COLOR.border.subtle}`,
+          borderLeft: isMobile ? undefined : `1px solid ${COLOR.border.subtle}`,
+          borderTop: isMobile ? `1px solid ${COLOR.border.subtle}` : undefined,
           background: COLOR.bg.elevated,
           overflowY: 'auto',
           padding: '16px 14px',
