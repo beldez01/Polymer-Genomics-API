@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer';
 import { ModeTabs } from '@/components/transposome/ModeTabs';
 import { LensPanel } from '@/components/transposome/LensPanel';
 import { LandscapeCanvas } from '@/components/transposome/LandscapeCanvas';
+import { FamilyInspector } from '@/components/transposome/FamilyInspector';
 import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT } from '@/config/theme';
 import { fetchTEFamilies } from '@/lib/api';
 import { useTransposome, filterFamilies } from '@/stores/transposome';
@@ -148,22 +149,14 @@ export default function TransposomePage() {
           <LandscapeCanvas families={filteredFamilies} allFamilies={store.families} />
         </div>
 
-        {/* Right Panel - Inspector placeholder */}
+        {/* Right Panel - Family Inspector */}
         <div style={{
           borderLeft: `1px solid ${COLOR.border.subtle}`,
           background: COLOR.bg.elevated,
           overflowY: 'auto',
           padding: '16px 14px',
         }}>
-          <div style={{
-            color: COLOR.text.muted,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            textAlign: 'center',
-            paddingTop: 40,
-          }}>
-            Select a family in the landscape to inspect.
-          </div>
+          <FamilyInspector />
         </div>
       </div>
 
