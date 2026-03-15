@@ -169,7 +169,9 @@ async def region_stats(
 
         for lr in layer_rows:
             layer_type = lr["layer_type"]
-            reg = CORRELATION_REGISTRY.get(layer_type)
+            # sequence_biophysics shares the same table/fields as biophysics
+            reg_key = "biophysics" if layer_type == "sequence_biophysics" else layer_type
+            reg = CORRELATION_REGISTRY.get(reg_key)
             if not reg:
                 continue
 
