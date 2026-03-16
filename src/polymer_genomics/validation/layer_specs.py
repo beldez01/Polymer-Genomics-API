@@ -66,7 +66,7 @@ LAYER_VALIDATION_SPECS: dict[str, dict] = {
         "value_ranges": {
             "phylop_mean": (-20.0, 10.0),
         },
-        "max_null_frac": 0.05,
+        "max_null_frac": 0.10,  # centromeric/telomeric gaps have no conservation scores
     },
     "gtex_v10": {
         "table": "expression.gene_tpm",
@@ -79,6 +79,23 @@ LAYER_VALIDATION_SPECS: dict[str, dict] = {
     "gencode_v44": {
         "table": "gene.features",
         "row_count_min": 2_500_000,
+        "value_ranges": {},
+        "max_null_frac": 0.0,
+    },
+    "fragility_composite": {
+        "table": "fragility.composite_score",
+        "row_count_min": 2_900_000,
+        "value_ranges": {
+            "fragility_score": (0.0, 1.0),
+            "nonb_component": (0.0, 1.0),
+            "curvature_component": (0.0, 1.0),
+            "stacking_component": (0.0, 1.0),
+        },
+        "max_null_frac": 0.001,
+    },
+    "breakpoints": {
+        "table": "fragility.breakpoints",
+        "row_count_min": 40,
         "value_ranges": {},
         "max_null_frac": 0.0,
     },
