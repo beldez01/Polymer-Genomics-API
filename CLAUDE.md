@@ -29,7 +29,7 @@ Curated genomic reference API (hg38/hg37) serving polymerbio.org.
 
 - `src/` — FastAPI application (`polymer_genomics/`)
 - `viewer/` — Next.js frontend (deployed to Vercel)
-- `mcp/` — MCP server (Claude Code integration, 33 tools: 23 reference + 10 compute)
+- `mcp/` — MCP server (Claude Code integration, 41 tools: 31 reference + 10 compute)
 - `engine/` — Methylation compute engine (R scripts + Dockerfile)
 - `docker/` — Local dev Postgres init scripts
 - `data/` — Reference data (HPA, etc.)

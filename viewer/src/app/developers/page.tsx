@@ -18,7 +18,7 @@ const USE_CASES = [
   {
     title: 'AI Scientists',
     accent: COLOR.accent.violet,
-    desc: '39 agent-composable MCP tools for biology research agents. Gene lookup, region queries, biophysical computation, cross-layer correlation — all in one server.',
+    desc: '41 agent-composable MCP tools for biology research agents. Gene lookup, region queries, biophysical computation, cross-layer correlation — all in one server.',
     example: 'evaluate_design(sequence=...)',
   },
   {
@@ -34,7 +34,7 @@ const INVENTORY = [
   { value: '937K',  label: 'methylation probes' },
   { value: '63K',   label: 'transcripts' },
   { value: '54',    label: 'GTEx tissues' },
-  { value: '39',    label: 'MCP tools' },
+  { value: '41',    label: 'MCP tools' },
   { value: '30+',   label: 'physical constants' },
 ] as const;
 
@@ -350,7 +350,7 @@ cost = client.gene_cost("hg38", "TP53")`}
       "command": "uvx",
       "args": ["polymer-genomics-mcp"],
       "env": {
-        "POLYMER_API_URL": "https://api.polymerbio.org"
+        "POLYMER_API_BASE": "https://api.polymerbio.org"
       }
     }
   }

@@ -207,7 +207,7 @@ function ProbeTable({ probes, clockName }: { probes: ClockProbe[]; clockName: st
                 </td>
                 <td style={{ padding: `3px ${SPACE[2]}px` }}>
                   <Link
-                    href={`/view/hg38/chr1:100000000-100100000?layers=probe_epic_v2`}
+                    href={`/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores`}
                     style={{
                       color: COLOR.accent.teal,
                       textDecoration: 'none',

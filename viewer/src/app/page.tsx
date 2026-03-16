@@ -5,14 +5,82 @@ import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
 
-const LAYERS = [
-  { name: 'Genes',      color: COLOR.layer.gencode_v44,   desc: 'GENCODE v44 \u00B7 63,000 transcripts', href: '/atlas' },
-  { name: 'CpG Sites',  color: COLOR.layer.cpg_sites,     desc: 'Islands, shores, shelves \u00B7 28M sites', href: '/view/hg38/chr17:7668421-7687490?layers=cpg_sites' },
-  { name: 'Probes',     color: COLOR.layer.probe_epic_v2, desc: 'EPIC v2, v1, 450K arrays', href: '/view/hg38/chr17:7668421-7687490?layers=probe_epic_v2' },
-  { name: 'Isochores',  color: COLOR.layer.isochores,     desc: 'GC composition structure', href: '/view/hg38/chr17:7668421-7687490?layers=isochores' },
-  { name: 'Biophysics', color: '#10b981',                 desc: 'Stacking energy, groove geometry, form propensity', href: '/developers' },
-  { name: 'Physical Constants', color: '#6366f1',         desc: 'Persistence length, elastic moduli, enzymatic rates', href: '/docs' },
-] as const;
+/* ── Module directory ── */
+
+const VIEWER_HREF = '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
+
+interface Module {
+  name: string;
+  desc: string;
+  href: string;
+  accent: string;
+}
+
+const TIER_1: Module[] = [
+  {
+    name: 'Genome Viewer',
+    desc: 'Browse any locus with CpG, probe, isochore, and biophysics layers. hg38 + hg37.',
+    href: VIEWER_HREF,
+    accent: COLOR.accent.teal,
+  },
+  {
+    name: 'Atlas',
+    desc: 'Karyotype navigator with 63,000 GENCODE v44 transcripts. Gene cards, expression, pathways.',
+    href: '/atlas',
+    accent: COLOR.layer.gencode_v44,
+  },
+];
+
+const TIER_2: Module[] = [
+  {
+    name: 'DMP',
+    desc: 'Differential methylation plots. IDAT and CSV workflows, browser-side processing.',
+    href: '/dmp',
+    accent: COLOR.accent.rose,
+  },
+  {
+    name: 'Evaluate',
+    desc: 'Biophysics linter for DNA sequences. CpG islands, thermodynamics, structural flags.',
+    href: '/evaluate',
+    accent: '#10b981',
+  },
+  {
+    name: 'Epigenetic Clocks',
+    desc: '6 clock systems. Probe anatomy, cross-clock comparison, apply coefficients.',
+    href: '/clocks',
+    accent: COLOR.accent.amber,
+  },
+  {
+    name: 'Transposome',
+    desc: '5.6M transposable elements. TE age, awakening potential, EPIC v2 probe overlap.',
+    href: '/transposome',
+    accent: COLOR.accent.violet,
+  },
+];
+
+const TIER_3: Module[] = [
+  {
+    name: 'API / MCP',
+    desc: '41 tools (31 reference + 10 compute). REST endpoints and Model Context Protocol for AI agents.',
+    href: '/docs',
+    accent: COLOR.accent.teal,
+  },
+  {
+    name: 'Developers',
+    desc: 'Quickstart, code examples, try-it evaluator, data inventory.',
+    href: '/developers',
+    accent: COLOR.accent.teal,
+  },
+];
+
+const STATS = [
+  { value: '29M', label: 'CpG' },
+  { value: '937K', label: 'probes' },
+  { value: '63K', label: 'transcripts' },
+  { value: '41', label: 'MCP tools' },
+];
+
+/* ── Components ── */
 
 function GhostButton({ href, children }: { href: string; children: React.ReactNode }) {
   return (
@@ -44,20 +112,95 @@ function GhostButton({ href, children }: { href: string; children: React.ReactNo
   );
 }
 
+function Divider() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: `${SPACE[8]}px 0` }}>
+      <div style={{ width: 120, height: 1, backgroundColor: COLOR.border.subtle }} />
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      color: COLOR.text.faint,
+      fontSize: TYPE.xs.fontSize,
+      fontFamily: FONT_FAMILY,
+      fontWeight: WEIGHT.medium,
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      marginBottom: SPACE[4],
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function ModuleEntry({ mod, large }: { mod: Module; large?: boolean }) {
+  return (
+    <Link
+      href={mod.href}
+      style={{
+        textDecoration: 'none',
+        cursor: 'pointer',
+        borderLeft: '3px solid transparent',
+        paddingLeft: SPACE[3],
+        paddingTop: SPACE[2],
+        paddingBottom: SPACE[2],
+        transition: 'border-color 0.15s',
+        display: 'block',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderLeftColor = mod.accent;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderLeftColor = 'transparent';
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], marginBottom: 4 }}>
+        <div style={{
+          width: large ? 10 : 8,
+          height: large ? 10 : 8,
+          backgroundColor: mod.accent,
+          flexShrink: 0,
+        }} />
+        <span style={{
+          color: COLOR.text.primary,
+          fontSize: large ? TYPE.md.fontSize : TYPE.base.fontSize,
+          fontFamily: FONT_FAMILY,
+          fontWeight: WEIGHT.medium,
+        }}>
+          {mod.name}
+        </span>
+      </div>
+      <div style={{
+        color: COLOR.text.tertiary,
+        fontSize: TYPE.sm.fontSize,
+        fontFamily: FONT_FAMILY,
+        lineHeight: 1.6,
+        paddingLeft: large ? 22 : 20,
+      }}>
+        {mod.desc}
+      </div>
+    </Link>
+  );
+}
+
+/* ── Page ── */
+
 export default function Home() {
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
       <BrandBar />
 
-      {/* ─── Hero ─── */}
+      {/* ─── Hero (compact) ─── */}
       <section
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: 'calc(100vh - 44px)',
-          padding: `0 ${SPACE[6]}px`,
+          padding: `${SPACE[24]}px ${SPACE[6]}px ${SPACE[10]}px`,
         }}
       >
         <h1 style={{
@@ -88,112 +231,82 @@ export default function Home() {
           fontFamily: FONT_FAMILY,
           lineHeight: TYPE.base.lineHeight,
           textAlign: 'center',
-          marginBottom: SPACE[10],
+          marginBottom: SPACE[6],
         }}>
           Computed, served, composable &mdash; base-pair resolution
         </p>
 
+        {/* Stats row */}
+        <div style={{
+          display: 'flex',
+          gap: SPACE[6],
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          marginBottom: SPACE[10],
+        }}>
+          {STATS.map((s, i) => (
+            <span key={s.label} style={{
+              color: COLOR.text.muted,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+            }}>
+              {i > 0 && <span style={{ color: COLOR.border.strong, marginRight: SPACE[6] }}>&middot;</span>}
+              <span style={{ color: COLOR.text.secondary, fontWeight: WEIGHT.medium }}>{s.value}</span>
+              {' '}{s.label}
+            </span>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', justifyContent: 'center' }}>
-          <GhostButton href="/view/hg38/chr1:100000000-100100000">
+          <GhostButton href={VIEWER_HREF}>
             Open Viewer
           </GhostButton>
           <GhostButton href="/atlas">
-            Atlas →
+            Atlas
           </GhostButton>
           <GhostButton href="/docs">
             API Docs
           </GhostButton>
-          <GhostButton href="/developers">
-            For Developers
-          </GhostButton>
         </div>
       </section>
 
-      {/* ─── Divider ─── */}
+      {/* ─── Module Directory ─── */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: `${SPACE[10]}px 0`,
-      }}>
-        <div style={{
-          width: 120,
-          height: 1,
-          backgroundColor: COLOR.border.subtle,
-        }} />
-      </div>
-
-      {/* ─── Data Layers ─── */}
-      <section style={{
-        maxWidth: 560,
+        maxWidth: 640,
         margin: '0 auto',
         padding: `0 ${SPACE[6]}px`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: SPACE[6],
       }}>
-        {LAYERS.map((layer) => (
-          <Link
-            key={layer.name}
-            href={layer.href}
-            style={{
-              textDecoration: 'none',
-              cursor: 'pointer',
-              borderLeft: '3px solid transparent',
-              paddingLeft: SPACE[2],
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderLeftColor = COLOR.accent.teal;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderLeftColor = 'transparent';
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: SPACE[4],
-              }}
-            >
-              <div style={{
-                width: 10,
-                height: 10,
-                backgroundColor: layer.color,
-                flexShrink: 0,
-              }} />
-              <span style={{
-                color: COLOR.text.primary,
-                fontSize: TYPE.md.fontSize,
-                fontFamily: FONT_FAMILY,
-                fontWeight: WEIGHT.medium,
-                flexShrink: 0,
-              }}>
-                {layer.name}
-              </span>
-              <span style={{
-                color: COLOR.text.tertiary,
-                fontSize: TYPE.base.fontSize,
-                fontFamily: FONT_FAMILY,
-              }}>
-                {layer.desc}
-              </span>
-            </div>
-          </Link>
-        ))}
-      </section>
+        <Divider />
 
-      {/* ─── Divider ─── */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: `${SPACE[10]}px 0`,
-      }}>
-        <div style={{
-          width: 120,
-          height: 1,
-          backgroundColor: COLOR.border.subtle,
-        }} />
+        {/* Tier 1: Explore */}
+        <SectionLabel>Explore</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
+          {TIER_1.map((mod) => (
+            <ModuleEntry key={mod.name} mod={mod} large />
+          ))}
+        </div>
+
+        <Divider />
+
+        {/* Tier 2: Analyze */}
+        <SectionLabel>Analyze</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
+          {TIER_2.map((mod) => (
+            <ModuleEntry key={mod.name} mod={mod} />
+          ))}
+        </div>
+
+        <Divider />
+
+        {/* Tier 3: Build */}
+        <SectionLabel>Build</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
+          {TIER_3.map((mod) => (
+            <ModuleEntry key={mod.name} mod={mod} />
+          ))}
+        </div>
+
+        <Divider />
       </div>
 
       <Footer />

@@ -32,9 +32,17 @@ export function Footer() {
     >
       {/* Left: links */}
       <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
+        <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={linkStyle}>Viewer</Link>
+        {DOT}
         <Link href="/atlas" style={linkStyle}>Atlas</Link>
         {DOT}
+        <Link href="/evaluate" style={linkStyle}>Evaluate</Link>
+        {DOT}
         <Link href="/clocks" style={linkStyle}>Clocks</Link>
+        {DOT}
+        <Link href="/transposome" style={linkStyle}>Transposome</Link>
+        {DOT}
+        <Link href="/dmp" style={linkStyle}>DMP</Link>
         {DOT}
         <Link href="/docs" style={linkStyle}>API Docs</Link>
         {DOT}

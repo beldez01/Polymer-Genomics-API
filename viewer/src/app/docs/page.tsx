@@ -868,10 +868,10 @@ export default function DocsPage() {
                 lineHeight: 1.7,
                 marginBottom: SPACE[4],
               }}>
-                The Polymer Genomics MCP server exposes 33 tools for AI agent
+                The Polymer Genomics MCP server exposes 41 tools for AI agent
                 consumption via the{' '}
                 <span style={{ color: COLOR.accent.teal }}>Model Context Protocol</span>.
-                23 reference tools query polymerbio.org over HTTP.
+                31 reference tools query polymerbio.org over HTTP.
                 10 compute tools run local R/Bioconductor analysis via subprocess.
               </p>
 

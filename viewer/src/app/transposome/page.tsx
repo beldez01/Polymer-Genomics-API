@@ -150,7 +150,7 @@ export default function TransposomePage() {
         {/* Stats bar — inline with header */}
         <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.families.length}</span>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.loading ? '\u2014' : store.families.length}</span>
             <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>families</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
@@ -158,11 +158,11 @@ export default function TransposomePage() {
             <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>elements</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{genomeFraction}%</span>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.loading ? '\u2014' : genomeFraction + '%'}</span>
             <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>of genome</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{totalProbes.toLocaleString()}</span>
+            <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.loading ? '\u2014' : totalProbes.toLocaleString()}</span>
             <span style={{ fontSize: 9, color: COLOR.text.faint, fontFamily: FONT_FAMILY, letterSpacing: '0.04em' }}>EPIC v2 probes</span>
           </div>
         </div>

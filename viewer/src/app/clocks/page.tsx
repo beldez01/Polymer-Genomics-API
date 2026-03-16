@@ -143,8 +143,7 @@ export default function ClocksPage() {
             compare membership across clocks, and apply coefficients to your own data.
             {' '}
             <strong style={{ color: COLOR.text.tertiary }}>
-              {clocks.length} clocks,{' '}
-              {clocks.reduce((s, c) => s + c.n_probes, 0).toLocaleString()} total CpG probes.
+              {loading ? 'Loading clock data...' : `${clocks.length} clocks, ${clocks.reduce((s, c) => s + c.n_probes, 0).toLocaleString()} total CpG probes.`}
             </strong>
           </p>
         </section>
@@ -161,8 +160,24 @@ export default function ClocksPage() {
             CLOCK OBSERVATORY
           </div>
           {loading ? (
-            <div style={{ color: COLOR.text.muted, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY }}>
-              Loading clocks...
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              height: 120, flexDirection: 'column', gap: 8,
+            }}>
+              <style>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }`}</style>
+              <div style={{
+                width: 200, height: 4, borderRadius: 2,
+                background: COLOR.bg.surface, overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: '40%', height: '100%', borderRadius: 2,
+                  background: `linear-gradient(90deg, ${COLOR.bg.surface}, ${COLOR.accent.teal}, ${COLOR.bg.surface})`,
+                  animation: 'shimmer 1.5s infinite',
+                }} />
+              </div>
+              <span style={{ color: COLOR.text.faint, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY }}>
+                Loading clocks...
+              </span>
             </div>
           ) : (
             <ClockObservatory
