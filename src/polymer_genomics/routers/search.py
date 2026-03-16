@@ -25,8 +25,8 @@ async def search(
             {"error": {"code": "QUERY_TOO_SHORT", "message": "Search query must be at least 2 characters"}},
         )
 
-    # Escape ILIKE metacharacters in user input
-    safe_q = q.replace("%", "\\%").replace("_", "\\_")
+    # Escape LIKE metacharacters in user input and uppercase for btree index use
+    safe_q = q.replace("%", "\\%").replace("_", "\\_").upper()
 
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -39,7 +39,7 @@ async def search(
         if not layer:
             return {"results": [], "total": 0}
 
-        # Direct symbol matches
+        # Direct symbol matches — use LIKE (case-sensitive) for btree index
         direct_rows = await conn.fetch(
             """
             SELECT gene_symbol, MIN(chr_id) AS chr_id, (gene_symbol = $4) AS exact_match
@@ -47,7 +47,7 @@ async def search(
                 SELECT DISTINCT gene_symbol, chr_id
                 FROM gene.features
                 WHERE build = $1::genome_build
-                  AND gene_symbol ILIKE $2
+                  AND gene_symbol LIKE $2
                   AND layer_id = $3
             ) sub
             GROUP BY gene_symbol
@@ -57,7 +57,7 @@ async def search(
             build,
             safe_q + "%",
             layer["id"],
-            q,
+            q.upper(),
         )
 
         # Alias matches — search aliases and join to gene.features for chr info
@@ -72,15 +72,15 @@ async def search(
                 ON f.build = $1::genome_build
                 AND f.gene_symbol = a.canonical_symbol
                 AND f.layer_id = $3
-            WHERE a.alias ILIKE $2
+            WHERE a.alias LIKE $2
             GROUP BY a.canonical_symbol, a.alias
-            ORDER BY (UPPER(a.alias) = UPPER($4)) DESC, a.canonical_symbol
+            ORDER BY (a.alias = $4) DESC, a.canonical_symbol
             LIMIT 20
             """,
             build,
             safe_q + "%",
             layer["id"],
-            q,
+            q.upper(),
         )
 
     # Build results: direct matches first, then alias matches (deduplicated)
