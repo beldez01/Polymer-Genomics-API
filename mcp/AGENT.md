@@ -97,9 +97,25 @@ batch_probes(probe_ids) → identify platform overlaps → query_region(neighbor
 | isochores | isochore | GC composition — 10K segments |
 | chromatin_state | chromatin | ChromHMM 18-state (9 cell types) |
 | methylation_atlas | methylation | Loyfer 2023 — 39 cell/tissue types |
-| sequence_biophysics_l0 | biophysics | GC, stacking ΔG₃₇, Tm, curvature, groove, dipole, periodicity (1kb bins) |
+| sequence_biophysics_l0 | biophysics | Full material stack (43 columns, 1kb bins) — see sublayers below |
 
 Use `list_layers(build)` to confirm current availability and row counts.
+
+### Biophysics Sublayers (sequence_biophysics_l0)
+
+All sublayers are returned together via `query_region` with `layers='sequence_biophysics_l0'`.
+
+| Sublayer | Columns | Description |
+|----------|---------|-------------|
+| **L0 core** (7) | gc_content, stacking_dg37, melting_temp, curvature, groove_width, dipole_density, periodicity_power | Bare sequence thermodynamics + geometry |
+| **L0 DNAshape** (8) | mgw_mean, prot_mean, roll_mean, helt_mean, delta_mgw, delta_prot, delta_roll, delta_helt | Minor groove width, propeller twist, roll, helix twist (mean + methylation delta) |
+| **L0 melting** (3) | melting_cooperativity, bubble_propensity, melting_width | Melting domain properties |
+| **L0 SBS** (4) | sbs_c_to_a_ddg, sbs_c_to_g_ddg, sbs_c_to_t_ddg, sbs_t_to_a_ddg | Single base substitution thermodynamic impact |
+| **L0 extended** (6) | deformability, g4_density, g4_max_score, kmer_complexity, dinucleotide_entropy, dominant_period | Flexibility, G-quadruplex, sequence complexity |
+| **L1 methylation** (10) | cpg_count, cpg_density, cpg_obs_exp, meth_delta_g, meth_delta_tm, meth_sensitivity, methylation_capacity, demethylation_cost, oxidation_depth, taut_relaxed | CpG landscape + methylation perturbation field |
+| **L3.5 Green's fn** (4) | correlation_length, integrated_response, perturbation_reach, response_asymmetry | Mechanical connectivity / perturbation propagation |
+
+**Total: 42 mcols + start_pos/end_pos = 44 fields per row.**
 
 ## Compute Tools (Methylation Pipeline)
 

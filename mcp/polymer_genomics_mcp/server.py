@@ -59,6 +59,9 @@ mcp = FastMCP(
         "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
         "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
         "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity, MGW, ProT, Roll, HelT — genome-wide pre-computed)\n"
+        "  + L1 methylation perturbation (CpG density, meth ΔG₃₇/ΔTm, sensitivity, capacity, demethylation cost, taut-relaxed)\n"
+        "  + L3.5 Green's function (correlation length, integrated response, perturbation reach, response asymmetry)\n"
+        "  + L0 extended (deformability, G4 density/max score, k-mer complexity, dinucleotide entropy, dominant period)\n"
         "- Cross-layer correlation → correlate_layers (Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact)\n"
         "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
         "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
@@ -365,7 +368,9 @@ async def query_region(
     - ranges.start[], ranges.end[]: 1-based closed coordinates
     - mcols{}: layer-specific annotation columns
 
-    Does NOT return biophysical properties — use compute_region_biophysics for ΔG₃₇/groove/form.
+    Biophysical properties: use layers='sequence_biophysics_l0' for full material stack
+    (L0 core + L1 methylation + L3.5 Green's function + L0 extended = 43 columns).
+    For short-sequence ΔG₃₇/groove/form analysis, use compute_region_biophysics.
     Does NOT return expression — use lookup_gene_expression.
     Prefer aggregate_region for regions > 500kb to avoid truncation.
 

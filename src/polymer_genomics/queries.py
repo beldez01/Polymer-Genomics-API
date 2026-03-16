@@ -264,7 +264,18 @@ def region_biophysics_query() -> str:
                b.mgw_mean, b.prot_mean, b.roll_mean, b.helt_mean,
                b.delta_mgw, b.delta_prot, b.delta_roll, b.delta_helt,
                b.melting_cooperativity, b.bubble_propensity, b.melting_width,
-               b.sbs_c_to_a_ddg, b.sbs_c_to_g_ddg, b.sbs_c_to_t_ddg, b.sbs_t_to_a_ddg
+               b.sbs_c_to_a_ddg, b.sbs_c_to_g_ddg, b.sbs_c_to_t_ddg, b.sbs_t_to_a_ddg,
+               -- L1 methylation perturbation (Phase 2)
+               b.cpg_count, b.cpg_density, b.cpg_obs_exp,
+               b.meth_delta_g, b.meth_delta_tm, b.meth_sensitivity,
+               b.methylation_capacity, b.demethylation_cost,
+               b.oxidation_depth, b.taut_relaxed,
+               -- L3.5 Green's function (Phase 3.5)
+               b.correlation_length, b.integrated_response,
+               b.perturbation_reach, b.response_asymmetry,
+               -- L0 extended (Phase 1 extended)
+               b.deformability, b.g4_density, b.g4_max_score,
+               b.kmer_complexity, b.dinucleotide_entropy, b.dominant_period
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -850,11 +861,20 @@ def _convert_chromatin_state(rows: list, chr_name: str) -> dict:
 
 def _convert_biophysics(rows: list, chr_name: str) -> dict:
     starts, ends, widths = [], [], []
+    # L0 core
     gc, stacking, tm, curv, groove, dipole, period = [], [], [], [], [], [], []
     mgw, prot, roll, helt = [], [], [], []
     d_mgw, d_prot, d_roll, d_helt = [], [], [], []
     melt_coop, bubble, melt_w = [], [], []
     sbs_ca, sbs_cg, sbs_ct, sbs_ta = [], [], [], []
+    # L1 methylation perturbation
+    cpg_cnt, cpg_dens, cpg_oe = [], [], []
+    m_dg, m_dtm, m_sens = [], [], []
+    m_cap, m_demeth, m_ox, m_taut = [], [], [], []
+    # L3.5 Green's function
+    corr_len, integ_resp, pert_reach, resp_asym = [], [], [], []
+    # L0 extended
+    deform, g4_dens, g4_max, kmer_cx, dinuc_ent, dom_per = [], [], [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -882,6 +902,29 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         sbs_cg.append(r["sbs_c_to_g_ddg"])
         sbs_ct.append(r["sbs_c_to_t_ddg"])
         sbs_ta.append(r["sbs_t_to_a_ddg"])
+        # L1
+        cpg_cnt.append(r["cpg_count"])
+        cpg_dens.append(r["cpg_density"])
+        cpg_oe.append(r["cpg_obs_exp"])
+        m_dg.append(r["meth_delta_g"])
+        m_dtm.append(r["meth_delta_tm"])
+        m_sens.append(r["meth_sensitivity"])
+        m_cap.append(r["methylation_capacity"])
+        m_demeth.append(r["demethylation_cost"])
+        m_ox.append(r["oxidation_depth"])
+        m_taut.append(r["taut_relaxed"])
+        # L3.5
+        corr_len.append(r["correlation_length"])
+        integ_resp.append(r["integrated_response"])
+        pert_reach.append(r["perturbation_reach"])
+        resp_asym.append(r["response_asymmetry"])
+        # L0 extended
+        deform.append(r["deformability"])
+        g4_dens.append(r["g4_density"])
+        g4_max.append(r["g4_max_score"])
+        kmer_cx.append(r["kmer_complexity"])
+        dinuc_ent.append(r["dinucleotide_entropy"])
+        dom_per.append(r["dominant_period"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -901,6 +944,20 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "melting_width": melt_w,
             "sbs_c_to_a_ddg": sbs_ca, "sbs_c_to_g_ddg": sbs_cg,
             "sbs_c_to_t_ddg": sbs_ct, "sbs_t_to_a_ddg": sbs_ta,
+            # L1 methylation perturbation
+            "cpg_count": cpg_cnt, "cpg_density": cpg_dens,
+            "cpg_obs_exp": cpg_oe,
+            "meth_delta_g": m_dg, "meth_delta_tm": m_dtm,
+            "meth_sensitivity": m_sens,
+            "methylation_capacity": m_cap, "demethylation_cost": m_demeth,
+            "oxidation_depth": m_ox, "taut_relaxed": m_taut,
+            # L3.5 Green's function
+            "correlation_length": corr_len, "integrated_response": integ_resp,
+            "perturbation_reach": pert_reach, "response_asymmetry": resp_asym,
+            # L0 extended
+            "deformability": deform, "g4_density": g4_dens,
+            "g4_max_score": g4_max, "kmer_complexity": kmer_cx,
+            "dinucleotide_entropy": dinuc_ent, "dominant_period": dom_per,
         },
         "n": len(rows),
     }
