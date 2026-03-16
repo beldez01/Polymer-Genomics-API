@@ -14,6 +14,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        // Prevent Vercel CDN from caching API proxy responses — the upstream
+        // sets immutable cache headers, but data can change after ingestion.
+        // Browsers still respect upstream Cache-Control via the rewrite.
+        source: '/api/:path*',
+        headers: [
+          { key: 'CDN-Cache-Control', value: 'no-store' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
