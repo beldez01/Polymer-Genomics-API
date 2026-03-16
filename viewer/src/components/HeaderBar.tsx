@@ -7,12 +7,10 @@ import { useIsMobile } from '@/hooks/useBreakpoint';
 import type { GenomeBuild } from '@/stores/viewport';
 
 const ZOOM_PRESETS = [
-  { label: '1 bp',   width: 50 },
-  { label: '1 kb',   width: 1_000 },
-  { label: '10 kb',  width: 10_000 },
-  { label: '100 kb', width: 100_000 },
-  { label: '1 Mb',   width: 1_000_000 },
-  { label: '10 Mb',  width: 10_000_000 },
+  { label: '1k',   width: 1_000 },
+  { label: '10k',  width: 10_000 },
+  { label: '100k', width: 100_000 },
+  { label: '1M',   width: 1_000_000 },
 ];
 
 interface HeaderBarProps {
@@ -189,23 +187,22 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
         </div>
       )}
 
-      {/* Coordinates — absolutely centered in the bar */}
+      {/* Coordinates — flex spacer between nav and search */}
       {!isMobile && (
         <div style={{
-          position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
+          flex: 1,
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: SPACE[2],
           whiteSpace: 'nowrap',
-          pointerEvents: 'none',
+          minWidth: 0,
+          overflow: 'hidden',
         }}>
           <span style={{
             color: COLOR.text.secondary,
             fontSize: TYPE.base.fontSize,
             fontFamily: FONT_FAMILY,
-            pointerEvents: 'none',
           }}>
             {coords}
           </span>
@@ -221,7 +218,6 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
                 fontFamily: FONT_FAMILY,
                 cursor: 'pointer',
                 transition: 'border-color 0.15s, color 0.15s',
-                pointerEvents: 'auto',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = COLOR.accent.teal;
@@ -251,7 +247,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
           placeholder={isMobile ? "Gene or region..." : "chr17:7668421-7687490 or TP53"}
           style={{
             ...COMPONENT.input.default,
-            width: isMobile ? 160 : 280,
+            width: isMobile ? 140 : 200,
           }}
         />
         <button

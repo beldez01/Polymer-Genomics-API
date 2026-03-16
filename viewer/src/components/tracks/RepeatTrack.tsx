@@ -128,13 +128,6 @@ export function RepeatTrack({
         bars.push({ x: x1, y, w, h: rowHeight, i });
       }
 
-      // Row label
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = COLOR.canvas.axisLabel;
-      ctx.font = "9px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(cls, 4, y + rowHeight / 2);
     }
 
     ctx.globalAlpha = 1.0;
