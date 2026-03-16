@@ -433,14 +433,18 @@ async def update_melting_columns(
         chr_seq = str(fasta[chrom])
         chr_len = len(chr_seq)
 
-        # Get existing window positions from biophysics table
+        # Get existing window positions that still need melting data
         rows = await conn.fetch(
             "SELECT start_pos FROM biophysics.sequence_properties "
             "WHERE build = $1::genome_build AND chr_id = $2 AND layer_id = $3 "
+            "  AND melting_cooperativity IS NULL "
             "ORDER BY start_pos",
             build, chr_id, layer_id,
         )
         positions = [r["start_pos"] for r in rows]
+        if not positions:
+            print(f"  {chrom}: already complete, skipping")
+            continue
         print(f"  {chrom}: {len(positions)} windows to compute...", end="", flush=True)
 
         batch: list[tuple] = []
@@ -510,19 +514,108 @@ if __name__ == "__main__":
     parser.add_argument("--db", default="polymer_genomics_api")
     parser.add_argument("--user", default="ingest_writer")
     parser.add_argument("--password", default="ingest_writer_dev")
+    parser.add_argument("--batch-size", type=int, default=2000)
     args = parser.parse_args()
 
-    async def main():
+    async def run_chromosome(chrom: str, fasta_path: str) -> int:
+        """Process one chromosome with a fresh DB connection."""
+        from pyfaidx import Fasta
+        from polymer_genomics.constants import CHR_NAME_TO_ID
+
+        fasta = Fasta(fasta_path)
+        if chrom not in fasta.keys():
+            print(f"  {chrom}: not in FASTA, skipping")
+            return 0
+
         conn = await asyncpg.connect(
             host=args.host, port=args.port,
             database=args.db, user=args.user, password=args.password,
         )
         try:
-            total = await update_melting_columns(
-                conn, args.build, args.fasta, args.chr,
+            layer_id = await conn.fetchval(
+                "SELECT id FROM registry.layers WHERE layer_key = 'sequence_biophysics_l0' AND is_default = true"
             )
-            print(f"\nTotal rows updated: {total:,}")
+            chr_id = CHR_NAME_TO_ID[chrom]
+            chr_seq = str(fasta[chrom])
+            chr_len = len(chr_seq)
+
+            rows = await conn.fetch(
+                "SELECT start_pos FROM biophysics.sequence_properties "
+                "WHERE build = $1::genome_build AND chr_id = $2 AND layer_id = $3 "
+                "  AND melting_cooperativity IS NULL "
+                "ORDER BY start_pos",
+                args.build, chr_id, layer_id,
+            )
+            positions = [r["start_pos"] for r in rows]
+            if not positions:
+                print(f"  {chrom}: already complete, skipping")
+                return 0
+
+            print(f"  {chrom}: {len(positions)} windows to compute...", end="", flush=True)
+            updated = 0
+            batch: list[tuple] = []
+
+            for start_pos in positions:
+                end_pos = min(start_pos + 1000, chr_len)
+                window_seq = chr_seq[start_pos:end_pos]
+                if len(window_seq) < 50:
+                    continue
+
+                tracks = compute_all_tracks_numpy(window_seq)
+                batch.append((
+                    tracks["melting_cooperativity"],
+                    tracks["bubble_propensity"],
+                    tracks["melting_width"],
+                    tracks["sbs_c_to_a_ddg"],
+                    tracks["sbs_c_to_g_ddg"],
+                    tracks["sbs_c_to_t_ddg"],
+                    tracks["sbs_t_to_a_ddg"],
+                    args.build, chr_id, start_pos, layer_id,
+                ))
+
+                if len(batch) >= args.batch_size:
+                    await conn.executemany(
+                        """UPDATE biophysics.sequence_properties
+                           SET melting_cooperativity=$1, bubble_propensity=$2,
+                               melting_width=$3, sbs_c_to_a_ddg=$4,
+                               sbs_c_to_g_ddg=$5, sbs_c_to_t_ddg=$6,
+                               sbs_t_to_a_ddg=$7
+                           WHERE build=$8::genome_build AND chr_id=$9
+                             AND start_pos=$10 AND layer_id=$11""",
+                        batch,
+                    )
+                    updated += len(batch)
+                    batch.clear()
+                    print(f"\r  {chrom}: {updated}/{len(positions)} updated...", end="", flush=True)
+
+            if batch:
+                await conn.executemany(
+                    """UPDATE biophysics.sequence_properties
+                       SET melting_cooperativity=$1, bubble_propensity=$2,
+                           melting_width=$3, sbs_c_to_a_ddg=$4,
+                           sbs_c_to_g_ddg=$5, sbs_c_to_t_ddg=$6,
+                           sbs_t_to_a_ddg=$7
+                       WHERE build=$8::genome_build AND chr_id=$9
+                         AND start_pos=$10 AND layer_id=$11""",
+                    batch,
+                )
+                updated += len(batch)
+
+            print(f"\r  {chrom}: {updated} updated ✓")
+            return updated
         finally:
             await conn.close()
+
+    async def main():
+        from polymer_genomics.constants import CHR_NAME_TO_ID
+        chroms = args.chr or sorted(CHR_NAME_TO_ID.keys(), key=lambda c: CHR_NAME_TO_ID[c])
+        total = 0
+        for chrom in chroms:
+            try:
+                total += await run_chromosome(chrom, args.fasta)
+            except Exception as e:
+                print(f"\n  {chrom}: ERROR - {e}")
+                continue
+        print(f"\nTotal rows updated: {total:,}")
 
     asyncio.run(main())
