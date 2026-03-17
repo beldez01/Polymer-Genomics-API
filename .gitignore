@@ -30,3 +30,6 @@ data/clocks/
 data/encode/
 data/gwas/
 .vercel
+
+# Unpublished manuscripts
+docs/paper/
