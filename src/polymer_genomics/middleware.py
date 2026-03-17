@@ -60,14 +60,22 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=401,
                 content={
-                    "detail": "Missing API key. Provide via X-API-Key header or api_key query parameter."
+                    "error": {
+                        "code": "MISSING_API_KEY",
+                        "message": "Missing API key. Provide via X-API-Key header or api_key query parameter.",
+                    }
                 },
             )
 
         if not secrets.compare_digest(provided_key, self.api_key):
             return JSONResponse(
                 status_code=403,
-                content={"detail": "Invalid API key."},
+                content={
+                    "error": {
+                        "code": "INVALID_API_KEY",
+                        "message": "Invalid API key.",
+                    }
+                },
             )
 
         return await call_next(request)

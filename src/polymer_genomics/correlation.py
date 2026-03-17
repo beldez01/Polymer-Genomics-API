@@ -96,6 +96,14 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "groove_width": "avg(groove_width)",
             "dipole_density": "avg(dipole_density)",
             "periodicity_power": "avg(periodicity_power)",
+            "mgw_mean": "avg(mgw_mean)",
+            "prot_mean": "avg(prot_mean)",
+            "roll_mean": "avg(roll_mean)",
+            "helt_mean": "avg(helt_mean)",
+            "delta_mgw": "avg(delta_mgw)",
+            "delta_prot": "avg(delta_prot)",
+            "delta_roll": "avg(delta_roll)",
+            "delta_helt": "avg(delta_helt)",
             "melting_cooperativity": "avg(melting_cooperativity)",
             "bubble_propensity": "avg(bubble_propensity)",
             "melting_width": "avg(melting_width)",
@@ -103,6 +111,18 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "sbs_c_to_g_ddg": "avg(sbs_c_to_g_ddg)",
             "sbs_c_to_t_ddg": "avg(sbs_c_to_t_ddg)",
             "sbs_t_to_a_ddg": "avg(sbs_t_to_a_ddg)",
+            "meth_delta_g": "avg(meth_delta_g)",
+            "meth_delta_tm": "avg(meth_delta_tm)",
+            "correlation_length": "avg(correlation_length)",
+            "integrated_response": "avg(integrated_response)",
+            "perturbation_reach": "avg(perturbation_reach)",
+            "response_asymmetry": "avg(response_asymmetry)",
+            "deformability": "avg(deformability)",
+            "g4_density": "avg(g4_density)",
+            "g4_max_score": "avg(g4_max_score)",
+            "kmer_complexity": "avg(kmer_complexity)",
+            "dinucleotide_entropy": "avg(dinucleotide_entropy)",
+            "dominant_period": "avg(dominant_period)",
         },
     },
     "conservation": {
@@ -176,6 +196,114 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "fragility_score": "avg(fragility_score)",
             "nonb_component": "avg(nonb_component)",
             "curvature_component": "avg(curvature_component)",
+        },
+    },
+    # ── Count mode (newly added) ─────────────────────────────────────
+    "chromatin_state": {
+        "table": "regulatory.chromatin_state",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "repeat": {
+        "table": "annotation.repeats",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "herv": {
+        "table": "annotation.herv_loci",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "histone_mark": {
+        "table": "regulatory.histone_peaks",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "gwas": {
+        "table": "annotation.gwas_associations",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "breakpoint": {
+        "table": "fragility.breakpoints",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "protein_atlas": {
+        "table": "proteomics.tissue_expression",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    # ── Continuous mode (newly added) ────────────────────────────────
+    "nonb_dna": {
+        "table": "fragility.nonb_dna",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "g4_density": "avg(g4_density)",
+            "z_dna_density": "avg(z_dna_density)",
+            "cruciform_density": "avg(cruciform_density)",
+            "r_loop_score": "avg(r_loop_score)",
+            "triplex_density": "avg(triplex_density)",
+            "total_nonb_density": "avg(total_nonb_density)",
+        },
+    },
+    "protein_turnover": {
+        "table": "bioenergetics.protein_turnover",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "half_life_hours": "avg(half_life_hours)",
+            "k_degradation": "avg(k_degradation)",
+        },
+    },
+    "protein_properties": {
+        "table": "bioenergetics.protein_properties",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "pi": "avg(pi)",
+            "instability_index": "avg(instability_index)",
+            "aliphatic_index": "avg(aliphatic_index)",
+            "gravy": "avg(gravy)",
+        },
+    },
+    "protein_evolution": {
+        "table": "conservation.protein_evolution",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "dn": "avg(dn)",
+            "ds": "avg(ds)",
+            "omega": "avg(omega)",
         },
     },
 }

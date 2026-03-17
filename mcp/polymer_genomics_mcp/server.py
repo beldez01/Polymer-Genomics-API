@@ -66,13 +66,19 @@ mcp = FastMCP(
         "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
         "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
         "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n"
-        "- Data validation → validate_layer (row counts, value ranges, null fractions per layer)\n\n"
+        "- Data validation → validate_layer (row counts, value ranges, null fractions per layer)\n"
+        "- Batch evaluate → batch_evaluate (up to 100 sequences independently, batch summary)\n"
+        "- Region profile → region_profile (everything about a region, all layers, significance flags)\n"
+        "- Query recipes → query_recipe (prebuilt cross-layer queries: silencing, non-B DNA, fragility)\n"
+        "- Platform stats → platform_summary (total layers, rows, builds, evidence classes)\n\n"
         "WORKFLOW PATTERNS:\n"
         "- Evaluate a construct: evaluate_design → review flags\n"
         "- Compare designs: compare_sequences → check deltas_vs_reference\n"
         "- Investigate a gene: lookup_gene → lookup_gene_expression → compute_region_biophysics\n"
         "- Annotate methylation hits: batch_probes → lookup_gene → lookup_gene_expression\n"
-        "- Cross-layer analysis: query_region (multi-layer) → correlate_layers\n\n"
+        "- Cross-layer analysis: query_region (multi-layer) → correlate_layers\n"
+        "- Region overview: region_profile → drill into specific layers\n"
+        "- Prebuilt queries: query_recipe → intersect_layers with recipe filters\n\n"
         "COMPUTE TOOLS (requires local R + Bioconductor):\n"
         "- Load IDATs → load_idats (creates analysis session)\n"
         "- Normalize → normalize (openSesame for EPICv2, funnorm for 450K/EPIC)\n"
@@ -126,8 +132,15 @@ async def get_client() -> httpx.AsyncClient:
     return _client
 
 
-async def _get(path: str, params: dict | None = None) -> dict:
-    """Perform a GET request against the Polymer Genomics API."""
+async def _get(path: str, params: dict | None = None, *, build: str | None = None) -> dict:
+    """Perform a GET request against the Polymer Genomics API.
+
+    If *build* is provided, validates it before making the request.
+    """
+    if build is not None:
+        err = _validate_build(build)
+        if err:
+            return err
     client = await get_client()
     try:
         resp = await client.get(path, params=params)
@@ -141,8 +154,15 @@ async def _get(path: str, params: dict | None = None) -> dict:
     return resp.json()
 
 
-async def _post(path: str, json_body: dict) -> dict:
-    """Perform a POST request against the Polymer Genomics API."""
+async def _post(path: str, json_body: dict, *, build: str | None = None) -> dict:
+    """Perform a POST request against the Polymer Genomics API.
+
+    If *build* is provided, validates it before making the request.
+    """
+    if build is not None:
+        err = _validate_build(build)
+        if err:
+            return err
     client = await get_client()
     try:
         resp = await client.post(path, json=json_body)
@@ -154,6 +174,16 @@ async def _post(path: str, json_body: dict) -> dict:
             "path": path,
         }
     return resp.json()
+
+
+VALID_BUILDS = frozenset({"hg38", "hg37"})
+
+
+def _validate_build(build: str) -> str | None:
+    """Return an error dict if build is invalid, else None."""
+    if build not in VALID_BUILDS:
+        return {"error": f"Invalid build: '{build}'. Must be one of: {sorted(VALID_BUILDS)}"}
+    return None
 
 
 # -- Summary builders --------------------------------------------------------
@@ -339,7 +369,7 @@ async def list_layers(
         params["evidence_class"] = evidence_class
     if tier:
         params["tier"] = tier
-    return await _get("/v1/layers", params)
+    return await _get("/v1/layers", params, build=build)
 
 
 @mcp.tool()
@@ -391,7 +421,7 @@ async def query_region(
         params["fields"] = fields
     if cursor:
         params["cursor"] = cursor
-    data = await _get(f"/v1/regions/{build}/{region}", params)
+    data = await _get(f"/v1/regions/{build}/{region}", params, build=build)
     return _with_summary(data, _summarize_region(data, region))
 
 
@@ -428,7 +458,7 @@ async def region_stats(
         params["layers"] = layers
     if fields:
         params["fields"] = fields
-    return await _get(f"/v1/stats/{build}/{region}", params)
+    return await _get(f"/v1/stats/{build}/{region}", params, build=build)
 
 
 @mcp.tool()
@@ -452,7 +482,7 @@ async def get_sequence(
         build: Genome build ('hg38' or 'hg37').
         region: Genomic region in format 'chr16:70699930-70700000' (1-based closed).
     """
-    return await _get(f"/v1/sequence/{build}/{region}")
+    return await _get(f"/v1/sequence/{build}/{region}", build=build)
 
 
 @mcp.tool()
@@ -487,7 +517,7 @@ async def lookup_gene(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'VAC14', 'BRCA1', 'TP53'). Aliases auto-resolved.
     """
-    data = await _get(f"/v1/genes/{build}/{symbol}")
+    data = await _get(f"/v1/genes/{build}/{symbol}", build=build)
     return _with_summary(data, _summarize_gene(data))
 
 
@@ -519,7 +549,7 @@ async def lookup_probe(
         build: Genome build ('hg38' or 'hg37').
         probe_id: Probe identifier (e.g. 'cg08796240', 'ch.1.1234').
     """
-    return await _get(f"/v1/probes/{build}/{probe_id}")
+    return await _get(f"/v1/probes/{build}/{probe_id}", build=build)
 
 
 @mcp.tool()
@@ -544,7 +574,7 @@ async def batch_probes(
         build: Genome build ('hg38' or 'hg37').
         probe_ids: List of probe identifiers (max 10,000).
     """
-    return await _post(f"/v1/probes/{build}/batch", {"probe_ids": probe_ids})
+    return await _post(f"/v1/probes/{build}/batch", {"probe_ids": probe_ids}, build=build)
 
 
 @mcp.tool()
@@ -580,7 +610,7 @@ async def aggregate_region(
     params: dict = {"resolution": str(resolution)}
     if layers:
         params["layers"] = layers
-    return await _get(f"/v1/aggregation/{build}/{region}", params)
+    return await _get(f"/v1/aggregation/{build}/{region}", params, build=build)
 
 
 @mcp.tool()
@@ -612,7 +642,7 @@ async def lookup_gene_cost(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'ALB', 'TP53', 'BRCA1').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/cost")
+    return await _get(f"/v1/genes/{build}/{symbol}/cost", build=build)
 
 
 @mcp.tool()
@@ -643,7 +673,7 @@ async def lookup_gene_expression(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'ALB').
     """
-    data = await _get(f"/v1/genes/{build}/{symbol}/expression")
+    data = await _get(f"/v1/genes/{build}/{symbol}/expression", build=build)
     return _with_summary(data, _summarize_expression(data, symbol))
 
 
@@ -701,7 +731,7 @@ async def search(
         query: Search term (minimum 2 characters). Case-insensitive prefix match.
         build: Genome build ('hg38' or 'hg37').
     """
-    return await _get("/v1/search", {"q": query, "build": build})
+    return await _get("/v1/search", {"q": query, "build": build}, build=build)
 
 
 @mcp.tool()
@@ -725,7 +755,7 @@ async def lookup_protein_abundance(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'ALB', 'TP53', 'BRCA1').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/protein-abundance")
+    return await _get(f"/v1/genes/{build}/{symbol}/protein-abundance", build=build)
 
 
 @mcp.tool()
@@ -754,7 +784,7 @@ async def lookup_gene_constraint(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'TET2', 'BRCA1').
     """
-    data = await _get(f"/v1/genes/{build}/{symbol}/constraint")
+    data = await _get(f"/v1/genes/{build}/{symbol}/constraint", build=build)
     return _with_summary(data, _summarize_constraint(data, symbol))
 
 
@@ -782,7 +812,7 @@ async def lookup_gene_pathways(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'ALB').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/pathways")
+    return await _get(f"/v1/genes/{build}/{symbol}/pathways", build=build)
 
 
 @mcp.tool()
@@ -807,7 +837,7 @@ async def lookup_gene_sets(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'BRCA1', 'MYC').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/gene-sets")
+    return await _get(f"/v1/genes/{build}/{symbol}/gene-sets", build=build)
 
 
 @mcp.tool()
@@ -834,7 +864,7 @@ async def lookup_protein_atlas(
         build: Genome build ('hg38' or 'hg37').
         symbol: Gene symbol (e.g. 'TP53', 'ALB', 'BRCA1').
     """
-    return await _get(f"/v1/genes/{build}/{symbol}/protein-atlas")
+    return await _get(f"/v1/genes/{build}/{symbol}/protein-atlas", build=build)
 
 
 @mcp.tool()
@@ -1018,7 +1048,7 @@ async def compute_region_biophysics(
         "salt_mm": str(salt_mm),
         "properties": properties,
     }
-    data = await _get(f"/v1/biophysics/{build}/{region}", params)
+    data = await _get(f"/v1/biophysics/{build}/{region}", params, build=build)
     return _with_summary(data, _summarize_biophysics(data, region))
 
 
@@ -1066,7 +1096,7 @@ async def correlate_layers(
         "field_a": field_a,
         "field_b": field_b,
     }
-    return await _get(f"/v1/correlate/{build}/{region}", params)
+    return await _get(f"/v1/correlate/{build}/{region}", params, build=build)
 
 
 @mcp.tool()
@@ -1221,7 +1251,7 @@ async def intersect_layers(
         "filters": filters,
         "return_layers": return_layers,
         "limit": limit,
-    })
+    }, build=build)
 
 
 @mcp.tool()
@@ -1326,6 +1356,114 @@ async def compare_sequences(
         "salt_mm": salt_mm,
         "window_size": window_size,
     })
+
+
+@mcp.tool()
+async def batch_evaluate(
+    sequences: dict[str, str],
+    analysis: str = "full",
+    salt_mm: float = 1000.0,
+    window_size: int = 100,
+) -> dict:
+    """Batch-evaluate up to 100 DNA sequences independently.
+
+    Unlike compare_sequences, this does NOT compute deltas — each sequence
+    is evaluated on its own. Returns per-sequence reports plus a batch summary
+    (GC range, total warnings, sequences with warnings).
+
+    Designed for synthetic biology teams screening candidate libraries.
+
+    Args:
+        sequences: Dict mapping names to DNA sequences. 1-100 sequences.
+                   Example: {"variant_1": "ATGCGA...", "variant_2": "ATGCGA..."}
+        analysis: 'full' (default), 'thermodynamic', or 'structural'.
+        salt_mm: NaCl in mM (1000=standard, 150=physiological).
+        window_size: Window size in bp for profiles (default 100).
+    """
+    data = await _post("/v1/evaluate/batch", {
+        "sequences": sequences,
+        "analysis": analysis,
+        "salt_mm": salt_mm,
+        "window_size": window_size,
+    })
+    # Build summary
+    summary = data.get("summary", {})
+    s = (
+        f"Batch: {summary.get('evaluated', 0)} evaluated, "
+        f"{summary.get('errors', 0)} errors. "
+        f"GC range: {summary.get('gc_range', [])}, "
+        f"{summary.get('sequences_with_warnings', 0)} with warnings."
+    )
+    return _with_summary(data, s)
+
+
+@mcp.tool()
+async def region_profile(
+    build: str,
+    region: str,
+    include_negative: bool = False,
+) -> dict:
+    """Comprehensive profile of a genomic region across ALL data layers.
+
+    The "tell me everything about this region" query. Runs every active layer
+    and returns feature counts, density per kb, and significance flags.
+
+    Optionally includes negative annotations (layers with NO features) which
+    can be informative — "this region has no GWAS hits" is useful information.
+
+    Max region: 1 Mb. For larger regions use aggregate_region.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region (1-based closed), e.g. 'chr17:7668402-7687550'.
+        include_negative: If true, include layers with zero features in the response.
+    """
+    params: dict = {}
+    if include_negative:
+        params["include_negative"] = "true"
+    data = await _get(f"/v1/profile/{build}/{region}", params, build=build)
+    summary = data.get("summary", {})
+    s = (
+        f"{region}: {summary.get('layers_with_features', 0)} layers with features, "
+        f"{summary.get('layers_without_features', 0)} absent. "
+        f"{len(data.get('flags', []))} significance flags."
+    )
+    return _with_summary(data, s)
+
+
+@mcp.tool()
+async def query_recipe(
+    recipe_key: str | None = None,
+) -> dict:
+    """Get prebuilt cross-layer query recipes.
+
+    Recipes are curated intersect_layers queries that answer common biological
+    questions (e.g., "find silencing-prone regions", "find conserved non-B DNA").
+
+    Call without recipe_key to list all available recipes.
+    Call with recipe_key to get the full filter specification, ready to submit
+    to intersect_layers.
+
+    Available recipes: silencing_prone_regions, biophysically_unusual_cpg_islands,
+    regulatory_hotspots, conserved_nonb_dna, repeat_fragility_zones.
+
+    Args:
+        recipe_key: Specific recipe to retrieve. Omit to list all recipes.
+    """
+    if recipe_key:
+        return await _get(f"/v1/query/recipe/{recipe_key}")
+    return await _get("/v1/query/recipes")
+
+
+@mcp.tool()
+async def platform_summary() -> dict:
+    """Platform-wide statistics for Polymer Genomics.
+
+    Returns total layers, total rows, supported builds, evidence class
+    distribution, and layer type breakdown. Useful for understanding
+    the scope of available data.
+    """
+    return await _get("/v1/stats/summary")
 
 
 @mcp.tool()

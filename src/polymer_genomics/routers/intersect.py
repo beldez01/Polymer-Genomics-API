@@ -54,9 +54,15 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {
             "gc_content", "stacking_dg37", "melting_temp", "curvature",
-            "dipole_moment", "groove_width", "periodicity",
+            "dipole_density", "groove_width", "periodicity_power",
             "mgw_mean", "prot_mean", "roll_mean", "helt_mean",
             "delta_mgw", "delta_prot", "delta_roll", "delta_helt",
+            "melting_cooperativity", "bubble_propensity", "melting_width",
+            "sbs_c_to_a_ddg", "sbs_c_to_g_ddg", "sbs_c_to_t_ddg", "sbs_t_to_a_ddg",
+            "meth_delta_g", "meth_delta_tm",
+            "correlation_length", "integrated_response", "perturbation_reach", "response_asymmetry",
+            "deformability", "g4_density", "g4_max_score", "kmer_complexity",
+            "dinucleotide_entropy", "dominant_period",
         },
     },
     "conservation": {
@@ -75,7 +81,7 @@ INTERSECT_TABLES: dict[str, dict] = {
         "fields": {"length", "gc_content", "obs_exp"},
     },
     "ccre": {
-        "table": "regulatory.ccres",
+        "table": "regulatory.ccre",
         "id_col": "layer_id",
         "fields": {"ccre_type", "zscore_dnase", "zscore_h3k4me3", "zscore_h3k27ac", "zscore_ctcf"},
     },

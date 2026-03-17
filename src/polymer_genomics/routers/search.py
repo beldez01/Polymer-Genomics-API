@@ -10,7 +10,7 @@ router = APIRouter(prefix="/v1/search", tags=["search"])
 
 @router.get("")
 async def search(
-    q: str = Query(..., min_length=1),
+    q: str = Query(..., min_length=1, max_length=100),
     build: str = Query(...),
 ):
     if build not in VALID_BUILDS:

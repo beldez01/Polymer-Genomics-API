@@ -31,6 +31,9 @@ from polymer_genomics.routers.cpg_profile import router as cpg_profile_router
 from polymer_genomics.routers.intersect import router as intersect_router
 from polymer_genomics.routers.evaluate import router as evaluate_router
 from polymer_genomics.routers.stats import router as stats_router
+from polymer_genomics.routers.profile import router as profile_router
+from polymer_genomics.routers.gene_profiles import router as gene_profiles_router
+from polymer_genomics.routers.recipes import router as recipes_router
 
 
 @asynccontextmanager
@@ -93,6 +96,9 @@ app.include_router(cpg_profile_router)
 app.include_router(intersect_router)
 app.include_router(evaluate_router)
 app.include_router(stats_router)
+app.include_router(profile_router)
+app.include_router(gene_profiles_router)
+app.include_router(recipes_router)
 
 
 @app.get("/health")
