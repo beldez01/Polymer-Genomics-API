@@ -76,6 +76,33 @@ class CompareRequest(BaseModel):
     )
 
 
+class BatchEvaluateRequest(BaseModel):
+    """Request body for batch sequence evaluation."""
+    sequences: dict[str, str] = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Named sequences to evaluate. Keys are labels, values are DNA sequences. 1–100 sequences.",
+    )
+    analysis: str = Field(
+        "full",
+        pattern="^(full|thermodynamic|structural)$",
+        description="Analysis type.",
+    )
+    salt_mm: float = Field(
+        1000.0,
+        ge=1.0,
+        le=5000.0,
+        description="NaCl concentration in mM.",
+    )
+    window_size: int = Field(
+        100,
+        ge=20,
+        le=10000,
+        description="Window size in bp.",
+    )
+
+
 @router.post("/evaluate")
 async def evaluate_design(body: EvaluateRequest):
     """Evaluate the biophysical properties of a DNA sequence.
@@ -219,3 +246,61 @@ async def compare_sequences(body: CompareRequest):
         "evaluations": results,
         "timing": {"compute_time_ms": compute_ms},
     }
+
+
+@router.post("/evaluate/batch")
+async def batch_evaluate(body: BatchEvaluateRequest):
+    """Evaluate biophysical properties of up to 100 DNA sequences.
+
+    Returns per-sequence evaluation reports. Unlike /compare, this does NOT
+    compute deltas — it evaluates each sequence independently. Designed for
+    synthetic biology teams screening candidate libraries.
+
+    **Use cases:**
+    - Screen a library of codon-optimized variants
+    - Batch-evaluate promoter candidates
+    - Pre-screen synthesis orders for problematic sequences
+    """
+    start_time = time.monotonic()
+
+    results: dict[str, dict] = {}
+    errors: dict[str, str] = {}
+
+    for name, seq in body.sequences.items():
+        try:
+            results[name] = evaluate_sequence(
+                seq=seq,
+                name=name,
+                analysis=body.analysis,
+                salt_mm=body.salt_mm,
+                window_size=body.window_size,
+            )
+        except ValueError as e:
+            errors[name] = str(e)
+
+    compute_ms = round((time.monotonic() - start_time) * 1000, 1)
+
+    # Summary across all successful evaluations
+    summary = {}
+    if results:
+        gc_values = [r["summary"]["gc_content"] for r in results.values()]
+        warning_counts = [r["flag_counts"]["warnings"] for r in results.values()]
+        summary = {
+            "evaluated": len(results),
+            "errors": len(errors),
+            "gc_range": [round(min(gc_values), 4), round(max(gc_values), 4)],
+            "total_warnings": sum(warning_counts),
+            "sequences_with_warnings": sum(1 for w in warning_counts if w > 0),
+        }
+
+    response = {
+        "status": "complete",
+        "n_sequences": len(body.sequences),
+        "summary": summary,
+        "evaluations": results,
+        "timing": {"compute_time_ms": compute_ms},
+    }
+    if errors:
+        response["errors"] = errors
+
+    return response

@@ -1,107 +1,164 @@
 # Polymer Genomics
 
-Curated genomic reference data at base-pair resolution.
+**The first production database of genome-wide DNA biophysical properties.**
 
-Polymer Genomics is an integrated genomic reference database with an interactive genome browser, REST API, Python SDK, and MCP server. It serves bioinformaticians, biologists, and AI agents with high-performance queries across 26 annotation layers for the human genome.
+Polymer Genomics is an integrated genomic reference database that treats DNA as a physical polymer — not just an information-carrying sequence. It provides genome-wide thermodynamic stability, groove geometry, form propensity, curvature, and mechanical properties alongside 28 curated annotation layers, all queryable through a unified REST API designed for AI agents, bioinformaticians, and discovery scientists.
 
-Live at [polymerbio.org](https://polymerbio.org)
+Live at [polymerbio.org](https://polymerbio.org) · API at [api.polymerbio.org](https://api.polymerbio.org/docs)
+
+## Why This Exists
+
+Every major genomic database treats DNA as a symbolic sequence: genes, variants, regulatory elements, expression levels. None provide the material-channel properties — stacking free energy, persistence length, groove width, melting temperature — that determine how DNA *physically behaves*. And none let you correlate those properties with biological annotations in a single query.
+
+Polymer Genomics fills this gap. It is the first entry in an empty category.
 
 ## Quick Start
 
 ```bash
-docker compose up -d
-curl http://localhost:8000/v1/regions/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites
+pip install polymer-genomics
 ```
 
-## API
+```python
+from polymer_genomics import PolymerClient
+
+client = PolymerClient()
+
+# Physics linter — evaluate any DNA sequence
+report = client.evaluate("ATGCGATCGATCG" * 100)
+print(report["flags"])           # actionable warnings
+print(report["summary"])         # GC, ΔG₃₇, Tm, CpG islands
+
+# Look up a gene
+tp53 = client.gene("hg38", "TP53")
+
+# Query biophysical properties genome-wide
+data = client.region("hg38", "chr17:7668402-7687550",
+                     layers=["sequence_biophysics_l0"])
+
+# Cross-layer correlation
+corr = client.correlate("hg38", "chr17:7668402-7687550",
+                        layer_x="sequence_biophysics_l0",
+                        layer_y="phylop_phastcons_100way")
+
+# Region profile — everything about a region in one call
+profile = client.region_profile("hg38", "chr17:7668402-7687550")
+
+# Batch evaluate 100 sequences
+batch = client.batch_evaluate({"v1": seq1, "v2": seq2, "v3": seq3})
+```
+
+## Core Capabilities
+
+### The Physics Linter
+
+Evaluate any DNA sequence (10–100,000 bp) against biophysical criteria. Returns thermodynamic stability, structural properties, CpG islands, and 13 actionable flag types — including direct/inverted repeats, extreme GC windows, Z-form propensity, and silencing risk. Designed for synthetic biology: evaluate before you synthesize.
+
+- `POST /v1/evaluate` — single sequence
+- `POST /v1/evaluate/batch` — up to 100 sequences
+- `POST /v1/compare` — side-by-side delta analysis (2–10 variants)
+
+### Cross-Layer Correlation Engine
+
+The killer feature: correlate and intersect heterogeneous data layers in a single query. No other genomic database offers this.
+
+- `GET /v1/correlate/{build}/{region}` — Pearson, Spearman, overlap enrichment, Jaccard, Fisher exact
+- `POST /v1/query/intersect` — boolean AND across multiple layers with field-level filtering
+- `GET /v1/query/recipes` — prebuilt queries for common biological questions
+- `GET /v1/profile/{build}/{region}` — all layers at once with significance flags
+
+### Anti-Hallucination Design
+
+Every response carries epistemic metadata so AI agents never confuse measured data with predictions:
+
+- **Evidence classes** on every layer: Measured (M), Curated (K), Derived (D), Statistical (S), Hypothetical (H)
+- **Provenance** in every response: source database, license, content hash, validation status
+- **Structured flags** instead of free text — machines parse codes, not prose
+- **Truncation warnings** — `status: "truncated"` prevents agents from reporting incomplete data as complete
+- **Version metadata** — `api_version` and `data_version` in every envelope
+
+## API Endpoints
 
 | Endpoint | Description |
-|---|---|
-| `GET /v1/regions/{build}/{region}` | Query a genomic region with annotation layers |
-| `GET /v1/genes/{build}/{symbol}` | Look up a gene by symbol (case-insensitive, aliases supported) |
-| `GET /v1/sequence/{build}/{region}` | Retrieve raw DNA sequence |
-| `GET /v1/probes/{build}/{probe_id}` | Look up a methylation probe |
+|----------|-------------|
+| `GET /v1/regions/{build}/{region}` | Query features across annotation layers (GRanges JSON) |
+| `GET /v1/stats/{build}/{region}` | Summary statistics (mean/median/sd/percentiles) |
+| `GET /v1/stats/summary` | Platform-wide statistics (total layers, rows, builds) |
+| `GET /v1/profile/{build}/{region}` | Comprehensive region profile across all layers |
+| `GET /v1/correlate/{build}/{region}` | Cross-layer correlation analysis |
+| `POST /v1/query/intersect` | Multi-layer boolean intersection |
+| `GET /v1/query/recipes` | Prebuilt cross-layer query recipes |
+| `GET /v1/genes/{build}/{symbol}` | Gene lookup with alias resolution (p53 → TP53) |
+| `GET /v1/sequence/{build}/{region}` | Raw DNA sequence (max 100 kb) |
+| `GET /v1/probes/{build}/{probe_id}` | Methylation probe lookup |
 | `POST /v1/probes/{build}/batch` | Batch probe lookup (up to 10,000) |
-| `POST /v1/evaluate` | Biophysical sequence evaluation ("physics linter") |
+| `POST /v1/evaluate` | Physics linter — biophysical sequence evaluation |
+| `POST /v1/evaluate/batch` | Batch evaluation (up to 100 sequences) |
 | `POST /v1/compare` | Side-by-side sequence comparison with deltas |
-| `GET /v1/tiles/{build}/{chr}/tile/{res}/{idx}` | Deterministic tiled data |
-| `GET /v1/aggregation/{build}/{region}` | Binned density statistics |
-| `GET /v1/layers` | List available annotation layers |
-| `GET /v1/search?q=&build=` | Search gene symbols |
+| `GET /v1/layers` | List available data layers with epistemic metadata |
+| `GET /v1/layers/{key}/license` | Full provenance, license, citation for a layer |
+| `GET /v1/aggregation/{build}/{region}` | Binned density for large regions |
 
-All endpoints return 1-based closed intervals in a uniform response envelope with timing metadata.
+All endpoints return 1-based closed coordinates in a uniform response envelope with provenance, version metadata, and timing.
+
+## Data Layers (28 on hg38)
+
+### Unique to Polymer Genomics
+- **Sequence Biophysics L0** — 43 columns: stacking ΔG₃₇, melting temp, curvature, groove geometry, form propensity, periodicity, DNAshape, methylation perturbation field, Green's function mechanical connectivity
+- **Non-B DNA Structures** — G-quadruplex, Z-DNA, cruciform, triplex, slipped strand (2.9M features)
+- **Fragility Composite** — integrated fragility score from non-B + stacking + curvature
+- **Gene Biosynthetic Costs** — Akashi-Gojobori + expression-weighted metabolic burden
+- **Epigenetic Clock Coefficients** — Horvath, Hannum, PhenoAge, GrimAge, DunedinPACE, Retro-Age
+- **SBS Mutation Thermodynamics** — 96-channel ΔΔG per trinucleotide context
+
+### Curated from Authoritative Sources
+- **Genes** — GENCODE v44 (3M features, 63K transcripts)
+- **CpG Sites** — 29.4M sites with island/shore/shelf context
+- **Methylation Probes** — EPIC v2, v1, 450K with cross-platform mapping
+- **Conservation** — PhyloP + PhastCons 100-way
+- **Regulatory** — ENCODE cCREs v4
+- **Chromatin States** — ChromHMM 15-state
+- **Histone Marks** — ENCODE v3 ChIP-seq peaks
+- **Expression** — GTEx v10 (54 tissues)
+- **Constraint** — gnomAD v4 (pLI, LOEUF, Z-scores)
+- **Repeats** — RepeatMasker (5.3M elements)
+- **GWAS** — EBI GWAS Catalog
+- **Protein** — PaxDb abundance, Human Protein Atlas
+- **Pathways** — Reactome, MSigDB Hallmark
+- **HERV** — Telescope proviral loci
+- **Breakpoints** — COSMIC structural variant breakpoints
 
 ## Viewer
 
-Interactive genome browser at [polymerbio.org/view/hg38/chr16:70699930-70700000](https://polymerbio.org/view/hg38/chr16:70699930-70700000). Navigate with arrow keys, +/- to zoom, click-and-drag to pan.
+Interactive genome browser at [polymerbio.org](https://polymerbio.org). Canvas-based multi-track rendering with keyboard navigation.
 
-Additional pages: `/evaluate` (design evaluator with evidence badges + PNG export), `/atlas` (methylation atlas), `/developers` (API docs + quickstart), `/dmp` (differential methylation viewer).
+- `/view/{build}/{region}` — genome browser with shareable URLs
+- `/evaluate` — physics linter UI with evidence badges and PNG export
+- `/atlas` — methylation atlas with karyotype overview and GeneCards
+- `/gene/{build}/{symbol}` — gene detail pages with transcript diagrams
+- `/developers` — API documentation and quickstart
+- `/data-sources` — per-layer citations and licenses
 
-## Data Layers (26 on hg38)
+## MCP Server (45 tools)
 
-- **Genes** — GENCODE v44, 63,000 transcripts + gene aliases
-- **CpG Sites** — Islands, shores, shelves, 28M sites
-- **Probes** — EPIC v2, v1, 450K methylation arrays + cross-mapping
-- **Isochores** — GC composition structure
-- **Methylation Atlas** — Population reference (blood)
-- **Gene Expression** — GTEx v10 (54 tissues)
-- **Protein Abundance** — PaxDb tissue-specific PPM
-- **Gene Constraint** — gnomAD pLI, LOEUF, Z-scores
-- **Gene Pathways** — Reactome pathway memberships
-- **Gene Sets** — MSigDB Hallmark
-- **Protein Atlas** — HPA tissue expression + subcellular localization
-- **Epigenetic Clocks** — Horvath, Hannum, PhenoAge, GrimAge, DunedinPACE, Retro-Age
-- **SBS Spectrum** — 96-channel mutation thermodynamics
-- **DNAshape** — Minor groove width, propeller twist, roll, helix twist (absolute + methylation delta)
-- **Gene Cost** — Akashi-Gojobori biosynthetic cost + GTEx EWGC
-- **Conservation** — PhyloP / phastCons
-- **Chromatin States** — ChromHMM
-- **Non-B DNA** — G-quadruplex, Z-DNA, cruciform, triplex, slipped
-- **HERV Loci** — Human endogenous retrovirus insertions
-- **Breakpoints** — COSMIC structural variant breakpoints
-- **Repeats** — LINE, SINE, LTR, DNA transposons + probe overlap cross-reference
-- **NN Thermodynamics** — SantaLucia nearest-neighbor parameters
-- **Physical Constants** — Persistence length, Manning parameter, elastic moduli
-
-Supports hg38 and hg37 genome builds.
-
-## MCP Server (39 tools)
-
-Claude Code integration via MCP (Model Context Protocol). 29 reference tools + 10 compute tools for methylation analysis (IDAT loading, normalization, filtering, limma DMP, visualization).
+AI agent integration via Model Context Protocol. 35 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
 
 ```bash
 cd mcp && uv run server.py
 ```
 
+Tools include: `evaluate_design`, `compare_sequences`, `batch_evaluate`, `region_profile`, `query_recipe`, `platform_summary`, `query_region`, `correlate_layers`, `intersect_layers`, `lookup_gene`, `lookup_gene_expression`, `compute_region_biophysics`, and 33 more.
+
 ## Python SDK
 
 ```bash
-pip install polymer-genomics  # not yet on PyPI — install from sdk/python/
+pip install polymer-genomics
 ```
 
-```python
-from polymer_genomics import PolymerClient
-client = PolymerClient("http://localhost:8000")
-gene = client.gene("hg38", "TP53")
-result = client.evaluate("ATGCGATCGA...")
-```
+Published on PyPI as [`polymer-genomics`](https://pypi.org/project/polymer-genomics/) (v0.2.0). MIT license. Full client surface covering all API endpoints.
 
-## R Client
+## Architecture
 
-```r
-# install.packages("r-client", repos = NULL, type = "source")
-library(polymergenomics)
-pg_connect("http://localhost:8000")
-gene <- pg_gene("hg38", "TP53")
-```
-
-## Compute Engine
-
-R-based methylation analysis pipeline (minfi, sesame, limma). Supports EPICv2, EPIC, and 450K arrays with automatic detection.
-
-```bash
-cd engine && docker build -t polymer-engine .
-```
+FastAPI + PostgreSQL 16 + asyncpg backend. Next.js 15 + React 19 frontend with canvas-based track rendering. Deployed on Fly.io (API, iad region) and Vercel (viewer). 14 GB database, sub-100ms query latency.
 
 ## Development
 
@@ -112,36 +169,14 @@ uv sync
 uv run uvicorn polymer_genomics.main:app --reload
 
 # Frontend
-cd viewer
-npm install
-npm run dev
+cd viewer && npm install && npm run dev
+
+# MCP server
+cd mcp && uv run server.py
 ```
-
-## Architecture
-
-FastAPI + PostgreSQL 16 backend, Next.js + React 19 frontend with canvas-based track rendering. Deployed on Fly.io (API) and Vercel (viewer). MinIO/S3 for object storage.
-
-## Current Status (2026-03-14)
-
-**Completed:**
-- Sprints 1-6 of the Scientific AI Market Entry plan (see `PLAN_SCIENTIFIC_AI_ENTRY.md`)
-- Expansion Blueprint: all 16 tasks + bonus work (gene aliases, HERV, repeats, probe-repeat xref)
-- 35 database migrations (002-035)
-- Full codebase audit: 48 bugs fixed (3 critical, 8 high, 13 medium, 17 low)
-
-**Next Steps:**
-
-1. **Rotate production DB password** — credential was exposed in git history during audit; needs rotation on Fly.io Postgres
-2. **Sprint 7: Outreach Assets** — preprint outline, conference targets (IWBDA Sep 2026, ASHG Oct 2026, NeurIPS AI4Science Dec 2026), outreach emails to FutureHouse/Edison/Ginkgo
-3. **PyPI publish** — Python SDK (`sdk/python/`) is built and tested (24 tests) but not yet published
-4. **Compare frontend** — `/v1/compare` API exists but has no frontend UI
-5. **Quickstart + MCP integration guides** — dedicated doc pages not yet created
-6. **Transaction wrapping** — multi-step ingestion scripts lack transaction boundaries
-7. **Memory optimization** — repeats/chromatin ingest can pressure RAM on large chromosomes
-8. **Usage tracking** — no request logging beyond Fly.io metrics; build alongside multi-key auth (Sprint 3)
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for the source code license.
+MIT — see [LICENSE](LICENSE) for the source code.
 
-Data served by this platform is subject to the licenses of the original data providers. See [Data Sources](https://polymerbio.org/data-sources) for details.
+Data served by this platform is subject to the licenses of the original data providers. Per-layer license information is available programmatically at `/v1/layers/{layer_key}/license` and at [polymerbio.org/data-sources](https://polymerbio.org/data-sources).

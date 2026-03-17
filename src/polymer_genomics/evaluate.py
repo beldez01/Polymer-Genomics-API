@@ -43,6 +43,11 @@ _FLAG_HIGH_STABILITY_DG = -1.80  # more negative = very stable
 _FLAG_Z_FORM_THRESHOLD = 0.40
 _FLAG_HOMOPOLYMER_MIN = 8
 _FLAG_DINUC_REPEAT_MIN = 20  # bp total length
+_FLAG_LONG_HOMOPOLYMER_MIN = 12
+_FLAG_EXTREME_GC_HIGH = 0.80
+_FLAG_EXTREME_GC_LOW = 0.15
+_FLAG_DIRECT_REPEAT_K = 15
+_FLAG_SILENCING_CGI_MIN = 3
 
 _VALID_BASES = set("ACGT")
 _VALID_BASES_WITH_N = set("ACGTN")
@@ -324,6 +329,102 @@ def _generate_flags(
                 f"replication instability, microsatellite expansion risk"
             ),
         })
+
+    # Long homopolymer runs (≥12 bp — more severe than standard ≥8 bp)
+    for run in _detect_homopolymers(seq, min_length=_FLAG_LONG_HOMOPOLYMER_MIN):
+        flags.append({
+            "type": "warning",
+            "code": "LONG_HOMOPOLYMER",
+            "region": f"{run['start']}-{run['end']}",
+            "message": (
+                f"Long homopolymer run: {run['base']}×{run['length']} — "
+                f"severe synthesis difficulty, high polymerase slippage risk"
+            ),
+        })
+
+    # Extreme GC windows (GC > 80% or < 15%)
+    for i, wgc in enumerate(windowed_gc):
+        start = i * window_size + 1
+        end = min((i + 1) * window_size, len(seq))
+        if wgc > _FLAG_EXTREME_GC_HIGH:
+            flags.append({
+                "type": "warning",
+                "code": "EXTREME_GC_WINDOW",
+                "region": f"{start}-{end}",
+                "message": (
+                    f"Extreme high GC ({wgc:.0%}) — synthesis failure risk, "
+                    f"strong secondary structure"
+                ),
+            })
+        elif wgc < _FLAG_EXTREME_GC_LOW:
+            flags.append({
+                "type": "warning",
+                "code": "EXTREME_GC_WINDOW",
+                "region": f"{start}-{end}",
+                "message": (
+                    f"Extreme low GC ({wgc:.0%}) — thermodynamically unstable, "
+                    f"poor primer binding"
+                ),
+            })
+
+    # Silencing risk (≥3 CpG islands)
+    if len(cpg_islands) >= _FLAG_SILENCING_CGI_MIN:
+        flags.append({
+            "type": "warning",
+            "code": "SILENCING_RISK",
+            "region": "global",
+            "message": (
+                f"Sequence contains {len(cpg_islands)} CpG islands — elevated risk of "
+                f"methylation-mediated silencing in mammalian cells"
+            ),
+        })
+
+    # Direct repeat detection (≥15 bp)
+    seq_upper = seq.upper()
+    k = _FLAG_DIRECT_REPEAT_K
+    seen_kmers: dict[str, int] = {}
+    if len(seq_upper) >= k:
+        for i in range(len(seq_upper) - k + 1):
+            kmer = seq_upper[i:i + k]
+            if "N" in kmer:
+                continue
+            if kmer in seen_kmers:
+                if seen_kmers[kmer] != -1:  # first occurrence not yet reported
+                    flags.append({
+                        "type": "warning",
+                        "code": "DIRECT_REPEAT",
+                        "region": f"{seen_kmers[kmer]+1}-{seen_kmers[kmer]+k}",
+                        "message": (
+                            f"Direct repeat (≥{k}bp) found at positions "
+                            f"{seen_kmers[kmer]+1} and {i+1}"
+                        ),
+                    })
+                    seen_kmers[kmer] = -1  # mark as reported
+            else:
+                seen_kmers[kmer] = i
+
+    # Inverted repeat detection (≥15 bp)
+    _complement = str.maketrans("ACGT", "TGCA")
+    inv_reported: set[str] = set()
+    if len(seq_upper) >= k:
+        forward_kmers: dict[str, int] = {}
+        for i in range(len(seq_upper) - k + 1):
+            kmer = seq_upper[i:i + k]
+            if "N" in kmer:
+                continue
+            rc = kmer.translate(_complement)[::-1]
+            if rc in forward_kmers and rc not in inv_reported:
+                flags.append({
+                    "type": "warning",
+                    "code": "INVERTED_REPEAT",
+                    "region": f"{forward_kmers[rc]+1}-{forward_kmers[rc]+k}",
+                    "message": (
+                        f"Inverted repeat (≥{k}bp) — potential hairpin between "
+                        f"positions {forward_kmers[rc]+1} and {i+1}"
+                    ),
+                })
+                inv_reported.add(rc)
+            forward_kmers[kmer] = i
 
     return flags
 

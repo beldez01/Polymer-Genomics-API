@@ -1,13 +1,18 @@
 # Polymer Genomics Platform — Consolidated Roadmap
-*Last updated: 2026-03-15*
+*Last updated: 2026-03-17*
 
 ---
 
 ## Vision
 
-The most richly integrated, correlative genomics reference database — with complete API integration that makes measurable biology maximally computable. Agent-first: AI agents are the primary consumer. Discovery scientists explore via the browser. Bioinformaticians query programmatically.
+Polymer Genomics is the first production database of genome-wide DNA biophysical properties. It is the first entry in an empty category: no existing genomic resource provides material-channel DNA properties (thermodynamic stability, mechanical stiffness, groove geometry, form propensity) genome-wide, and none enable their correlation with biological annotations in a single query.
 
-**Rule:** Every layer must have a published, citable source. No theoretically-derived quantities until independently validated and published.
+**Three audiences, one platform:**
+- **AI agents** (primary) — structured, anti-hallucination responses with epistemic metadata, provenance in every response, and structured flags. The API is designed so agents never confuse measured data with predictions.
+- **Discovery scientists** — the preeminent genome browser, with biophysical tracks no other viewer offers, shareable URLs, and an embedded physics linter.
+- **Bioinformaticians** — Python SDK on PyPI, REST API with OpenAPI spec, GRanges-compatible JSON, and cross-layer correlation/intersection in single queries.
+
+**Strategic positioning:** First entry in an empty category on the Topology VC Scientific AI Map. The computation IS the IP (legal clearance confirmed). Target: NAR Database Issue (canonical registry for biological infrastructure).
 
 ---
 
@@ -20,176 +25,149 @@ The most richly integrated, correlative genomics reference database — with com
 - Read-only API (no write endpoints)
 - Three resolutions (1kb/10kb/100kb) as ingestion invariant for continuous tracks
 - Epistemic evidence classes (M/R/D/S/K/H/L) on every layer
+- Provenance in every response (api_version, data_version, source, license per layer)
 
 ---
 
 ## What's Live (Complete)
 
 ### Infrastructure
-| Component | Notes |
-|-----------|-------|
-| REST API | 14+ endpoints, FastAPI + asyncpg, live at api.polymerbio.org (Fly.io) |
-| MCP Server | 33 tools (23 reference + 10 compute), FastMCP, stdio transport |
-| Frontend Viewer | Canvas-based, multi-track, keyboard nav, Zustand, live at polymerbio.org (Vercel) |
-| R Client | 8 functions, httr2, GRanges output |
-| Test Suite | 24 files, 440+ tests |
-| Track Registry | Declarative `TRACK_REGISTRY` in queries.py — zero if/elif dispatch |
-| Shareable URLs | `?layers=` param synced to viewport; Copy Link button |
-| Probe Search | `cg`/`ch` ID detection → navigate to probe ±500bp |
-| Gene Detail Page | `/gene/[build]/[symbol]` — transcript diagram, locus/CpG panels |
-| Atlas + GeneCard | `/atlas` — karyotype cards, GeneCard (11 sections A-K), UniProt protein domains |
-| Agent Harness | `.claude/commands/bioinfo.md` + AGENT.md — coordinate conventions, tool composition |
-| Methylation Compute Engine | 10 tools, 8 R scripts, async subprocess bridge, session management |
-| Epistemic Schema | Evidence classes (M/R/D/S/K/H/L), tier, equilibrium, statefulness on all layers |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| REST API | ✅ Live | 17+ endpoints, FastAPI + asyncpg, api.polymerbio.org (Fly.io iad) |
+| MCP Server | ✅ Live | 45 tools (35 reference + 10 compute), FastMCP, stdio transport |
+| Frontend Viewer | ✅ Live | Canvas-based multi-track, keyboard nav, polymerbio.org (Vercel) |
+| Python SDK | ✅ PyPI | `pip install polymer-genomics` (v0.2.0, MIT) |
+| Test Suite | ✅ | 41 files, 440+ tests |
+| Epistemic Schema | ✅ | Evidence classes, tier, equilibrium, statefulness on all layers |
+| Methylation Engine | ✅ | 10 compute tools, R subprocess, session management |
 
-### Data Layers Live
-| Layer | Source | Evidence Class |
-|-------|--------|---------------|
-| Gene models | GENCODE v44 | K |
-| CpG sites / islands | Sequence-derived | D |
-| Methylation probes | EPIC v2, v1, 450K (Illumina) | D |
-| Isochores | GC-computed segmentation | D |
-| Cell-type methylation ref | FlowSorted Salas 2018 | M |
-| Gene bioenergetics | Akashi-Gojobori / GTEx / UniProt | D |
-| Gene expression | GTEx v10 (54 tissues) | M |
-| Regulatory elements | ENCODE cCREs V4 (926K) | S |
-| Conservation | PhyloP/PhastCons 100-way | S |
-| Gene constraint | gnomAD pLI/LOEUF/Z-scores | S |
-| Gene pathways | Reactome | K |
-| Gene sets | MSigDB Hallmark | K |
-| Protein abundance | PaxDb | M |
-| Protein atlas | HPA tissue + subcellular | M |
-| SBS thermodynamic spectrum | SantaLucia NN × COSMIC channels | D |
-| Epigenetic clock coefficients | Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE | R |
-| Metabolic burden w/ turnover | Cost × expression × half-life | D |
-| DNAshapeR tracks | MGW, ProT, Roll, HelT (1kb bins) | D |
-| Sequence biophysics (L0) | Stacking dG, Tm, GC, curvature, groove, dipole, periodicity | D |
-| NN parameters | SantaLucia/Xia/Sugimoto lookup | R |
-| Dinucleotide properties | Extinction, groove geometry, form propensity | R |
-| Amino acid properties | MW, volume, hydrophobicity, pKa, cost | R |
-| Physical constants | Lp, Manning, elastic moduli, enzymatic rates | R |
+### Data Layers (28 on hg38)
+| Layer | Source | Evidence Class | Rows |
+|-------|--------|----------------|------|
+| Gene models | GENCODE v44 | K | 3,039,917 |
+| CpG sites | Computed | D | 29,401,795 |
+| CpG islands | UCSC | D | 27,949 |
+| Isochores | Computed | D | 10,307 |
+| Methylation atlas | Loyfer 2023 | M | 865,859 |
+| Probes: 450K / EPIC v1 / EPIC v2 | Illumina | D | 485K / 866K / 937K |
+| Conservation (PhyloP/PhastCons) | UCSC 100-way | S | genome-wide |
+| ENCODE cCREs v4 | ENCODE | S | genome-wide |
+| ChromHMM 15-state | Roadmap | S | genome-wide |
+| Histone marks | ENCODE v3 | M | genome-wide |
+| GTEx v10 expression | GTEx | M | genome-wide |
+| Gene constraint | gnomAD v4 | S | genome-wide |
+| Reactome pathways | Reactome | K | genome-wide |
+| MSigDB Hallmark | MSigDB | K | genome-wide |
+| Protein abundance | PaxDb v6.0 | M | genome-wide |
+| Human Protein Atlas | HPA v23 | M | genome-wide |
+| Gene biosynthetic costs | Akashi-Gojobori/GTEx | D | genome-wide |
+| Repeat elements | RepeatMasker | S | 5,317,291 |
+| HERV proviral loci | Telescope | — | 14,203 |
+| Non-B DNA structures | Computed | D | 2,937,698 |
+| Fragility composite | Computed | D | 2,937,681 |
+| Breakpoints | Mitelman/COSMIC | K | 49 |
+| GWAS catalog | EBI | S | genome-wide |
+| SBS mutation spectrum | COSMIC v3.4 | K | 96 channels |
+| Epigenetic clock probes | Literature | K | multi-clock |
+| **Sequence biophysics L0** | **Computed (43 cols)** | **D** | **genome-wide** |
 
-### Expansion Phase 1A-1B (Complete, commits documented in archive)
-- Phase 1A: Epistemic ENUMs migration, layer classification, API/MCP epistemic metadata, test suite (48 fixes)
-- Phase 1B: SBS spectrum, clock coefficients, metabolic burden, DNAshapeR tracks
+### API Features Live
+| Feature | Endpoint | Notes |
+|---------|----------|-------|
+| Region queries | `GET /v1/regions/{build}/{region}` | GRanges JSON, cursor pagination, field selection |
+| Summary statistics | `GET /v1/stats/{build}/{region}` | Mean/median/sd/percentiles per layer |
+| Platform summary | `GET /v1/stats/summary` | Total layers, rows, builds — for NAR reviewers |
+| Cross-layer correlation | `GET /v1/correlate/{build}/{region}` | Pearson, Spearman, overlap, Jaccard, Fisher |
+| Cross-layer intersection | `POST /v1/query/intersect` | Boolean AND across up to 10 layers |
+| Region profile | `GET /v1/profile/{build}/{region}` | All layers + significance flags |
+| Query recipes | `GET /v1/query/recipes` | 5 prebuilt cross-layer queries |
+| Physics linter | `POST /v1/evaluate` | 13 flag types, CpG islands, thermodynamics |
+| Batch evaluate | `POST /v1/evaluate/batch` | Up to 100 sequences |
+| Sequence comparison | `POST /v1/compare` | 2–10 variants with deltas |
+| Layer license/provenance | `GET /v1/layers/{key}/license` | Source, license, ODbL flag, citation |
+| Gene lookup + aliases | `GET /v1/genes/{build}/{symbol}` | p53→TP53, OCT4→POU5F1 |
+| Sequence retrieval | `GET /v1/sequence/{build}/{region}` | Max 100 kb |
+| Aggregation | `GET /v1/aggregation/{build}/{region}` | Binned density for large regions |
+
+### Viewer Pages Live
+| Page | URL | Notes |
+|------|-----|-------|
+| Genome browser | `/view/{build}/{region}` | Canvas multi-track, shareable URLs |
+| Physics linter | `/evaluate` | Evidence badges, PNG export |
+| Methylation atlas | `/atlas` | Karyotype overview, GeneCards |
+| Gene detail | `/gene/{build}/{symbol}` | Transcript diagram, locus panels |
+| DMP viewer | `/dmp` | Differential methylation results |
+| API docs | `/developers` | Quickstart, endpoint reference |
+| Data sources | `/data-sources` | Per-layer citations |
 
 ---
 
-## Active Work — Expansion Wave 1 Remaining
+## Next Milestone: NAR Database Issue Paper
 
-### Phase 1C: Biophysical Depth
+**The single highest-leverage action.** NAR Database Issue is the IANA of biology — BLAST, CLUSTAL, Primer3, UniProt all live there. Publishing Polymer Genomics places it in that registry permanently.
+
+**Status:** Draft manuscript at `docs/paper/nar_database_issue_2026.md`
+**Deadline:** July–August 2026 for January 2027 issue
+**Platform readiness:** All engineering prerequisites complete (provenance, stats/summary, SDK on PyPI, versioned responses)
+
+**Remaining work:**
+- [ ] Finalize manuscript text (~3,500 words, 30 references)
+- [ ] Prepare 3-4 figures (architecture, physics linter output, cross-layer example, comparison table)
+- [ ] Internal review
+- [ ] Submit via academic.oup.com/nar
+
+---
+
+## Active Work
+
+### Viewer Enhancements (Goal: preeminent genome browser)
+| Feature | Effort | Status |
+|---------|--------|--------|
+| Compare sequences frontend UI | 2-3 days | API exists, frontend missing |
+| Semantic zoom (auto resolution selection) | 2-3 days | Planned |
+| Track export (PNG/SVG/BED/CSV) | 1-2 days | Planned |
+| Drag-to-reorder tracks, per-track settings | 1-2 days | Planned |
+| Enhanced search (autocomplete, match-type badges) | 1-2 days | Planned |
+| Multi-track comparison mode | 2-3 days | Planned |
+
+### Developer Adoption
+| Feature | Effort | Status |
+|---------|--------|--------|
+| Jupyter notebook examples (3-5 notebooks) | 1-2 days | Not started |
+| Landing page + comparison table (vs UCSC/Ensembl/ENCODE) | 1 day | Not started |
+| Quickstart guide ("3 API calls") | 1 day | Not started |
+| MCP integration guide | 1 day | Not started |
+
+### Data Depth
 | Task | Class | Effort | Status |
 |------|-------|--------|--------|
-| Melting domain tracks (Poland-Scheraga stitch profiles) | H | 5-7 days | Not started |
-| Per-position mutation dG (6 SBS-type tracks, stacking perturbation per SNV) | H | 5-7 days | Not started |
+| CpG context annotation columns (CGI/shore/shelf × genic × isochore) | D | 3-5 days | Not started |
+| Melting domain tracks (Poland-Scheraga) | H | 5-7 days | Not started |
+| ABC enhancer-gene predictions | S | 3-5 days | Not started |
+| JASPAR TF binding profiles | S | 3-5 days | Not started |
 
-### Phase 1D: Breakpoint/Fragility Stack
-| Task | Class | Effort | Status |
-|------|-------|--------|--------|
-| Breakpoint catalog (CFS, COSMIC SV, constitutional hotspots) | K | 2-3 days | Not started |
-| Non-B DNA predictions (G4, Z-DNA, cruciform, R-loop) | D | 3-5 days | Not started |
-| Fragility score (composite: non-B + stacking + curvature + replication timing) | H | 3-5 days | Not started |
-
-**H-class safeguards for fragility score:**
-- `falsification_path`: Compare predicted fragility vs PCAWG SV breakpoint density (ROC/AUC at 10kb)
-- `closest_lower_class_proxy`: D (demote if benchmark fails)
-
-### Phase 1E: Validation (Parallel)
-| Task | Status |
-|------|--------|
-| Validation framework scaffold (per-class protocols) | Not started |
-| Validation scripts for new Wave 1 layers | Not started |
-| Retrofit validation for existing layers | Not started |
-
-### Agent Harness — Remaining Items
+### Agent Harness
 | Task | Effort | Status |
 |------|--------|--------|
-| Pydantic output contracts (GeneResponse, ProbeAnnotation, RegionResponse) | 4-6 hrs | Not started |
-| MCP Resources for static context (polymer://layers, polymer://conventions/*) | 3-4 hrs | Not started |
-| PyPI publish (`uv tool install polymer-genomics-mcp`) | 2-3 hrs | Not started |
-| Docker image build + publish | 2-3 hrs | Dockerfile ready |
+| Embedded agent chat (Phase 5) | 4 days MVP | Design complete, not started |
+| Pydantic output contracts | 4-6 hrs | Not started |
+| MCP Resources for static context | 3-4 hrs | Not started |
+| MCP server PyPI publish | 2-3 hrs | Not started |
 
 ---
 
-## Planned — Expansion Wave 2: Strategic Depth (~4-6 weeks)
-
-### Data Layers
-| Layer | Class | Effort | Why Strategic |
-|-------|-------|--------|---------------|
-| Loyfer cell-type methylation atlas (39 cell types) | M | 5-7 days | Constrained tier data; atlas_layers table exists |
-| ABC enhancer-gene predictions (6.3M links, 131 biosamples) | S | 3-5 days | Connects regulatory biophysics to target genes |
-| JASPAR TF binding profiles | S | 3-5 days | TF motifs as sequence-intrinsic recognition on energy surface |
-
-### API Features
-| Feature | Effort | Description |
-|---------|--------|-------------|
-| Cross-layer intersection endpoint (`POST /v1/query/intersect`) | 5-7 days | Multi-filter GiST intersection. MCP tool: `intersect_layers` |
-| Statistical summary endpoint | 2-3 days | Mean/median/sd/quantiles per track for a region |
-| Comparative query endpoint | 2-3 days | Side-by-side stats for two regions |
-
-### UI Enhancements
-| Feature | Effort |
-|---------|--------|
-| Evidence class badges (M/R/D/S/K/H/L on track labels) | Low |
-| SVG/PNG export with auto-generated figure legend | Low |
-| Linked table-browser cross-selection | Low |
-| Multi-sample methylation heatmap track | Moderate |
-
-**Infrastructure:** Upgrade to 2 GB RAM, extend volume to 40 GB before data ingestion.
-
----
-
-## Planned — Embedded Agent Chat (Phase 5)
-
-> Full design: `archive/PHASE5_AGENT_CHAT.md`
-
-Browser chat panel on polymerbio.org — users ask questions about what they're viewing. Agent calls internal Python query functions directly (no HTTP round-trip per tool call).
-
-| Step | What | Effort |
-|------|------|--------|
-| 1 | Backend `/v1/chat` endpoint (SSE streaming, Anthropic Messages API) | 1 day |
-| 2 | System prompt (domain knowledge, page context) | 2 hrs |
-| 3 | Tool definitions + dispatcher (10-tool launch set) | 4 hrs |
-| 4 | Frontend ChatPanel (drawer, SSE client) | 2 days |
-| 5 | Methylation upload flow (`/analyze` page, R worker) | 3-4 days (deferred post-MVP) |
-| 6 | Genomics wiki (curated articles, `search_wiki` tool) | Ongoing |
-
-**Cost:** ~$30-50/mo at current scale. Steps 1-4 are the MVP (~4 days).
-
----
-
-## Planned — Expansion Wave 3: Selective Completeness (Gated)
+## Planned — Expansion Wave 3 (Gated)
 
 Each must pass: **does ingesting this serve our users better than linking to the source?**
 
 | Layer | Decision Framework |
 |-------|-------------------|
-| gnomAD v4 variants | Ingest common (AF>0.001) only? Or proxy gnomAD API with biophysical context? |
-| ClinVar | Small enough to ingest (~500 MB). Value in cross-referencing with biophysics. |
-| GTEx eQTLs | Massive volume. Ingest significant only (p < 1e-5)? |
-| Hi-C TADs/compartments | Ingest — connects to Polymer Evolution correlation length. |
+| gnomAD v4 variants | Ingest common (AF>0.001) only? Or proxy with biophysical context? |
+| ClinVar | Small (~500 MB). Value in cross-referencing with biophysics. |
+| GTEx eQTLs | Massive. Ingest significant only (p < 1e-5)? |
+| Hi-C TADs/compartments | Connects to correlation length / mechanical connectivity |
 | AlphaMissense | L-class. Proxy unless cross-layer queries demand local. |
-| Histone modifications (ENCODE) | 5 marks × cell types. Enables ChromHMM. |
-| Chromatin states (ChromHMM) | 15-state per cell type. Requires histone marks first. |
-| GWAS catalog (EBI) | Curated, p < 5e-8. Trait association overlay. |
-
-### UI Capstones
-- Semantic zoom (auto 1kb/10kb/100kb resolution selection)
-- Natural language search ("conserved CpG islands with low stacking energy near TET2")
-
-**Infrastructure:** Evaluate 4 GB RAM, extend volume to 60 GB if needed.
-
----
-
-## Viewer Polish (Parallel with Any Phase)
-
-| Feature | Status |
-|---------|--------|
-| Multi-track comparison mode (side-by-side regions) | Planned |
-| Track export (PNG/SVG/BED/CSV) | Planned |
-| Enhanced search (autocomplete, match-type badges) | Planned |
-| Drag-to-reorder tracks, per-track scale settings | Planned |
-| CostTrack canvas component (cost-graded color per gene) | Planned |
 
 ---
 
@@ -197,31 +175,30 @@ Each must pass: **does ingesting this serve our users better than linking to the
 
 | Item | Reason |
 |------|--------|
-| Polymer Evolution L0-L3 as API layers | Need independent experimental validation first |
-| MethSig channel endpoint | Depends on unvalidated physics quintiles |
-| BiologicalEntity / Epistemic OS schema | Research concept, not platform feature |
-| hg37 build | Add when explicitly requested |
+| Polymer Evolution L1-L3.5 as API layers | Need independent experimental validation + publication first |
+| MethSig NMF decomposition | Needs TCGA pan-cancer data + Phase II clinical |
+| ThermAge composite score | Needs MethSig + fragmentomics + clinical validation |
+| BiologicalEntity S4 class | Research concept, not platform feature |
 | Multi-user OAuth / JWT | API key sufficient until public launch |
 | Write / annotation editing endpoints | Read-only by design |
 | Real-time streaming / WebSocket | REST + tiles sufficient |
-| rpy2 integration | Subprocess is better (no GIL, reproducible) |
 | GraphQL | REST with `fields=` gives 80% of benefit |
 | Mobile / responsive | Desktop scientific instrument |
+
+These are the NEXT platform, not enhancements to THIS platform.
+
+---
+
+## Infrastructure
+
+- **API:** Fly.io, shared-cpu-2x, 1 GB RAM, iad region
+- **Database:** Fly.io Postgres 16, 20 GB volume (14 GB used, 70%)
+- **Frontend:** Vercel
+- **Object Storage:** AWS S3
+- **Scale-up path:** Volume grows instantly; CPU/RAM via `fly machine update --vm-size`
 
 ---
 
 ## Archive
 
-Historical plan documents preserved in `docs/plans/archive/`:
-- `ROADMAP_legacy.md` — original Phase 1-4 roadmap (superseded by this file)
-- `2026-03-09-expansion-blueprint-design.md` — epistemic schema design, layer classification table, wave strategy (approved, concepts absorbed here)
-- `2026-03-09-expansion-implementation-plan.md` — task-by-task implementation with commit SHAs for Phase 1A-1B
-- `AGENT_HARNESS.md` — 5-layer harness architecture, R bridge details, Pydantic model specs
-- `PHASE5_AGENT_CHAT.md` — full embedded chat design (architecture, system prompt, tool dispatch, upload flow)
-- `2026-02-25-genomics-api-design.md` — original V1 architecture spec (foundational, still accurate)
-- `2026-02-25-implementation-plan.md` — original V1 scaffold plan (historical)
-- `2026-02-27-strategic-dev-plan.md` — strategic reframing ("stop starting, start shipping")
-- `2026-03-02-phase2-implementation-plan.md` — Phase 2 task breakdown (superseded)
-- `2026-03-02-harness-architecture-plan.md` — agent harness vision, BiologicalEntity concept
-- `2026-03-02-gene-cost-layer-implementation.md` — gene bioenergetics 11-step implementation record
-- `PLATFORM_ROADMAP.md` — early 6-phase plan (superseded)
+Historical plan documents in `docs/plans/archive/`.

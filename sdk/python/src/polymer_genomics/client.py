@@ -138,6 +138,41 @@ class PolymerClient:
             "window_size": window_size,
         })
 
+    def batch_evaluate(
+        self,
+        sequences: Dict[str, str],
+        analysis: str = "full",
+        salt_mm: float = 1000.0,
+        window_size: int = 100,
+    ) -> Dict[str, Any]:
+        """Batch-evaluate up to 100 DNA sequences independently.
+
+        Unlike ``compare()``, this does NOT compute deltas — each sequence
+        is evaluated on its own. Designed for screening candidate libraries.
+
+        Parameters
+        ----------
+        sequences : dict
+            Mapping of names to DNA sequences. 1–100 sequences.
+        analysis : str
+            ``"full"``, ``"thermodynamic"``, or ``"structural"``.
+        salt_mm : float
+            NaCl concentration in mM.
+        window_size : int
+            Window size in bp.
+
+        Returns
+        -------
+        dict
+            Keys: ``summary``, ``evaluations``, optionally ``errors``.
+        """
+        return self._post("/v1/evaluate/batch", json={
+            "sequences": sequences,
+            "analysis": analysis,
+            "salt_mm": salt_mm,
+            "window_size": window_size,
+        })
+
     # ── Gene Lookup ──────────────────────────────────────────────────
 
     def gene(self, build: str, symbol: str) -> Dict[str, Any]:
@@ -424,6 +459,49 @@ class PolymerClient:
         if layer_type:
             params["type"] = layer_type
         return self._get("/v1/layers", params=params)
+
+    # ── Platform & Profile ──────────────────────────────────────────
+
+    def platform_summary(self) -> Dict[str, Any]:
+        """Platform-wide statistics (total layers, rows, builds)."""
+        return self._get("/v1/stats/summary")
+
+    def region_profile(
+        self,
+        build: str,
+        region: str,
+        include_negative: bool = False,
+    ) -> Dict[str, Any]:
+        """Comprehensive profile of a region across all data layers.
+
+        Returns feature counts per layer, significance flags, and
+        optionally negative annotations (layers with no features).
+
+        Parameters
+        ----------
+        build : str
+            ``"hg38"`` or ``"hg37"``.
+        region : str
+            Region string (max 1 Mb).
+        include_negative : bool
+            Include layers with no features in the region.
+        """
+        params: Dict[str, str] = {}
+        if include_negative:
+            params["include_negative"] = "true"
+        return self._get(f"/v1/profile/{build}/{region}", params=params)
+
+    def layer_license(self, layer_key: str) -> Dict[str, Any]:
+        """Full license, citation, and provenance for a data layer."""
+        return self._get(f"/v1/layers/{layer_key}/license")
+
+    def recipes(self) -> Dict[str, Any]:
+        """List available cross-layer query recipes."""
+        return self._get("/v1/query/recipes")
+
+    def recipe(self, recipe_key: str) -> Dict[str, Any]:
+        """Get a specific recipe with full filter specification."""
+        return self._get(f"/v1/query/recipe/{recipe_key}")
 
     # ── Advanced ─────────────────────────────────────────────────────
 

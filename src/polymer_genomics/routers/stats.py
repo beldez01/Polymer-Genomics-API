@@ -96,6 +96,85 @@ def _round_safe(val, digits: int = 6):
     return round(float(val), digits)
 
 
+@router.get("/summary")
+async def platform_summary():
+    """Platform-wide statistics summary.
+
+    Returns total layers, total rows, supported builds, and coverage
+    information. Designed for NAR Database Issue reviewers and API
+    documentation.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        # Total active layers
+        layer_stats = await conn.fetchrow(
+            """SELECT count(*) AS total_layers,
+                      count(DISTINCT layer_type) AS distinct_types,
+                      count(DISTINCT genome_build) AS builds,
+                      sum(row_count) AS total_rows
+               FROM registry.layers
+               WHERE is_active = true AND is_default = true"""
+        )
+
+        # Per-build breakdown
+        build_rows = await conn.fetch(
+            """SELECT genome_build::text AS build,
+                      count(*) AS layers,
+                      sum(row_count) AS rows
+               FROM registry.layers
+               WHERE is_active = true AND is_default = true
+               GROUP BY genome_build
+               ORDER BY genome_build"""
+        )
+
+        # Evidence class distribution
+        evidence_rows = await conn.fetch(
+            """SELECT evidence_class::text AS evidence_class,
+                      count(*) AS layers
+               FROM registry.layers
+               WHERE is_active = true AND is_default = true
+               GROUP BY evidence_class
+               ORDER BY evidence_class"""
+        )
+
+        # Layer type distribution
+        type_rows = await conn.fetch(
+            """SELECT layer_type::text AS layer_type,
+                      count(*) AS layers,
+                      sum(row_count) AS rows
+               FROM registry.layers
+               WHERE is_active = true AND is_default = true
+               GROUP BY layer_type
+               ORDER BY sum(row_count) DESC"""
+        )
+
+    from polymer_genomics import __version__
+    from polymer_genomics.envelope import DATA_VERSION
+
+    return {
+        "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
+        "platform": {
+            "total_layers": layer_stats["total_layers"],
+            "distinct_layer_types": layer_stats["distinct_types"],
+            "supported_builds": layer_stats["builds"],
+            "total_rows": layer_stats["total_rows"],
+        },
+        "builds": [
+            {"build": r["build"], "layers": r["layers"], "rows": r["rows"]}
+            for r in build_rows
+        ],
+        "evidence_classes": {r["evidence_class"]: r["layers"] for r in evidence_rows},
+        "layer_types": [
+            {"type": r["layer_type"], "layers": r["layers"], "rows": r["rows"]}
+            for r in type_rows
+        ],
+        "documentation": "https://api.polymerbio.org/docs",
+        "data_sources": "https://polymerbio.org/data-sources",
+    }
+
+
 @router.get("/{build}/{region}")
 async def region_stats(
     build: str,

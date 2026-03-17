@@ -45,6 +45,28 @@ batch = client.batch_probes("hg38", ["cg00000029", "cg00000108"])
 # Biophysical properties of a genomic region
 bp = client.biophysics("hg38", "chr17:7668402-7669000")
 
+# Batch evaluate up to 100 sequences
+batch = client.batch_evaluate({
+    "v1": "ATGCGATCGATCG" * 20,
+    "v2": "ATGCAATCGATCG" * 20,
+    "v3": "ATGCGATCAATCG" * 20,
+})
+print(batch["summary"])  # GC range, warning counts
+
+# Region profile — everything about a region in one call
+profile = client.region_profile("hg38", "chr17:7668402-7687550")
+print(profile["summary"])  # layers with/without features
+print(profile["flags"])    # significance flags
+
+# Platform statistics
+stats = client.platform_summary()
+print(stats["platform"]["total_rows"])
+
+# Cross-layer query recipes
+recipes = client.recipes()
+recipe = client.recipe("silencing_prone_regions")
+# Use recipe filters with client.intersect()
+
 # Reference data
 nn = client.nn_parameters()          # nearest-neighbor thermodynamics
 aa = client.amino_acid_properties()  # amino acid physicochemical data

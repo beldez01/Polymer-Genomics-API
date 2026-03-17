@@ -3,6 +3,11 @@
 import time
 from typing import Any
 
+from polymer_genomics import __version__
+
+# Bumped when data layers are materially updated (new ingestion, schema change)
+DATA_VERSION = "2026.03"
+
 
 def build_envelope(
     *,
@@ -18,6 +23,8 @@ def build_envelope(
     envelope = {
         "status": status,
         "coordinate_system": "1-based_closed",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
         "query": query,
         "layers_resolved": layers_resolved,
         "data": data,
