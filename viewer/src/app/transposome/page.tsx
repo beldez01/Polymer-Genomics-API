@@ -123,6 +123,33 @@ export default function TransposomePage() {
         />
       </BrandBar>
 
+      {/* Preview disclosure */}
+      <div style={{
+        backgroundColor: `${COLOR.accent.amber}15`,
+        borderBottom: `1px solid ${COLOR.accent.amber}40`,
+        padding: `${SPACE[2]}px 24px`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: SPACE[3],
+      }}>
+        <span style={{
+          color: COLOR.accent.amber,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          fontWeight: WEIGHT.medium,
+          letterSpacing: '0.06em',
+        }}>
+          PREVIEW
+        </span>
+        <span style={{
+          color: COLOR.text.secondary,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+        }}>
+          This page shows representative data. Live data integration is in progress.
+        </span>
+      </div>
+
       {/* Hero Header — compact to fit in single viewport */}
       <div style={{ padding: '12px 24px 10px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
