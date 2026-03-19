@@ -7,6 +7,7 @@ import { ClockObservatory } from '@/components/clocks/ClockObservatory';
 import { ClockAnatomy } from '@/components/clocks/ClockAnatomy';
 import { CrossClockComparison } from '@/components/clocks/CrossClockComparison';
 import { ClockCalculator } from '@/components/clocks/ClockCalculator';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT, COMPONENT } from '@/config/theme';
 import type { ClockMetadata, ClockProbe } from '@/lib/api';
 import { fetchClockList, fetchClockDetail } from '@/lib/api';
@@ -180,11 +181,13 @@ export default function ClocksPage() {
               </span>
             </div>
           ) : (
-            <ClockObservatory
-              clocks={clocks}
-              selectedClock={selectedClock}
-              onSelect={handleSelectClock}
-            />
+            <ErrorBoundary fallbackLabel="Clock Observatory">
+              <ClockObservatory
+                clocks={clocks}
+                selectedClock={selectedClock}
+                onSelect={handleSelectClock}
+              />
+            </ErrorBoundary>
           )}
         </section>
 
@@ -277,26 +280,32 @@ export default function ClocksPage() {
                 </div>
               )}
               {selectedDetail && !loadingDetail && (
-                <ClockAnatomy
-                  clock={selectedDetail.meta}
-                  probes={selectedDetail.probes}
-                />
+                <ErrorBoundary fallbackLabel="Clock Anatomy">
+                  <ClockAnatomy
+                    clock={selectedDetail.meta}
+                    probes={selectedDetail.probes}
+                  />
+                </ErrorBoundary>
               )}
             </>
           )}
 
           {activeTab === 'comparison' && allLoaded && (
-            <CrossClockComparison
-              clockProbes={clockProbes}
-              clockNames={clockNames}
-            />
+            <ErrorBoundary fallbackLabel="Cross-Clock Comparison">
+              <CrossClockComparison
+                clockProbes={clockProbes}
+                clockNames={clockNames}
+              />
+            </ErrorBoundary>
           )}
 
           {activeTab === 'calculator' && allLoaded && (
-            <ClockCalculator
-              clockMeta={clocks}
-              clockProbes={clockProbes}
-            />
+            <ErrorBoundary fallbackLabel="Clock Calculator">
+              <ClockCalculator
+                clockMeta={clocks}
+                clockProbes={clockProbes}
+              />
+            </ErrorBoundary>
           )}
         </section>
       </div>

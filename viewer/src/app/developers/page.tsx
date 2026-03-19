@@ -194,7 +194,7 @@ export default function DevelopersPage() {
             30-SECOND QUICKSTART
           </p>
           <pre style={CODE_BLOCK}>
-{`pip install polymer-genomics
+{`pip install polymer-genomics==0.2.0
 
 from polymer_genomics import PolymerClient
 
@@ -204,6 +204,75 @@ report = client.evaluate("ATGCGATCGATCGATCG" * 20)
 print(report["flag_counts"])   # {"warning": 0, "info": 2}
 print(report["summary"]["gc_content"])  # 0.529`}
           </pre>
+        </div>
+
+        {/* API Key */}
+        <div style={{
+          backgroundColor: COLOR.bg.surface,
+          border: `1px solid ${COLOR.border.subtle}`,
+          borderRadius: 6,
+          padding: `${SPACE[4]}px ${SPACE[6]}px`,
+          marginTop: SPACE[6],
+        }}>
+          <div style={{
+            fontSize: TYPE.sm.fontSize,
+            fontWeight: WEIGHT.medium,
+            color: COLOR.accent.amber,
+            fontFamily: FONT_FAMILY,
+            letterSpacing: '0.06em',
+            marginBottom: SPACE[2],
+          }}>
+            API KEY
+          </div>
+          <p style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.7,
+            margin: 0,
+          }}>
+            The API requires a key for all data endpoints. During the research preview,
+            keys are issued manually. Email{' '}
+            <a href="mailto:hello@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              hello@polymerbio.org
+            </a>
+            {' '}with your name and institution.
+            The browser at polymerbio.org uses a built-in key &mdash; no setup needed for interactive use.
+          </p>
+        </div>
+
+        {/* Limits & Versions */}
+        <div style={{
+          backgroundColor: COLOR.bg.surface,
+          border: `1px solid ${COLOR.border.subtle}`,
+          borderRadius: 6,
+          padding: `${SPACE[4]}px ${SPACE[6]}px`,
+          marginTop: SPACE[4],
+        }}>
+          <div style={{
+            fontSize: TYPE.sm.fontSize,
+            fontWeight: WEIGHT.medium,
+            color: COLOR.text.secondary,
+            fontFamily: FONT_FAMILY,
+            letterSpacing: '0.06em',
+            marginBottom: SPACE[2],
+          }}>
+            LIMITS &amp; VERSIONS
+          </div>
+          <div style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.8,
+          }}>
+            <div>API version: <code style={{ color: COLOR.accent.teal }}>0.2.0</code></div>
+            <div>SDK version: <code style={{ color: COLOR.accent.teal }}>polymer-genomics 0.2.0</code></div>
+            <div>Max sequence length (evaluate): 100,000 bp</div>
+            <div>Max region size (region query): 10 Mb</div>
+            <div>Max batch probes: 10,000</div>
+            <div>Max batch evaluate: 100 sequences</div>
+            <div>Max sequence retrieval: 100 kb</div>
+          </div>
         </div>
       </section>
 

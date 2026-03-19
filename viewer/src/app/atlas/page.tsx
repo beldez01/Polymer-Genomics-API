@@ -9,6 +9,7 @@ import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
 import { GeneSearch } from '@/components/atlas/GeneSearch';
 import { GeneCard } from '@/components/atlas/GeneCard';
 import { Footer } from '@/components/Footer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
 
 // ---------------------------------------------------------------------------
@@ -304,7 +305,9 @@ export default function AtlasPage() {
           opacity: viewState === 'overview' ? 1 : 0,
           transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
+          <ErrorBoundary fallbackLabel="Karyotype Overview">
+            <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
+          </ErrorBoundary>
         </div>
       )}
 
@@ -332,11 +335,13 @@ export default function AtlasPage() {
           transform: viewState === 'gene' ? 'translateY(0)' : 'translateY(20px)',
           transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <GeneCard
-            symbol={selectedGene}
-            build={BUILD}
-            onBack={goBackFromGene}
-          />
+          <ErrorBoundary fallbackLabel="Gene Card">
+            <GeneCard
+              symbol={selectedGene}
+              build={BUILD}
+              onBack={goBackFromGene}
+            />
+          </ErrorBoundary>
         </div>
       )}
       <Footer />

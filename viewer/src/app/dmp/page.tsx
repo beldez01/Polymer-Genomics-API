@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
 import { BrandBar } from '@/components/BrandBar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Footer } from '@/components/Footer';
 import { UploadZone } from '@/components/dmp/UploadZone';
 import { VolcanoPlot } from '@/components/dmp/VolcanoPlot';
@@ -283,6 +284,7 @@ export default function DMPPage() {
 
           {/* Tab content */}
           {activeTab === 'volcano' && dataset && (
+            <ErrorBoundary fallbackLabel="Volcano Plot">
             <div style={{
               flex: 1,
               display: 'flex',
@@ -338,9 +340,11 @@ export default function DMPPage() {
                 />
               </div>
             </div>
+            </ErrorBoundary>
           )}
 
           {activeTab === 'manhattan' && dataset && (
+            <ErrorBoundary fallbackLabel="Manhattan Plot">
             <div style={{
               flex: 1,
               display: 'flex',
@@ -396,24 +400,31 @@ export default function DMPPage() {
                 />
               </div>
             </div>
+            </ErrorBoundary>
           )}
 
           {activeTab === 'clustering' && (
+            <ErrorBoundary fallbackLabel="Clustering">
             <div style={{ flex: 1, overflow: 'auto' }}>
               <ClusteringPanel />
             </div>
+            </ErrorBoundary>
           )}
 
           {activeTab === 'enrichment' && dataset && (
+            <ErrorBoundary fallbackLabel="Enrichment">
             <div style={{ flex: 1, overflow: 'auto' }}>
               <EnrichmentPanel rows={rows} thresholds={thresholds} />
             </div>
+            </ErrorBoundary>
           )}
 
           {activeTab === 'compare' && (
+            <ErrorBoundary fallbackLabel="Comparison">
             <div style={{ flex: 1, overflow: 'auto' }}>
               <ComparisonPanel thresholds={thresholds} />
             </div>
+            </ErrorBoundary>
           )}
         </div>
       )}
