@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Polymer Genomics API
   description: Curated genomic reference database for agents and bioinformaticians
-  version: 0.1.0
+  version: 0.2.0
 paths:
   /v1/aggregation/{build}/{region}:
     get:
@@ -82,6 +82,68 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/expression:
+    get:
+      tags:
+      - expression
+      summary: Get Gene Expression
+      operationId: get_gene_expression_v1_genes__build___symbol__expression_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/cost:
+    get:
+      tags:
+      - gene_costs
+      summary: Get Gene Cost
+      operationId: get_gene_cost_v1_genes__build___symbol__cost_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/genes/{build}/{symbol}:
     get:
       tags:
@@ -143,6 +205,53 @@ paths:
           type: boolean
           default: true
           title: Active
+      - name: evidence_class
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Evidence Class
+      - name: tier
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Tier
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/layers/summary/{build}:
+    get:
+      tags:
+      - layers
+      summary: Layer Summary
+      description: 'Genome-wide summary counts for key layers.
+
+
+        Returns authoritative feature counts from the database, including
+
+        protein-coding gene count (filtered from gene.features).'
+      operationId: layer_summary_v1_layers_summary__build__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
       responses:
         '200':
           description: Successful Response
@@ -161,6 +270,38 @@ paths:
       - layers
       summary: Get Layer
       operationId: get_layer_v1_layers__layer_key__get
+      parameters:
+      - name: layer_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Layer Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/layers/{layer_key}/license:
+    get:
+      tags:
+      - layers
+      summary: Get Layer License
+      description: 'Full license, citation, and provenance information for a data
+        layer.
+
+
+        Returns the source database, license terms, and citation information.
+
+        Useful for NAR-style attribution and compliance auditing.'
+      operationId: get_layer_license_v1_layers__layer_key__license_get
       parameters:
       - name: layer_key
         in: path
@@ -242,25 +383,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /v1/regions/{build}/{region}:
+  /v1/query:
     get:
       tags:
-      - regions
-      summary: Query Region
-      operationId: query_region_v1_regions__build___region__get
+      - proximity
+      summary: Query Proximity
+      operationId: query_proximity_v1_query_get
       parameters:
       - name: build
-        in: path
+        in: query
         required: true
         schema:
           type: string
           title: Build
-      - name: region
-        in: path
+      - name: gene
+        in: query
         required: true
         schema:
           type: string
-          title: Region
+          title: Gene
+      - name: radius
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          title: Radius
       - name: layers
         in: query
         required: false
@@ -297,6 +445,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/regions/{build}/{region}:
+    get:
+      tags:
+      - regions
+      summary: Query Region
+      operationId: query_region_v1_regions__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: layers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Layers
+      - name: fields
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fields
+      - name: coords
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1based
+          title: Coords
+      - name: limit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 1
+          - type: 'null'
+          title: Limit
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cursor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/search:
     get:
       tags:
@@ -310,6 +529,7 @@ paths:
         schema:
           type: string
           minLength: 1
+          maxLength: 100
           title: Q
       - name: build
         in: query
@@ -428,6 +648,1127 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/protein-abundance:
+    get:
+      tags:
+      - protein_abundance
+      summary: Get Protein Abundance
+      operationId: get_protein_abundance_v1_genes__build___symbol__protein_abundance_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/constraint:
+    get:
+      tags:
+      - constraint
+      summary: Get Gene Constraint
+      operationId: get_gene_constraint_v1_genes__build___symbol__constraint_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/pathways:
+    get:
+      tags:
+      - pathways
+      summary: Get Gene Pathways
+      operationId: get_gene_pathways_v1_genes__build___symbol__pathways_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/gene-sets:
+    get:
+      tags:
+      - gene_sets
+      summary: Get Gene Sets
+      operationId: get_gene_sets_v1_genes__build___symbol__gene_sets_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/protein-atlas:
+    get:
+      tags:
+      - protein_atlas
+      summary: Get Protein Atlas
+      operationId: get_protein_atlas_v1_genes__build___symbol__protein_atlas_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/nn-parameters:
+    get:
+      tags:
+      - reference
+      summary: Get Nn Parameters
+      description: "Return nearest-neighbor thermodynamic parameters.\n\n\u0394H (kcal/mol),\
+        \ \u0394S (cal/mol\xB7K), \u0394G\u2083\u2087 (kcal/mol) per dinucleotide\
+        \ step\nin 1 M NaCl at 37\xB0C."
+      operationId: get_nn_parameters_v1_reference_nn_parameters_get
+      parameters:
+      - name: duplex_type
+        in: query
+        required: false
+        schema:
+          type: string
+          description: '''dna_dna'', ''rna_rna'', or ''rna_dna'''
+          default: dna_dna
+          title: Duplex Type
+        description: '''dna_dna'', ''rna_rna'', or ''rna_dna'''
+      - name: dinucleotide
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Specific dinucleotide (e.g. 'CG')
+          title: Dinucleotide
+        description: Specific dinucleotide (e.g. 'CG')
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/dinucleotide-properties:
+    get:
+      tags:
+      - reference
+      summary: Get Dinucleotide Properties
+      description: 'Return per-dinucleotide biophysical properties.
+
+
+        Extinction coefficients (Tataurov 2008), A/Z-form propensity, and
+
+        groove geometry per dinucleotide step.'
+      operationId: get_dinucleotide_properties_v1_reference_dinucleotide_properties_get
+      parameters:
+      - name: dinucleotide
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Specific dinucleotide (e.g. 'CG')
+          title: Dinucleotide
+        description: Specific dinucleotide (e.g. 'CG')
+      - name: property_set
+        in: query
+        required: false
+        schema:
+          type: string
+          description: '''all'', ''extinction'', ''groove'', or ''form_propensity'''
+          default: all
+          title: Property Set
+        description: '''all'', ''extinction'', ''groove'', or ''form_propensity'''
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/amino-acid-properties:
+    get:
+      tags:
+      - reference
+      summary: Get Amino Acid Properties
+      description: 'Return amino acid biophysical reference properties.
+
+
+        Molecular weight, volume (Zamyatnin), SASA, hydrophobicity (3 scales),
+
+        pKa, and biosynthetic cost (Akashi-Gojobori) per residue.'
+      operationId: get_amino_acid_properties_v1_reference_amino_acid_properties_get
+      parameters:
+      - name: residue
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: One-letter amino acid code (e.g. 'M')
+          title: Residue
+        description: One-letter amino acid code (e.g. 'M')
+      - name: scale
+        in: query
+        required: false
+        schema:
+          type: string
+          description: 'Hydrophobicity scale: ''kd'', ''ww'', ''eisenberg'', or ''all'''
+          default: all
+          title: Scale
+        description: 'Hydrophobicity scale: ''kd'', ''ww'', ''eisenberg'', or ''all'''
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/physical-constants:
+    get:
+      tags:
+      - reference
+      summary: Get Physical Constants
+      description: 'Return scalar biophysical constants.
+
+
+        Persistence length, Manning parameters, elastic moduli, polymerase rates,
+
+        ribosome speed, and other canonical values with units and provenance.'
+      operationId: get_physical_constants_v1_reference_physical_constants_get
+      parameters:
+      - name: name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Exact constant name (e.g. 'lp_bdna_physiological_nm')
+          title: Name
+        description: Exact constant name (e.g. 'lp_bdna_physiological_nm')
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by category (e.g. 'mechanics', 'kinetics')
+          title: Category
+        description: Filter by category (e.g. 'mechanics', 'kinetics')
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/sbs-spectrum:
+    get:
+      tags:
+      - reference
+      summary: Get Sbs Spectrum
+      description: "Return SBS thermodynamic spectrum.\n\n96-channel COSMIC SBS trinucleotide\
+        \ mutation spectrum with nearest-neighbor\nstacking energy perturbation (\u03B4\
+        \u0394G) computed from SantaLucia 1998 parameters.\nPositive \u03B4\u0394\
+        G = destabilizing mutation."
+      operationId: get_sbs_spectrum_v1_reference_sbs_spectrum_get
+      parameters:
+      - name: mutation_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by mutation type (e.g. 'C>A')
+          title: Mutation Type
+        description: Filter by mutation type (e.g. 'C>A')
+      - name: channel
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Specific SBS channel (e.g. 'A[C>A]G')
+          title: Channel
+        description: Specific SBS channel (e.g. 'A[C>A]G')
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/clock-probes:
+    get:
+      tags:
+      - reference
+      summary: Get Clock Probes
+      description: 'Return epigenetic clock probe coefficients.
+
+
+        Query by clock name to get all probes for that clock, or by probe_id
+
+        to see which clocks use that probe and its coefficient in each.
+
+        Omit both to list all clocks with metadata.'
+      operationId: get_clock_probes_v1_reference_clock_probes_get
+      parameters:
+      - name: clock
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Clock name (e.g. 'horvath_2013')
+          title: Clock
+        description: Clock name (e.g. 'horvath_2013')
+      - name: probe_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Probe ID to check clock membership (e.g. 'cg16867657')
+          title: Probe Id
+        description: Probe ID to check clock membership (e.g. 'cg16867657')
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/probe-repeat-overlap:
+    get:
+      tags:
+      - reference
+      summary: Get Probe Repeat Overlap
+      description: 'Look up probes that overlap repeat elements.
+
+
+        Returns the probe-repeat cross-reference: which methylation probes sit
+
+        inside LINE, SINE, LTR, or DNA transposon elements, with evolutionary
+
+        age classification.
+
+
+        Query by probe_id to check if a specific probe is in a repeat, or
+
+        filter by repeat_class/repeat_age to find all probes in a category.'
+      operationId: get_probe_repeat_overlap_v1_reference_probe_repeat_overlap_get
+      parameters:
+      - name: probe_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Probe ID (e.g. 'cg16867657')
+          title: Probe Id
+        description: Probe ID (e.g. 'cg16867657')
+      - name: platform
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Platform filter ('epic_v2', 'epic_v1', '450k')
+          title: Platform
+        description: Platform filter ('epic_v2', 'epic_v1', '450k')
+      - name: repeat_class
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Repeat class filter ('LINE', 'SINE', 'LTR', 'DNA')
+          title: Repeat Class
+        description: Repeat class filter ('LINE', 'SINE', 'LTR', 'DNA')
+      - name: repeat_age
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Repeat age filter ('young', 'intermediate', 'ancient')
+          title: Repeat Age
+        description: Repeat age filter ('young', 'intermediate', 'ancient')
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10000
+          description: Maximum results to return
+          default: 100
+          title: Limit
+        description: Maximum results to return
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/reference/validation:
+    get:
+      tags:
+      - reference
+      summary: Get Validation Report
+      description: 'Run integrity validation checks on data layers.
+
+
+        Checks row counts, value ranges, and null fractions against per-layer
+
+        specifications.  Returns a report with pass/fail for each check.'
+      operationId: get_validation_report_v1_reference_validation_get
+      parameters:
+      - name: build
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Genome build
+          default: hg38
+          title: Build
+        description: Genome build
+      - name: layer_key
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Validate a single layer (omit for all)
+          title: Layer Key
+        description: Validate a single layer (omit for all)
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/biophysics/{build}/{region}:
+    get:
+      tags:
+      - biophysics
+      summary: Compute Region Biophysics
+      description: 'Compute sequence-derived biophysical properties for a genomic
+        region.
+
+
+        Fetches the DNA sequence and applies published lookup tables to compute
+
+        per-dinucleotide profiles. Each dinucleotide step becomes one range element
+
+        in the GRanges output (2 bp wide).
+
+
+        Maximum 10,000 bp per request at full resolution.'
+      operationId: compute_region_biophysics_v1_biophysics__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: duplex_type
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Duplex type for NN params (only 'dna_dna' for genomic DNA)
+          default: dna_dna
+          title: Duplex Type
+        description: Duplex type for NN params (only 'dna_dna' for genomic DNA)
+      - name: salt_mm
+        in: query
+        required: false
+        schema:
+          type: number
+          description: NaCl concentration in mM (1000 = standard, 150 = physiological)
+          default: 1000.0
+          title: Salt Mm
+        description: NaCl concentration in mM (1000 = standard, 150 = physiological)
+      - name: properties
+        in: query
+        required: false
+        schema:
+          type: string
+          description: 'Comma-separated: thermodynamics,extinction,groove,form_propensity
+            or ''all'''
+          default: all
+          title: Properties
+        description: 'Comma-separated: thermodynamics,extinction,groove,form_propensity
+          or ''all'''
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/correlate/{build}/{region}:
+    get:
+      tags:
+      - correlation
+      summary: Correlate Layers
+      operationId: correlate_layers_v1_correlate__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: layer_a
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Layer key for first layer
+          title: Layer A
+        description: Layer key for first layer
+      - name: layer_b
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Layer key for second layer
+          title: Layer B
+        description: Layer key for second layer
+      - name: stat
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Statistic to compute
+          title: Stat
+        description: Statistic to compute
+      - name: resolution
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Bin size in bp
+          default: 10000
+          title: Resolution
+        description: Bin size in bp
+      - name: field_a
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Numeric field from layer_a
+          default: density
+          title: Field A
+        description: Numeric field from layer_a
+      - name: field_b
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Numeric field from layer_b
+          default: density
+          title: Field B
+        description: Numeric field from layer_b
+      - name: coords
+        in: query
+        required: false
+        schema:
+          type: string
+          default: 1based
+          title: Coords
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/cpg-profile/{build}/{query}:
+    get:
+      tags:
+      - cpg-profile
+      summary: Get Cpg Profile
+      operationId: get_cpg_profile_v1_cpg_profile__build___query__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: query
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Query
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/query/intersect:
+    post:
+      tags:
+      - intersection
+      summary: Intersect Layers
+      description: 'Find genomic positions satisfying multiple cross-layer conditions.
+
+
+        Each filter specifies a layer, optional field, operator, and threshold.
+
+        Returns positions that satisfy ALL filters (boolean AND intersection).'
+      operationId: intersect_layers_v1_query_intersect_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntersectRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/evaluate:
+    post:
+      tags:
+      - evaluate
+      summary: Evaluate Design
+      description: "Evaluate the biophysical properties of a DNA sequence.\n\nTakes\
+        \ any DNA sequence (10\u2013100,000 bp) and returns a comprehensive\nbiophysical\
+        \ assessment including thermodynamic stability, structural\nproperties, CpG\
+        \ islands, and flagged regions of concern.\n\nThis is a **pure computation**\
+        \ endpoint \u2014 no database or reference genome\nneeded. The sequence is\
+        \ analyzed directly using published biophysical\nlookup tables (SantaLucia\
+        \ 1998, Tataurov 2008, El Hassan & Calladine\n1996/1997, Ho 1986, Gardiner-Garden\
+        \ & Frommer 1987).\n\n**Use cases:**\n- Evaluate a synthetic construct before\
+        \ ordering synthesis\n- Flag CpG islands that may cause silencing in mammalian\
+        \ cells\n- Assess thermodynamic stability uniformity across a construct\n\
+        - Detect homopolymer runs and dinucleotide repeats (synthesis difficulty)\n\
+        - Compare windowed GC and stacking energy profiles"
+      operationId: evaluate_design_v1_evaluate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/compare:
+    post:
+      tags:
+      - evaluate
+      summary: Compare Sequences
+      description: "Compare biophysical properties of multiple DNA sequences.\n\n\
+        Accepts 2\u201310 named sequences and returns per-sequence evaluations plus\n\
+        a delta table comparing each sequence against the first (reference).\n\n**Use\
+        \ cases:**\n- Compare codon-optimized variants against wildtype\n- Evaluate\
+        \ multiple promoter candidates side-by-side\n- Assess the biophysical impact\
+        \ of mutations or redesigns"
+      operationId: compare_sequences_v1_compare_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompareRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/evaluate/batch:
+    post:
+      tags:
+      - evaluate
+      summary: Batch Evaluate
+      description: "Evaluate biophysical properties of up to 100 DNA sequences.\n\n\
+        Returns per-sequence evaluation reports. Unlike /compare, this does NOT\n\
+        compute deltas \u2014 it evaluates each sequence independently. Designed for\n\
+        synthetic biology teams screening candidate libraries.\n\n**Use cases:**\n\
+        - Screen a library of codon-optimized variants\n- Batch-evaluate promoter\
+        \ candidates\n- Pre-screen synthesis orders for problematic sequences"
+      operationId: batch_evaluate_v1_evaluate_batch_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchEvaluateRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/stats/summary:
+    get:
+      tags:
+      - stats
+      summary: Platform Summary
+      description: 'Platform-wide statistics summary.
+
+
+        Returns total layers, total rows, supported builds, and coverage
+
+        information. Designed for NAR Database Issue reviewers and API
+
+        documentation.'
+      operationId: platform_summary_v1_stats_summary_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /v1/stats/{build}/{region}:
+    get:
+      tags:
+      - stats
+      summary: Region Stats
+      description: 'Get summary statistics for data layers in a genomic region.
+
+
+        Returns mean, median, sd, min, max, and percentiles (p25, p75) for
+
+        continuous layers, or count + density for count-mode layers.'
+      operationId: region_stats_v1_stats__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: layers
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Layers
+      - name: fields
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Fields
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/profile/{build}/{region}:
+    get:
+      tags:
+      - profile
+      summary: Region Profile
+      description: 'Comprehensive profile of a genomic region across all data layers.
+
+
+        Runs all active layers and returns a structured summary including:
+
+        - Feature counts per layer
+
+        - Summary statistics for continuous layers
+
+        - Significance flags (unusual values relative to genome-wide distributions)
+
+        - Negative annotations (layers with NO features, if include_negative=true)
+
+
+        Max region size: 1 Mb. For larger regions, use aggregate_region.'
+      operationId: region_profile_v1_profile__build___region__get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Region
+      - name: include_negative
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Include layers with NO features in the region (informative
+            absences).
+          default: false
+          title: Include Negative
+        description: Include layers with NO features in the region (informative absences).
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/profile:
+    get:
+      tags:
+      - gene_profiles
+      summary: Get Gene Profile
+      operationId: get_gene_profile_v1_genes__build___symbol__profile_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/genes/{build}/{symbol}/similar:
+    get:
+      tags:
+      - gene_profiles
+      summary: Get Similar Genes
+      operationId: get_similar_genes_v1_genes__build___symbol__similar_get
+      parameters:
+      - name: build
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Build
+      - name: symbol
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Symbol
+      - name: n
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 50
+          minimum: 1
+          default: 10
+          title: N
+      - name: mode
+        in: query
+        required: false
+        schema:
+          type: string
+          default: integrated
+          title: Mode
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/query/recipes:
+    get:
+      tags:
+      - recipes
+      summary: List Recipes
+      description: 'List all available cross-layer query recipes.
+
+
+        Recipes are prebuilt intersect_layers queries that answer common
+
+        biological questions. Use /v1/query/recipe/{name} to get the full
+
+        recipe with filters ready to submit to /v1/query/intersect.'
+      operationId: list_recipes_v1_query_recipes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /v1/query/recipe/{recipe_key}:
+    get:
+      tags:
+      - recipes
+      summary: Get Recipe
+      description: "Get a specific recipe with its full filter specification.\n\n\
+        The returned filters can be submitted directly to POST /v1/query/intersect\n\
+        with a region of your choice.\n\nExample workflow:\n1. GET /v1/query/recipes\
+        \ \u2192 browse available recipes\n2. GET /v1/query/recipe/silencing_prone_regions\
+        \ \u2192 get filters\n3. POST /v1/query/intersect with {region: \"chr17:7668402-7687550\"\
+        , filters: <from step 2>}"
+      operationId: get_recipe_v1_query_recipe__recipe_key__get
+      parameters:
+      - name: recipe_key
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Recipe Key
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       summary: Health
@@ -440,6 +1781,118 @@ paths:
               schema: {}
 components:
   schemas:
+    BatchEvaluateRequest:
+      properties:
+        sequences:
+          additionalProperties:
+            type: string
+          type: object
+          maxProperties: 100
+          minProperties: 1
+          title: Sequences
+          description: "Named sequences to evaluate. Keys are labels, values are DNA\
+            \ sequences. 1\u2013100 sequences."
+        analysis:
+          type: string
+          pattern: ^(full|thermodynamic|structural)$
+          title: Analysis
+          description: Analysis type.
+          default: full
+        salt_mm:
+          type: number
+          maximum: 5000.0
+          minimum: 1.0
+          title: Salt Mm
+          description: NaCl concentration in mM.
+          default: 1000.0
+        window_size:
+          type: integer
+          maximum: 10000.0
+          minimum: 20.0
+          title: Window Size
+          description: Window size in bp.
+          default: 100
+      type: object
+      required:
+      - sequences
+      title: BatchEvaluateRequest
+      description: Request body for batch sequence evaluation.
+    CompareRequest:
+      properties:
+        sequences:
+          additionalProperties:
+            type: string
+          type: object
+          maxProperties: 10
+          minProperties: 2
+          title: Sequences
+          description: "Named sequences to compare. Keys are labels, values are DNA\
+            \ sequences. 2\u201310 sequences."
+        analysis:
+          type: string
+          pattern: ^(full|thermodynamic|structural)$
+          title: Analysis
+          description: Analysis type.
+          default: full
+        salt_mm:
+          type: number
+          maximum: 5000.0
+          minimum: 1.0
+          title: Salt Mm
+          description: NaCl concentration in mM.
+          default: 1000.0
+        window_size:
+          type: integer
+          maximum: 10000.0
+          minimum: 20.0
+          title: Window Size
+          description: Window size in bp.
+          default: 100
+      type: object
+      required:
+      - sequences
+      title: CompareRequest
+      description: Request body for multi-sequence comparison.
+    EvaluateRequest:
+      properties:
+        sequence:
+          type: string
+          maxLength: 100000
+          minLength: 10
+          title: Sequence
+          description: "DNA sequence (ACGT, Ns tolerated). 10\u2013100,000 bp."
+        name:
+          type: string
+          maxLength: 200
+          title: Name
+          description: Label for this sequence.
+          default: unnamed
+        analysis:
+          type: string
+          pattern: ^(full|thermodynamic|structural)$
+          title: Analysis
+          description: 'Analysis type: ''full'' (default), ''thermodynamic'', or ''structural''.'
+          default: full
+        salt_mm:
+          type: number
+          maximum: 5000.0
+          minimum: 1.0
+          title: Salt Mm
+          description: NaCl concentration in mM. 1000 = standard (SantaLucia), 150
+            = physiological.
+          default: 1000.0
+        window_size:
+          type: integer
+          maximum: 10000.0
+          minimum: 20.0
+          title: Window Size
+          description: Window size in bp for windowed profiles (default 100).
+          default: 100
+      type: object
+      required:
+      - sequence
+      title: EvaluateRequest
+      description: Request body for sequence evaluation.
     HTTPValidationError:
       properties:
         detail:
@@ -449,6 +1902,65 @@ components:
           title: Detail
       type: object
       title: HTTPValidationError
+    IntersectFilter:
+      properties:
+        layer:
+          type: string
+          title: Layer
+        field:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Field
+        op:
+          type: string
+          title: Op
+        value:
+          anyOf:
+          - type: number
+          - type: string
+          - items: {}
+            type: array
+          - type: 'null'
+          title: Value
+      type: object
+      required:
+      - layer
+      - op
+      title: IntersectFilter
+    IntersectRequest:
+      properties:
+        build:
+          type: string
+          title: Build
+          default: hg38
+        region:
+          type: string
+          title: Region
+        filters:
+          items:
+            $ref: '#/components/schemas/IntersectFilter'
+          type: array
+          maxItems: 10
+          minItems: 1
+          title: Filters
+        return_layers:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Return Layers
+        limit:
+          type: integer
+          maximum: 10000.0
+          title: Limit
+          default: 1000
+      type: object
+      required:
+      - region
+      - filters
+      title: IntersectRequest
     ProbeBatchRequest:
       properties:
         probe_ids:

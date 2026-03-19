@@ -164,7 +164,10 @@ async def region_profile(
 
 # ── Internal helpers ─────────────────────────────────────────────
 
-# Table mapping for count queries by layer_type
+# Table mapping for count queries by layer_type.
+# Layer types intentionally excluded (no positional table — gene-level or
+# reference-only data that doesn't participate in region profiles):
+#   gene_set, pathway, gene_alias, gene_profile, clock, sbs
 _COUNT_TABLES = {
     "cpg": "cpg.sites",
     "gene_model": "gene.features",
@@ -187,6 +190,7 @@ _COUNT_TABLES = {
     "gwas": "annotation.gwas_hits",
     "nonb_dna": "fragility.nonb_dna",
     "breakpoint": "fragility.breakpoints",
+    "fragility": "fragility.composite_score",
 }
 
 

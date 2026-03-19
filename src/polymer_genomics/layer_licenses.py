@@ -28,4 +28,9 @@ LAYER_SOURCE_INFO = {
     "dnashape": {"source": "DNAshapeR / GBshape", "license": "GPL-2.0"},
     "nonb_dna": {"source": "Computed (G4/Z-DNA/cruciform motifs)", "license": "Public Domain"},
     "breakpoint": {"source": "Mitelman Database / COSMIC", "license": "Free for non-commercial use"},
+    "fragility": {"source": "Computed composite (non-B DNA + breakpoints)", "license": "MIT (derived)"},
+    "gene_profile": {"source": "Derived composite (expression + constraint + cost)", "license": "Derived"},
+    "gene_alias": {"source": "NCBI Gene", "license": "Public Domain"},
+    "gene_set": {"source": "MSigDB Hallmark", "license": "CC BY 4.0"},
+    "pathway": {"source": "Reactome", "license": "CC BY 4.0"},
 }

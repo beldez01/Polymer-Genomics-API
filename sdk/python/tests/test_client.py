@@ -226,3 +226,133 @@ def test_intersect_sends_post():
     assert body["build"] == "hg38"
     assert len(body["filters"]) == 1
     c.close()
+
+
+# ── batch_evaluate ────────────────────────────────────────────────
+
+
+def test_batch_evaluate_sends_post():
+    c, t = _mock_client({"summary": {}, "evaluations": {}})
+    c.batch_evaluate({"seq1": "ATGC", "seq2": "GCTA"})
+    assert t.last_request.method == "POST"
+    assert "/v1/evaluate/batch" in str(t.last_request.url)
+    body = json.loads(t.last_request.content)
+    assert body["sequences"] == {"seq1": "ATGC", "seq2": "GCTA"}
+    assert body["analysis"] == "full"
+    c.close()
+
+
+def test_batch_evaluate_custom_params():
+    c, t = _mock_client({"summary": {}})
+    c.batch_evaluate({"s1": "ATGC"}, analysis="thermodynamic", salt_mm=150.0, window_size=50)
+    body = json.loads(t.last_request.content)
+    assert body["analysis"] == "thermodynamic"
+    assert body["salt_mm"] == 150.0
+    assert body["window_size"] == 50
+    c.close()
+
+
+# ── region_profile ────────────────────────────────────────────────
+
+
+def test_region_profile_sends_get():
+    c, t = _mock_client({"layers": []})
+    c.region_profile("hg38", "chr17:7668402-7687550")
+    assert t.last_request.method == "GET"
+    assert "/v1/profile/hg38/chr17" in str(t.last_request.url)
+    c.close()
+
+
+def test_region_profile_include_negative():
+    c, t = _mock_client({"layers": []})
+    c.region_profile("hg38", "chr17:7668402-7687550", include_negative=True)
+    assert "include_negative=true" in str(t.last_request.url)
+    c.close()
+
+
+# ── platform_summary ─────────────────────────────────────────────
+
+
+def test_platform_summary_sends_get():
+    c, t = _mock_client({"total_layers": 28})
+    c.platform_summary()
+    assert t.last_request.method == "GET"
+    assert "/v1/stats/summary" in str(t.last_request.url)
+    c.close()
+
+
+# ── layer_license ─────────────────────────────────────────────────
+
+
+def test_layer_license_sends_get():
+    c, t = _mock_client({"source": "GENCODE", "license": "CC0"})
+    c.layer_license("gene_models_hg38")
+    assert t.last_request.method == "GET"
+    assert "/v1/layers/gene_models_hg38/license" in str(t.last_request.url)
+    c.close()
+
+
+# ── recipes ───────────────────────────────────────────────────────
+
+
+def test_recipes_sends_get():
+    c, t = _mock_client({"recipes": []})
+    c.recipes()
+    assert t.last_request.method == "GET"
+    assert "/v1/query/recipes" in str(t.last_request.url)
+    c.close()
+
+
+def test_recipe_sends_get():
+    c, t = _mock_client({"recipe": {}})
+    c.recipe("cpg_island_genes")
+    assert t.last_request.method == "GET"
+    assert "/v1/query/recipe/cpg_island_genes" in str(t.last_request.url)
+    c.close()
+
+
+# ── stats ─────────────────────────────────────────────────────────
+
+
+def test_stats_sends_get():
+    c, t = _mock_client({"stats": {}})
+    c.stats("hg38", "chr1:1-100000")
+    assert t.last_request.method == "GET"
+    assert "/v1/stats/hg38/chr1" in str(t.last_request.url)
+    c.close()
+
+
+def test_stats_with_layers():
+    c, t = _mock_client({"stats": {}})
+    c.stats("hg38", "chr1:1-100000", layers=["cpg_islands", "genes"])
+    url = str(t.last_request.url)
+    assert "layers=" in url
+    c.close()
+
+
+# ── sequence / biophysics / aggregate ─────────────────────────────
+
+
+def test_sequence_sends_get():
+    c, t = _mock_client({"sequence": "ATGC"})
+    c.sequence("hg38", "chr1:1-100")
+    assert "/v1/sequence/hg38/chr1" in str(t.last_request.url)
+    c.close()
+
+
+def test_biophysics_sends_get():
+    c, t = _mock_client({"properties": {}})
+    c.biophysics("hg38", "chr1:1-1000", properties="thermodynamics", salt_mm=150.0)
+    url = str(t.last_request.url)
+    assert "/v1/biophysics/hg38/chr1" in url
+    assert "properties=thermodynamics" in url
+    c.close()
+
+
+def test_aggregate_sends_get():
+    c, t = _mock_client({"bins": []})
+    c.aggregate("hg38", "chr1:1-1000000", resolution=50000, layers=["cpg_islands"])
+    url = str(t.last_request.url)
+    assert "/v1/aggregation/hg38/chr1" in url
+    assert "resolution=50000" in url
+    c.close()
