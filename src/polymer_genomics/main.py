@@ -101,8 +101,15 @@ app.include_router(gene_profiles_router)
 app.include_router(recipes_router)
 
 
+@app.get("/ping")
+async def ping():
+    """Public uptime check — no auth required, no internal details."""
+    return {"status": "ok"}
+
+
 @app.get("/health")
 async def health():
+    """Detailed health check — requires auth (exposes DB status)."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         count = await conn.fetchval("SELECT count(*) FROM ref.chromosomes")

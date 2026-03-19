@@ -19,10 +19,7 @@ from starlette.responses import JSONResponse
 
 # Paths that never require authentication.
 PUBLIC_PATHS = frozenset({
-    "/health",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
+    "/ping",
 })
 
 
