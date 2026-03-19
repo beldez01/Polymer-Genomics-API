@@ -147,7 +147,7 @@ Polymer Genomics is the first production database of genome-wide DNA biophysical
 | Breakpoint catalog | K | — | ✅ Complete (49 CFS + translocations) |
 | Melting domain tracks (Poland-Scheraga) | H | — | ✅ Complete (bubble_propensity, melting_width, melting_cooperativity) |
 | CpG context annotation columns (CGI/shore/shelf × genic × isochore) | D | 3-5 days | Not started |
-| Per-position mutation dG (4 SBS channels) | H | 3-5 days | Not started |
+| Per-position mutation dG (4 SBS channels) | H | — | ✅ Complete (sbs_c_to_{a,g,t}_ddg, sbs_t_to_a_ddg, genome-wide) |
 | ABC enhancer-gene predictions | S | 3-5 days | Not started |
 | JASPAR TF binding profiles | S | 3-5 days | Not started |
 
