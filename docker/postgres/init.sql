@@ -169,6 +169,7 @@ CREATE TABLE gene.features (
     gene_id         text,
     transcript_id   text,
     feature_type    feature_type NOT NULL,
+    gene_type       text,
     PRIMARY KEY (id, build, chr_id)
 ) PARTITION BY LIST (build);
 
