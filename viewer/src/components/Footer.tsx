@@ -57,18 +57,20 @@ export function Footer() {
 
       {/* Right: RUO + copyright */}
       <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
-        <span
+        <Link
+          href="/terms"
           style={{
             color: COLOR.text.tertiary,
             fontSize: TYPE.xs.fontSize,
             fontFamily: FONT_FAMILY,
             letterSpacing: '0.06em',
-            cursor: 'default',
+            textDecoration: 'none',
+            borderBottom: `1px dotted ${COLOR.text.faint}`,
           }}
           title="Not for clinical or diagnostic use. Data provided as-is without warranty. Not intended as a substitute for professional medical advice, diagnosis, or treatment. Reference assembly coordinates may differ from clinical-grade annotations."
         >
           RESEARCH USE ONLY
-        </span>
+        </Link>
         <span style={{ color: COLOR.border.strong, fontSize: 10 }}>&middot;</span>
         <span style={{
           color: COLOR.text.muted,
