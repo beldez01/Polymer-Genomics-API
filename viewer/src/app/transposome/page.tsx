@@ -139,14 +139,14 @@ export default function TransposomePage() {
           fontWeight: WEIGHT.medium,
           letterSpacing: '0.06em',
         }}>
-          PREVIEW
+          BETA
         </span>
         <span style={{
           color: COLOR.text.secondary,
           fontSize: TYPE.xs.fontSize,
           fontFamily: FONT_FAMILY,
         }}>
-          This page shows representative data. Live data integration is in progress.
+          Aggregated from 5.3M RepeatMasker elements. Biophysics properties are heuristic estimates pending full per-element computation.
         </span>
       </div>
 
