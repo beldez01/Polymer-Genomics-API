@@ -5,6 +5,7 @@ import { CHROMOSOMES, GENOME_LENGTH, ChromosomeInfo } from '@/config/chromosomes
 import { getBandsForChromosome } from '@/config/cytobands';
 import { ChromosomeSVG } from './ChromosomeSVG';
 import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
+import type { LayerSummary } from '@/lib/api';
 
 interface ChrStats {
   genes: number | null;
@@ -16,6 +17,8 @@ interface ChrStats {
 interface KaryotypeOverviewProps {
   onSelectChromosome: (chrName: string) => void;
   chrStats?: Record<string, ChrStats>;
+  /** Authoritative genome-wide summary from /v1/layers/summary */
+  layerSummary?: LayerSummary | null;
 }
 
 // Max height for chr1 (largest chromosome); others scale proportionally
@@ -31,7 +34,7 @@ function chrHeight(chr: ChromosomeInfo): number {
   return Math.max(36, Math.round((chr.length / MAX_CHR_LENGTH) * MAX_HEIGHT));
 }
 
-export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOverviewProps) {
+export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }: KaryotypeOverviewProps) {
   const [hoveredChr, setHoveredChr] = useState<string | null>(null);
 
   return (
@@ -155,15 +158,40 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
       </div>
 
       {/* Genome Overview summary */}
-      {chrStats && (() => {
-        const entries = Object.entries(chrStats).filter(([name]) => name !== 'chrM');
-        const allLoaded = entries.every(([, s]) => s.loaded);
-        if (!allLoaded) return null;
-        const anyData = entries.some(([, s]) => s.genes !== null);
-        if (!anyData) return null;
-        const totalGenes = entries.reduce((s, [, v]) => s + (v.genes ?? 0), 0);
-        const totalCpg = entries.reduce((s, [, v]) => s + (v.cpgIslands ?? 0), 0);
-        const totalProbes = entries.reduce((s, [, v]) => s + (v.probes ?? 0), 0);
+      {(() => {
+        // Use authoritative counts from /v1/layers/summary when available;
+        // fall back to aggregation sums only if summary hasn't loaded yet.
+
+        let totalGenes: number | null = null;
+        let totalCpgSites: number | null = null;
+        let totalCpgIslands: number | null = null;
+        let totalProbes: number | null = null;
+
+        if (layerSummary) {
+          // Prefer protein_coding count; fall back to total gene count
+          totalGenes = layerSummary.protein_coding_genes ?? layerSummary.total_genes ?? null;
+          totalCpgSites = layerSummary.layer_counts['cpg_sites'] ?? null;
+          totalCpgIslands = layerSummary.layer_counts['cpg_islands'] ?? null;
+          totalProbes = layerSummary.layer_counts['probe_epic_v2'] ?? null;
+        } else if (chrStats) {
+          const entries = Object.entries(chrStats).filter(([name]) => name !== 'chrM');
+          const allLoaded = entries.every(([, s]) => s.loaded);
+          if (!allLoaded) return null;
+          const anyData = entries.some(([, s]) => s.genes !== null);
+          if (!anyData) return null;
+          // Aggregation fallback (known to undercount — used only until summary loads)
+          totalGenes = entries.reduce((s, [, v]) => s + (v.genes ?? 0), 0);
+          totalProbes = entries.reduce((s, [, v]) => s + (v.probes ?? 0), 0);
+        } else {
+          return null;
+        }
+
+        if (totalGenes === null && totalCpgSites === null && totalProbes === null) return null;
+
+        // Label depends on whether we have protein-coding or total gene count
+        const geneLabel = layerSummary?.protein_coding_genes != null
+          ? 'Protein-coding genes'
+          : 'Genes';
         const genomeSizeGb = (GENOME_LENGTH / 1_000_000_000).toFixed(2);
 
         const statItemStyle = {
@@ -218,18 +246,30 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats }: KaryotypeOve
                 <span style={statValueStyle}>24</span>
                 <span style={statLabelStyle}>Chromosomes</span>
               </div>
-              <div style={statItemStyle}>
-                <span style={statValueStyle}>{totalGenes.toLocaleString()}</span>
-                <span style={statLabelStyle}>Total genes</span>
-              </div>
-              <div style={statItemStyle}>
-                <span style={statValueStyle}>{totalCpg.toLocaleString()}</span>
-                <span style={statLabelStyle}>CpG islands</span>
-              </div>
-              <div style={statItemStyle}>
-                <span style={statValueStyle}>{totalProbes.toLocaleString()}</span>
-                <span style={statLabelStyle}>EPIC v2 probes</span>
-              </div>
+              {totalGenes != null && (
+                <div style={statItemStyle}>
+                  <span style={statValueStyle}>{totalGenes.toLocaleString()}</span>
+                  <span style={statLabelStyle}>{geneLabel}</span>
+                </div>
+              )}
+              {totalCpgSites != null && (
+                <div style={statItemStyle}>
+                  <span style={statValueStyle}>{totalCpgSites.toLocaleString()}</span>
+                  <span style={statLabelStyle}>CpG sites</span>
+                </div>
+              )}
+              {totalCpgIslands != null && (
+                <div style={statItemStyle}>
+                  <span style={statValueStyle}>{totalCpgIslands.toLocaleString()}</span>
+                  <span style={statLabelStyle}>CpG islands</span>
+                </div>
+              )}
+              {totalProbes != null && (
+                <div style={statItemStyle}>
+                  <span style={statValueStyle}>{totalProbes.toLocaleString()}</span>
+                  <span style={statLabelStyle}>EPIC v2 probes</span>
+                </div>
+              )}
             </div>
             <p style={{
               color: COLOR.text.tertiary,

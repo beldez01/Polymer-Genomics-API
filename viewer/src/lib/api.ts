@@ -163,6 +163,20 @@ export async function fetchLayers(build?: string): Promise<LayerInfo[]> {
   return res.layers;
 }
 
+export interface LayerSummary {
+  build: string;
+  layer_counts: Record<string, number | null>;
+  gene_features: Record<string, number>;
+  protein_coding_genes: number | null;
+  total_genes: number | null;
+}
+
+export async function fetchLayerSummary(build: string): Promise<LayerSummary> {
+  return fetchJSON<LayerSummary>(
+    `${API_BASE}/v1/layers/summary/${build}`,
+  );
+}
+
 export async function searchGenes(
   query: string,
   build: string,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CHROMOSOMES, getChromosomeByName } from '@/config/chromosomes';
-import { fetchAggregation, AggregationResponse } from '@/lib/api';
+import { fetchAggregation, fetchLayerSummary, AggregationResponse, LayerSummary } from '@/lib/api';
 import { BrandBar } from '@/components/BrandBar';
 import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
@@ -88,6 +88,13 @@ export default function AtlasPage() {
     }
     return init;
   });
+
+  // Authoritative counts from the layers summary endpoint
+  const [layerSummary, setLayerSummary] = useState<LayerSummary | null>(null);
+
+  useEffect(() => {
+    fetchLayerSummary(BUILD).then(setLayerSummary).catch(() => {});
+  }, []);
 
   // Load aggregation data for all chromosomes
   useEffect(() => {
@@ -297,7 +304,7 @@ export default function AtlasPage() {
           opacity: viewState === 'overview' ? 1 : 0,
           transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} />
+          <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
         </div>
       )}
 
