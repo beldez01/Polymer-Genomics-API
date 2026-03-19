@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { BrandBar } from '@/components/BrandBar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
 
@@ -525,6 +526,7 @@ export default function EvaluatePage() {
               borderColor: COLOR.accent.teal,
               color: COLOR.accent.teal,
               opacity: loading ? 0.5 : 1,
+              pointerEvents: loading ? ('none' as const) : ('auto' as const),
             }}
           >
             {loading ? 'Evaluating...' : 'Evaluate'}
@@ -562,6 +564,7 @@ export default function EvaluatePage() {
 
       {/* Results */}
       {result && (
+        <ErrorBoundary fallbackLabel="Evaluation Results">
         <div style={{ ...SECTION, display: 'flex', flexDirection: 'column', gap: SPACE[8], paddingBottom: SPACE[16] }}>
 
           {/* Summary Cards */}
@@ -681,6 +684,7 @@ export default function EvaluatePage() {
             </button>
           </div>
         </div>
+        </ErrorBoundary>
       )}
 
       <div style={{ flex: 1 }} />
