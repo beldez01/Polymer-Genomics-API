@@ -433,11 +433,11 @@ async def update_melting_columns(
         chr_seq = str(fasta[chrom])
         chr_len = len(chr_seq)
 
-        # Get existing window positions that still need melting data
+        # Get existing window positions that still need melting/SBS data
         rows = await conn.fetch(
             "SELECT start_pos FROM biophysics.sequence_properties "
             "WHERE build = $1::genome_build AND chr_id = $2 AND layer_id = $3 "
-            "  AND melting_cooperativity IS NULL "
+            "  AND (melting_cooperativity IS NULL OR sbs_c_to_t_ddg IS NULL) "
             "ORDER BY start_pos",
             build, chr_id, layer_id,
         )
@@ -542,7 +542,7 @@ if __name__ == "__main__":
             rows = await conn.fetch(
                 "SELECT start_pos FROM biophysics.sequence_properties "
                 "WHERE build = $1::genome_build AND chr_id = $2 AND layer_id = $3 "
-                "  AND melting_cooperativity IS NULL "
+                "  AND (melting_cooperativity IS NULL OR sbs_c_to_t_ddg IS NULL) "
                 "ORDER BY start_pos",
                 args.build, chr_id, layer_id,
             )

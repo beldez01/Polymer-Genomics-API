@@ -70,6 +70,7 @@ COLUMNS: list[str] = [
     "gene_id",
     "transcript_id",
     "feature_type",
+    "gene_type",
 ]
 
 BATCH_SIZE = 50_000
@@ -158,6 +159,7 @@ def parse_gtf_line(line: str) -> dict | None:
 
     gene_id = attrs.get("gene_id")
     transcript_id = attrs.get("transcript_id")
+    gene_type = attrs.get("gene_type")
 
     # Convert coordinates: GTF is 1-based closed -> 0-based half-open.
     # start_pos = gtf_start - 1, end_pos = gtf_end (unchanged)
@@ -173,6 +175,7 @@ def parse_gtf_line(line: str) -> dict | None:
         "gene_id": gene_id,
         "transcript_id": transcript_id,
         "feature_type": mapped_feature,
+        "gene_type": gene_type,
     }
 
 
@@ -327,6 +330,7 @@ async def ingest_build(
             feature["gene_id"],
             feature["transcript_id"],
             feature["feature_type"],
+            feature["gene_type"],
         )
         batch.append(row)
 
