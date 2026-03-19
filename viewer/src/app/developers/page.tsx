@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
+import { usePlatformStats } from '@/lib/platform-stats';
 
 /* ── Data ── */
 
@@ -29,14 +30,17 @@ const USE_CASES = [
   },
 ] as const;
 
-const INVENTORY = [
-  { value: '29M',   label: 'CpG sites' },
-  { value: '937K',  label: 'methylation probes' },
-  { value: '63K',   label: 'transcripts' },
-  { value: '54',    label: 'GTEx tissues' },
-  { value: '41',    label: 'MCP tools' },
-  { value: '30+',   label: 'physical constants' },
-] as const;
+function useInventory() {
+  const stats = usePlatformStats();
+  return [
+    { value: stats.cpg,      label: 'CpG sites' },
+    { value: stats.probes,   label: 'methylation probes' },
+    { value: stats.transcripts, label: 'transcripts' },
+    { value: '54',           label: 'GTEx tissues' },
+    { value: stats.mcpTools, label: 'MCP tools' },
+    { value: '30+',          label: 'physical constants' },
+  ];
+}
 
 /* ── Styles ── */
 
@@ -143,6 +147,8 @@ function TryIt() {
 /* ── Page ── */
 
 export default function DevelopersPage() {
+  const INVENTORY = useInventory();
+
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <BrandBar />

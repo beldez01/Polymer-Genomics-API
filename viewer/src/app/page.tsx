@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
+import { usePlatformStats } from '@/lib/platform-stats';
 
 /* ── Module directory ── */
 
@@ -71,13 +72,6 @@ const TIER_3: Module[] = [
     href: '/developers',
     accent: COLOR.accent.teal,
   },
-];
-
-const STATS = [
-  { value: '29M', label: 'CpG' },
-  { value: '937K', label: 'probes' },
-  { value: '63K', label: 'transcripts' },
-  { value: '41', label: 'MCP tools' },
 ];
 
 /* ── Components ── */
@@ -189,6 +183,14 @@ function ModuleEntry({ mod, large }: { mod: Module; large?: boolean }) {
 /* ── Page ── */
 
 export default function Home() {
+  const stats = usePlatformStats();
+  const STATS = [
+    { value: stats.cpg, label: 'CpG' },
+    { value: stats.probes, label: 'probes' },
+    { value: stats.transcripts, label: 'transcripts' },
+    { value: stats.mcpTools, label: 'MCP tools' },
+  ];
+
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
       <BrandBar />
