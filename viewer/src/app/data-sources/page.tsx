@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
@@ -137,6 +138,39 @@ const DATA_SOURCES: SourceCategory[] = [
   },
 ];
 
+/* ── Layer key map: source name → API layer_counts key ── */
+
+const LAYER_KEY_MAP: Record<string, string> = {
+  'GRCh38 / hg38': 'genome_assembly',
+  'GENCODE': 'gencode_v44',
+  'Illumina EPIC v2 Manifest': 'probe_epic_v2',
+  'Illumina EPIC v1 Manifest': 'probe_epic_v1',
+  'Illumina 450K Manifest': 'probe_450k',
+  'UCSC CpG Islands': 'cpg_islands',
+  'GTEx': 'gtex_expression',
+  'gnomAD': 'gnomad_constraint',
+  'ClinVar': 'clinvar',
+  'Reactome': 'reactome_pathways',
+  'MSigDB Hallmark': 'msigdb_hallmark',
+  'RepeatMasker': 'repeat_masker',
+  'Horvath Clock': 'clock_horvath',
+  'Hannum Clock': 'clock_hannum',
+  'PhenoAge': 'clock_phenoage',
+  'GrimAge': 'clock_grimage',
+  'DunedinPACE': 'clock_dunedinpace',
+  'COSMIC SBS Signatures': 'sbs_signatures',
+  'PhyloP 100-way': 'phylop_100way',
+  'PhastCons 100-way': 'phastcons_100way',
+  'EBI GWAS Catalog': 'gwas_catalog',
+  'Polymer Evolution Layer 0': 'sequence_biophysics_l0',
+};
+
+function formatRowCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
 const cellStyle = {
   padding: `${SPACE[2]}px ${SPACE[3]}px`,
   borderBottom: `1px solid ${COLOR.border.subtle}`,
@@ -157,6 +191,21 @@ const headerCellStyle = {
 };
 
 export default function DataSourcesPage() {
+  const [layerCounts, setLayerCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/v1/layers/summary/hg38');
+        if (!res.ok) return;
+        const data = await res.json();
+        setLayerCounts(data.layer_counts ?? {});
+      } catch {
+        // Keep empty — rows column will show "—"
+      }
+    })();
+  }, []);
+
   return (
     <div style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <BrandBar />
@@ -259,10 +308,11 @@ export default function DataSourcesPage() {
               }}>
                 <thead>
                   <tr>
-                    <th style={{ ...headerCellStyle, width: '22%', textAlign: 'left' }}>Source</th>
-                    <th style={{ ...headerCellStyle, width: '12%', textAlign: 'left' }}>Version</th>
-                    <th style={{ ...headerCellStyle, width: '20%', textAlign: 'left' }}>License</th>
-                    <th style={{ ...headerCellStyle, width: '46%', textAlign: 'left' }}>Citation</th>
+                    <th style={{ ...headerCellStyle, width: '20%', textAlign: 'left' }}>Source</th>
+                    <th style={{ ...headerCellStyle, width: '10%', textAlign: 'left' }}>Version</th>
+                    <th style={{ ...headerCellStyle, width: '10%', textAlign: 'right' }}>Rows</th>
+                    <th style={{ ...headerCellStyle, width: '18%', textAlign: 'left' }}>License</th>
+                    <th style={{ ...headerCellStyle, width: '42%', textAlign: 'left' }}>Citation</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -279,6 +329,14 @@ export default function DataSourcesPage() {
                         </a>
                       </td>
                       <td style={cellStyle}>{src.version}</td>
+                      <td style={{ ...cellStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        {(() => {
+                          const key = LAYER_KEY_MAP[src.name];
+                          if (!key) return '\u2014';
+                          const count = layerCounts[key];
+                          return count != null ? formatRowCount(count) : '\u2014';
+                        })()}
+                      </td>
                       <td style={cellStyle}>{src.license}</td>
                       <td style={cellStyle}>{src.citation}</td>
                     </tr>
