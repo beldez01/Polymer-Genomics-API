@@ -26,34 +26,41 @@ export default function ClocksPage() {
 
   // Load clock list on mount
   useEffect(() => {
+    const controller = new AbortController();
     (async () => {
       try {
-        const res = await fetchClockList();
+        const res = await fetchClockList({ signal: controller.signal });
         setClocks(res.data.clocks);
       } catch (e) {
-        console.error('Failed to load clocks', e);
+        if (!controller.signal.aborted) console.error('Failed to load clocks', e);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     })();
+    return () => controller.abort();
   }, []);
 
   // Load all clock probes for cross-comparison
   useEffect(() => {
     if (!clocks.length || allLoaded) return;
+    const controller = new AbortController();
     (async () => {
       const all: Record<string, ClockProbe[]> = {};
       for (const c of clocks) {
+        if (controller.signal.aborted) break;
         try {
-          const res = await fetchClockDetail(c.clock_name);
+          const res = await fetchClockDetail(c.clock_name, { signal: controller.signal });
           all[c.clock_name] = res.data.probes;
         } catch (e) {
-          console.error(`Failed to load ${c.clock_name}`, e);
+          if (!controller.signal.aborted) console.error(`Failed to load ${c.clock_name}`, e);
         }
       }
-      setClockProbes(all);
-      setAllLoaded(true);
+      if (!controller.signal.aborted) {
+        setClockProbes(all);
+        setAllLoaded(true);
+      }
     })();
+    return () => controller.abort();
   }, [clocks, allLoaded]);
 
   // Load selected clock detail

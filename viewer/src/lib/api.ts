@@ -1,3 +1,5 @@
+import { getCached, setCache } from './cache';
+
 const API_BASE = '/api';
 
 // --- Response types ---
@@ -156,10 +158,14 @@ export async function fetchAggregation(
 }
 
 export async function fetchLayers(build?: string): Promise<LayerInfo[]> {
+  const key = `layers:${build ?? 'all'}`;
+  const cached = getCached<LayerInfo[]>(key);
+  if (cached) return cached;
   const params = build ? `?build=${build}` : '';
   const res = await fetchJSON<{ layers: LayerInfo[] }>(
     `${API_BASE}/v1/layers${params}`,
   );
+  setCache(key, res.layers);
   return res.layers;
 }
 
@@ -172,9 +178,14 @@ export interface LayerSummary {
 }
 
 export async function fetchLayerSummary(build: string): Promise<LayerSummary> {
-  return fetchJSON<LayerSummary>(
+  const key = `layerSummary:${build}`;
+  const cached = getCached<LayerSummary>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<LayerSummary>(
     `${API_BASE}/v1/layers/summary/${build}`,
   );
+  setCache(key, result);
+  return result;
 }
 
 export async function searchGenes(
@@ -536,12 +547,33 @@ export interface ClockProbeResponse {
   data: { clocks: Array<ClockMetadata & { coefficient: number }>; n: number };
 }
 
-export async function fetchClockList(): Promise<ClockListResponse> {
-  return fetchJSON(`${API_BASE}/v1/reference/clock-probes`);
+export async function fetchClockList(
+  opts?: { signal?: AbortSignal },
+): Promise<ClockListResponse> {
+  const key = 'clockList';
+  const cached = getCached<ClockListResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<ClockListResponse>(
+    `${API_BASE}/v1/reference/clock-probes`,
+    opts,
+  );
+  setCache(key, result);
+  return result;
 }
 
-export async function fetchClockDetail(clock: string): Promise<ClockDetailResponse> {
-  return fetchJSON(`${API_BASE}/v1/reference/clock-probes?clock=${encodeURIComponent(clock)}`);
+export async function fetchClockDetail(
+  clock: string,
+  opts?: { signal?: AbortSignal },
+): Promise<ClockDetailResponse> {
+  const key = `clockDetail:${clock}`;
+  const cached = getCached<ClockDetailResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<ClockDetailResponse>(
+    `${API_BASE}/v1/reference/clock-probes?clock=${encodeURIComponent(clock)}`,
+    opts,
+  );
+  setCache(key, result);
+  return result;
 }
 
 export async function fetchClockProbeSearch(probeId: string): Promise<ClockProbeResponse> {
