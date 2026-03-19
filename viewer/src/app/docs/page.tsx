@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { useIsMobile, useIsTablet } from '@/hooks/useBreakpoint';
 import { copyToClipboard } from '@/lib/clipboard';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
+import { loadEndpointsFromOpenAPI, groupByTag, EndpointDoc } from '@/lib/openapi-loader';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,11 +27,104 @@ interface Endpoint {
   method: 'GET' | 'POST';
   path: string;
   title: string;
+  tag?: string;
   description: string;
   params: Param[];
   examples: { curl: string; python: string; r: string };
   response: string;
 }
+
+// Static endpoint IDs mapped to their paths for merging with OpenAPI data
+const STATIC_PATH_MAP: Record<string, string> = {
+  regions: '/v1/regions/{build}/{region}',
+  genes: '/v1/genes/{build}/{symbol}',
+  sequence: '/v1/sequence/{build}/{region}',
+  probes: '/v1/probes/{build}/{probe_id}',
+  'probes-batch': '/v1/probes/{build}/batch',
+  search: '/v1/search',
+  layers: '/v1/layers',
+  aggregation: '/v1/aggregation/{build}/{region}',
+};
+
+// ---------------------------------------------------------------------------
+// Error Response Data
+// ---------------------------------------------------------------------------
+
+interface ErrorCode {
+  status: number;
+  code: string;
+  description: string;
+  example: string;
+}
+
+const ERROR_CODES: ErrorCode[] = [
+  {
+    status: 401,
+    code: 'MISSING_API_KEY',
+    description: 'Request did not include an API key. Pass your key via the X-API-Key header or api_key query parameter.',
+    example: `{
+  "error": {
+    "code": "MISSING_API_KEY",
+    "message": "API key is required. Pass via X-API-Key header."
+  }
+}`,
+  },
+  {
+    status: 403,
+    code: 'INVALID_API_KEY',
+    description: 'The provided API key is not valid or has been revoked.',
+    example: `{
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "The API key provided is not valid."
+  }
+}`,
+  },
+  {
+    status: 404,
+    code: 'NOT_FOUND',
+    description: 'The requested resource does not exist. Check the path, genome build, gene symbol, or probe ID.',
+    example: `{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Gene 'FAKEGENE' not found in hg38."
+  }
+}`,
+  },
+  {
+    status: 422,
+    code: 'VALIDATION_ERROR',
+    description: 'The request parameters failed validation. The message field describes which parameter is invalid and why.',
+    example: `{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid region format. Expected chr1:100-200."
+  }
+}`,
+  },
+  {
+    status: 429,
+    code: 'RATE_LIMITED',
+    description: 'Too many requests. Back off and retry after the duration indicated in the Retry-After header.',
+    example: `{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded. Retry after 60 seconds."
+  }
+}`,
+  },
+  {
+    status: 500,
+    code: 'INTERNAL_ERROR',
+    description: 'An unexpected server error occurred. If this persists, contact support with the request details.',
+    example: `{
+  "error": {
+    "code": "INTERNAL_ERROR",
+    "message": "An unexpected error occurred."
+  }
+}`,
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Endpoint Data
@@ -312,7 +406,35 @@ layers = resp.json()`,
   },
 ];
 
-const NAV_ITEMS = ENDPOINTS.map(e => ({ id: e.id, title: e.title, method: e.method }));
+const STATIC_NAV_ITEMS = ENDPOINTS.map(e => ({ id: e.id, title: e.title, method: e.method }));
+
+// ---------------------------------------------------------------------------
+// Merge helpers — combine OpenAPI-discovered endpoints with hand-written examples
+// ---------------------------------------------------------------------------
+
+/** Merge static examples/response into dynamically loaded endpoints */
+function mergeEndpoints(dynamicEps: EndpointDoc[]): EndpointDoc[] {
+  // Build a lookup from path to static endpoint
+  const staticByPath = new Map<string, Endpoint>();
+  for (const ep of ENDPOINTS) {
+    staticByPath.set(ep.path, ep);
+  }
+
+  return dynamicEps.map(ep => {
+    const staticMatch = staticByPath.get(ep.path);
+    if (staticMatch) {
+      return {
+        ...ep,
+        // Prefer hand-written description & title if richer
+        title: staticMatch.title.length > ep.title.length ? staticMatch.title : ep.title,
+        description: staticMatch.description.length > ep.description.length ? staticMatch.description : ep.description,
+        examples: staticMatch.examples,
+        response: staticMatch.response,
+      };
+    }
+    return ep;
+  });
+}
 
 // ---------------------------------------------------------------------------
 // MCP Tool Data
@@ -573,6 +695,40 @@ export default function DocsPage() {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
 
+  // Dynamic endpoint loading from OpenAPI spec
+  const [apiEndpoints, setApiEndpoints] = useState<EndpointDoc[]>([]);
+  const [loadedFromSpec, setLoadedFromSpec] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadEndpointsFromOpenAPI()
+      .then(eps => {
+        if (cancelled) return;
+        const merged = mergeEndpoints(eps);
+        setApiEndpoints(merged);
+        setLoadedFromSpec(true);
+      })
+      .catch(() => {
+        // Fall back to static endpoints — convert to EndpointDoc shape
+        if (cancelled) return;
+        setApiEndpoints(
+          ENDPOINTS.map(ep => ({
+            ...ep,
+            tag: 'API',
+          }))
+        );
+        setLoadedFromSpec(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // If nothing loaded yet, show static endpoints immediately
+  const displayEndpoints: EndpointDoc[] = apiEndpoints.length > 0
+    ? apiEndpoints
+    : ENDPOINTS.map(ep => ({ ...ep, tag: 'API' }));
+
+  const tagGroups = groupByTag(displayEndpoints);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: COLOR.bg.primary }}>
       <BrandBar subtitle="API Reference" />
@@ -590,44 +746,72 @@ export default function DocsPage() {
         height: 'calc(100vh - 44px)',
         overflowY: 'auto',
       }}>
-        <div style={{
-          padding: `0 ${SPACE[4]}px`,
-          marginBottom: SPACE[4],
-          color: COLOR.accent.teal,
-          fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-          letterSpacing: '0.08em',
-        }}>
-          API REFERENCE
-        </div>
-
-        {NAV_ITEMS.map(item => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            style={{
-              display: 'block',
-              padding: `${SPACE[1] + 1}px ${SPACE[4]}px`,
-              fontSize: TYPE.sm.fontSize,
+        {Array.from(tagGroups.entries()).map(([tag, eps]) => (
+          <div key={tag}>
+            <div style={{
+              padding: `${SPACE[3]}px ${SPACE[4]}px ${SPACE[1]}px`,
+              color: COLOR.accent.teal,
+              fontSize: TYPE.xs.fontSize,
               fontFamily: FONT_FAMILY,
-              color: COLOR.text.tertiary,
-              textDecoration: 'none',
-              borderLeft: '2px solid transparent',
-              transition: 'color 0.15s, border-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = COLOR.text.primary;
-              e.currentTarget.style.borderLeftColor = COLOR.accent.teal;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = COLOR.text.tertiary;
-              e.currentTarget.style.borderLeftColor = 'transparent';
-            }}
-          >
-            {item.title}
-          </a>
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.08em',
+            }}>
+              {tag.toUpperCase()}
+            </div>
+
+            {eps.map(item => (
+              <a
+                key={item.id}
+                href={`#${item.id}`}
+                style={{
+                  display: 'block',
+                  padding: `${SPACE[1] + 1}px ${SPACE[4]}px`,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  color: COLOR.text.tertiary,
+                  textDecoration: 'none',
+                  borderLeft: '2px solid transparent',
+                  transition: 'color 0.15s, border-color 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = COLOR.text.primary;
+                  e.currentTarget.style.borderLeftColor = COLOR.accent.teal;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = COLOR.text.tertiary;
+                  e.currentTarget.style.borderLeftColor = 'transparent';
+                }}
+              >
+                {item.title}
+              </a>
+            ))}
+          </div>
         ))}
+
+        {/* Error Responses nav item */}
+        <a
+          href="#error-responses"
+          style={{
+            display: 'block',
+            padding: `${SPACE[3]}px ${SPACE[4]}px`,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            fontWeight: WEIGHT.medium,
+            color: COLOR.accent.rose,
+            textDecoration: 'none',
+            letterSpacing: '0.08em',
+            borderLeft: '2px solid transparent',
+            transition: 'color 0.15s, border-color 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderLeftColor = COLOR.accent.rose;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderLeftColor = 'transparent';
+          }}
+        >
+          ERROR RESPONSES
+        </a>
 
         {/* MCP Server section */}
         <div style={{
@@ -747,101 +931,238 @@ export default function DocsPage() {
             </code>
           </div>
 
-          {/* Endpoints */}
-          {ENDPOINTS.map(ep => (
-            <section key={ep.id} id={ep.id} style={{ marginBottom: SPACE[16], scrollMarginTop: SPACE[8] }}>
-              <div style={{ marginBottom: SPACE[4] }}>
-                <MethodBadge method={ep.method} />
-                <code style={{
-                  fontSize: TYPE.base.fontSize,
-                  fontFamily: FONT_FAMILY,
-                  color: COLOR.accent.teal,
-                }}>
-                  {ep.path}
-                </code>
-              </div>
+          {/* Endpoint count indicator */}
+          {loadedFromSpec && (
+            <p style={{
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              color: COLOR.text.muted,
+              marginBottom: SPACE[6],
+            }}>
+              {displayEndpoints.length} endpoints loaded from OpenAPI spec
+            </p>
+          )}
 
+          {/* Endpoints grouped by tag */}
+          {Array.from(tagGroups.entries()).map(([tag, eps]) => (
+            <div key={tag} style={{ marginBottom: SPACE[8] }}>
               <h2 style={{
-                fontSize: TYPE.lg.fontSize,
+                fontSize: TYPE.md.fontSize,
                 fontWeight: WEIGHT.bold,
                 fontFamily: FONT_FAMILY,
-                color: COLOR.text.primary,
-                marginBottom: SPACE[2],
-                letterSpacing: TYPE.lg.letterSpacing,
+                color: COLOR.accent.teal,
+                letterSpacing: '0.04em',
+                marginBottom: SPACE[4],
+                paddingBottom: SPACE[2],
+                borderBottom: `1px solid ${COLOR.border.subtle}`,
               }}>
-                {ep.title}
+                {tag}
               </h2>
 
-              <p style={{
-                fontSize: TYPE.base.fontSize,
-                fontFamily: FONT_FAMILY,
-                color: COLOR.text.tertiary,
-                lineHeight: 1.7,
-                marginBottom: SPACE[6],
-              }}>
-                {ep.description}
-              </p>
+              {eps.map(ep => (
+                <section key={ep.id} id={ep.id} style={{ marginBottom: SPACE[16], scrollMarginTop: SPACE[8] }}>
+                  <div style={{ marginBottom: SPACE[4] }}>
+                    <MethodBadge method={ep.method} />
+                    <code style={{
+                      fontSize: TYPE.base.fontSize,
+                      fontFamily: FONT_FAMILY,
+                      color: COLOR.accent.teal,
+                    }}>
+                      {ep.path}
+                    </code>
+                  </div>
 
-              {/* Parameters */}
-              <div style={{ marginBottom: SPACE[6] }}>
-                <div style={{
+                  <h3 style={{
+                    fontSize: TYPE.lg.fontSize,
+                    fontWeight: WEIGHT.bold,
+                    fontFamily: FONT_FAMILY,
+                    color: COLOR.text.primary,
+                    marginBottom: SPACE[2],
+                    letterSpacing: TYPE.lg.letterSpacing,
+                  }}>
+                    {ep.title}
+                  </h3>
+
+                  <p style={{
+                    fontSize: TYPE.base.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    color: COLOR.text.tertiary,
+                    lineHeight: 1.7,
+                    marginBottom: SPACE[6],
+                  }}>
+                    {ep.description}
+                  </p>
+
+                  {/* Parameters */}
+                  {ep.params.length > 0 && (
+                    <div style={{ marginBottom: SPACE[6] }}>
+                      <div style={{
+                        fontSize: TYPE.xs.fontSize,
+                        fontFamily: FONT_FAMILY,
+                        color: COLOR.text.muted,
+                        letterSpacing: '0.08em',
+                        marginBottom: SPACE[2],
+                        fontWeight: WEIGHT.medium,
+                      }}>
+                        PARAMETERS
+                      </div>
+                      {ep.params.map(p => (
+                        <div key={p.name} style={{
+                          display: 'flex',
+                          gap: SPACE[3],
+                          padding: `${SPACE[2]}px 0`,
+                          borderBottom: `1px solid ${COLOR.border.subtle}`,
+                          alignItems: 'baseline',
+                        }}>
+                          <code style={{
+                            fontSize: TYPE.sm.fontSize,
+                            fontFamily: FONT_FAMILY,
+                            color: COLOR.text.primary,
+                            flexShrink: 0,
+                            minWidth: 90,
+                          }}>
+                            {p.name}
+                          </code>
+                          <span style={{
+                            fontSize: TYPE.xs.fontSize,
+                            fontFamily: FONT_FAMILY,
+                            color: COLOR.text.muted,
+                            flexShrink: 0,
+                          }}>
+                            {p.type}
+                            {p.required && <span style={{ color: COLOR.accent.rose, marginLeft: 4 }}>*</span>}
+                            {p.default && <span> = {p.default}</span>}
+                          </span>
+                          <span style={{
+                            fontSize: TYPE.sm.fontSize,
+                            fontFamily: FONT_FAMILY,
+                            color: COLOR.text.tertiary,
+                          }}>
+                            {p.description}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isMobile && ep.examples && (
+                    <div style={{ marginTop: SPACE[4] }}>
+                      <CodeTabs examples={ep.examples} />
+                      {ep.response && (
+                        <div style={{ marginTop: SPACE[3] }}>
+                          <ResponseBlock json={ep.response} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          ))}
+
+          {/* ─── Error Responses Section ─── */}
+          <section id="error-responses" style={{
+            marginBottom: SPACE[16],
+            scrollMarginTop: SPACE[8],
+            borderTop: `1px solid ${COLOR.border.default}`,
+            paddingTop: SPACE[8],
+          }}>
+            <h2 style={{
+              fontSize: TYPE.xl.fontSize,
+              fontWeight: WEIGHT.bold,
+              fontFamily: FONT_FAMILY,
+              color: COLOR.text.primary,
+              marginBottom: SPACE[4],
+              letterSpacing: TYPE.xl.letterSpacing,
+            }}>
+              Error Responses
+            </h2>
+
+            <p style={{
+              fontSize: TYPE.base.fontSize,
+              fontFamily: FONT_FAMILY,
+              color: COLOR.text.tertiary,
+              lineHeight: 1.7,
+              marginBottom: SPACE[4],
+            }}>
+              All errors return a JSON object with a top-level <code style={{ color: COLOR.accent.teal }}>error</code> key
+              containing <code style={{ color: COLOR.accent.teal }}>code</code> and <code style={{ color: COLOR.accent.teal }}>message</code> fields.
+            </p>
+
+            <div style={{
+              padding: SPACE[3],
+              backgroundColor: COLOR.bg.track,
+              border: `1px solid ${COLOR.border.subtle}`,
+              marginBottom: SPACE[6],
+            }}>
+              <pre style={{
+                margin: 0,
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                color: COLOR.text.secondary,
+                lineHeight: 1.6,
+              }}>{`{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable description."
+  }
+}`}</pre>
+            </div>
+
+            {ERROR_CODES.map(err => (
+              <div key={err.code} style={{
+                marginBottom: SPACE[6],
+                paddingBottom: SPACE[4],
+                borderBottom: `1px solid ${COLOR.border.subtle}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: SPACE[3], marginBottom: SPACE[2] }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '1px 6px',
+                    fontSize: TYPE.xs.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    fontWeight: WEIGHT.bold,
+                    color: err.status >= 500 ? COLOR.accent.rose : COLOR.accent.amber,
+                    backgroundColor: err.status >= 500
+                      ? 'rgba(244, 63, 94, 0.12)'
+                      : 'rgba(240, 165, 0, 0.12)',
+                    letterSpacing: '0.04em',
+                  }}>
+                    {err.status}
+                  </span>
+                  <code style={{
+                    fontSize: TYPE.base.fontSize,
+                    fontFamily: FONT_FAMILY,
+                    color: COLOR.text.primary,
+                  }}>
+                    {err.code}
+                  </code>
+                </div>
+                <p style={{
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  color: COLOR.text.tertiary,
+                  lineHeight: 1.7,
+                  marginBottom: SPACE[3],
+                }}>
+                  {err.description}
+                </p>
+                <pre style={{
+                  margin: 0,
+                  padding: SPACE[3],
+                  backgroundColor: COLOR.bg.track,
+                  border: `1px solid ${COLOR.border.subtle}`,
                   fontSize: TYPE.xs.fontSize,
                   fontFamily: FONT_FAMILY,
                   color: COLOR.text.muted,
-                  letterSpacing: '0.08em',
-                  marginBottom: SPACE[2],
-                  fontWeight: WEIGHT.medium,
+                  lineHeight: 1.6,
+                  overflowX: 'auto',
                 }}>
-                  PARAMETERS
-                </div>
-                {ep.params.map(p => (
-                  <div key={p.name} style={{
-                    display: 'flex',
-                    gap: SPACE[3],
-                    padding: `${SPACE[2]}px 0`,
-                    borderBottom: `1px solid ${COLOR.border.subtle}`,
-                    alignItems: 'baseline',
-                  }}>
-                    <code style={{
-                      fontSize: TYPE.sm.fontSize,
-                      fontFamily: FONT_FAMILY,
-                      color: COLOR.text.primary,
-                      flexShrink: 0,
-                      minWidth: 90,
-                    }}>
-                      {p.name}
-                    </code>
-                    <span style={{
-                      fontSize: TYPE.xs.fontSize,
-                      fontFamily: FONT_FAMILY,
-                      color: COLOR.text.muted,
-                      flexShrink: 0,
-                    }}>
-                      {p.type}
-                      {p.required && <span style={{ color: COLOR.accent.rose, marginLeft: 4 }}>*</span>}
-                      {p.default && <span> = {p.default}</span>}
-                    </span>
-                    <span style={{
-                      fontSize: TYPE.sm.fontSize,
-                      fontFamily: FONT_FAMILY,
-                      color: COLOR.text.tertiary,
-                    }}>
-                      {p.description}
-                    </span>
-                  </div>
-                ))}
+                  {err.example}
+                </pre>
               </div>
-
-              {isMobile && (
-                <div style={{ marginTop: SPACE[4] }}>
-                  <CodeTabs examples={ep.examples} />
-                  <div style={{ marginTop: SPACE[3] }}>
-                    <ResponseBlock json={ep.response} />
-                  </div>
-                </div>
-              )}
-            </section>
-          ))}
+            ))}
+          </section>
 
           {/* ─── MCP Server Section ─── */}
           <div style={{
@@ -1120,7 +1441,7 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
           {/* Spacer for overview section */}
           <div style={{ height: 180 }} />
 
-          {ENDPOINTS.map(ep => (
+          {displayEndpoints.filter(ep => ep.examples).map(ep => (
             <div key={ep.id} style={{
               marginBottom: SPACE[16],
               borderBottom: `1px solid ${COLOR.border.subtle}`,
@@ -1135,14 +1456,16 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
                 letterSpacing: '0.08em',
                 fontWeight: WEIGHT.medium,
               }}>
-                EXAMPLE
+                EXAMPLE &mdash; {ep.title}
               </div>
               <div style={{ padding: `0 ${SPACE[4]}px` }}>
-                <CodeTabs examples={ep.examples} />
+                <CodeTabs examples={ep.examples!} />
               </div>
-              <div style={{ padding: `0 ${SPACE[4]}px`, marginTop: SPACE[3] }}>
-                <ResponseBlock json={ep.response} />
-              </div>
+              {ep.response && (
+                <div style={{ padding: `0 ${SPACE[4]}px`, marginTop: SPACE[3] }}>
+                  <ResponseBlock json={ep.response} />
+                </div>
+              )}
             </div>
           ))}
 
