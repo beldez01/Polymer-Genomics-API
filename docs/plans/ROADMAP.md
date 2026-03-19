@@ -142,8 +142,12 @@ Polymer Genomics is the first production database of genome-wide DNA biophysical
 ### Data Depth
 | Task | Class | Effort | Status |
 |------|-------|--------|--------|
+| Fragility composite score | D | — | ✅ Complete (2,937,681 rows, `layers=fragility_composite`) |
+| Non-B DNA structures | D | — | ✅ Complete (2,937,698 rows) |
+| Breakpoint catalog | K | — | ✅ Complete (49 CFS + translocations) |
+| Melting domain tracks (Poland-Scheraga) | H | — | ✅ Complete (bubble_propensity, melting_width, melting_cooperativity) |
 | CpG context annotation columns (CGI/shore/shelf × genic × isochore) | D | 3-5 days | Not started |
-| Melting domain tracks (Poland-Scheraga) | H | 5-7 days | Not started |
+| Per-position mutation dG (4 SBS channels) | H | 3-5 days | Not started |
 | ABC enhancer-gene predictions | S | 3-5 days | Not started |
 | JASPAR TF binding profiles | S | 3-5 days | Not started |
 
