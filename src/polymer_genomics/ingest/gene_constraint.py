@@ -244,7 +244,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'constraint', $4,
-             'gnomAD', 'odc_odbl_1_0', 'postgres', true, true)
+             'gnomAD v4.1 (ODbL 1.0)', 'open_access', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,
