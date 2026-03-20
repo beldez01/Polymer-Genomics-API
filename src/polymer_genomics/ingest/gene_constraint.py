@@ -43,10 +43,12 @@ COLUMNS: list[str] = [
     "gnomad_version",
 ]
 
-# TSV header -> DB column mapping
+# TSV header -> DB column mapping (supports both gnomAD v2 and v4 formats)
 _HEADER_MAP: dict[str, str] = {
+    # Gene identity (both versions)
     "gene": "gene_symbol",
     "transcript": "transcript",
+    # gnomAD v2.1.1 column names
     "pLI": "pli",
     "oe_lof_upper": "loeuf",
     "mis_z": "mis_z",
@@ -57,6 +59,20 @@ _HEADER_MAP: dict[str, str] = {
     "exp_mis": "exp_mis",
     "obs_syn": "obs_syn",
     "exp_syn": "exp_syn",
+    # gnomAD v4.x column names
+    "lof.pLI": "pli",
+    "lof.oe_ci.upper": "loeuf",
+    "lof.obs": "obs_lof",
+    "lof.exp": "exp_lof",
+    "mis.obs": "obs_mis",
+    "mis.exp": "exp_mis",
+    "mis.z_score": "mis_z",
+    "syn.obs": "obs_syn",
+    "syn.exp": "exp_syn",
+    "syn.z_score": "syn_z",
+    # Filter columns (not stored, used during ingestion)
+    "mane_select": "_mane_select",
+    "canonical": "_canonical",
 }
 
 # Columns that should be parsed as int
@@ -88,16 +104,15 @@ def _safe_float(val: str) -> float | None:
 
 
 def _parse_gnomad_version(tsv_path: str | Path) -> str:
-    """Attempt to extract gnomAD version from the filename, defaulting to v2.1.1."""
+    """Attempt to extract gnomAD version from the filename, defaulting to v4.1."""
     name = Path(tsv_path).name.lower()
-    # Try common patterns: gnomad.v2.1.1.*, gnomad.v4.1.*
     if "v4.1" in name:
         return "v4.1"
     if "v4.0" in name:
         return "v4.0"
     if "v2.1.1" in name:
         return "v2.1.1"
-    return "v2.1.1"
+    return "v4.1"
 
 
 # -- TSV reader ---------------------------------------------------------------
@@ -106,12 +121,20 @@ def _parse_gnomad_version(tsv_path: str | Path) -> str:
 def read_constraint_table(tsv_path: str | Path) -> tuple[list[dict], str]:
     """Parse the gnomAD gene constraint TSV, mapping headers to DB column names.
 
+    For gnomAD v4+ files (which have multiple transcripts per gene), filters
+    to MANE Select transcripts (preferred) or canonical transcripts. Falls back
+    to the first row per gene if neither flag is present (v2 format).
+
     Returns (rows, gnomad_version).
     """
     gnomad_version = _parse_gnomad_version(tsv_path)
-    rows: list[dict] = []
+    has_mane = False
+    all_rows: list[dict] = []
+
     with open(tsv_path, newline="") as f:
         reader = csv.DictReader(f, delimiter="\t")
+        has_mane = "mane_select" in (reader.fieldnames or [])
+
         for raw in reader:
             mapped: dict = {}
             for tsv_col, value in raw.items():
@@ -127,7 +150,35 @@ def read_constraint_table(tsv_path: str | Path) -> tuple[list[dict], str]:
             # Skip rows without gene symbol
             if not mapped.get("gene_symbol"):
                 continue
-            rows.append(mapped)
+            all_rows.append(mapped)
+
+    if has_mane:
+        # v4 format: select MANE Select > canonical > first per gene
+        gene_best: dict[str, dict] = {}
+        for row in all_rows:
+            gene = row["gene_symbol"]
+            is_mane = row.get("_mane_select") == "true"
+            is_canonical = row.get("_canonical") == "true"
+
+            existing = gene_best.get(gene)
+            if existing is None:
+                gene_best[gene] = row
+            elif is_mane and existing.get("_mane_select") != "true":
+                gene_best[gene] = row
+            elif is_canonical and not is_mane and existing.get("_mane_select") != "true" and existing.get("_canonical") != "true":
+                gene_best[gene] = row
+
+        rows = list(gene_best.values())
+        print(f"  Filtered {len(all_rows):,} transcript rows -> {len(rows):,} genes (MANE Select preferred)")
+    else:
+        # v2 format: one row per gene already
+        rows = all_rows
+
+    # Clean up internal filter columns
+    for row in rows:
+        row.pop("_mane_select", None)
+        row.pop("_canonical", None)
+
     return rows, gnomad_version
 
 
