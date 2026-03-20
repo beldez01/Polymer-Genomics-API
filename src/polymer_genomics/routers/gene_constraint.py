@@ -45,6 +45,7 @@ async def get_gene_constraint(build: str, symbol: str):
             WHERE build = $1::genome_build
               AND UPPER(gene_symbol) = UPPER($2)
               AND layer_id = $3
+            ORDER BY exp_lof DESC NULLS LAST
             LIMIT 1
             """,
             build,
@@ -67,6 +68,7 @@ async def get_gene_constraint(build: str, symbol: str):
                     WHERE build = $1::genome_build
                       AND UPPER(gene_symbol) = UPPER($2)
                       AND layer_id = $3
+                    ORDER BY exp_lof DESC NULLS LAST
                     LIMIT 1
                     """,
                     build, canonical, layer["id"],
