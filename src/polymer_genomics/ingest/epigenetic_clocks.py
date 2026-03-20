@@ -70,7 +70,7 @@ _CLOCK_METADATA = [
         "intercept": 52.8334080,
         "age_transform": "linear",
         "platform": "450k",
-        "pmid": "29507958",
+        "pmid": "29676998",
         "source_citation": "Levine 2018 Aging 10:573-591",
     },
     {
@@ -290,13 +290,17 @@ async def main(data_dir: str | None = None) -> None:
 
         total_loaded = 0
         for clock_name, (embedded_probes, citation) in _ALL_CLOCKS_PROBES.items():
-            # Try loading full set from TSV if data_dir provided
-            probes = embedded_probes
+            # Load from TSV if available (authoritative); fall back to embedded
+            probes = None
             if data_dir:
                 tsv_path = Path(data_dir) / f"{clock_name}.tsv"
                 if tsv_path.exists():
                     probes = load_clock_from_tsv(tsv_path)
                     print(f"  Loaded {len(probes)} probes from {tsv_path}")
+            if probes is None:
+                probes = embedded_probes
+                if probes:
+                    print(f"  Using {len(probes)} embedded probes for {clock_name} (no TSV)")
 
             for probe_id, coefficient in probes:
                 await conn.execute(

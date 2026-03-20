@@ -701,11 +701,54 @@ async def ingest_platform(
 # ── Cross-Map Ingestion ──────────────────────────────────────────────────────
 
 
+def deduplicate_edges(edges: list[tuple]) -> list[tuple]:
+    """Remove duplicate destination edges that arise from multi-platform sources.
+
+    When a probe_id (e.g. cg00000029) exists on multiple source platforms
+    (450k and epic_v1), ``cross_map_probes`` produces separate edges from each
+    source to the same destination (e.g. epic_v2/cg00000029_TC21).  This
+    creates apparent duplicates when the crossmap is queried by src_probe_id
+    without filtering on src_platform.
+
+    Deduplicates on ``(src_probe_id, dst_platform, dst_probe_id, build)``,
+    preferring ``exact_id`` over ``coord_overlap`` and keeping the first edge
+    encountered as a tiebreaker.
+
+    Parameters
+    ----------
+    edges
+        List of edge tuples matching ``COLUMNS_MAP_EDGES``.
+
+    Returns
+    -------
+    list[tuple]
+        Deduplicated edges.
+    """
+    METHOD_PRIORITY = {"exact_id": 0, "coord_overlap": 1, "liftover": 2, "sequence_match": 3}
+
+    # Key: (src_probe_id, dst_platform, dst_probe_id, build) -> best edge
+    best: dict[tuple, tuple] = {}
+    for edge in edges:
+        _src_plat, src_id, dst_plat, dst_id, build, _chr, _pos, method, _conf = edge
+        key = (src_id, dst_plat, dst_id, build)
+        if key not in best:
+            best[key] = edge
+        else:
+            existing_method = best[key][7]
+            if METHOD_PRIORITY.get(method, 99) < METHOD_PRIORITY.get(existing_method, 99):
+                best[key] = edge
+
+    return list(best.values())
+
+
 async def ingest_map_edges(
     conn: asyncpg.Connection,
     edges: list[tuple],
 ) -> int:
     """Load cross-mapping edges into probe.map_edges.
+
+    Deduplicates edges before loading to prevent the same destination from
+    appearing multiple times when queried by ``src_probe_id``.
 
     Parameters
     ----------
@@ -722,9 +765,16 @@ async def ingest_map_edges(
     if not edges:
         return 0
 
+    # Deduplicate edges that share the same (src_probe_id, dst_platform,
+    # dst_probe_id, build) but differ only in src_platform.
+    deduped = deduplicate_edges(edges)
+    if len(deduped) < len(edges):
+        print(f"    Deduplicated {len(edges):,} -> {len(deduped):,} edges "
+              f"({len(edges) - len(deduped):,} redundant removed)")
+
     total = 0
-    for i in range(0, len(edges), BATCH_SIZE):
-        batch = edges[i : i + BATCH_SIZE]
+    for i in range(0, len(deduped), BATCH_SIZE):
+        batch = deduped[i : i + BATCH_SIZE]
         await conn.copy_records_to_table(
             "map_edges",
             records=batch,

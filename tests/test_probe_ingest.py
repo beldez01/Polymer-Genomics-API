@@ -19,6 +19,7 @@ from polymer_genomics.ingest.probes import (
     SHORE_DISTANCE,
     _classify_context_from_island,
     cross_map_probes,
+    deduplicate_edges,
     filter_by_platform,
     parse_manifest_csv,
 )
@@ -389,6 +390,40 @@ class TestCrossMapProbes:
             assert method in ("exact_id", "coord_overlap")
             assert 0.0 <= conf <= 1.0
 
+    def test_epicv2_suffix_creates_coord_overlap_from_multiple_sources(self):
+        """EPIC v2 probes with _TC21 suffix get coord_overlap from both 450k and epic_v1.
+
+        When cg00000029 exists on 450k and epic_v1, and cg00000029_TC21 on
+        epic_v2 at the same coordinate, the crossmap produces edges from both
+        source platforms to epic_v2.  The API query on src_probe_id='cg00000029'
+        then returns dst=(epic_v2, cg00000029_TC21) twice — once from each
+        source platform.  This is the root cause of the duplicate crossmap bug.
+        """
+        platform_probes = {
+            "epic_v2": [self._make_probe("cg00000029_TC21", 16, 53434200, "epic_v2")],
+            "epic_v1": [self._make_probe("cg00000029", 16, 53434200, "epic_v1")],
+            "450k": [self._make_probe("cg00000029", 16, 53434200, "450k")],
+        }
+
+        edges = cross_map_probes(platform_probes)
+
+        # 450k <-> epic_v1: exact_id match on "cg00000029" -> 2 edges
+        # 450k <-> epic_v2: coord_overlap (different IDs) -> 2 edges
+        # epic_v1 <-> epic_v2: coord_overlap (different IDs) -> 2 edges
+        # Total: 6 edges
+        assert len(edges) == 6
+
+        # The duplicate scenario: two edges with src_probe_id='cg00000029'
+        # pointing to dst=(epic_v2, cg00000029_TC21).
+        edges_to_epicv2 = [
+            e for e in edges
+            if e[1] == "cg00000029" and e[2] == "epic_v2" and e[3] == "cg00000029_TC21"
+        ]
+        # Both 450k and epic_v1 produce an edge -> 2 edges with same dst
+        assert len(edges_to_epicv2) == 2
+        src_platforms = {e[0] for e in edges_to_epicv2}
+        assert src_platforms == {"450k", "epic_v1"}
+
     def test_multiple_probes_partial_overlap(self):
         """Only probes with matching coords should produce coord_overlap edges."""
         platform_probes = {
@@ -523,3 +558,77 @@ cg00000003,chr3,300,+,450k
 
         edges = cross_map_probes(platform_probes)
         assert len(edges) == 0
+
+
+# ── Tests: deduplicate_edges ────────────────────────────────────────────────
+
+
+class TestDeduplicateEdges:
+    """Tests for crossmap edge deduplication."""
+
+    def test_removes_duplicate_destinations(self):
+        """Two edges from different src_platforms to the same destination should collapse."""
+        edges = [
+            ("450k", "cg00000029", "epic_v2", "cg00000029_TC21", "hg38", 16, 53434200, "coord_overlap", 1.0),
+            ("epic_v1", "cg00000029", "epic_v2", "cg00000029_TC21", "hg38", 16, 53434200, "coord_overlap", 1.0),
+        ]
+        result = deduplicate_edges(edges)
+        assert len(result) == 1
+        assert result[0][1] == "cg00000029"
+        assert result[0][3] == "cg00000029_TC21"
+
+    def test_prefers_exact_id_over_coord_overlap(self):
+        """When deduplicating, exact_id should be preferred over coord_overlap."""
+        edges = [
+            ("epic_v1", "cg00000029", "epic_v2", "cg00000029_TC21", "hg38", 16, 53434200, "coord_overlap", 1.0),
+            ("450k", "cg00000029", "epic_v2", "cg00000029_TC21", "hg38", 16, 53434200, "exact_id", 1.0),
+        ]
+        result = deduplicate_edges(edges)
+        assert len(result) == 1
+        assert result[0][7] == "exact_id"
+        assert result[0][0] == "450k"
+
+    def test_different_destinations_preserved(self):
+        """Edges to different destinations should not be deduplicated."""
+        edges = [
+            ("450k", "cg00000029", "epic_v2", "cg00000029_TC21", "hg38", 16, 53434200, "coord_overlap", 1.0),
+            ("450k", "cg00000029", "epic_v1", "cg00000029", "hg38", 16, 53434200, "exact_id", 1.0),
+        ]
+        result = deduplicate_edges(edges)
+        assert len(result) == 2
+
+    def test_empty_input(self):
+        assert deduplicate_edges([]) == []
+
+    def test_no_duplicates_unchanged(self):
+        """Edges without duplicates should pass through unchanged."""
+        edges = [
+            ("450k", "cg00000029", "epic_v1", "cg00000029", "hg38", 16, 53434200, "exact_id", 1.0),
+            ("epic_v1", "cg00000029", "450k", "cg00000029", "hg38", 16, 53434200, "exact_id", 1.0),
+        ]
+        result = deduplicate_edges(edges)
+        assert len(result) == 2
+
+    def test_real_world_epicv2_scenario(self):
+        """Full scenario: cg00000029 on 450k/epic_v1, cg00000029_TC21 on epic_v2."""
+        platform_probes = {
+            "epic_v2": [{"probe_id": "cg00000029_TC21", "chr_id": 16, "pos": 53434200, "platform": "epic_v2", "build": "hg38"}],
+            "epic_v1": [{"probe_id": "cg00000029", "chr_id": 16, "pos": 53434200, "platform": "epic_v1", "build": "hg38"}],
+            "450k": [{"probe_id": "cg00000029", "chr_id": 16, "pos": 53434200, "platform": "450k", "build": "hg38"}],
+        }
+        raw_edges = cross_map_probes(platform_probes)
+
+        # Before dedup: should have duplicate destinations
+        edges_to_epicv2_from_cg29 = [
+            e for e in raw_edges
+            if e[1] == "cg00000029" and e[2] == "epic_v2"
+        ]
+        assert len(edges_to_epicv2_from_cg29) == 2  # from 450k and epic_v1
+
+        # After dedup: only one edge per destination
+        deduped = deduplicate_edges(raw_edges)
+        deduped_to_epicv2 = [
+            e for e in deduped
+            if e[1] == "cg00000029" and e[2] == "epic_v2"
+        ]
+        assert len(deduped_to_epicv2) == 1

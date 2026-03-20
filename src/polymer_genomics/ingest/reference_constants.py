@@ -112,17 +112,17 @@ _TATAUROV_EXTINCTION = {
 }
 _TATAUROV_CITATION = "Tataurov 2008 Biophys Chem 133:66-70"
 
-# Ho PS, et al. PNAS 1986;83:6768-6772 + Ellison MJ, et al. Biochemistry
-# 1985;24:6028-6036. Z-form propensity: free energy penalty for B→Z transition
-# (kcal/mol per dinucleotide step). More negative = more Z-favorable.
-# Standard values used in ZHUNT and other Z-DNA prediction tools.
+# Ho PS, et al. EMBO J 1986;5:2737-2744 + Ellison MJ, et al. PNAS
+# 1985;82:8320-8324. Z-form propensity: B→Z free energy penalty (kcal/mol per
+# dinucleotide step, AS-AS conformation from Z-Hunt source code).
+# LOWER = more Z-favorable. CG is most Z-prone (0.66), AT least (6.20).
 _Z_FORM_PROPENSITY = {
-    "CG": 0.0,   "GC": 0.5,   "CA": 1.0,   "TG": 1.0,
-    "AC": 1.5,   "GT": 1.5,   "TA": 1.5,   "AT": 2.5,
-    "CC": 2.0,   "GG": 2.0,   "AG": 2.5,   "CT": 2.5,
-    "GA": 2.5,   "TC": 2.5,   "AA": 3.0,   "TT": 3.0,
+    "CG": 0.66,  "CA": 1.40,  "TG": 1.40,  "CC": 2.40,
+    "GG": 2.40,  "TA": 2.50,  "GA": 3.30,  "TC": 3.30,
+    "AG": 3.40,  "CT": 3.40,  "GC": 4.20,  "AA": 4.40,
+    "TT": 4.40,  "AC": 5.20,  "GT": 5.20,  "AT": 6.20,
 }
-_Z_FORM_CITATION = "Ho 1986 PNAS 83:6768; Ellison 1985 Biochemistry 24:6028"
+_Z_FORM_CITATION = "Ho 1986 EMBO J 5:2737-2744; Ellison 1985 PNAS 82:8320-8324; Z-Hunt source (Ho Lab, Colorado State)"
 
 # El Hassan MA, Calladine CR. J Mol Biol 1996;259(1):95-103.
 # doi:10.1006/jmbi.1996.0304
@@ -179,7 +179,7 @@ _GROOVE_CITATION = "El Hassan & Calladine 1997; Fratini 1982; Prive 1991"
 # Format: (1-letter, 3-letter, name, MW, volume, SASA,
 #          KD, WW, Eisenberg, pKa_side, charge_pH7, ECPA_B20)
 _AMINO_ACID_DATA = [
-    ("G", "Gly", "Glycine",       57.05,  60,  75, -0.4,  -0.01,  0.62, None,  0.0, 11.7),
+    ("G", "Gly", "Glycine",       57.02,  60,  75, -0.4,  -0.01,  0.62, None,  0.0, 11.7),
     ("A", "Ala", "Alanine",       71.08,  88, 115,  1.8,   0.17,  0.62, None,  0.0, 11.7),
     ("V", "Val", "Valine",        99.13, 140, 155,  4.2,  -0.07,  0.84, None,  0.0, 23.3),
     ("L", "Leu", "Leucine",      113.16, 166, 170,  3.8,  -0.56,  0.94, None,  0.0, 27.3),
@@ -193,8 +193,8 @@ _AMINO_ACID_DATA = [
     ("C", "Cys", "Cysteine",     103.14, 108, 135,  2.5,  -0.24,  0.29,  8.3,  0.0, 24.7),
     ("Y", "Tyr", "Tyrosine",     163.18, 194, 230, -1.3,   0.94,  0.26, 10.1,  0.0, 50.0),
     ("H", "His", "Histidine",    137.14, 153, 195, -3.2,   0.11, -0.40,  6.0,  0.1, 38.3),
-    ("D", "Asp", "Aspartate",    115.09, 111, 150, -3.5,  -2.49, -0.90,  3.65,-1.0, 12.7),
-    ("E", "Glu", "Glutamate",    129.12, 138, 190, -3.5,  -1.50, -0.74,  4.25,-1.0, 15.3),
+    ("D", "Asp", "Aspartate",    115.09, 111, 150, -3.5,  -1.23, -0.90,  3.65,-1.0, 12.7),
+    ("E", "Glu", "Glutamate",    129.12, 138, 190, -3.5,  -2.02, -0.74,  4.25,-1.0, 15.3),
     ("N", "Asn", "Asparagine",   114.10, 114, 160, -3.5,  -0.42, -0.78, None,  0.0, 14.7),
     ("Q", "Gln", "Glutamine",    128.13, 143, 180, -3.5,  -0.58, -0.85, None,  0.0, 16.3),
     ("K", "Lys", "Lysine",       128.17, 168, 200, -3.9,  -0.99, -1.50, 10.5,  1.0, 30.3),
@@ -282,9 +282,10 @@ _PHYSICAL_CONSTANTS = [
      "Cuervo 2014 PNAS 111:E3624"),
 
     # --- DNA Geometry ---
-    ("rise_per_bp_bdna_a", "h", 3.32, "Å", "geometry",
-     "Rise per base pair in B-form DNA", "Crystal structures",
-     "Saenger 1984 Principles of Nucleic Acid Structure"),
+    ("rise_per_bp_bdna_a", "h", 3.4, "Å", "geometry",
+     "Rise per base pair in B-form DNA",
+     "Fiber diffraction consensus; crystal avg 3.32-3.46 Å depending on sequence",
+     "Saenger 1984 Principles of Nucleic Acid Structure; Mandelkern 1981 J Mol Biol 152:153"),
     ("twist_per_bp_bdna_deg", "Ω", 36.0, "degrees", "geometry",
      "Twist per base pair step in B-form DNA", "Crystal structures",
      "Saenger 1984 Principles of Nucleic Acid Structure"),

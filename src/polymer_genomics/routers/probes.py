@@ -71,13 +71,17 @@ async def get_probe(build: str, probe_id: str):
 
         layer = layer_map[row["layer_id"]]
 
-        # Fetch crossmap edges
+        # Fetch crossmap edges — deduplicate across source platforms so that
+        # a probe present on both 450k and epic_v1 doesn't produce duplicate
+        # destination entries (e.g. epic_v2 → cg00000029_TC21 appearing twice).
         crossmap_rows = await conn.fetch(
             """
-            SELECT dst_platform, dst_probe_id, method, confidence
+            SELECT DISTINCT ON (dst_platform, dst_probe_id)
+                   src_platform, dst_platform, dst_probe_id, method, confidence
             FROM probe.map_edges
             WHERE src_probe_id = $1
               AND build = $2::genome_build
+            ORDER BY dst_platform, dst_probe_id, method
             """,
             probe_id,
             build,
@@ -99,6 +103,7 @@ async def get_probe(build: str, probe_id: str):
 
     crossmap = [
         {
+            "src_platform": cr["src_platform"],
             "dst_platform": cr["dst_platform"],
             "dst_probe_id": cr["dst_probe_id"],
             "method": cr["method"],
