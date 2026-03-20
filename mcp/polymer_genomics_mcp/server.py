@@ -43,6 +43,7 @@ mcp = FastMCP(
         "- Gene search → search (prefix match, min 2 chars; also searches gene aliases/synonyms)\n"
         "- DNA sequence → get_sequence (max 100kb)\n"
         "- Multiple probes → batch_probes (max 10,000)\n"
+        "- **Probes + biophysics → annotate_probes_biophysics (DMP list → biophysical context, EWAS killer feature)**\n"
         "- Available data → list_layers\n"
         "- Bulk download → bulk_download (presigned URL, 1hr TTL)\n"
         "- Gene biosynthetic cost → lookup_gene_cost (Akashi-Gojobori + GTEx EWGC)\n"
@@ -75,7 +76,7 @@ mcp = FastMCP(
         "- Evaluate a construct: evaluate_design → review flags\n"
         "- Compare designs: compare_sequences → check deltas_vs_reference\n"
         "- Investigate a gene: lookup_gene → lookup_gene_expression → compute_region_biophysics\n"
-        "- Annotate methylation hits: batch_probes → lookup_gene → lookup_gene_expression\n"
+        "- Annotate methylation hits: annotate_probes_biophysics (one call for probe + biophysics context)\n"
         "- Cross-layer analysis: query_region (multi-layer) → correlate_layers\n"
         "- Region overview: region_profile → drill into specific layers\n"
         "- Prebuilt queries: query_recipe → intersect_layers with recipe filters\n\n"
@@ -575,6 +576,54 @@ async def batch_probes(
         probe_ids: List of probe identifiers (max 10,000).
     """
     return await _post(f"/v1/probes/{build}/batch", {"probe_ids": probe_ids}, build=build)
+
+
+@mcp.tool()
+async def annotate_probes_biophysics(
+    build: str,
+    probe_ids: list[str],
+) -> dict:
+    """Annotate methylation probes with biophysical context (EWAS killer feature).
+
+    Takes a list of probe IDs (e.g. from a DMP list) and returns each probe's
+    coordinates, gene, CpG context, PLUS the full biophysical profile of the
+    1kb genomic window containing it — stacking energy, melting temperature,
+    curvature, methylation sensitivity, Green's function metrics, and 30+ more
+    properties. One API call from DMP list to biophysical annotation.
+
+    Example output (truncated):
+    {"data": {"probes": [
+      {"probe_id": "cg08796240", "chr": "chr16", "pos": 70699930,
+       "gene_symbol": "VAC14", "cpg_context": "open_sea",
+       "biophysics": {"window": "chr16:70699001-70700000",
+                      "gc_content": 0.52, "stacking_dg37": -1.45,
+                      "melting_temp": 82.3, "curvature": 0.08,
+                      "meth_sensitivity": 0.34, ...}},
+      ...
+    ], "summary": {"n_requested": 500, "n_resolved": 498,
+                   "n_with_biophysics": 495,
+                   "mean_gc_content": 0.51, "mean_stacking_dg37": -1.42, ...}}}
+
+    Key biophysics fields per probe:
+    - gc_content, stacking_dg37, melting_temp: thermodynamic stability
+    - curvature, deformability: mechanical properties
+    - meth_sensitivity, methylation_capacity: how much methylation changes mechanics
+    - correlation_length, perturbation_reach: Green's function (signal propagation)
+    - g4_density: G-quadruplex propensity
+    - cpg_density, cpg_obs_exp: CpG context
+
+    Use this after identifying DMPs in an EWAS to add a biophysical annotation
+    dimension that no other tool provides. Filter hits by meth_sensitivity to find
+    probes where methylation changes have maximal mechanical impact on chromatin.
+
+    Does NOT return methylation beta values — use get_betas (compute tool).
+    For probe coordinates only (no biophysics), use batch_probes instead.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        probe_ids: List of probe identifiers (max 10,000).
+    """
+    return await _post(f"/v1/probes/{build}/biophysics", {"probe_ids": probe_ids}, build=build)
 
 
 @mcp.tool()
