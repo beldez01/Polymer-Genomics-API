@@ -26,7 +26,7 @@ const TIER_1: Module[] = [
   },
   {
     name: 'Atlas',
-    desc: 'Karyotype navigator with 63,000 GENCODE v44 transcripts. Gene cards, expression, pathways.',
+    desc: 'Karyotype navigator with 63,000 GENCODE v44 transcripts. Gene profiles, expression, pathways.',
     href: '/atlas',
     accent: COLOR.layer.gencode_v44,
   },

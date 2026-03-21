@@ -35,8 +35,8 @@ import {
   computeCodonGC,
   gcFraction,
   fetchUniProtDomains,
-} from './GeneCardData';
-import type { ProteinDomain } from './GeneCardData';
+} from './GeneProfileData';
+import type { ProteinDomain } from './GeneProfileData';
 import {
   GeneStructureDiagram,
   AAHistogram,
@@ -44,14 +44,14 @@ import {
   CdsGCPlot,
   CostContextGauge,
   ExonIntronGCStats,
-} from './GeneCardVisualizations';
+} from './GeneProfileVisualizations';
 import {
   ConstraintSection,
   ProteinAbundanceSection,
   ProteinAtlasSection,
   PathwaysSection,
   GeneSetsSection,
-} from './GeneCardSectionsLP';
+} from './GeneProfileSectionsLP';
 
 // ---------------------------------------------------------------------------
 // Types (exported for visualization components)
@@ -867,17 +867,17 @@ function EmptySection({ label }: { label: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Main GeneCard
+// Main GeneProfile
 // ---------------------------------------------------------------------------
 
-interface GeneCardProps {
+interface GeneProfileProps {
   symbol: string;
   build: string;
   onBack: () => void;
   standalone?: boolean;
 }
 
-export function GeneCard({ symbol, build, onBack, standalone = false }: GeneCardProps) {
+export function GeneProfile({ symbol, build, onBack, standalone = false }: GeneProfileProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gene, setGene] = useState<ParsedGene | null>(null);

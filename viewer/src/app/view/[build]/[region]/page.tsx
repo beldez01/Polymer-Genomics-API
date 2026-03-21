@@ -98,17 +98,20 @@ function ViewerPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [panLeft, panRight, zoomIn, zoomOut]);
 
-  // Click-and-drag panning
-  const dragRef = useRef<{ startX: number; viewStart: number; viewEnd: number; chr: string } | null>(null);
+  // Click-and-drag panning — uses CSS transform during drag for smooth visuals,
+  // only commits the final genomic region on mouseup to avoid data/viewport desync.
+  const dragRef = useRef<{ startX: number; viewStart: number; viewEnd: number; chr: string; lastClientX: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT' || tag === 'A') return;
     const state = useViewport.getState();
-    dragRef.current = { startX: e.clientX, viewStart: state.start, viewEnd: state.end, chr: state.chr };
+    dragRef.current = { startX: e.clientX, viewStart: state.start, viewEnd: state.end, chr: state.chr, lastClientX: e.clientX };
     setDragging(true);
+    setDragOffsetPx(0);
     e.preventDefault();
   }, []);
 
@@ -116,19 +119,27 @@ function ViewerPage() {
     if (!dragging) return;
     function handleMouseMove(e: MouseEvent) {
       const drag = dragRef.current;
-      if (!drag || !containerRef.current) return;
+      if (!drag) return;
+      drag.lastClientX = e.clientX;
       const deltaX = e.clientX - drag.startX;
-      const trackWidth = containerRef.current.clientWidth;
-      const viewWidth = drag.viewEnd - drag.viewStart + 1;
-      const bpPerPixel = viewWidth / trackWidth;
-      const deltaBp = Math.round(-deltaX * bpPerPixel);
-      const newStart = Math.max(1, drag.viewStart + deltaBp);
-      const newEnd = newStart + viewWidth - 1;
-      useViewport.getState().setRegion(drag.chr, newStart, newEnd);
+      // Visual offset only — no setRegion, no data refetch
+      setDragOffsetPx(deltaX);
     }
     function handleMouseUp() {
+      const drag = dragRef.current;
+      if (drag && containerRef.current) {
+        const deltaX = drag.lastClientX - drag.startX;
+        const trackWidth = containerRef.current.clientWidth;
+        const viewWidth = drag.viewEnd - drag.viewStart + 1;
+        const bpPerPixel = viewWidth / trackWidth;
+        const deltaBp = Math.round(-deltaX * bpPerPixel);
+        const newStart = Math.max(1, drag.viewStart + deltaBp);
+        const newEnd = newStart + viewWidth - 1;
+        useViewport.getState().setRegion(drag.chr, newStart, newEnd);
+      }
       dragRef.current = null;
       setDragging(false);
+      setDragOffsetPx(0);
     }
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
@@ -273,7 +284,7 @@ function ViewerPage() {
             </div>
           )}
 
-          <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform' }}>
+          <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform', transform: dragOffsetPx !== 0 ? `translateX(${dragOffsetPx}px)` : undefined }}>
             <div style={{ backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
               <CoordinateRuler
                 viewStart={start}

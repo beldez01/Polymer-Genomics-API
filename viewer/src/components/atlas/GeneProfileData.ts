@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// GeneCardData.ts — Static data tables & sequence utilities for GeneCard
+// GeneProfileData.ts — Static data tables & sequence utilities for GeneProfile
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Local font sizes (bigger than global TYPE for GeneCard readability)
+// Local font sizes (bigger than global TYPE for GeneProfile readability)
 // ---------------------------------------------------------------------------
 
 export const GC_TYPE = {

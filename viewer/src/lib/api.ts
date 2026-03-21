@@ -150,11 +150,17 @@ export async function fetchAggregation(
   resolution: number,
   layers?: string[],
 ): Promise<AggregationResponse> {
+  const layerStr = layers?.slice().sort().join(',') ?? '';
+  const key = `agg:${build}:${region}:${resolution}:${layerStr}`;
+  const cached = getCached<AggregationResponse>(key);
+  if (cached) return cached;
   const params = new URLSearchParams({ resolution: String(resolution) });
   if (layers?.length) params.set('layers', layers.join(','));
-  return fetchJSON(
+  const result = await fetchJSON<AggregationResponse>(
     `${API_BASE}/v1/aggregation/${build}/${region}?${params}`,
   );
+  setCache(key, result, 600_000); // 10 min TTL — chromosome-level data is stable
+  return result;
 }
 
 export async function fetchLayers(build?: string): Promise<LayerInfo[]> {
@@ -202,7 +208,12 @@ export async function fetchGene(
   build: string,
   symbol: string,
 ): Promise<RegionResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${symbol}`);
+  const key = `gene:${build}:${symbol}`;
+  const cached = getCached<RegionResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<RegionResponse>(`${API_BASE}/v1/genes/${build}/${symbol}`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 export interface ProbeResponse {
@@ -315,7 +326,12 @@ export async function fetchGeneCost(
   build: string,
   symbol: string,
 ): Promise<GeneCostResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/cost`);
+  const key = `geneCost:${build}:${symbol}`;
+  const cached = getCached<GeneCostResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<GeneCostResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/cost`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- Gene Constraint (gnomAD) ---
@@ -347,7 +363,12 @@ export async function fetchGeneConstraint(
   build: string,
   symbol: string,
 ): Promise<GeneConstraintResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/constraint`);
+  const key = `geneConstraint:${build}:${symbol}`;
+  const cached = getCached<GeneConstraintResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<GeneConstraintResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/constraint`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- Protein Abundance (PaxDb) ---
@@ -375,7 +396,12 @@ export async function fetchProteinAbundance(
   build: string,
   symbol: string,
 ): Promise<ProteinAbundanceResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-abundance`);
+  const key = `proteinAbundance:${build}:${symbol}`;
+  const cached = getCached<ProteinAbundanceResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<ProteinAbundanceResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-abundance`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- Protein Atlas (HPA) ---
@@ -415,7 +441,12 @@ export async function fetchProteinAtlas(
   build: string,
   symbol: string,
 ): Promise<ProteinAtlasResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-atlas`);
+  const key = `proteinAtlas:${build}:${symbol}`;
+  const cached = getCached<ProteinAtlasResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<ProteinAtlasResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/protein-atlas`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- Gene Pathways (Reactome) ---
@@ -443,7 +474,12 @@ export async function fetchGenePathways(
   build: string,
   symbol: string,
 ): Promise<GenePathwaysResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/pathways`);
+  const key = `genePathways:${build}:${symbol}`;
+  const cached = getCached<GenePathwaysResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<GenePathwaysResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/pathways`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- Gene Sets (MSigDB Hallmark) ---
@@ -470,7 +506,12 @@ export async function fetchGeneSets(
   build: string,
   symbol: string,
 ): Promise<GeneSetsResponse> {
-  return fetchJSON(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/gene-sets`);
+  const key = `geneSets:${build}:${symbol}`;
+  const cached = getCached<GeneSetsResponse>(key);
+  if (cached) return cached;
+  const result = await fetchJSON<GeneSetsResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}/gene-sets`);
+  setCache(key, result, 600_000);
+  return result;
 }
 
 // --- CpG Profile ---

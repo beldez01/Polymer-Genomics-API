@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { BrandBar } from '@/components/BrandBar';
-import { GeneCard } from '@/components/atlas/GeneCard';
+import { GeneProfile } from '@/components/atlas/GeneProfile';
 import { Footer } from '@/components/Footer';
 import { COLOR, FONT_FAMILY } from '@/config/theme';
 
@@ -25,7 +25,7 @@ export default function GenePage() {
       <BrandBar />
 
       <div style={{ flex: 1 }}>
-        <GeneCard
+        <GeneProfile
           symbol={symbol}
           build={build}
           onBack={() => router.back()}

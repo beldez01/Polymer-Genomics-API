@@ -15,9 +15,9 @@ import {
   COST_REFERENCE,
   costToColor,
   ecpaPercentile,
-} from './GeneCardData';
-import type { ProteinDomain } from './GeneCardData';
-import type { ParsedGene, CanonicalTranscript } from './GeneCard';
+} from './GeneProfileData';
+import type { ProteinDomain } from './GeneProfileData';
+import type { ParsedGene, CanonicalTranscript } from './GeneProfile';
 
 // ---------------------------------------------------------------------------
 // Gene Structure Diagram — single canonical isoform, exons to scale

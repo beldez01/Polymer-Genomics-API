@@ -7,7 +7,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
 import { GeneSearch } from '@/components/atlas/GeneSearch';
-import { GeneCard } from '@/components/atlas/GeneCard';
+import { GeneProfile } from '@/components/atlas/GeneProfile';
 import { Footer } from '@/components/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
@@ -249,7 +249,7 @@ export default function AtlasPage() {
 
   // Dynamic subtitle
   const subtitle = selectedGene
-    ? `Gene Card · ${selectedGene} · hg38`
+    ? `Gene Profile · ${selectedGene} · hg38`
     : 'Karyotype Atlas · hg38';
 
   return (
@@ -328,15 +328,15 @@ export default function AtlasPage() {
         </div>
       )}
 
-      {/* Gene Card */}
+      {/* Gene Profile */}
       {showGene && selectedGene && (
         <div style={{
           opacity: viewState === 'gene' ? 1 : 0,
           transform: viewState === 'gene' ? 'translateY(0)' : 'translateY(20px)',
           transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
-          <ErrorBoundary fallbackLabel="Gene Card">
-            <GeneCard
+          <ErrorBoundary fallbackLabel="Gene Profile">
+            <GeneProfile
               symbol={selectedGene}
               build={BUILD}
               onBack={goBackFromGene}

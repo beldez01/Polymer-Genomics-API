@@ -118,7 +118,7 @@ function FeatureItem({ term, detail }: { term: string; detail: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Gene Card
+// Gene Profile
 // ---------------------------------------------------------------------------
 
 function GeneFeatureCard({

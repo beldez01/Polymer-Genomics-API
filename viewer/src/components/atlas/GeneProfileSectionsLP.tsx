@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * GeneCard Sections L–P
+ * GeneProfile Sections L–P
  *
  * L — Evolutionary Constraint (gnomAD pLI/LOEUF)
  * M — Protein Abundance (PaxDb tissue PPM)
@@ -17,7 +17,7 @@ import {
   FONT_FAMILY,
   COMPONENT,
 } from '@/config/theme';
-import { GC_TYPE } from './GeneCardData';
+import { GC_TYPE } from './GeneProfileData';
 import type {
   GeneConstraintData,
   ProteinAbundanceData,
