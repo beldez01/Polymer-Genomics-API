@@ -45,6 +45,8 @@ export interface MethylationReferenceTrackProps {
   canvasWidth: number;
   height?: number;
   visibleCellTypes?: string[];
+  /** When true, skip rendering cell type labels on canvas (label column handles them) */
+  hideLabels?: boolean;
 }
 
 export function MethylationReferenceTrack({
@@ -54,6 +56,7 @@ export function MethylationReferenceTrack({
   canvasWidth,
   height = 80,
   visibleCellTypes,
+  hideLabels = false,
 }: MethylationReferenceTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -103,12 +106,14 @@ export function MethylationReferenceTrack({
       ctx.fillStyle = '#0d0d0d';
       ctx.fillRect(0, y, canvasWidth, rowH);
 
-      // Cell type label
-      ctx.fillStyle = ct.color;
-      ctx.font = `bold 8px 'JetBrains Mono', monospace`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(ct.label, 2, y + rowH / 2);
+      // Cell type label (only when labels aren't handled by the label column)
+      if (!hideLabels) {
+        ctx.fillStyle = ct.color;
+        ctx.font = `bold 8px 'JetBrains Mono', monospace`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ct.label, 2, y + rowH / 2);
+      }
     }
 
     // Draw probe marks
@@ -154,7 +159,7 @@ export function MethylationReferenceTrack({
       ctx.stroke();
     }
 
-  }, [data, viewStart, viewEnd, canvasWidth, height, visibleCellTypes]);
+  }, [data, viewStart, viewEnd, canvasWidth, height, visibleCellTypes, hideLabels]);
 
   return <canvas ref={canvasRef} className="block" />;
 }

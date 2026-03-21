@@ -37,6 +37,8 @@ export interface HistoneTrackProps {
   viewEnd: number;
   canvasWidth: number;
   height?: number;
+  /** When true, skip rendering mark labels on canvas (label column handles them) */
+  hideLabels?: boolean;
 }
 
 export function HistoneTrack({
@@ -45,6 +47,7 @@ export function HistoneTrack({
   viewEnd,
   canvasWidth,
   height = 60,
+  hideLabels = false,
 }: HistoneTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -119,20 +122,22 @@ export function HistoneTrack({
         ctx.fillRect(x1, y, w, rowHeight);
       }
 
-      // Row label
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = COLOR.canvas.axisLabel;
-      ctx.font = "9px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(mark, 4, y + rowHeight / 2);
-      const desc = MARK_DESCRIPTIONS[mark];
-      if (desc) {
-        const markW = ctx.measureText(mark).width;
-        ctx.fillStyle = COLOR.text.faint;
-        ctx.font = "8px 'JetBrains Mono', monospace";
-        ctx.fillText(desc, 4 + markW + 4, y + rowHeight / 2);
+      // Row label (only when labels aren't handled by the label column)
+      if (!hideLabels) {
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = COLOR.canvas.axisLabel;
         ctx.font = "9px 'JetBrains Mono', monospace";
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(mark, 4, y + rowHeight / 2);
+        const desc = MARK_DESCRIPTIONS[mark];
+        if (desc) {
+          const markW = ctx.measureText(mark).width;
+          ctx.fillStyle = COLOR.text.faint;
+          ctx.font = "8px 'JetBrains Mono', monospace";
+          ctx.fillText(desc, 4 + markW + 4, y + rowHeight / 2);
+          ctx.font = "9px 'JetBrains Mono', monospace";
+        }
       }
     }
 
@@ -158,7 +163,7 @@ export function HistoneTrack({
       }
     }
 
-  }, [data, viewStart, viewEnd, canvasWidth, height]);
+  }, [data, viewStart, viewEnd, canvasWidth, height, hideLabels]);
 
   return <canvas ref={canvasRef} className="block" />;
 }

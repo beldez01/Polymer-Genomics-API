@@ -23,7 +23,9 @@ import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
-const TRACK_LABEL_WIDTH = 72;
+const TRACK_LABEL_WIDTH = 80;
+
+const SEPARATOR_COLOR = `${COLOR.border.subtle}88`;
 
 export interface TrackStackProps {
   data: ViewportData | null;
@@ -38,11 +40,46 @@ export interface TrackStackProps {
   enabledMotifs?: string[];
 }
 
-function TrackRow({ label, evidenceClass, children }: { label: string; evidenceClass?: string | null; children: React.ReactNode }) {
+/** Thin category header spanning the full width */
+function CategoryHeader({ label }: { label: string }) {
   return (
     <div style={{
-      borderBottom: `1px solid ${COLOR.border.subtle}`,
-      marginTop: 4,
+      display: 'flex',
+      alignItems: 'center',
+      paddingTop: 6,
+      paddingBottom: 2,
+      borderBottom: `1px solid ${SEPARATOR_COLOR}`,
+    }}>
+      <div style={{
+        width: TRACK_LABEL_WIDTH,
+        flexShrink: 0,
+        paddingLeft: 6,
+        color: COLOR.text.faint,
+        fontSize: 9,
+        fontFamily: FONT_FAMILY,
+        fontWeight: 600,
+        letterSpacing: '0.10em',
+        textTransform: 'uppercase',
+        userSelect: 'none',
+      }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
+interface TrackRowProps {
+  label: string;
+  evidenceClass?: string | null;
+  /** Optional sub-labels rendered stacked in the label column (e.g. H3K4me3, Gran, Mono) */
+  subLabels?: { text: string; color?: string }[];
+  children: React.ReactNode;
+}
+
+function TrackRow({ label, evidenceClass, subLabels, children }: TrackRowProps) {
+  return (
+    <div style={{
+      borderBottom: `1px solid ${SEPARATOR_COLOR}`,
       display: 'flex',
       alignItems: 'stretch',
     }}>
@@ -50,12 +87,15 @@ function TrackRow({ label, evidenceClass, children }: { label: string; evidenceC
         width: TRACK_LABEL_WIDTH,
         flexShrink: 0,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
+        flexDirection: subLabels ? 'column' : 'row',
+        alignItems: subLabels ? 'flex-end' : 'center',
+        justifyContent: subLabels ? 'space-evenly' : 'flex-end',
         paddingRight: 8,
         paddingLeft: 4,
-        gap: 4,
-        borderRight: `1px solid ${COLOR.border.subtle}`,
+        paddingTop: subLabels ? 2 : 0,
+        paddingBottom: subLabels ? 2 : 0,
+        gap: subLabels ? 0 : 4,
+        borderRight: `1px solid ${SEPARATOR_COLOR}`,
         color: COLOR.text.muted,
         fontSize: TYPE.xs.fontSize,
         fontFamily: FONT_FAMILY,
@@ -64,8 +104,24 @@ function TrackRow({ label, evidenceClass, children }: { label: string; evidenceC
         textAlign: 'right',
         userSelect: 'none',
       }}>
-        {label}
-        <EvidenceBadge evidenceClass={evidenceClass} />
+        {subLabels ? (
+          subLabels.map((sl) => (
+            <span key={sl.text} style={{
+              fontSize: 8,
+              fontWeight: 500,
+              color: sl.color ?? COLOR.text.muted,
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+            }}>
+              {sl.text}
+            </span>
+          ))
+        ) : (
+          <>
+            {label}
+            <EvidenceBadge evidenceClass={evidenceClass} />
+          </>
+        )}
       </div>
       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
         {children}
@@ -73,6 +129,25 @@ function TrackRow({ label, evidenceClass, children }: { label: string; evidenceC
     </div>
   );
 }
+
+// Sub-label definitions for multi-row tracks
+const HISTONE_SUB_LABELS = [
+  { text: 'H3K4me3',  color: COLOR.histone.H3K4me3 },
+  { text: 'H3K27ac',  color: COLOR.histone.H3K27ac },
+  { text: 'H3K4me1',  color: COLOR.histone.H3K4me1 },
+  { text: 'H3K36me3', color: COLOR.histone.H3K36me3 },
+  { text: 'H3K27me3', color: COLOR.histone.H3K27me3 },
+  { text: 'H3K9me3',  color: COLOR.histone.H3K9me3 },
+];
+
+const METH_CELL_TYPES = [
+  { key: 'Gran',  text: 'Gran',  color: '#f59e0b' },
+  { key: 'Mono',  text: 'Mono',  color: '#fb923c' },
+  { key: 'NK',    text: 'NK',    color: '#a78bfa' },
+  { key: 'Bcell', text: 'B',     color: '#60a5fa' },
+  { key: 'CD4T',  text: 'CD4T',  color: '#34d399' },
+  { key: 'CD8T',  text: 'CD8T',  color: '#4ade80' },
+];
 
 export function TrackStack({
   data,
@@ -109,10 +184,27 @@ export function TrackStack({
     );
   }
 
+  // Filter visible methylation cell type sub-labels
+  const visibleMethLabels = visibleCellTypes
+    ? METH_CELL_TYPES.filter((ct) => visibleCellTypes.includes(ct.key))
+    : METH_CELL_TYPES;
+
+  // Check which categories have visible tracks
+  const hasAnnotation = !!(data?.layers?.isochores || data?.sequence != null || (showCodons && bpW >= 1) || data?.layers?.gencode_v44 || data?.layers?.gene_costs_v1);
+  const hasProbes = !!(['probe_epic_v2', 'probe_epic_v1', 'probe_450k'].some((k) => data?.layers?.[k]));
+  const hasEpigenetic = !!(data?.layers?.methylation_atlas || data?.layers?.histone_peaks_encode_v1);
+  const hasVariation = !!(data?.layers?.gwas_catalog_ebi_v1);
+  const hasStructure = !!(data?.layers?.repeatmasker_v1 || data?.layers?.herv_loci_v1 || data?.layers?.nonb_dna || data?.layers?.breakpoints || data?.layers?.fragility);
+  const hasBiophysics = !!(data?.layers?.sequence_biophysics_l0 || showGC);
+
   return (
     <div className="relative h-full overflow-y-auto" style={{ backgroundColor: COLOR.bg.primary }}>
 
       <div className="flex flex-col">
+
+        {/* ─── Annotation ─── */}
+        {hasAnnotation && <CategoryHeader label="Annotation" />}
+
         {data?.layers?.isochores && (
           <TrackRow label="Isochores" evidenceClass={ec('isochores')}>
             <IsochoreTrack data={data.layers.isochores} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={30} />
@@ -143,7 +235,8 @@ export function TrackStack({
           </TrackRow>
         )}
 
-        {/* CpG Sites rendered as overlay on Sequence track — no separate row */}
+        {/* ─── Probes ─── */}
+        {hasProbes && <CategoryHeader label="Probes" />}
 
         {(() => {
           const probeKeys = ['probe_epic_v2', 'probe_epic_v1', 'probe_450k'] as const;
@@ -158,23 +251,32 @@ export function TrackStack({
           );
         })()}
 
+        {/* ─── Epigenetic ─── */}
+        {hasEpigenetic && <CategoryHeader label="Epigenetic" />}
+
         {data?.layers?.methylation_atlas && (
-          <TrackRow label="Meth Ref" evidenceClass={ec('methylation_atlas')}>
-            <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} visibleCellTypes={visibleCellTypes} />
+          <TrackRow label="Meth Ref" evidenceClass={ec('methylation_atlas')} subLabels={visibleMethLabels}>
+            <MethylationReferenceTrack data={data.layers.methylation_atlas} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} visibleCellTypes={visibleCellTypes} hideLabels />
           </TrackRow>
         )}
 
         {data?.layers?.histone_peaks_encode_v1 && (
-          <TrackRow label="Histones" evidenceClass={ec('histone_peaks_encode_v1')}>
-            <HistoneTrack data={data.layers.histone_peaks_encode_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} />
+          <TrackRow label="Histones" evidenceClass={ec('histone_peaks_encode_v1')} subLabels={HISTONE_SUB_LABELS}>
+            <HistoneTrack data={data.layers.histone_peaks_encode_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60} hideLabels />
           </TrackRow>
         )}
+
+        {/* ─── Variation ─── */}
+        {hasVariation && <CategoryHeader label="Variation" />}
 
         {data?.layers?.gwas_catalog_ebi_v1 && (
           <TrackRow label="GWAS" evidenceClass={ec('gwas_catalog_ebi_v1')}>
             <GwasTrack data={data.layers.gwas_catalog_ebi_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80} />
           </TrackRow>
         )}
+
+        {/* ─── Structure ─── */}
+        {hasStructure && <CategoryHeader label="Structure" />}
 
         {data?.layers?.repeatmasker_v1 && (
           <TrackRow label="Repeats" evidenceClass={ec('repeatmasker_v1')}>
@@ -184,7 +286,7 @@ export function TrackStack({
 
         {data?.layers?.herv_loci_v1 && (
           <TrackRow label="HERVs" evidenceClass={ec('herv_loci_v1')}>
-            <HervTrack data={data.layers.herv_loci_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
+            <HervTrack data={data.layers.herv_loci_v1} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} hideLabels />
           </TrackRow>
         )}
 
@@ -205,6 +307,9 @@ export function TrackStack({
             <FragilityTrack data={data.layers.fragility} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
+
+        {/* ─── Biophysics ─── */}
+        {hasBiophysics && <CategoryHeader label="Biophysics" />}
 
         {data?.layers?.sequence_biophysics_l0 && (
           <TrackRow label="DNA Shape" evidenceClass={ec('sequence_biophysics_l0')}>

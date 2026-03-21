@@ -35,6 +35,8 @@ export interface HervTrackProps {
   viewEnd: number;
   canvasWidth: number;
   height?: number;
+  /** When true, skip rendering subfamily labels on canvas */
+  hideLabels?: boolean;
 }
 
 export function HervTrack({
@@ -43,6 +45,7 @@ export function HervTrack({
   viewEnd,
   canvasWidth,
   height = 50,
+  hideLabels = false,
 }: HervTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rectsRef = useRef<{ x: number; y: number; w: number; h: number; i: number }[]>([]);
@@ -124,18 +127,20 @@ export function HervTrack({
         rects.push({ x: x1, y, w, h: rowHeight, i });
       }
 
-      // Row label
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = COLOR.canvas.axisLabel;
-      ctx.font = "9px 'JetBrains Mono', monospace";
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(subfamily, 4, y + rowHeight / 2);
+      // Row label (only when labels aren't handled by the label column)
+      if (!hideLabels) {
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = COLOR.canvas.axisLabel;
+        ctx.font = "9px 'JetBrains Mono', monospace";
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(subfamily, 4, y + rowHeight / 2);
+      }
     }
 
     ctx.globalAlpha = 1.0;
     rectsRef.current = rects;
-  }, [data, viewStart, viewEnd, canvasWidth, height]);
+  }, [data, viewStart, viewEnd, canvasWidth, height, hideLabels]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
