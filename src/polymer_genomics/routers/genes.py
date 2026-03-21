@@ -43,7 +43,7 @@ async def get_gene(build: str, symbol: str):
                    gene_id, transcript_id, feature_type
             FROM gene.features
             WHERE build = $1::genome_build
-              AND UPPER(gene_symbol) = UPPER($2)
+              AND gene_symbol = UPPER($2)
               AND layer_id = $3
             ORDER BY start_pos
             LIMIT $4
@@ -74,7 +74,7 @@ async def get_gene(build: str, symbol: str):
                            gene_id, transcript_id, feature_type
                     FROM gene.features
                     WHERE build = $1::genome_build
-                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND gene_symbol = UPPER($2)
                       AND layer_id = $3
                     ORDER BY start_pos
                     LIMIT $4

@@ -46,7 +46,7 @@ async def get_protein_atlas(build: str, symbol: str):
                    chr_id, start_pos, end_pos, strand
             FROM proteomics.tissue_expression
             WHERE build = $1::genome_build
-              AND UPPER(gene_symbol) = UPPER($2)
+              AND gene_symbol = UPPER($2)
               AND layer_id = $3
             ORDER BY CASE expression_level
                 WHEN 'High' THEN 1
@@ -66,7 +66,7 @@ async def get_protein_atlas(build: str, symbol: str):
             SELECT location, reliability, go_id
             FROM proteomics.subcellular_location
             WHERE build = $1::genome_build
-              AND UPPER(gene_symbol) = UPPER($2)
+              AND gene_symbol = UPPER($2)
               AND layer_id = $3
             ORDER BY CASE reliability
                 WHEN 'Enhanced' THEN 1
@@ -95,7 +95,7 @@ async def get_protein_atlas(build: str, symbol: str):
                            chr_id, start_pos, end_pos, strand
                     FROM proteomics.tissue_expression
                     WHERE build = $1::genome_build
-                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND gene_symbol = UPPER($2)
                       AND layer_id = $3
                     ORDER BY CASE expression_level
                         WHEN 'High' THEN 1
@@ -111,7 +111,7 @@ async def get_protein_atlas(build: str, symbol: str):
                     SELECT location, reliability, go_id
                     FROM proteomics.subcellular_location
                     WHERE build = $1::genome_build
-                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND gene_symbol = UPPER($2)
                       AND layer_id = $3
                     ORDER BY CASE reliability
                         WHEN 'Enhanced' THEN 1

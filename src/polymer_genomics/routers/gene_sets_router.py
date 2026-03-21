@@ -42,7 +42,7 @@ async def get_gene_sets(build: str, symbol: str):
             SELECT collection, gene_set_name, gene_set_description, source
             FROM annotation.gene_sets
             WHERE build = $1::genome_build
-              AND UPPER(gene_symbol) = UPPER($2)
+              AND gene_symbol = UPPER($2)
               AND layer_id = $3
             ORDER BY collection, gene_set_name
             """,
@@ -64,7 +64,7 @@ async def get_gene_sets(build: str, symbol: str):
                     SELECT collection, gene_set_name, gene_set_description, source
                     FROM annotation.gene_sets
                     WHERE build = $1::genome_build
-                      AND UPPER(gene_symbol) = UPPER($2)
+                      AND gene_symbol = UPPER($2)
                       AND layer_id = $3
                     ORDER BY collection, gene_set_name
                     """,
