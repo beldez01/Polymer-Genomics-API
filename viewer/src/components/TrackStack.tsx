@@ -25,7 +25,7 @@ import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
 const TRACK_LABEL_WIDTH = 80;
 
-const SEPARATOR_COLOR = `${COLOR.border.subtle}88`;
+const SEPARATOR_COLOR = `${COLOR.border.subtle}cc`;
 
 export interface TrackStackProps {
   data: ViewportData | null;
