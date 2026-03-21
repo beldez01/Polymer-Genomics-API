@@ -42,7 +42,7 @@ async def get_gene_pathways(build: str, symbol: str):
             SELECT pathway_id, pathway_name, pathway_hierarchy, evidence_code, source
             FROM annotation.gene_pathways
             WHERE build = $1::genome_build
-              AND gene_symbol = UPPER($2)
+              AND UPPER(gene_symbol) = UPPER($2)
               AND layer_id = $3
             ORDER BY pathway_hierarchy, pathway_name
             """,
@@ -64,7 +64,7 @@ async def get_gene_pathways(build: str, symbol: str):
                     SELECT pathway_id, pathway_name, pathway_hierarchy, evidence_code, source
                     FROM annotation.gene_pathways
                     WHERE build = $1::genome_build
-                      AND gene_symbol = UPPER($2)
+                      AND UPPER(gene_symbol) = UPPER($2)
                       AND layer_id = $3
                     ORDER BY pathway_hierarchy, pathway_name
                     """,

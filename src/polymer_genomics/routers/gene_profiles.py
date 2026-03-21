@@ -97,7 +97,7 @@ async def get_gene_profile(build: str, symbol: str):
             SELECT id, ensembl_gene_id, gene_symbol, chr_id, start_pos, end_pos,
                    strand, gene_length_bp, canonical_transcript, n_transcripts
             FROM profiles.gene_identity
-            WHERE build = $1::genome_build AND gene_symbol = UPPER($2)
+            WHERE build = $1::genome_build AND UPPER(gene_symbol) = UPPER($2)
             LIMIT 1
             """,
             build, symbol,
@@ -112,7 +112,7 @@ async def get_gene_profile(build: str, symbol: str):
                     SELECT id, ensembl_gene_id, gene_symbol, chr_id, start_pos, end_pos,
                            strand, gene_length_bp, canonical_transcript, n_transcripts
                     FROM profiles.gene_identity
-                    WHERE build = $1::genome_build AND gene_symbol = UPPER($2)
+                    WHERE build = $1::genome_build AND UPPER(gene_symbol) = UPPER($2)
                     LIMIT 1
                     """,
                     build, canonical,
@@ -276,7 +276,7 @@ async def get_similar_genes(
             """
             SELECT gi.id, gi.ensembl_gene_id, gi.gene_symbol
             FROM profiles.gene_identity gi
-            WHERE gi.build = $1::genome_build AND gi.gene_symbol = UPPER($2)
+            WHERE gi.build = $1::genome_build AND UPPER(gi.gene_symbol) = UPPER($2)
             LIMIT 1
             """,
             build, symbol,
@@ -288,7 +288,7 @@ async def get_similar_genes(
                     """
                     SELECT gi.id, gi.ensembl_gene_id, gi.gene_symbol
                     FROM profiles.gene_identity gi
-                    WHERE gi.build = $1::genome_build AND gi.gene_symbol = UPPER($2)
+                    WHERE gi.build = $1::genome_build AND UPPER(gi.gene_symbol) = UPPER($2)
                     LIMIT 1
                     """,
                     build, canonical,

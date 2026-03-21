@@ -43,7 +43,7 @@ async def get_protein_abundance(build: str, symbol: str):
             SELECT *
             FROM bioenergetics.protein_abundance
             WHERE build = $1::genome_build
-              AND gene_symbol = UPPER($2)
+              AND UPPER(gene_symbol) = UPPER($2)
               AND layer_id = $3
             ORDER BY abundance_ppm DESC
             """,
@@ -65,7 +65,7 @@ async def get_protein_abundance(build: str, symbol: str):
                     SELECT *
                     FROM bioenergetics.protein_abundance
                     WHERE build = $1::genome_build
-                      AND gene_symbol = UPPER($2)
+                      AND UPPER(gene_symbol) = UPPER($2)
                       AND layer_id = $3
                     ORDER BY abundance_ppm DESC
                     """,

@@ -43,7 +43,7 @@ async def get_gene_constraint(build: str, symbol: str):
             SELECT *
             FROM conservation.gene_constraint
             WHERE build = $1::genome_build
-              AND gene_symbol = UPPER($2)
+              AND UPPER(gene_symbol) = UPPER($2)
               AND layer_id = $3
             ORDER BY exp_lof DESC NULLS LAST  -- prefer transcript with most expected LoF (proxy for canonical)
             LIMIT 1
@@ -66,7 +66,7 @@ async def get_gene_constraint(build: str, symbol: str):
                     SELECT *
                     FROM conservation.gene_constraint
                     WHERE build = $1::genome_build
-                      AND gene_symbol = UPPER($2)
+                      AND UPPER(gene_symbol) = UPPER($2)
                       AND layer_id = $3
                     ORDER BY exp_lof DESC NULLS LAST
                     LIMIT 1
