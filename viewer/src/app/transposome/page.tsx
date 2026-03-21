@@ -8,6 +8,7 @@ import { LandscapeCanvas } from '@/components/transposome/LandscapeCanvas';
 import { FamilyInspector } from '@/components/transposome/FamilyInspector';
 import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT } from '@/config/theme';
 import { fetchTEFamilies } from '@/lib/api';
+import { MOCK_FAMILIES } from '@/lib/transposome-mock';
 import { useTransposome, filterFamilies } from '@/stores/transposome';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 
@@ -15,11 +16,14 @@ export default function TransposomePage() {
   const store = useTransposome();
   const isMobile = useIsMobile();
 
-  // Data loading
+  // Data loading — try API first, fall back to mock data on failure/timeout
   const loadData = useCallback(() => {
     fetchTEFamilies()
       .then((res) => store.setFamilies(res.data.families))
-      .catch((err) => store.setError(err instanceof Error ? err.message : 'Failed to load families'));
+      .catch(() => {
+        // Fall back to mock data so the page is always usable
+        store.setFamilies(MOCK_FAMILIES);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

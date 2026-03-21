@@ -635,7 +635,7 @@ export interface TEFamilyDetailResponse {
 }
 
 export async function fetchTEFamilies(): Promise<TEFamiliesResponse> {
-  return fetchJSON<TEFamiliesResponse>(`${API_BASE}/v1/transposome/families`);
+  return fetchJSON<TEFamiliesResponse>(`${API_BASE}/v1/transposome/families`, { timeout: 10000 });
 }
 
 export async function fetchTEFamilyDetail(familyId: string): Promise<TEFamilyDetailResponse> {

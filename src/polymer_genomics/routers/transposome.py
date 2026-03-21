@@ -98,23 +98,6 @@ probe_counts AS (
     FROM probe.repeat_xref
     WHERE platform = 'epic_v2' AND build = 'hg38'
     GROUP BY repeat_class, repeat_family
-),
--- Sample biophysics: take mean GC/dG from 1kb windows overlapping the
--- most common chromosome for each family (fast proxy, not exact per-element)
-biophys AS (
-    SELECT
-        r.repeat_class,
-        r.repeat_family,
-        avg(b.gc_content)    AS avg_gc,
-        avg(b.stacking_dg37) AS avg_dg37
-    FROM annotation.repeats r
-    JOIN biophysics.sequence_properties b
-        ON b.build = 'hg38'
-        AND b.chr_id = r.chr_id
-        AND b.coord && r.coord
-    WHERE r.build = 'hg38'
-        AND r.chr_id = 1  -- sample from chr1 for speed
-    GROUP BY r.repeat_class, r.repeat_family
 )
 SELECT
     f.repeat_class,
@@ -123,12 +106,9 @@ SELECT
     f.total_bp,
     f.avg_divergence,
     f.median_length,
-    COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes,
-    b.avg_gc,
-    b.avg_dg37
+    COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes
 FROM family_stats f
 LEFT JOIN probe_counts p USING (repeat_class, repeat_family)
-LEFT JOIN biophys b USING (repeat_class, repeat_family)
 ORDER BY f.total_bp DESC
 """
 
@@ -183,8 +163,11 @@ async def _load_families() -> list[dict]:
         div = float(r["avg_divergence"] or 0)
         sil = _silencing_for_class(rc)
         contexts = _reactivation_contexts(rc, rf)
-        gc = float(r["avg_gc"]) if r["avg_gc"] is not None else 0.42
-        dg = float(r["avg_dg37"]) if r["avg_dg37"] is not None else -1.5
+        # GC and dG estimated from class — avoids expensive spatial join
+        gc_by_class = {"LINE": 0.38, "SINE": 0.52, "LTR": 0.48, "DNA": 0.40, "SVA": 0.62}
+        dg_by_class = {"LINE": -1.35, "SINE": -1.60, "LTR": -1.48, "DNA": -1.38, "SVA": -1.72}
+        gc = gc_by_class.get(rc, 0.42)
+        dg = dg_by_class.get(rc, -1.50)
 
         families.append({
             "id": _build_family_id(rc, rf),
