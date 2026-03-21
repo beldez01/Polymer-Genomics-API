@@ -27,6 +27,20 @@ def region_cpg_sites_query() -> str:
     """
 
 
+def region_cpg_islands_query() -> str:
+    """CpG islands (UCSC, Gardiner-Garden & Frommer criteria)."""
+    return """
+        SELECT i.start_pos, i.end_pos, i.island_name
+        FROM cpg.islands i
+        WHERE i.build = $1::genome_build
+          AND i.chr_id = $2
+          AND i.coord && int4range($3, $4)
+          AND i.layer_id = $5
+        ORDER BY i.start_pos
+        LIMIT $6
+    """
+
+
 def region_gene_features_query() -> str:
     return """
         SELECT g.start_pos, g.end_pos, g.strand, g.gene_symbol,
@@ -431,6 +445,24 @@ def _convert_cpg(rows: list, chr_name: str) -> dict:
         "ranges": {"start": starts, "end": ends, "width": widths},
         "strand": ["*"] * len(rows),
         "mcols": {"context": contexts, "gc_content": gc_contents},
+        "n": len(rows),
+    }
+
+
+def _convert_cpg_islands(rows: list, chr_name: str) -> dict:
+    starts, ends, widths, names = [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        names.append(r["island_name"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {"island_name": names},
         "n": len(rows),
     }
 
@@ -1226,6 +1258,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "cpg": {
         "query_fn": region_cpg_sites_query,
         "convert_fn": _convert_cpg,
+    },
+    "cpg_island": {
+        "query_fn": region_cpg_islands_query,
+        "convert_fn": _convert_cpg_islands,
     },
     "gene_model": {
         "query_fn": region_gene_features_query,
