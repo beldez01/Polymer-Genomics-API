@@ -275,7 +275,19 @@ def region_biophysics_query() -> str:
                b.perturbation_reach, b.response_asymmetry,
                -- L0 extended (Phase 1 extended)
                b.deformability, b.g4_density, b.g4_max_score,
-               b.kmer_complexity, b.dinucleotide_entropy, b.dominant_period
+               b.kmer_complexity, b.dinucleotide_entropy, b.dominant_period,
+               -- Replication timing (Phase 9)
+               b.repli_gm12878, b.repli_k562,
+               -- Gene density (Phase 9)
+               b.gene_density, b.gene_bp_fraction, b.median_tpm,
+               -- TE fractions (Phase 9)
+               b.te_line_fraction, b.te_sine_fraction, b.te_ltr_fraction,
+               b.te_dna_fraction, b.te_simple_fraction, b.te_total_fraction,
+               -- Derived densities (Phase 9)
+               b.ccre_density,
+               b.histone_h3k4me3_gm12878, b.histone_h3k27me3_gm12878,
+               b.histone_h3k4me1_gm12878, b.histone_h3k27ac_gm12878,
+               b.chromhmm_active_frac_e029
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -875,6 +887,13 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
     corr_len, integ_resp, pert_reach, resp_asym = [], [], [], []
     # L0 extended
     deform, g4_dens, g4_max, kmer_cx, dinuc_ent, dom_per = [], [], [], [], [], []
+    # Phase 9: replication timing, gene density, TE fractions, derived densities
+    repli_gm, repli_k5 = [], []
+    g_dens, g_bp_frac, med_tpm = [], [], []
+    te_line, te_sine, te_ltr, te_dna, te_simple, te_total = [], [], [], [], [], []
+    ccre_d = []
+    h_k4me3, h_k27me3, h_k4me1, h_k27ac = [], [], [], []
+    chromhmm_act = []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -925,6 +944,24 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         kmer_cx.append(r["kmer_complexity"])
         dinuc_ent.append(r["dinucleotide_entropy"])
         dom_per.append(r["dominant_period"])
+        # Phase 9
+        repli_gm.append(r["repli_gm12878"])
+        repli_k5.append(r["repli_k562"])
+        g_dens.append(r["gene_density"])
+        g_bp_frac.append(r["gene_bp_fraction"])
+        med_tpm.append(r["median_tpm"])
+        te_line.append(r["te_line_fraction"])
+        te_sine.append(r["te_sine_fraction"])
+        te_ltr.append(r["te_ltr_fraction"])
+        te_dna.append(r["te_dna_fraction"])
+        te_simple.append(r["te_simple_fraction"])
+        te_total.append(r["te_total_fraction"])
+        ccre_d.append(r["ccre_density"])
+        h_k4me3.append(r["histone_h3k4me3_gm12878"])
+        h_k27me3.append(r["histone_h3k27me3_gm12878"])
+        h_k4me1.append(r["histone_h3k4me1_gm12878"])
+        h_k27ac.append(r["histone_h3k27ac_gm12878"])
+        chromhmm_act.append(r["chromhmm_active_frac_e029"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -958,6 +995,22 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "deformability": deform, "g4_density": g4_dens,
             "g4_max_score": g4_max, "kmer_complexity": kmer_cx,
             "dinucleotide_entropy": dinuc_ent, "dominant_period": dom_per,
+            # Phase 9: replication timing
+            "repli_gm12878": repli_gm, "repli_k562": repli_k5,
+            # Gene density
+            "gene_density": g_dens, "gene_bp_fraction": g_bp_frac,
+            "median_tpm": med_tpm,
+            # TE fractions
+            "te_line_fraction": te_line, "te_sine_fraction": te_sine,
+            "te_ltr_fraction": te_ltr, "te_dna_fraction": te_dna,
+            "te_simple_fraction": te_simple, "te_total_fraction": te_total,
+            # Derived densities
+            "ccre_density": ccre_d,
+            "histone_h3k4me3_gm12878": h_k4me3,
+            "histone_h3k27me3_gm12878": h_k27me3,
+            "histone_h3k4me1_gm12878": h_k4me1,
+            "histone_h3k27ac_gm12878": h_k27ac,
+            "chromhmm_active_frac_e029": chromhmm_act,
         },
         "n": len(rows),
     }
