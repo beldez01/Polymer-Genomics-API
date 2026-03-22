@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT } from '@/config/theme';
 import { fetchTEFamilyDetail } from '@/lib/api';
@@ -65,23 +65,59 @@ export function FamilyInspector() {
   const loadingDetail = useTransposome((s) => s.loadingDetail);
   const setSelectedDetail = useTransposome((s) => s.setSelectedDetail);
   const setLoadingDetail = useTransposome((s) => s.setLoadingDetail);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!selectedFamilyId) {
       setSelectedDetail(null);
+      setDetailError(null);
       return;
     }
+
     setLoadingDetail(true);
+    setDetailError(null);
+    setSelectedDetail(null);
     fetchTEFamilyDetail(selectedFamilyId)
-      .then((res) => setSelectedDetail(res.data))
-      .catch(() => setLoadingDetail(false));
-  }, [selectedFamilyId, setSelectedDetail, setLoadingDetail]);
+      .then((res) => {
+        setSelectedDetail(res.data);
+      })
+      .catch((err: unknown) => {
+        setDetailError(err instanceof Error ? err.message : 'Family detail unavailable.');
+        setLoadingDetail(false);
+      });
+  }, [selectedFamilyId, reloadKey, setSelectedDetail, setLoadingDetail]);
 
   // Empty state
   if (!selectedFamilyId) {
     return (
       <div style={{ color: COLOR.text.muted, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY, textAlign: 'center', paddingTop: 40 }}>
         Select a family in the landscape to inspect.
+      </div>
+    );
+  }
+
+  // Error state
+  if (detailError && !loadingDetail) {
+    return (
+      <div style={{ textAlign: 'center', paddingTop: 40, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+        <span style={{ color: COLOR.accent.rose, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY, lineHeight: 1.5 }}>
+          {detailError}
+        </span>
+        <button
+          onClick={() => setReloadKey((v) => v + 1)}
+          style={{
+            backgroundColor: 'transparent',
+            border: `1px solid ${COLOR.border.strong}`,
+            color: COLOR.text.secondary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            padding: '4px 12px',
+            cursor: 'pointer',
+          }}
+        >
+          Retry
+        </button>
       </div>
     );
   }

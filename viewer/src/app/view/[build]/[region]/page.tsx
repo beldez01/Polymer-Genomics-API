@@ -41,6 +41,8 @@ function ViewerPage() {
   const [showContext, setShowContext] = useState(true);
   const [copyLabel, setCopyLabel] = useState('Link');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [urlSyncEnabled, setUrlSyncEnabled] = useState(false);
+  const urlInitializedRef = useRef(false);
   const isMobile = useIsMobile();
   const regionContext = useRegionContext(data, chr, start, end);
   usePinchZoom(containerRef);
@@ -56,31 +58,49 @@ function ViewerPage() {
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
-  // Sync URL params to viewport
+  // Initialize local viewport state from the route exactly once before we start
+  // writing viewport changes back into the URL.
   useEffect(() => {
+    if (urlInitializedRef.current) return;
+
     if (params.build === 'hg38' || params.build === 'hg37') {
       setBuild(params.build);
     }
+
     const parsed = parseRegionParam(params.region);
     if (parsed) {
       setRegion(parsed.chr, parsed.start, parsed.end);
     }
-  }, [params.build, params.region, setBuild, setRegion]);
 
-  // Restore layers from ?layers= query param on mount
-  useEffect(() => {
     const layersParam = searchParams.get('layers');
     if (layersParam) {
       setLayers(layersParam.split(',').filter(Boolean));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  // Keep ?layers= query param in sync with activeLayers
+    urlInitializedRef.current = true;
+    setUrlSyncEnabled(true);
+  }, [params.build, params.region, searchParams, setBuild, setRegion, setLayers]);
+
+  // Keep the route in sync with the live viewport so copied links reproduce the
+  // region the user is actually looking at.
   useEffect(() => {
-    const newUrl = `${window.location.pathname}?layers=${activeLayers.join(',')}`;
-    window.history.replaceState(null, '', newUrl);
-  }, [activeLayers]);
+    if (!urlSyncEnabled) return;
+
+    const region = `${chr}:${start}-${end}`;
+    const params = new URLSearchParams();
+    if (activeLayers.length > 0) {
+      params.set('layers', activeLayers.join(','));
+    }
+
+    const nextPath = `/view/${build}/${encodeURIComponent(region)}`;
+    const nextQuery = params.toString();
+    const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+
+    if (currentUrl !== nextUrl) {
+      window.history.replaceState(null, '', nextUrl);
+    }
+  }, [urlSyncEnabled, build, chr, start, end, activeLayers]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -153,7 +173,10 @@ function ViewerPage() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopyLabel('Copied!');
       setTimeout(() => setCopyLabel('Link'), 2000);
-    }).catch(() => {});
+    }).catch(() => {
+      setCopyLabel('Copy failed');
+      setTimeout(() => setCopyLabel('Link'), 2000);
+    });
   }
 
   function handleNavigate(c: string, s: number, e: number) {

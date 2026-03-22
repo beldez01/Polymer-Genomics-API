@@ -59,6 +59,29 @@ function readUrlParams(): { chr: string | null; gene: string | null } {
   };
 }
 
+function createInitialChrStats(): Record<string, ChrStats> {
+  const init: Record<string, ChrStats> = {};
+  for (const chr of CHROMOSOMES) {
+    init[chr.name] = { genes: null, cpgIslands: null, probes: null, loaded: false };
+  }
+  return init;
+}
+
+async function runWithConcurrency(
+  tasks: Array<() => Promise<void>>,
+  limit: number,
+): Promise<void> {
+  const queue = [...tasks];
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length > 0) {
+      const task = queue.shift();
+      if (!task) return;
+      await task();
+    }
+  });
+  await Promise.allSettled(workers);
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -68,6 +91,8 @@ export default function AtlasPage() {
   const [selectedGene, setSelectedGene] = useState<string | null>(null);
   const [viewState, setViewState] = useState<ViewState>('overview');
   const [hydrated, setHydrated] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [statsReloadKey, setStatsReloadKey] = useState(0);
 
   // Read URL params after mount
   useEffect(() => {
@@ -82,27 +107,28 @@ export default function AtlasPage() {
     setHydrated(true);
   }, []);
 
-  const [chrStats, setChrStats] = useState<Record<string, ChrStats>>(() => {
-    const init: Record<string, ChrStats> = {};
-    for (const chr of CHROMOSOMES) {
-      init[chr.name] = { genes: null, cpgIslands: null, probes: null, loaded: false };
-    }
-    return init;
-  });
+  const [chrStats, setChrStats] = useState<Record<string, ChrStats>>(createInitialChrStats);
 
   // Authoritative counts from the layers summary endpoint
   const [layerSummary, setLayerSummary] = useState<LayerSummary | null>(null);
 
   useEffect(() => {
-    fetchLayerSummary(BUILD).then(setLayerSummary).catch(() => {});
-  }, []);
+    setSummaryError(null);
+    fetchLayerSummary(BUILD)
+      .then(setLayerSummary)
+      .catch((err: unknown) => {
+        setLayerSummary(null);
+        setSummaryError(err instanceof Error ? err.message : 'Layer summary unavailable.');
+      });
+  }, [statsReloadKey]);
 
   // Load aggregation data for all chromosomes
   useEffect(() => {
     let cancelled = false;
+    setChrStats(createInitialChrStats());
 
     async function loadAll() {
-      const promises = CHROMOSOMES.map(async (chr) => {
+      const tasks = CHROMOSOMES.map((chr) => async () => {
         if (chr.name === 'chrM') {
           if (!cancelled) {
             setChrStats(prev => ({
@@ -137,12 +163,12 @@ export default function AtlasPage() {
         }
       });
 
-      await Promise.allSettled(promises);
+      await runWithConcurrency(tasks, 4);
     }
 
     loadAll();
     return () => { cancelled = true; };
-  }, []);
+  }, [statsReloadKey]);
 
   // URL sync
   useEffect(() => {
@@ -239,6 +265,7 @@ export default function AtlasPage() {
 
   const [aggBannerDismissed, setAggBannerDismissed] = useState(false);
   const anyFailed = Object.entries(chrStats).some(([name, s]) => name !== 'chrM' && s.loaded && s.genes === null);
+  const failedCount = Object.entries(chrStats).filter(([name, s]) => name !== 'chrM' && s.loaded && s.genes === null).length;
 
   const chrInfo = selectedChr ? getChromosomeByName(selectedChr) : null;
   const stats = selectedChr ? chrStats[selectedChr] : null;
@@ -267,7 +294,7 @@ export default function AtlasPage() {
         onClear={goBackFromGene}
       />
 
-      {anyFailed && !aggBannerDismissed && (
+      {(anyFailed || summaryError) && !aggBannerDismissed && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -280,8 +307,28 @@ export default function AtlasPage() {
             fontSize: TYPE.sm.fontSize,
             fontFamily: FONT_FAMILY,
           }}>
-            Chromosome statistics temporarily unavailable
+            {failedCount > 0
+              ? `Chromosome statistics unavailable for ${failedCount} chromosome${failedCount === 1 ? '' : 's'}.`
+              : 'Chromosome statistics temporarily unavailable.'}
+            {summaryError ? ' Layer summary also failed to load.' : ''}
           </span>
+          <button
+            onClick={() => {
+              setAggBannerDismissed(false);
+              setStatsReloadKey((v) => v + 1);
+            }}
+            style={{
+              background: 'none',
+              border: `1px solid ${COLOR.border.strong}`,
+              color: COLOR.text.secondary,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              cursor: 'pointer',
+              padding: `2px ${SPACE[2]}px`,
+            }}
+          >
+            Retry
+          </button>
           <button
             onClick={() => setAggBannerDismissed(true)}
             style={{

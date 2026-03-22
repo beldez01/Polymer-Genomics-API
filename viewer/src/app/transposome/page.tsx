@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { ModeTabs } from '@/components/transposome/ModeTabs';
 import { LensPanel } from '@/components/transposome/LensPanel';
@@ -15,15 +15,29 @@ import { useIsMobile } from '@/hooks/useBreakpoint';
 export default function TransposomePage() {
   const store = useTransposome();
   const isMobile = useIsMobile();
+  const [dataMode, setDataMode] = useState<'live' | 'demo'>('live');
 
-  // Data loading — try API first, fall back to mock data on failure/timeout
+  // Live data loading — failures are surfaced explicitly so users can decide
+  // whether to retry or inspect the demo dataset.
   const loadData = useCallback(() => {
+    store.setLoading(true);
+    store.setError(null);
     fetchTEFamilies()
-      .then((res) => store.setFamilies(res.data.families))
-      .catch(() => {
-        // Fall back to mock data so the page is always usable
-        store.setFamilies(MOCK_FAMILIES);
+      .then((res) => {
+        setDataMode('live');
+        store.setFamilies(res.data.families);
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : 'Failed to load live transposome data.';
+        store.setError(message);
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadDemoData = useCallback(() => {
+    setDataMode('demo');
+    store.setError(null);
+    store.setFamilies(MOCK_FAMILIES);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -84,20 +98,36 @@ export default function TransposomePage() {
         <span style={{ color: COLOR.accent.rose, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY }}>
           {store.error}
         </span>
-        <button
-          onClick={() => { store.setLoading(true); store.setError(null); loadData(); }}
-          style={{
-            backgroundColor: 'transparent',
-            border: `1px solid ${COLOR.border.strong}`,
-            color: COLOR.text.secondary,
-            fontFamily: FONT_FAMILY,
-            fontSize: TYPE.xs.fontSize,
-            padding: '4px 12px',
-            cursor: 'pointer',
-          }}
-        >
-          Retry
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            onClick={loadData}
+            style={{
+              backgroundColor: 'transparent',
+              border: `1px solid ${COLOR.border.strong}`,
+              color: COLOR.text.secondary,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.xs.fontSize,
+              padding: '4px 12px',
+              cursor: 'pointer',
+            }}
+          >
+            Retry Live Data
+          </button>
+          <button
+            onClick={loadDemoData}
+            style={{
+              backgroundColor: `${COLOR.accent.amber}12`,
+              border: `1px solid ${COLOR.accent.amber}55`,
+              color: COLOR.accent.amber,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.xs.fontSize,
+              padding: '4px 12px',
+              cursor: 'pointer',
+            }}
+          >
+            Load Demo Dataset
+          </button>
+        </div>
       </div>
     );
   } else {
@@ -153,6 +183,42 @@ export default function TransposomePage() {
           Aggregated from 5.3M RepeatMasker elements. Biophysics properties are heuristic estimates pending full per-element computation.
         </span>
       </div>
+
+      {dataMode === 'demo' && (
+        <div style={{
+          backgroundColor: `${COLOR.accent.rose}12`,
+          borderBottom: `1px solid ${COLOR.accent.rose}40`,
+          padding: `${SPACE[2]}px 24px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: SPACE[3],
+          flexWrap: 'wrap',
+        }}>
+          <span style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.5,
+          }}>
+            Using the local demo dataset because the live transposome endpoint did not load. Review behavior, but do not treat the current values as live production data.
+          </span>
+          <button
+            onClick={loadData}
+            style={{
+              backgroundColor: 'transparent',
+              border: `1px solid ${COLOR.border.strong}`,
+              color: COLOR.text.secondary,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.xs.fontSize,
+              padding: '4px 12px',
+              cursor: 'pointer',
+            }}
+          >
+            Retry Live Data
+          </button>
+        </div>
+      )}
 
       {/* Hero Header — compact to fit in single viewport */}
       <div style={{ padding: '12px 24px 10px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>

@@ -87,9 +87,22 @@ export function Sidebar({
   onToggleAllMotifs,
 }: SidebarProps) {
   const [layers, setLayers] = useState<LayerInfo[]>([]);
+  const [layerLoadError, setLayerLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchLayers(build).then(setLayers).catch(() => {});
+    let cancelled = false;
+    setLayerLoadError(null);
+    fetchLayers(build)
+      .then((nextLayers) => {
+        if (cancelled) return;
+        setLayers(nextLayers);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLayerLoadError('Layer metadata unavailable. Using fallback layer list.');
+        setLayers([]);
+      });
+    return () => { cancelled = true; };
   }, [build]);
 
   const displayList: { layer_key: string; name: string; type: string; row_count: number | null }[] =
@@ -412,6 +425,20 @@ export function Sidebar({
           <span style={COMPONENT.sectionHeader}>ANNOTATIONS</span>
         </div>
 
+        {layerLoadError && (
+          <div style={{
+            padding: `${SPACE[2]}px ${SPACE[2]}px`,
+            backgroundColor: `${COLOR.accent.amber}12`,
+            borderBottom: `1px solid ${COLOR.accent.amber}40`,
+            color: COLOR.text.secondary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.5,
+          }}>
+            {layerLoadError}
+          </div>
+        )}
+
         <div style={{ borderBottom: `1px solid ${COLOR.border.subtle}` }}>
 
           {/* 1. Isochores — above sequence */}
@@ -513,7 +540,22 @@ export function Sidebar({
             );
           })()}
 
-          {/* 10. Repeats */}
+          {/* 10. TAD Domains */}
+          {(() => {
+            const l = apiLayerMap.get('tad_domain');
+            const active = activeLayers.includes('tad_domain');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'TAD Domains') : 'TAD Domains'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('tad_domain')}
+              />
+            );
+          })()}
+
+          {/* 11. Repeats */}
           {(() => {
             const l = apiLayerMap.get('repeatmasker_v1');
             const active = activeLayers.includes('repeatmasker_v1');

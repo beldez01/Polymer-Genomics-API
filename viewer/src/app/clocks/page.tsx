@@ -23,41 +23,83 @@ export default function ClocksPage() {
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [comparisonWarning, setComparisonWarning] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  const retryAll = useCallback(() => {
+    setClocks([]);
+    setSelectedClock(null);
+    setClockProbes({});
+    setSelectedDetail(null);
+    setActiveTab('anatomy');
+    setLoading(true);
+    setLoadingDetail(false);
+    setAllLoaded(false);
+    setLoadError(null);
+    setDetailError(null);
+    setComparisonWarning(null);
+    setReloadToken((v) => v + 1);
+  }, []);
 
   // Load clock list on mount
   useEffect(() => {
     const controller = new AbortController();
+    setLoadError(null);
     (async () => {
       try {
         const res = await fetchClockList({ signal: controller.signal });
         setClocks(res.data.clocks);
       } catch (e) {
-        if (!controller.signal.aborted) console.error('Failed to load clocks', e);
+        if (!controller.signal.aborted) {
+          console.error('Failed to load clocks', e);
+          setClocks([]);
+          setLoadError(e instanceof Error ? e.message : 'Failed to load clock data.');
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     })();
     return () => controller.abort();
-  }, []);
+  }, [reloadToken]);
 
   // Load all clock probes for cross-comparison
   useEffect(() => {
     if (!clocks.length || allLoaded) return;
     const controller = new AbortController();
+    setComparisonWarning(null);
     (async () => {
       const all: Record<string, ClockProbe[]> = {};
-      for (const c of clocks) {
-        if (controller.signal.aborted) break;
-        try {
-          const res = await fetchClockDetail(c.clock_name, { signal: controller.signal });
-          all[c.clock_name] = res.data.probes;
-        } catch (e) {
-          if (!controller.signal.aborted) console.error(`Failed to load ${c.clock_name}`, e);
+      const failures: string[] = [];
+      const results = await Promise.allSettled(
+        clocks.map(async (clock) => {
+          const res = await fetchClockDetail(clock.clock_name, { signal: controller.signal });
+          return { clockName: clock.clock_name, probes: res.data.probes };
+        }),
+      );
+
+      if (controller.signal.aborted) return;
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          all[result.value.clockName] = result.value.probes;
+        } else {
+          const message = result.reason instanceof Error ? result.reason.message : 'unknown error';
+          console.error('Failed to preload clock detail', message);
+          failures.push(message);
         }
       }
+
       if (!controller.signal.aborted) {
         setClockProbes(all);
         setAllLoaded(true);
+        if (failures.length > 0) {
+          const loadedCount = Object.keys(all).length;
+          setComparisonWarning(
+            `${failures.length} clock dataset${failures.length === 1 ? '' : 's'} failed to load. Comparison and calculator currently use ${loadedCount} of ${clocks.length} clocks.`,
+          );
+        }
       }
     })();
     return () => controller.abort();
@@ -67,6 +109,7 @@ export default function ClocksPage() {
   const handleSelectClock = useCallback(async (name: string) => {
     setSelectedClock(name);
     setActiveTab('anatomy');
+    setDetailError(null);
 
     // Check if already loaded
     const cached = clockProbes[name];
@@ -76,6 +119,7 @@ export default function ClocksPage() {
       return;
     }
 
+    setSelectedDetail(null);
     setLoadingDetail(true);
     try {
       const res = await fetchClockDetail(name);
@@ -83,6 +127,7 @@ export default function ClocksPage() {
       setClockProbes((prev) => ({ ...prev, [name]: res.data.probes }));
     } catch (e) {
       console.error('Failed to load clock detail', e);
+      setDetailError(e instanceof Error ? e.message : 'Failed to load the selected clock.');
     } finally {
       setLoadingDetail(false);
     }
@@ -156,6 +201,55 @@ export default function ClocksPage() {
           </p>
         </section>
 
+        {loadError && (
+          <div style={{
+            backgroundColor: `${COLOR.accent.rose}10`,
+            border: `1px solid ${COLOR.accent.rose}40`,
+            padding: `${SPACE[3]}px ${SPACE[4]}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: SPACE[3],
+            flexWrap: 'wrap',
+          }}>
+            <span style={{
+              color: COLOR.accent.rose,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+            }}>
+              {loadError}
+            </span>
+            <button
+              onClick={retryAll}
+              style={{
+                backgroundColor: 'transparent',
+                border: `1px solid ${COLOR.border.strong}`,
+                color: COLOR.text.secondary,
+                fontFamily: FONT_FAMILY,
+                fontSize: TYPE.xs.fontSize,
+                padding: '4px 12px',
+                cursor: 'pointer',
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {comparisonWarning && (
+          <div style={{
+            backgroundColor: `${COLOR.accent.amber}12`,
+            border: `1px solid ${COLOR.accent.amber}40`,
+            padding: `${SPACE[3]}px ${SPACE[4]}px`,
+            color: COLOR.text.secondary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.5,
+          }}>
+            {comparisonWarning}
+          </div>
+        )}
+
         {/* ─── Panel A: Clock Observatory ─── */}
         <section>
           <div style={{
@@ -186,6 +280,24 @@ export default function ClocksPage() {
               <span style={{ color: COLOR.text.faint, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY }}>
                 Loading clocks...
               </span>
+            </div>
+          ) : loadError ? (
+            <div style={{
+              color: COLOR.accent.rose,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              padding: `${SPACE[4]}px 0`,
+            }}>
+              Clock observatory unavailable until clock metadata loads.
+            </div>
+          ) : clocks.length === 0 ? (
+            <div style={{
+              color: COLOR.text.muted,
+              fontSize: TYPE.sm.fontSize,
+              fontFamily: FONT_FAMILY,
+              padding: `${SPACE[4]}px 0`,
+            }}>
+              No clock metadata is currently available.
             </div>
           ) : (
             <ErrorBoundary fallbackLabel="Clock Observatory">
@@ -284,6 +396,18 @@ export default function ClocksPage() {
                   fontFamily: FONT_FAMILY,
                 }}>
                   Loading probe data...
+                </div>
+              )}
+              {detailError && !loadingDetail && (
+                <div style={{
+                  backgroundColor: `${COLOR.accent.rose}10`,
+                  border: `1px solid ${COLOR.accent.rose}40`,
+                  color: COLOR.accent.rose,
+                  fontSize: TYPE.sm.fontSize,
+                  fontFamily: FONT_FAMILY,
+                  padding: `${SPACE[3]}px ${SPACE[4]}px`,
+                }}>
+                  {detailError}
                 </div>
               )}
               {selectedDetail && !loadingDetail && (

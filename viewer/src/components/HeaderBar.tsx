@@ -37,6 +37,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
   const [results, setResults] = useState<{ gene_symbol: string }[]>([]);
   const [open, setOpen] = useState(false);
   const [isProbe, setIsProbe] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -51,6 +52,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
 
   function handleChange(value: string) {
     setQuery(value);
+    setActionError(null);
     clearTimeout(debounceRef.current);
     const trimmed = value.trim();
     if (/^cg\d{7,8}$/i.test(trimmed) || /^ch\.\d+\.\d+/i.test(trimmed)) {
@@ -68,23 +70,29 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
         const res = await searchGenes(value, build);
         setResults(res);
         setOpen(res.length > 0);
-      } catch { setResults([]); }
+      } catch {
+        setResults([]);
+        setOpen(false);
+        setActionError('Gene search is unavailable right now.');
+      }
     }, 300);
   }
 
   async function handleSubmit() {
     const trimmed = query.trim();
+    setActionError(null);
     if (/^cg\d{7,8}$/i.test(trimmed) || /^ch\.\d+\.\d+/i.test(trimmed)) {
       try {
         const res = await fetchProbe(build, trimmed);
         const p = res.data.probe;
         const padding = Math.max(500, Math.round((p.end - p.start) * 5));
         onNavigate(p.seqname, Math.max(1, p.start - padding), p.end + padding);
+        setOpen(false);
+        setQuery('');
       } catch (e) {
         console.error('Probe lookup failed:', e);
+        setActionError(e instanceof Error ? e.message : 'Probe lookup failed.');
       }
-      setOpen(false);
-      setQuery('');
       return;
     }
     const regionMatch = query.match(/^(chr[0-9XYM]+):(\d+)-(\d+)$/i);
@@ -92,6 +100,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
       const c = regionMatch[1].toLowerCase().replace('chrx', 'chrX').replace('chry', 'chrY').replace('chrm', 'chrM');
       onNavigate(c, parseInt(regionMatch[2], 10), parseInt(regionMatch[3], 10));
       setOpen(false);
+      setQuery('');
       return;
     }
     await selectGene(query.toUpperCase());
@@ -112,13 +121,18 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
           if (granges.ranges.end[i] > maxEnd) maxEnd = granges.ranges.end[i];
           c = granges.seqnames[i];
         }
-      if (c && minStart < Infinity) {
-        const padding = Math.max(100, Math.round((maxEnd - minStart) * 0.1));
-        onNavigate(c, minStart - padding, maxEnd + padding);
+      if (!c || minStart === Infinity) {
+        setActionError(`No gene found for "${symbol}".`);
+        return;
       }
-    } catch (e) { console.error('Gene lookup failed:', e); }
-    setOpen(false);
-    setQuery('');
+      const padding = Math.max(100, Math.round((maxEnd - minStart) * 0.1));
+      onNavigate(c, minStart - padding, maxEnd + padding);
+      setOpen(false);
+      setQuery('');
+    } catch (e) {
+      console.error('Gene lookup failed:', e);
+      setActionError(e instanceof Error ? e.message : 'Gene lookup failed.');
+    }
   }
 
   const coords = `${chr}:${start.toLocaleString()}-${end.toLocaleString()}`;
@@ -297,6 +311,26 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
               </li>
             ))}
           </ul>
+        )}
+
+        {actionError && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            right: 0,
+            width: isMobile ? 220 : 280,
+            marginTop: 2,
+            backgroundColor: `${COLOR.accent.rose}10`,
+            border: `1px solid ${COLOR.accent.rose}55`,
+            color: COLOR.accent.rose,
+            zIndex: 50,
+            padding: `${SPACE[2]}px ${SPACE[3]}px`,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.5,
+          }}>
+            {actionError}
+          </div>
         )}
       </div>
     </div>
