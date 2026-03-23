@@ -391,6 +391,14 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "corner_score": "avg(corner_score)",
         },
     },
+    "insulation_score": {
+        "table": "regulatory.insulation_score",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "insulation_score": "avg(insulation_score)",
+        },
+    },
 }
 
 # ---------------------------------------------------------------------------

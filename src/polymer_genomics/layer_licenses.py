@@ -34,4 +34,6 @@ LAYER_SOURCE_INFO = {
     "gene_set": {"source": "MSigDB Hallmark", "license": "CC BY 4.0"},
     "pathway": {"source": "Reactome", "license": "CC BY 4.0"},
     "tad_domain": {"source": "ENCODE 4 Hi-C, Aiden Lab, Arrowhead v2.13.06", "license": "CC BY 4.0"},
+    "hic_compartment": {"source": "4D Nucleome + Rao et al. 2014", "license": "CC BY 4.0"},
+    "insulation_score": {"source": "4D Nucleome, cooltools v0.2.0", "license": "CC BY 4.0"},
 }

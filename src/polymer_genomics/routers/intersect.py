@@ -118,6 +118,16 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {"cell_type", "resolution_bp", "corner_score", "uvar_score", "lvar_score"},
     },
+    "hic_compartment": {
+        "table": "regulatory.hic_compartment",
+        "id_col": "layer_id",
+        "fields": {"cell_type", "pc1_score", "resolution_bp"},
+    },
+    "insulation_score": {
+        "table": "regulatory.insulation_score",
+        "id_col": "layer_id",
+        "fields": {"cell_type", "insulation_score", "resolution_bp"},
+    },
 }
 
 

@@ -192,6 +192,8 @@ _COUNT_TABLES = {
     "breakpoint": "fragility.breakpoints",
     "fragility": "fragility.composite_score",
     "tad_domain": "regulatory.tad_domains",
+    "hic_compartment": "regulatory.hic_compartment",
+    "insulation_score": "regulatory.insulation_score",
 }
 
 

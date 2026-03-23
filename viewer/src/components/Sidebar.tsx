@@ -540,7 +540,22 @@ export function Sidebar({
             );
           })()}
 
-          {/* 10. TAD Domains */}
+          {/* 10. Hi-C Compartments */}
+          {(() => {
+            const l = apiLayerMap.get('hic_compartment');
+            const active = activeLayers.includes('hic_compartment');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'A/B Compartment') : 'A/B Compartment'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('hic_compartment')}
+              />
+            );
+          })()}
+
+          {/* 11. TAD Domains */}
           {(() => {
             const l = apiLayerMap.get('tad_domain');
             const active = activeLayers.includes('tad_domain');
@@ -564,7 +579,22 @@ export function Sidebar({
             );
           })()}
 
-          {/* 11. Repeats */}
+          {/* 12. Insulation Score */}
+          {(() => {
+            const l = apiLayerMap.get('insulation_score');
+            const active = activeLayers.includes('insulation_score');
+            const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
+            return (
+              <AnnotationRow
+                active={active}
+                name={l ? cleanName(l.name || 'Insulation Score') : 'Insulation Score'}
+                subLine={subLine}
+                onClick={() => onToggleLayer('insulation_score')}
+              />
+            );
+          })()}
+
+          {/* 13. Repeats */}
           {(() => {
             const l = apiLayerMap.get('repeatmasker_v1');
             const active = activeLayers.includes('repeatmasker_v1');
