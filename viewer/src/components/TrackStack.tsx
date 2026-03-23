@@ -280,11 +280,7 @@ export function TrackStack({
         {hasStructure && <CategoryHeader label="Structure" />}
 
         {data?.layers?.tad_domain && (
-          <TrackRow label="TADs" evidenceClass={ec('tad_domain')} subLabels={[
-            { text: 'GM12878', color: '#3b82f6' },
-            { text: 'K562',    color: '#f59e0b' },
-            { text: 'HUES64',  color: '#10b981' },
-          ]}>
+          <TrackRow label="TADs" evidenceClass={ec('tad_domain')}>
             <TadDomainTrack data={data.layers.tad_domain} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
           </TrackRow>
         )}

@@ -556,17 +556,8 @@ export function Sidebar({
                   onClick={() => onToggleLayer('tad_domain')}
                 />
                 {active && (
-                  <div style={{ paddingLeft: 14, paddingBottom: 4, display: 'flex', flexWrap: 'wrap', gap: '1px 8px' }}>
-                    {([
-                      ['GM12878', '#3b82f6'],
-                      ['K562', '#f59e0b'],
-                      ['HUES64', '#10b981'],
-                    ] as const).map(([label, color]) => (
-                      <span key={label} className="flex items-center gap-1" style={{ fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, color: COLOR.text.faint }}>
-                        <span style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: color, flexShrink: 0 }} />
-                        {label}
-                      </span>
-                    ))}
+                  <div style={{ paddingLeft: 14, paddingBottom: 4, fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, color: COLOR.text.faint }}>
+                    113 cell types (ENCODE Hi-C)
                   </div>
                 )}
               </div>

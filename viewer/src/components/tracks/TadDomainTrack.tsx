@@ -6,17 +6,30 @@ import { genomicToPixel } from '@/lib/coordinates';
 import { COLOR } from '@/config/theme';
 import { drawGridlines } from '@/lib/gridlines';
 
-// Per-cell-type colors
-const CELL_COLORS: Record<string, string> = {
+// Named colors for common cell types; others get hash-assigned
+const NAMED_COLORS: Record<string, string> = {
   GM12878: '#3b82f6', // blue
   K562:    '#f59e0b', // amber
   HUES64:  '#10b981', // emerald
+  'IMR-90': '#f472b6', // pink
+  HepG2:   '#a78bfa', // violet
+  HCT116:  '#fb923c', // orange
 };
 
-const CELL_ORDER = ['GM12878', 'K562', 'HUES64'];
+// 20-color palette for deterministic assignment
+const PALETTE = [
+  '#3b82f6', '#f59e0b', '#10b981', '#f472b6', '#a78bfa',
+  '#fb923c', '#06b6d4', '#ef4444', '#84cc16', '#8b5cf6',
+  '#14b8a6', '#f97316', '#6366f1', '#22c55e', '#e879f9',
+  '#0ea5e9', '#eab308', '#ec4899', '#64748b', '#d946ef',
+];
 
 function cellColor(ct: string): string {
-  return CELL_COLORS[ct] ?? '#6b7280';
+  if (NAMED_COLORS[ct]) return NAMED_COLORS[ct];
+  // Deterministic hash to palette index
+  let hash = 0;
+  for (let i = 0; i < ct.length; i++) hash = ((hash << 5) - hash + ct.charCodeAt(i)) | 0;
+  return PALETTE[Math.abs(hash) % PALETTE.length];
 }
 
 function scoreToAlpha(score: number | null | undefined, minScore: number, maxScore: number): number {
@@ -80,10 +93,10 @@ export function TadDomainTrack({
 
     // Determine which cell types are present and visible
     const cellTypes = (data.mcols.cell_type as string[]) ?? [];
-    const uniqueCellTypes = [...new Set(cellTypes)];
+    const uniqueCellTypes = [...new Set(cellTypes)].sort();
     const activeCells = visibleCellTypes
-      ? CELL_ORDER.filter(ct => visibleCellTypes.includes(ct) && uniqueCellTypes.includes(ct))
-      : CELL_ORDER.filter(ct => uniqueCellTypes.includes(ct));
+      ? uniqueCellTypes.filter(ct => visibleCellTypes.includes(ct))
+      : uniqueCellTypes;
 
     if (activeCells.length === 0) {
       ctx.fillStyle = COLOR.canvas.emptyText;

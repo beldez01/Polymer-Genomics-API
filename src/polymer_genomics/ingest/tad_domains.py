@@ -211,10 +211,23 @@ async def ingest_tad_domains(
                 rows = _parse_bed(path, CHR_NAME_TO_ID)
                 break
 
+    # Also try ENCODE download naming: CellType__ENCFF*.bedpe.gz
     if not rows:
-        print(f"  ERROR: No TAD domain data found for {cell_type}.")
-        print(f"  Looked in: {data_dir}")
-        print(f"  Expected files: {bedpe_candidates[0]} or {bed_candidates[0]}")
+        import glob as _glob
+        pattern = os.path.join(data_dir, f"{cell_type}__ENCFF*.bedpe.gz")
+        matches = _glob.glob(pattern)
+        if not matches:
+            # Try with underscores replacing spaces/special chars
+            safe = cell_type.replace(" ", "_").replace(",", "").replace("/", "-")
+            pattern = os.path.join(data_dir, f"{safe}__ENCFF*.bedpe.gz")
+            matches = _glob.glob(pattern)
+        if matches:
+            path = matches[0]
+            print(f"  Parsing ENCODE BEDPE: {os.path.basename(path)}")
+            rows = _parse_arrowhead_bedpe(path, CHR_NAME_TO_ID)
+
+    if not rows:
+        print(f"  WARNING: No TAD domain data found for {cell_type}. Skipping.")
         return 0
 
     print(f"  Parsed {len(rows):,} TAD domains for {cell_type}")
@@ -252,14 +265,41 @@ async def ingest_tad_domains(
     return total_loaded
 
 
+def _discover_cell_types(data_dir: str) -> list[str]:
+    """Auto-detect cell types from BEDPE filenames in data directory."""
+    import glob as _glob
+    cell_types = set()
+    for path in _glob.glob(os.path.join(data_dir, "*.bedpe.gz")):
+        name = os.path.basename(path)
+        # Pattern: CellType__ENCFF*.bedpe.gz
+        if "__ENCFF" in name:
+            ct = name.split("__ENCFF")[0]
+        # Pattern: CellType_arrowhead_domains.bedpe.gz
+        elif "_arrowhead_domains" in name:
+            ct = name.split("_arrowhead_domains")[0]
+        elif "_tad_domains" in name:
+            ct = name.split("_tad_domains")[0]
+        elif "_contact_domains" in name:
+            ct = name.split("_contact_domains")[0]
+        else:
+            continue
+        cell_types.add(ct)
+    return sorted(cell_types)
+
+
 async def main(
     build: str = "hg38",
     data_dir: str | None = None,
     cell_types: list[str] | None = None,
+    discover_all: bool = False,
 ) -> None:
     if data_dir is None:
         data_dir = DEFAULT_DATA_DIR
-    if cell_types is None:
+
+    if discover_all:
+        cell_types = _discover_cell_types(data_dir)
+        print(f"  Auto-discovered {len(cell_types)} cell types")
+    elif cell_types is None:
         cell_types = ["GM12878", "K562", "HUES64"]
 
     if not Path(data_dir).is_dir():
@@ -316,10 +356,16 @@ def cli() -> None:
         "--cell-type",
         action="append",
         dest="cell_types",
-        help="Cell type to ingest (can specify multiple). Default: GM12878, K562, H1-hESC",
+        help="Cell type to ingest (can specify multiple). Default: GM12878, K562, HUES64",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        dest="discover_all",
+        help="Auto-discover and ingest all cell types from BEDPE files in data dir",
     )
     args = parser.parse_args()
-    asyncio.run(main(args.build, args.data_dir, args.cell_types))
+    asyncio.run(main(args.build, args.data_dir, args.cell_types, args.discover_all))
 
 
 if __name__ == "__main__":
