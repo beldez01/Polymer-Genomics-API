@@ -60,7 +60,7 @@ export function HicCompartmentTrack({
     const midY = height / 2;
 
     // Find max |pc1| for scaling
-    const absMax = pc1s.reduce((mx, v) => v != null ? Math.max(mx, Math.abs(v)) : mx, 0.01);
+    const absMax = pc1s.reduce<number>((mx, v) => v != null ? Math.max(mx, Math.abs(v)) : mx, 0.01);
     const scale = (midY - 4) / absMax;
 
     // Draw zero line
