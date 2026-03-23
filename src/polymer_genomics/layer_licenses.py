@@ -33,4 +33,5 @@ LAYER_SOURCE_INFO = {
     "gene_alias": {"source": "NCBI Gene", "license": "Public Domain"},
     "gene_set": {"source": "MSigDB Hallmark", "license": "CC BY 4.0"},
     "pathway": {"source": "Reactome", "license": "CC BY 4.0"},
+    "tad_domain": {"source": "ENCODE 4 Hi-C, Aiden Lab, Arrowhead v2.13.06", "license": "CC BY 4.0"},
 }

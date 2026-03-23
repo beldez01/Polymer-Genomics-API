@@ -19,6 +19,7 @@ import { NonBDnaTrack } from './tracks/NonBDnaTrack';
 import { HervTrack } from './tracks/HervTrack';
 import { BreakpointTrack } from './tracks/BreakpointTrack';
 import { FragilityTrack } from './tracks/FragilityTrack';
+import { TadDomainTrack } from './tracks/TadDomainTrack';
 import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
@@ -194,7 +195,7 @@ export function TrackStack({
   const hasProbes = !!(['probe_epic_v2', 'probe_epic_v1', 'probe_450k'].some((k) => data?.layers?.[k]));
   const hasEpigenetic = !!(data?.layers?.methylation_atlas || data?.layers?.histone_peaks_encode_v1);
   const hasVariation = !!(data?.layers?.gwas_catalog_ebi_v1);
-  const hasStructure = !!(data?.layers?.repeatmasker_v1 || data?.layers?.herv_loci_v1 || data?.layers?.nonb_dna || data?.layers?.breakpoints || data?.layers?.fragility);
+  const hasStructure = !!(data?.layers?.repeatmasker_v1 || data?.layers?.herv_loci_v1 || data?.layers?.nonb_dna || data?.layers?.breakpoints || data?.layers?.fragility || data?.layers?.tad_domain);
   const hasBiophysics = !!(data?.layers?.sequence_biophysics_l0 || showGC);
 
   return (
@@ -277,6 +278,12 @@ export function TrackStack({
 
         {/* ─── Structure ─── */}
         {hasStructure && <CategoryHeader label="Structure" />}
+
+        {data?.layers?.tad_domain && (
+          <TrackRow label="TADs" evidenceClass={ec('tad_domain')}>
+            <TadDomainTrack data={data.layers.tad_domain} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={50} />
+          </TrackRow>
+        )}
 
         {data?.layers?.repeatmasker_v1 && (
           <TrackRow label="Repeats" evidenceClass={ec('repeatmasker_v1')}>

@@ -426,6 +426,22 @@ def region_fragility_query() -> str:
     """
 
 
+def region_tad_domains_query() -> str:
+    """TAD domains from ENCODE Arrowhead calls."""
+    return """
+        SELECT t.start_pos, t.end_pos,
+               t.cell_type, t.resolution_bp,
+               t.corner_score, t.uvar_score, t.lvar_score
+        FROM regulatory.tad_domains t
+        WHERE t.build = $1::genome_build
+          AND t.chr_id = $2
+          AND t.coord && int4range($3, $4)
+          AND t.layer_id = $5
+        ORDER BY t.start_pos
+        LIMIT $6
+    """
+
+
 # ---------------------------------------------------------------------------
 # Row converter functions
 # ---------------------------------------------------------------------------
@@ -1250,6 +1266,33 @@ def _convert_fragility(rows: list, chr_name: str) -> dict:
     }
 
 
+def _convert_tad_domains(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    cell_types, resolutions = [], []
+    corners, uvars, lvars = [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        cell_types.append(r["cell_type"])
+        resolutions.append(r["resolution_bp"])
+        corners.append(r["corner_score"])
+        uvars.append(r["uvar_score"])
+        lvars.append(r["lvar_score"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "cell_type": cell_types, "resolution_bp": resolutions,
+            "corner_score": corners, "uvar_score": uvars, "lvar_score": lvars,
+        },
+        "n": len(rows),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Declarative track registry
 # ---------------------------------------------------------------------------
@@ -1358,6 +1401,10 @@ TRACK_REGISTRY: dict[str, dict] = {
     "fragility": {
         "query_fn": region_fragility_query,
         "convert_fn": _convert_fragility,
+    },
+    "tad_domain": {
+        "query_fn": region_tad_domains_query,
+        "convert_fn": _convert_tad_domains,
     },
 }
 
