@@ -78,6 +78,21 @@ RECIPES = {
         "return_layers": ["repeats", "breakpoints"],
         "use_case": "Map fragile regions driven by repetitive elements",
     },
+    "tad_boundary_enrichment": {
+        "name": "TAD Boundary Enrichment",
+        "description": (
+            "Find TAD domain boundaries that coincide with conserved regulatory "
+            "elements — these are structurally anchored boundaries likely mediated "
+            "by CTCF/cohesin and resistant to perturbation."
+        ),
+        "filters": [
+            {"layer": "tad_domain", "op": "overlaps"},
+            {"layer": "ccre", "op": "overlaps"},
+            {"layer": "conservation", "field": "phylop_mean", "op": ">", "value": 1.5},
+        ],
+        "return_layers": ["tad_domain", "ccre", "conservation"],
+        "use_case": "Identify structurally anchored TAD boundaries with regulatory function",
+    },
 }
 
 

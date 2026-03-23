@@ -546,12 +546,30 @@ export function Sidebar({
             const active = activeLayers.includes('tad_domain');
             const subLine = l?.row_count != null ? formatCount(l.row_count) : '\u2014';
             return (
-              <AnnotationRow
-                active={active}
-                name={l ? cleanName(l.name || 'TAD Domains') : 'TAD Domains'}
-                subLine={subLine}
-                onClick={() => onToggleLayer('tad_domain')}
-              />
+              <div style={{
+                borderBlockEnd: `1px solid ${COLOR.bg.track}`,
+              }}>
+                <AnnotationRow
+                  active={active}
+                  name={l ? cleanName(l.name || 'TAD Domains') : 'TAD Domains'}
+                  subLine={subLine}
+                  onClick={() => onToggleLayer('tad_domain')}
+                />
+                {active && (
+                  <div style={{ paddingLeft: 14, paddingBottom: 4, display: 'flex', flexWrap: 'wrap', gap: '1px 8px' }}>
+                    {([
+                      ['GM12878', '#3b82f6'],
+                      ['K562', '#f59e0b'],
+                      ['HUES64', '#10b981'],
+                    ] as const).map(([label, color]) => (
+                      <span key={label} className="flex items-center gap-1" style={{ fontSize: TYPE.xs.fontSize, fontFamily: FONT_FAMILY, color: COLOR.text.faint }}>
+                        <span style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: color, flexShrink: 0 }} />
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })()}
 

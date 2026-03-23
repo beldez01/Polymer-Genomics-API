@@ -191,6 +191,7 @@ _COUNT_TABLES = {
     "nonb_dna": "fragility.nonb_dna",
     "breakpoint": "fragility.breakpoints",
     "fragility": "fragility.composite_score",
+    "tad_domain": "regulatory.tad_domains",
 }
 
 

@@ -113,6 +113,11 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {"subfamily", "n_fragments", "locus_length"},
     },
+    "tad_domain": {
+        "table": "regulatory.tad_domains",
+        "id_col": "layer_id",
+        "fields": {"cell_type", "resolution_bp", "corner_score", "uvar_score", "lvar_score"},
+    },
 }
 
 

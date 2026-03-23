@@ -6,13 +6,23 @@ import { genomicToPixel } from '@/lib/coordinates';
 import { COLOR } from '@/config/theme';
 import { drawGridlines } from '@/lib/gridlines';
 
-// TAD domain color — blue-teal, maps corner_score to opacity
-const TAD_BASE = '#3b82f6';
+// Per-cell-type colors
+const CELL_COLORS: Record<string, string> = {
+  GM12878: '#3b82f6', // blue
+  K562:    '#f59e0b', // amber
+  HUES64:  '#10b981', // emerald
+};
+
+const CELL_ORDER = ['GM12878', 'K562', 'HUES64'];
+
+function cellColor(ct: string): string {
+  return CELL_COLORS[ct] ?? '#6b7280';
+}
 
 function scoreToAlpha(score: number | null | undefined, minScore: number, maxScore: number): number {
   if (score == null || maxScore <= minScore) return 0.5;
   const norm = (score - minScore) / (maxScore - minScore);
-  return 0.2 + Math.min(norm, 1) * 0.6; // range [0.2, 0.8]
+  return 0.25 + Math.min(norm, 1) * 0.55;
 }
 
 function hexWithAlpha(hex: string, alpha: number): string {
@@ -26,6 +36,7 @@ export interface TadDomainTrackProps {
   viewEnd: number;
   canvasWidth: number;
   height?: number;
+  visibleCellTypes?: string[];
 }
 
 export function TadDomainTrack({
@@ -34,6 +45,7 @@ export function TadDomainTrack({
   viewEnd,
   canvasWidth,
   height = 50,
+  visibleCellTypes,
 }: TadDomainTrackProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const barsRef = useRef<{ x: number; y: number; w: number; h: number; i: number }[]>([]);
@@ -66,74 +78,96 @@ export function TadDomainTrack({
       return;
     }
 
-    // Compute score range for opacity mapping
+    // Determine which cell types are present and visible
+    const cellTypes = (data.mcols.cell_type as string[]) ?? [];
+    const uniqueCellTypes = [...new Set(cellTypes)];
+    const activeCells = visibleCellTypes
+      ? CELL_ORDER.filter(ct => visibleCellTypes.includes(ct) && uniqueCellTypes.includes(ct))
+      : CELL_ORDER.filter(ct => uniqueCellTypes.includes(ct));
+
+    if (activeCells.length === 0) {
+      ctx.fillStyle = COLOR.canvas.emptyText;
+      ctx.font = "12px 'JetBrains Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('No TAD domains in view', canvasWidth / 2, height / 2 + 4);
+      barsRef.current = bars;
+      return;
+    }
+
+    // Compute score range across all visible domains
     const scores = (data.mcols.corner_score as (number | null)[]) ?? [];
-    const validScores = scores.filter((s): s is number => s != null);
+    const validScores = scores.filter((s, i): s is number =>
+      s != null && activeCells.includes(cellTypes[i])
+    );
     const minScore = validScores.length > 0 ? Math.min(...validScores) : 0;
     const maxScore = validScores.length > 0 ? Math.max(...validScores) : 1;
 
-    // Draw TAD domains as nested blocks
+    // Allocate vertical lanes per cell type
+    const padding = 2;
+    const laneGap = 1;
+    const totalGap = (activeCells.length - 1) * laneGap;
+    const laneHeight = Math.max(8, (height - 2 * padding - totalGap) / activeCells.length);
+    const cellLaneY = new Map<string, number>();
+    activeCells.forEach((ct, idx) => {
+      cellLaneY.set(ct, padding + idx * (laneHeight + laneGap));
+    });
+
     // Sort by size (largest first) so smaller domains render on top
     const indices = Array.from({ length: data.n }, (_, i) => i);
     indices.sort((a, b) => {
       const sizeA = data.ranges.end[a] - data.ranges.start[a];
       const sizeB = data.ranges.end[b] - data.ranges.start[b];
-      return sizeB - sizeA; // largest first
+      return sizeB - sizeA;
     });
 
-    const domainTop = 4;
-    const domainHeight = height - 8;
-
     for (const i of indices) {
+      const ct = cellTypes[i];
+      if (!activeCells.includes(ct)) continue;
+
       const start = data.ranges.start[i];
       const end = data.ranges.end[i];
-
-      // Skip domains entirely outside viewport
       if (end < viewStart || start > viewEnd) continue;
 
       const x1 = genomicToPixel(Math.max(start, viewStart), viewStart, viewEnd, canvasWidth);
       const x2 = genomicToPixel(Math.min(end, viewEnd), viewStart, viewEnd, canvasWidth);
-      const w = Math.max(x2 - x1, 2); // minimum 2px width
+      const w = Math.max(x2 - x1, 2);
 
-      const score = scores[i];
-      const alpha = scoreToAlpha(score, minScore, maxScore);
+      const laneY = cellLaneY.get(ct) ?? padding;
+      const color = cellColor(ct);
+      const alpha = scoreToAlpha(scores[i], minScore, maxScore);
 
       // Domain fill
-      ctx.fillStyle = hexWithAlpha(TAD_BASE, alpha * 0.4);
-      ctx.fillRect(x1, domainTop, w, domainHeight);
+      ctx.fillStyle = hexWithAlpha(color, alpha * 0.4);
+      ctx.fillRect(x1, laneY, w, laneHeight);
 
-      // Boundary lines (left and right edges)
-      ctx.strokeStyle = hexWithAlpha(TAD_BASE, alpha);
+      // Boundary lines
+      ctx.strokeStyle = hexWithAlpha(color, alpha);
       ctx.lineWidth = 1.5;
 
-      // Left boundary (only if in view)
       if (start >= viewStart) {
         ctx.beginPath();
-        ctx.moveTo(x1, domainTop);
-        ctx.lineTo(x1, domainTop + domainHeight);
+        ctx.moveTo(x1, laneY);
+        ctx.lineTo(x1, laneY + laneHeight);
         ctx.stroke();
       }
-
-      // Right boundary (only if in view)
       if (end <= viewEnd) {
         ctx.beginPath();
-        ctx.moveTo(x1 + w, domainTop);
-        ctx.lineTo(x1 + w, domainTop + domainHeight);
+        ctx.moveTo(x1 + w, laneY);
+        ctx.lineTo(x1 + w, laneY + laneHeight);
         ctx.stroke();
       }
 
-      bars.push({ x: x1, y: domainTop, w, h: domainHeight, i });
+      bars.push({ x: x1, y: laneY, w, h: laneHeight, i });
     }
 
     barsRef.current = bars;
-  }, [data, viewStart, viewEnd, canvasWidth, height]);
+  }, [data, viewStart, viewEnd, canvasWidth, height, visibleCellTypes]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
 
-    // Find the smallest domain containing the cursor (most specific)
     let best: { x: number; y: number; w: number; h: number; i: number } | null = null;
     let bestArea = Infinity;
 
