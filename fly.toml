@@ -21,6 +21,7 @@ app = "polymer-genomics-api"
 primary_region = "iad"
 
 [build]
+  dockerfile = "docker/Dockerfile"
 
 [deploy]
   release_command = "python -c \"import polymer_genomics; print('Import OK')\""
