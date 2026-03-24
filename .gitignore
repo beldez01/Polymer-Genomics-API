@@ -31,5 +31,16 @@ data/encode/
 data/gwas/
 .vercel
 
+# Large reference/experiment data
+data/tad/
+data/hic/
+data/wgbs/
+data/accessibility/
+data/pcawg/
+data/replication/
+data/insulation/
+InSilicoExperiments/
+
 # Unpublished manuscripts
 docs/paper/
+viewer/.superpowers/

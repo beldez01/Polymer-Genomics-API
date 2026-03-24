@@ -53,6 +53,12 @@ ALLOWED_TABLES = frozenset({
     "sequence_properties",
     # Phase 8: gene aliases
     "aliases",
+    # Phase 9: new layers (correlation engine)
+    "tf_binding_signal",
+    "wgbs_1kb",
+    "accessibility_signal",
+    "mutation_density",
+    "hic_compartment",
 })
 ALLOWED_BUILDS = frozenset({"hg37", "hg38"})
 

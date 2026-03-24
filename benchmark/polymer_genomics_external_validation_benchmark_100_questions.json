@@ -1,0 +1,902 @@
+[
+  {
+    "id": "A01",
+    "category": "factual",
+    "domain": "nearest_neighbor_thermodynamics",
+    "question": "According to SantaLucia 1998 nearest-neighbor parameters for DNA duplexes, what is the stacking enthalpy (\u0394H) for the GA/CT dinucleotide step?",
+    "correct_answer": "-8.2 kcal/mol.",
+    "source": "SantaLucia 1998, PNAS 95:1460-1465, nearest-neighbor parameter table.",
+    "why_hard": "LLMs often swap GA/CT with CT/GA or confuse \u0394H with \u0394G37."
+  },
+  {
+    "id": "A02",
+    "category": "factual",
+    "domain": "nearest_neighbor_thermodynamics",
+    "question": "What is the standard free energy at 37\u00b0C (\u0394G37) for the GC/CG nearest-neighbor step in SantaLucia 1998?",
+    "correct_answer": "-2.24 kcal/mol.",
+    "source": "SantaLucia 1998, PNAS 95:1460-1465, nearest-neighbor parameter table.",
+    "why_hard": "Models frequently return the value for CG/GC instead of GC/CG."
+  },
+  {
+    "id": "A03",
+    "category": "factual",
+    "domain": "nearest_neighbor_thermodynamics",
+    "question": "What is the standard entropy change (\u0394S) for the CG/GC nearest-neighbor step in SantaLucia 1998?",
+    "correct_answer": "-27.2 cal/(K\u00b7mol).",
+    "source": "SantaLucia 1998, PNAS 95:1460-1465, nearest-neighbor parameter table.",
+    "why_hard": "\u0394S units are easy to garble and this step is often confused with GC/CG."
+  },
+  {
+    "id": "A04",
+    "category": "factual",
+    "domain": "nearest_neighbor_thermodynamics",
+    "question": "What initiation free-energy term at 37\u00b0C (\u0394G37) is used in the unified SantaLucia 1998 nearest-neighbor model for DNA duplex formation?",
+    "correct_answer": "+0.2 kcal/mol.",
+    "source": "SantaLucia 1998, PNAS 95:1460-1465, duplex initiation parameters.",
+    "why_hard": "Many answers omit initiation terms entirely or incorrectly fold them into stacking terms."
+  },
+  {
+    "id": "A05",
+    "category": "factual",
+    "domain": "nearest_neighbor_thermodynamics",
+    "question": "Which Watson-Crick nearest-neighbor step has the most stabilizing (most negative) \u0394G37 in SantaLucia 1998?",
+    "correct_answer": "GC/CG, with \u0394G37 = -2.24 kcal/mol.",
+    "source": "SantaLucia 1998, PNAS 95:1460-1465, nearest-neighbor parameter table.",
+    "why_hard": "LLMs often answer CG/GC because both are GC-rich and easy to mix up."
+  },
+  {
+    "id": "A06",
+    "category": "factual",
+    "domain": "gene_coordinates_structure",
+    "question": "In Ensembl release 110 / GENCODE v44 on GRCh38, what are the genomic coordinates, strand, and exon count of TP53 transcript ENST00000269305.9 (TP53-201)?",
+    "correct_answer": "Chromosome 17: 7,668,421-7,687,490 on the reverse strand; 11 exons.",
+    "source": "Ensembl release 110 transcript summary for ENST00000269305.9; GENCODE v44 corresponds to Ensembl 110 for human.",
+    "why_hard": "TP53 coordinates are commonly confused with hg19 positions and transcript-specific exon counts."
+  },
+  {
+    "id": "A07",
+    "category": "factual",
+    "domain": "gene_coordinates_structure",
+    "question": "In Ensembl release 110 / GENCODE v44 on GRCh38, what are the genomic coordinates, strand, and exon count of BRCA1 transcript ENST00000357654.9 (BRCA1-203)?",
+    "correct_answer": "Chromosome 17: 43,044,295-43,125,364 on the reverse strand; 23 exons.",
+    "source": "Ensembl release 110 transcript summary for ENST00000357654.9; GENCODE v44 corresponds to Ensembl 110 for human.",
+    "why_hard": "BRCA1 exon numbering and transcript coordinates are often mixed up across assemblies and isoforms."
+  },
+  {
+    "id": "A08",
+    "category": "factual",
+    "domain": "gene_coordinates_structure",
+    "question": "How many exons does the TTN transcript ENST00000589042.5 have in Ensembl release 110 / GENCODE v44?",
+    "correct_answer": "363 exons.",
+    "source": "Ensembl release 110 transcript summary for ENST00000589042.5.",
+    "why_hard": "TTN is a classic hallucination target because of its extreme size and isoform complexity."
+  },
+  {
+    "id": "A09",
+    "category": "factual",
+    "domain": "gene_coordinates_structure",
+    "question": "How many transcripts are annotated for the human SRY gene in Ensembl release 110 / GENCODE v44?",
+    "correct_answer": "1 transcript.",
+    "source": "Ensembl release 110 gene summary for ENSG00000184895 (SRY).",
+    "why_hard": "Models often invent multiple splice isoforms for famous genes even when annotation is minimal."
+  },
+  {
+    "id": "A10",
+    "category": "factual",
+    "domain": "gene_coordinates_structure",
+    "question": "How many protein-coding genes are reported in GENCODE human release 44?",
+    "correct_answer": "19,396 protein-coding genes.",
+    "source": "GENCODE human release 44 statistics page / UCSC announcement for GENCODE V44.",
+    "why_hard": "LLMs often answer with older GENCODE releases or round to ~20,000."
+  },
+  {
+    "id": "A11",
+    "category": "factual",
+    "domain": "gene_expression_patterns",
+    "question": "In Adult GTEx v10, which tissue shows the highest median expression for ALB?",
+    "correct_answer": "Liver.",
+    "source": "GTEx Portal gene page for ALB, Adult GTEx Analysis Release V10.",
+    "why_hard": "This is obvious biologically, but models sometimes answer plasma or blood because albumin is a circulating protein."
+  },
+  {
+    "id": "A12",
+    "category": "factual",
+    "domain": "gene_expression_patterns",
+    "question": "In Adult GTEx v10, which tissue shows the highest median expression for HBB?",
+    "correct_answer": "Whole Blood.",
+    "source": "GTEx Portal gene page for HBB, Adult GTEx Analysis Release V10.",
+    "why_hard": "LLMs sometimes answer bone marrow, which is biologically plausible but not a GTEx tissue with maximal bulk expression."
+  },
+  {
+    "id": "A13",
+    "category": "factual",
+    "domain": "gene_expression_patterns",
+    "question": "In Adult GTEx v10, which tissue shows the highest median expression for INS?",
+    "correct_answer": "Pancreas.",
+    "source": "GTEx Portal gene page for INS, Adult GTEx Analysis Release V10.",
+    "why_hard": "Models can overthink endocrine biology and answer islets, which are not a GTEx bulk tissue label."
+  },
+  {
+    "id": "A14",
+    "category": "factual",
+    "domain": "gene_expression_patterns",
+    "question": "In Adult GTEx v10, which tissue shows the highest median expression for TSHR?",
+    "correct_answer": "Thyroid.",
+    "source": "GTEx Portal gene page for TSHR, Adult GTEx Analysis Release V10.",
+    "why_hard": "LLMs sometimes confuse ligand-producing and receptor-expressing tissues."
+  },
+  {
+    "id": "A15",
+    "category": "factual",
+    "domain": "gene_expression_patterns",
+    "question": "How many bulk tissue categories are included in Adult GTEx v10 median expression summaries?",
+    "correct_answer": "54 tissues.",
+    "source": "GTEx Portal Adult GTEx documentation and dataset summary for Analysis Release V10.",
+    "why_hard": "Older answers often return V8-era summaries without checking the release."
+  },
+  {
+    "id": "A16",
+    "category": "factual",
+    "domain": "constraint_population_genetics",
+    "question": "How many exomes and genomes are included in gnomAD v2.1.1, the release generally used for coding-constraint interpretation on GRCh37?",
+    "correct_answer": "125,748 exomes and 15,708 genomes.",
+    "source": "Gudmundsson et al. 2021, 'Variant interpretation using population databases'; gnomAD documentation for v2.1.1.",
+    "why_hard": "Many models mix v2.1.1 with v3 or v4 sample counts."
+  },
+  {
+    "id": "A17",
+    "category": "factual",
+    "domain": "constraint_population_genetics",
+    "question": "What pLI threshold is conventionally used to denote strong predicted loss-of-function intolerance?",
+    "correct_answer": "pLI > 0.9.",
+    "source": "Karczewski et al. 2020 Nature; Gudmundsson et al. 2021 review of population databases.",
+    "why_hard": "A common failure mode is to confuse pLI with LOEUF and reverse the directionality."
+  },
+  {
+    "id": "A18",
+    "category": "factual",
+    "domain": "constraint_population_genetics",
+    "question": "What LOEUF cutoff is commonly used with gnomAD v2.1.1 to define strongly loss-of-function constrained genes?",
+    "correct_answer": "LOEUF < 0.35.",
+    "source": "gnomAD v4.0 gene-constraint blog post describing recommended thresholds and noting the v2.1.1 threshold of 0.35.",
+    "why_hard": "Models often quote the newer v4 threshold and misapply it to v2.1.1."
+  },
+  {
+    "id": "A19",
+    "category": "factual",
+    "domain": "constraint_population_genetics",
+    "question": "What are the gnomAD-reported pLI and LOEUF values for TTN cited in ClinGen dosage curation?",
+    "correct_answer": "pLI = 0 and LOEUF = 0.33.",
+    "source": "ClinGen TTN dosage curation page citing gnomAD constraint metrics.",
+    "why_hard": "TTN is huge and clinically important, so many models incorrectly assume it is globally LoF-intolerant."
+  },
+  {
+    "id": "A20",
+    "category": "factual",
+    "domain": "constraint_population_genetics",
+    "question": "What LOEUF value for CFTR is reported in recent literature using gnomAD constraint metrics?",
+    "correct_answer": "Approximately 1.09.",
+    "source": "Lawless et al. 2023, Journal of Allergy and Clinical Immunology, citing gnomAD LOEUF for CFTR.",
+    "why_hard": "Models often assume classic Mendelian disease genes must be highly LoF constrained, which is not always true."
+  },
+  {
+    "id": "A21",
+    "category": "factual",
+    "domain": "methylation_array_probes",
+    "question": "How many CpG sites are assayed on the Illumina HumanMethylation450 BeadChip?",
+    "correct_answer": "485,512 CpG sites.",
+    "source": "Solomon et al. 2018 comparison of 450K and EPIC arrays; Illumina HumanMethylation450 documentation.",
+    "why_hard": "Many models round to 450,000 and miss the actual probe count."
+  },
+  {
+    "id": "A22",
+    "category": "factual",
+    "domain": "methylation_array_probes",
+    "question": "How many CpG sites are assayed on the Illumina MethylationEPIC v1 array in the standard manifest used in cross-platform studies?",
+    "correct_answer": "866,836 CpG sites.",
+    "source": "Solomon et al. 2018 comparison of 450K and EPIC arrays.",
+    "why_hard": "LLMs often answer with the marketing phrase '>850,000' rather than the actual manifest count used analytically."
+  },
+  {
+    "id": "A23",
+    "category": "factual",
+    "domain": "methylation_array_probes",
+    "question": "Approximately what fraction of 450K probes are retained on the EPIC v1 array?",
+    "correct_answer": "More than 90% of the HM450 probes.",
+    "source": "Pidsley et al. 2016, Critical evaluation of the Illumina MethylationEPIC BeadChip.",
+    "why_hard": "This is a frequent source of confusion when analysts assume EPIC is an entirely new probe set."
+  },
+  {
+    "id": "A24",
+    "category": "factual",
+    "domain": "methylation_array_probes",
+    "question": "What are the hg19 coordinates of probe cg00000029 in commonly used EPIC annotation resources?",
+    "correct_answer": "chr16:53,468,112 (hg19).",
+    "source": "Illumina EPIC manifest / Bioconductor EPIC annotation resources; example indexed in EPIC annotation repository based on Illumina manifest.",
+    "why_hard": "Probe-coordinate hallucinations are common, especially when assembly is not specified."
+  },
+  {
+    "id": "A25",
+    "category": "factual",
+    "domain": "methylation_array_probes",
+    "question": "What is the key design difference between Infinium I and Infinium II methylation assays?",
+    "correct_answer": "Infinium I uses two probes per CpG locus (methylated and unmethylated), whereas Infinium II uses a single probe with single-base extension to distinguish methylation state.",
+    "source": "Illumina HumanMethylation450 data analysis technical note.",
+    "why_hard": "LLMs often vaguely describe array chemistry without stating the actual probe-design distinction."
+  },
+  {
+    "id": "A26",
+    "category": "factual",
+    "domain": "epigenetic_clocks",
+    "question": "How many CpG probes are used in Horvath's 2013 pan-tissue epigenetic clock?",
+    "correct_answer": "353 CpGs.",
+    "source": "Horvath 2013, Genome Biology 14:R115.",
+    "why_hard": "This number is famous but still often misremembered as ~300 or confused with later clocks."
+  },
+  {
+    "id": "A27",
+    "category": "factual",
+    "domain": "epigenetic_clocks",
+    "question": "How many CpG probes are used in the Hannum 2013 blood-based clock?",
+    "correct_answer": "71 CpGs.",
+    "source": "Hannum et al. 2013, Molecular Cell 49:359-367.",
+    "why_hard": "Models often conflate Hannum with Horvath or other later clocks."
+  },
+  {
+    "id": "A28",
+    "category": "factual",
+    "domain": "epigenetic_clocks",
+    "question": "Which classic 2013 clock was trained to be pan-tissue rather than whole-blood specific: Horvath or Hannum?",
+    "correct_answer": "Horvath is pan-tissue; Hannum is blood-derived.",
+    "source": "Horvath 2013; Hannum et al. 2013.",
+    "why_hard": "A common hallucination is to treat both as generic chronological age clocks with identical training domains."
+  },
+  {
+    "id": "A29",
+    "category": "factual",
+    "domain": "epigenetic_clocks",
+    "question": "How many CpGs are used in DNAm PhenoAge?",
+    "correct_answer": "513 CpGs.",
+    "source": "Levine et al. 2018, Aging 10:573-591.",
+    "why_hard": "PhenoAge is frequently confused with phenotypic age itself or with Horvath's 353-CpG clock."
+  },
+  {
+    "id": "A30",
+    "category": "factual",
+    "domain": "epigenetic_clocks",
+    "question": "How many CpG probes are included in DunedinPACE?",
+    "correct_answer": "173 CpGs.",
+    "source": "Belsky et al. 2022, eLife, DunedinPACE.",
+    "why_hard": "DunedinPACE is often confused with the earlier 46-CpG DunedinPoAm measure."
+  },
+  {
+    "id": "A31",
+    "category": "factual",
+    "domain": "dna_structure_mechanics",
+    "question": "What is the canonical persistence length of double-stranded DNA under standard physiological-ish salt conditions?",
+    "correct_answer": "Approximately 50 nm, or about 150 bp.",
+    "source": "Standard DNA biophysics reviews; e.g., Saran et al. 2020 Sensors review; classic polymer-physics literature.",
+    "why_hard": "Units switch between nm and bp, and models often answer for ssDNA instead."
+  },
+  {
+    "id": "A32",
+    "category": "factual",
+    "domain": "dna_structure_mechanics",
+    "question": "What is the canonical axial rise per base pair in B-form DNA?",
+    "correct_answer": "About 0.34 nm per base pair.",
+    "source": "Standard structural biology texts; widely cited B-DNA geometry references.",
+    "why_hard": "LLMs often confuse axial rise with helical pitch or persistence length."
+  },
+  {
+    "id": "A33",
+    "category": "factual",
+    "domain": "dna_structure_mechanics",
+    "question": "At roughly what force does B-DNA undergo the classical overstretching transition?",
+    "correct_answer": "About 65 pN.",
+    "source": "Smith et al. 1996 Science; follow-up overstretching reviews.",
+    "why_hard": "The exact number is widely quoted, but models often answer 50 pN or 70 pN without confidence."
+  },
+  {
+    "id": "A34",
+    "category": "factual",
+    "domain": "dna_structure_mechanics",
+    "question": "How much DNA is wrapped around a canonical nucleosome core particle?",
+    "correct_answer": "Approximately 147 bp.",
+    "source": "Luger et al. 1997 Nature; McGinty and Tan 2015 / nucleosome structure reviews.",
+    "why_hard": "Answers often blur nucleosome repeat length with core-particle DNA length."
+  },
+  {
+    "id": "A35",
+    "category": "factual",
+    "domain": "dna_structure_mechanics",
+    "question": "What is the approximate Manning parameter \u03be for double-stranded DNA?",
+    "correct_answer": "Approximately 4.2.",
+    "source": "Manning theory references; O'Shaughnessy and Yang 2005 PRL; Raspaud et al. 1998/2004.",
+    "why_hard": "This is specialized enough that models often invent a value or confuse it with Debye length."
+  },
+  {
+    "id": "A36",
+    "category": "factual",
+    "domain": "amino_acid_properties",
+    "question": "What is the molecular weight of tryptophan?",
+    "correct_answer": "204.23 g/mol.",
+    "source": "Sigma-Aldrich / ACS Molecule of the Week / standard amino acid reference tables.",
+    "why_hard": "LLMs sometimes return monoisotopic mass or round incorrectly."
+  },
+  {
+    "id": "A37",
+    "category": "factual",
+    "domain": "amino_acid_properties",
+    "question": "What is the side-chain pKa of histidine in standard biochemistry reference tables?",
+    "correct_answer": "Approximately 6.0.",
+    "source": "Standard biochemistry textbooks and amino-acid property tables.",
+    "why_hard": "Models sometimes give the pKa of the alpha-amino or alpha-carboxyl group instead."
+  },
+  {
+    "id": "A38",
+    "category": "factual",
+    "domain": "amino_acid_properties",
+    "question": "What is the Kyte-Doolittle hydropathy value for isoleucine?",
+    "correct_answer": "4.5.",
+    "source": "Kyte and Doolittle 1982, J Mol Biol 157:105-132.",
+    "why_hard": "Hydropathy scales are easy to conflate; many models answer with a value from a different scale."
+  },
+  {
+    "id": "A39",
+    "category": "factual",
+    "domain": "amino_acid_properties",
+    "question": "On the Kyte-Doolittle scale, which amino acid has the highest hydropathy value?",
+    "correct_answer": "Isoleucine.",
+    "source": "Kyte and Doolittle 1982, J Mol Biol 157:105-132.",
+    "why_hard": "Leucine and valine are common wrong answers because they are also strongly hydrophobic."
+  },
+  {
+    "id": "A40",
+    "category": "factual",
+    "domain": "amino_acid_properties",
+    "question": "Which hydrophobicity scale was explicitly derived for partitioning of amino-acid residues into membrane interfaces rather than for soluble-protein sequence display: Kyte-Doolittle or Wimley-White?",
+    "correct_answer": "Wimley-White.",
+    "source": "Wimley and White 1996, Nature Structural Biology 3:842-848.",
+    "why_hard": "This catches models that name-drop scales without understanding what physical process each was built to represent."
+  },
+  {
+    "id": "A41",
+    "category": "factual",
+    "domain": "repeat_elements",
+    "question": "According to the RepeatMasker hg38 species summary, what fraction of the human genome is masked in total?",
+    "correct_answer": "52.58% of the genome.",
+    "source": "RepeatMasker human hg38 species summary page.",
+    "why_hard": "Many older sources quote ~45% or ~50%; the exact RepeatMasker summary depends on database/library version."
+  },
+  {
+    "id": "A42",
+    "category": "factual",
+    "domain": "repeat_elements",
+    "question": "According to the RepeatMasker hg38 species summary, what fraction of the human genome is masked as interspersed repeats?",
+    "correct_answer": "48.49%.",
+    "source": "RepeatMasker human hg38 species summary page.",
+    "why_hard": "This is easy to confuse with total masked sequence, which also includes simple repeats and low-complexity DNA."
+  },
+  {
+    "id": "A43",
+    "category": "factual",
+    "domain": "repeat_elements",
+    "question": "What is the typical full-length size of a human Alu element?",
+    "correct_answer": "About 300 bp.",
+    "source": "Ade et al. 2013 review on Alu elements; Konkel et al. 2015.",
+    "why_hard": "Models often exaggerate Alu length or confuse it with LINE-1."
+  },
+  {
+    "id": "A44",
+    "category": "factual",
+    "domain": "repeat_elements",
+    "question": "Approximately how many copies of Alu elements are present in the human genome, and what fraction of the genome do they account for?",
+    "correct_answer": "More than 1.1 million copies, accounting for over 11% of the human genome.",
+    "source": "Wildschutte et al. 2015; Alu review literature.",
+    "why_hard": "This is a classic benchmark for whether the model actually knows repeat biology rather than generic 'transposons are common'."
+  },
+  {
+    "id": "A45",
+    "category": "factual",
+    "domain": "repeat_elements",
+    "question": "What is the approximate length and basic coding organization of a full-length human LINE-1 element?",
+    "correct_answer": "About 6 kb, with a 5\u2032 UTR, ORF1, ORF2, a 3\u2032 UTR, and a poly(A) tail.",
+    "source": "LINE-1 structure reviews; Baldwin et al. 2023 Nature structural paper and related reviews.",
+    "why_hard": "LLMs often omit one of the ORFs or collapse the structure into a generic retrotransposon description."
+  },
+  {
+    "id": "A46",
+    "category": "factual",
+    "domain": "regulatory_elements",
+    "question": "In the ENCODE cCRE registry, what does PLS stand for?",
+    "correct_answer": "Promoter-like sequence.",
+    "source": "ENCODE SCREEN / ENCODE cCRE documentation.",
+    "why_hard": "Abbreviations are easy to garble, especially because cCRE categories are very similar."
+  },
+  {
+    "id": "A47",
+    "category": "factual",
+    "domain": "regulatory_elements",
+    "question": "In the ENCODE cCRE registry, what does pELS stand for?",
+    "correct_answer": "Proximal enhancer-like sequence.",
+    "source": "ENCODE SCREEN / ENCODE cCRE documentation.",
+    "why_hard": "Models often incorrectly expand pELS as 'promoter-enhancer-like sequence'."
+  },
+  {
+    "id": "A48",
+    "category": "factual",
+    "domain": "regulatory_elements",
+    "question": "In the ENCODE cCRE registry, what does dELS stand for?",
+    "correct_answer": "Distal enhancer-like sequence.",
+    "source": "ENCODE SCREEN / ENCODE cCRE documentation.",
+    "why_hard": "This is commonly confused with 'downstream enhancer-like sequence'."
+  },
+  {
+    "id": "A49",
+    "category": "factual",
+    "domain": "regulatory_elements",
+    "question": "What defines a cCRE-PLS in the ENCODE registry relative to an annotated GENCODE TSS?",
+    "correct_answer": "It falls within 200 bp of an annotated GENCODE transcription start site and has high DNase and H3K4me3 signal.",
+    "source": "ENCODE cCRE UCSC track settings / ENCODE SCREEN documentation.",
+    "why_hard": "The distance threshold is the detail most models omit."
+  },
+  {
+    "id": "A50",
+    "category": "factual",
+    "domain": "regulatory_elements",
+    "question": "How many human cCREs are reported in the ENCODE registry/UCSC combined cCRE track description?",
+    "correct_answer": "926,535 elements.",
+    "source": "UCSC ENCODE cCRE track settings / ENCODE registry documentation.",
+    "why_hard": "LLMs tend to round this aggressively or confuse it with ENCODE peak counts."
+  },
+  {
+    "id": "B01",
+    "category": "reasoning",
+    "domain": "ewas_annotation",
+    "question": "A researcher has 500 age-associated DMPs from a 450K EWAS and 300 of them fall in CpG-island shores. What additional Polymer Genomics annotation axis could help prioritize mechanistically interesting loci beyond standard island/gene-context annotation?",
+    "correct_answer": "A good answer should propose overlaying the DMPs with sequence biophysics tracks such as low local duplex stability (more negative-to-less-negative \u0394G37 windows), methylation-sensitive persistence-length perturbation, intrinsic curvature, groove geometry, and nucleosome-related bendability. The key point is that standard EWAS annotation is positional, whereas Polymer adds a physically interpretable layer that could identify shore CpGs occurring in mechanically labile or nucleosome-boundary contexts rather than treating all shores as equivalent. A strong workflow answer would mention using minfi/bumphunter output coordinates, then intersecting with Polymer BigWig or BED tracks by overlap.",
+    "source": "SantaLucia 1998; DNAshape literature; Illumina array annotation resources; minfi / Bioconductor methylation workflow papers.",
+    "why_hard": "This tests whether the agent can move beyond canned EWAS enrichment and articulate a genuinely new annotation dimension."
+  },
+  {
+    "id": "B02",
+    "category": "reasoning",
+    "domain": "structural_variant_fragility",
+    "question": "A recurrent structural-variant breakpoint maps near chr17:7.68 Mb, close to TP53. Which Polymer Genomics tracks would you inspect first to explain local fragility, and why?",
+    "correct_answer": "A good answer should mention repeat density/RepeatMasker class, non-B DNA density (especially G4, cruciform, Z-DNA, R-loops), low thermodynamic stability, unusual curvature, and the fragility composite score; optionally also nearby cCREs because open chromatin can co-localize with breakage. The reasoning should be that breakpoint recurrence can reflect a physically fragile sequence environment rather than a coding effect alone.",
+    "source": "RepeatMasker; ENCODE cCRE registry; non-B DNA structure databases; SantaLucia 1998; DNA fragility literature.",
+    "why_hard": "Weak models stop at 'TP53 is important in cancer' and never reason about local sequence physics."
+  },
+  {
+    "id": "B03",
+    "category": "reasoning",
+    "domain": "variant_interpretation_noncoding",
+    "question": "A non-coding SNV has a benign CADD score but sits in a 1 kb window with unusually low duplex stability, high curvature, and a distal ENCODE enhancer-like cCRE. Should Polymer Genomics push the interpretation toward likely benign or toward follow-up?",
+    "correct_answer": "A good answer should say this does not override the variant to pathogenic, but it does justify follow-up because the physical context suggests the variant lies in a structurally special regulatory region. The answer should mention that CADD is one score, whereas Polymer adds orthogonal evidence: enhancer status, unusual mechanics, and possibly non-B structure propensity. The recommended interpretation is 'benign by current evidence but biologically non-trivial; prioritize for functional follow-up rather than dismiss.'",
+    "source": "ENCODE cCRE registry; CADD framework literature; SantaLucia 1998; DNA-shape/curvature literature.",
+    "why_hard": "This tests whether the agent can integrate orthogonal evidence without overcalling pathogenicity."
+  },
+  {
+    "id": "B04",
+    "category": "reasoning",
+    "domain": "crispr_design",
+    "question": "A CRISPR guide targets a 20 bp site inside a region with high G-quadruplex density and strong intrinsic curvature. What in vivo problems might this create?",
+    "correct_answer": "A good answer should mention reduced Cas9 access or inconsistent cutting due to alternative secondary structure, polymerase/replication stress around the target, guide performance variability, and potential discrepancy between in vitro and cellular editing efficiency. Strong answers also note that one should screen nearby alternative guides in less structured sequence while keeping PAM and off-target constraints fixed.",
+    "source": "G-quadruplex biology literature; CRISPR design principles; non-B DNA references.",
+    "why_hard": "Models often discuss off-targeting only and ignore target-sequence physical accessibility."
+  },
+  {
+    "id": "B05",
+    "category": "reasoning",
+    "domain": "ancient_dna_fragmentation",
+    "question": "An ancient-DNA dataset shows preferential fragmentation in AT-rich windows. Which Polymer Genomics feature best explains this, and how should the analyst quantify it genome-wide?",
+    "correct_answer": "A good answer should point to lower thermodynamic stability / lower melting stability in AT-rich DNA, often operationalized through nearest-neighbor \u0394G37 or melting temperature tracks. The analyst should quantify fragmentation enrichment across bins of \u0394G37 or Tm genome-wide and compare observed breakpoints to matched background windows, rather than simply counting GC content.",
+    "source": "SantaLucia 1998; ancient-DNA fragmentation literature.",
+    "why_hard": "This tests whether the agent can move from a vague 'AT-rich is weak' statement to a measurable genome-scale analysis."
+  },
+  {
+    "id": "B06",
+    "category": "reasoning",
+    "domain": "mutation_signature_thermodynamics",
+    "question": "Tumor data show C>T mutations enriched in GCG trinucleotides. What two things should a strong answer discuss using Polymer Genomics?",
+    "correct_answer": "A good answer should discuss both mutational process and local thermodynamic consequence. Biologically, GCG\u2192GTG / related C>T changes at CpG-containing contexts suggest deamination-associated processes, often linked to methylated CpGs. Physically, the answer should mention using the SBS 96-channel thermodynamic \u03b4\u0394G annotations to ask whether this channel systematically destabilizes or stabilizes local duplexes rather than treating the signature as purely symbolic.",
+    "source": "COSMIC SBS framework; CpG deamination literature; Polymer thermodynamic impact annotations derived from SantaLucia parameters.",
+    "why_hard": "Most models can identify CpG deamination but fail to connect it to physical sequence consequences."
+  },
+  {
+    "id": "B07",
+    "category": "reasoning",
+    "domain": "line1_targeting",
+    "question": "A LINE-1 insertion is observed at a TTTT/A target site. If ORF2p is thought to recognize DNA structure more than sequence, what biophysical property of this site should Polymer help evaluate?",
+    "correct_answer": "A good answer should focus on local bendability/flexibility, low duplex stability, narrow-minor-groove or other shape features associated with A/T-rich tracts, not just the literal motif. The key idea is that TTTT/A may be favored because of a permissive structural state for nicking and target-primed reverse transcription.",
+    "source": "LINE-1 structural/endonuclease literature; A/T-tract DNA-shape literature; SantaLucia 1998.",
+    "why_hard": "This forces the model to reinterpret a sequence motif as a structural preference."
+  },
+  {
+    "id": "B08",
+    "category": "reasoning",
+    "domain": "clock_probe_profiling",
+    "question": "You have a 450K methylation dataset and want to know whether age acceleration in your cohort is being driven disproportionately by CpGs in physically unusual DNA. How could Polymer Genomics help?",
+    "correct_answer": "A good answer should propose annotating the clock probes actually used in the selected clocks (for example Horvath, Hannum, PhenoAge, GrimAge, or DunedinPACE) with biophysical tracks such as local stability, groove shape, curvature, and methylation-sensitive persistence-length effects. The analyst should compare the distribution of these annotations for clock probes versus array background or versus non-clock age-associated DMPs.",
+    "source": "Horvath 2013; Hannum 2013; Levine 2018; Lu 2019; Belsky 2022; Illumina manifest resources.",
+    "why_hard": "This tests whether the agent can connect epigenetic-clock probe lists to external physical annotation rather than treating clocks as black boxes."
+  },
+  {
+    "id": "B09",
+    "category": "reasoning",
+    "domain": "replication_stress",
+    "question": "A recurrent copy-number breakpoint hotspot falls in a region with high G4 density, high repeat content, and low mappability. What should a strong answer say about mechanism and benchmarking?",
+    "correct_answer": "A good answer should note that these features jointly support replication stress / fork stalling and breakpoint formation, but also raise a technical confounding issue because repeats and low-complexity sequence complicate read mapping and breakpoint calling. The right answer is therefore 'biologically plausible and analytically suspicious' and should recommend orthogonal validation or long-read follow-up.",
+    "source": "G-quadruplex/replication-stress literature; RepeatMasker; benchmarking best practices for SV calling.",
+    "why_hard": "This distinguishes thoughtful reasoning from simplistic 'high G4 therefore causal' claims."
+  },
+  {
+    "id": "B10",
+    "category": "reasoning",
+    "domain": "chromatin_accessibility",
+    "question": "A distal enhancer cCRE overlaps a region of unusually low duplex stability and high Roll. What chromatin-level hypothesis does that support?",
+    "correct_answer": "A good answer should say the sequence may be intrinsically favorable for transient opening, TF access, or nucleosome depletion/repositioning, which could help explain why the region behaves as an enhancer. The answer should be framed as a mechanistic hypothesis, not as proof, because enhancer activity still depends on cell state and regulatory context.",
+    "source": "ENCODE cCRE registry; DNAshape literature; nucleosome-positioning literature.",
+    "why_hard": "Weak answers just restate that enhancers are regulatory without using the physical annotations."
+  },
+  {
+    "id": "B11",
+    "category": "reasoning",
+    "domain": "protein_cost_expression",
+    "question": "A liver-enriched gene is extremely highly expressed in GTEx and encodes a comparatively cheap amino-acid composition by Akashi-Gojobori ATP cost. What biological interpretation should the agent consider?",
+    "correct_answer": "A good answer should suggest that biosynthetic economy may matter most for constitutively massive expression programs: if a transcript is made at very high abundance in a specific tissue, the encoded proteome's amino-acid cost can become a meaningful selective pressure. The answer should connect expression level, codon metrics, and amino-acid cost rather than treating them independently.",
+    "source": "Akashi and Gojobori 2002 on metabolic efficiency and codon/protein cost; GTEx; amino-acid biosynthetic cost tables.",
+    "why_hard": "This tests whether the model can combine expression and protein-cost layers into a coherent selective argument."
+  },
+  {
+    "id": "B12",
+    "category": "reasoning",
+    "domain": "pathway_signature_nuance",
+    "question": "An enrichment report shows HALLMARK_HYPOXIA, but the lead hit list does not contain HIF1A. Should that be considered an internal inconsistency?",
+    "correct_answer": "No. A good answer should explain that Hallmark sets are compact transcriptional response signatures, not literal pathway membership rosters. HIF1A can drive the program without being present in the Hallmark set itself. The correct interpretation is that downstream hypoxia-response genes are enriched.",
+    "source": "Liberzon et al. 2015 Cell Systems; MSigDB Hallmark documentation.",
+    "why_hard": "This is a core nuance that many models miss by assuming namesake genes must appear in the gene set."
+  },
+  {
+    "id": "B13",
+    "category": "reasoning",
+    "domain": "reactome_vs_hallmark",
+    "question": "A user asks whether Reactome and Hallmark enrichments should match gene-for-gene. What should a good answer say?",
+    "correct_answer": "A good answer should say no: Reactome is pathway membership / event topology curation, whereas Hallmark is a reduced, de-redundified transcriptional signature collection. Overlap can be partial, asymmetrical, or absent even when the biological theme is similar.",
+    "source": "Reactome documentation; Liberzon et al. 2015 Hallmark paper.",
+    "why_hard": "This tests ontology understanding, not just gene-set name matching."
+  },
+  {
+    "id": "B14",
+    "category": "reasoning",
+    "domain": "probe_background_choice",
+    "question": "You are testing whether 20 Horvath clock CpGs are enriched in high-curvature DNA. What is the correct background set for a defensible enrichment analysis?",
+    "correct_answer": "A good answer should say the background should be all array-accessible CpGs on the same platform after QC and filtering, ideally matched for probe type and genomic context if possible, not the whole genome. Otherwise enrichment can be driven by array design bias.",
+    "source": "Horvath 2013; Illumina array design documentation; EWAS enrichment best-practice literature.",
+    "why_hard": "This tests whether the agent understands assay-design bias rather than doing naive genomic enrichment."
+  },
+  {
+    "id": "B15",
+    "category": "reasoning",
+    "domain": "cross_platform_methylation",
+    "question": "A clock probe list is being compared across 450K, EPIC v1, and EPIC v2. What should a careful answer say before computing missingness?",
+    "correct_answer": "A good answer should first distinguish true biological absence from platform-manifest absence and from duplicate/replicate design on EPIC v2. It should mention that EPIC retains most 450K probes but not all, and that probe IDs and manifest columns must be harmonized before concluding a clock cannot be ported.",
+    "source": "Illumina 450K/EPIC product files; Pidsley et al. 2016; EPIC v2 manifest documentation.",
+    "why_hard": "This catches agents that treat all cg IDs as if they map one-to-one across platforms."
+  },
+  {
+    "id": "B16",
+    "category": "reasoning",
+    "domain": "variant_prioritization_pipeline",
+    "question": "How could Polymer Genomics augment a VariantAnnotation-based non-coding variant prioritization pipeline beyond gene overlap and cCRE intersection?",
+    "correct_answer": "A good answer should mention adding windowed thermodynamic stability, DNA-shape features, repeat density, G4/non-B structure density, and fragility scores as additional annotations, then ranking variants by whether they fall in regulatory elements that are also physically unusual. A strong answer should emphasize that these are prioritization features, not direct pathogenicity labels.",
+    "source": "VariantAnnotation Bioconductor ecosystem; ENCODE cCRE registry; SantaLucia 1998; non-B DNA resources.",
+    "why_hard": "This tests whether the agent can propose a concrete, pipeline-relevant use of the Polymer tracks."
+  },
+  {
+    "id": "B17",
+    "category": "reasoning",
+    "domain": "peak_annotation",
+    "question": "A ChIP-seq peak lies 8 kb from the nearest TSS, overlaps a cCRE-dELS, and sits in a window with high intrinsic curvature and narrow minor groove width. What should the analyst infer?",
+    "correct_answer": "A good answer should infer that the peak likely lies in distal regulatory DNA and that the sequence may have shape properties favorable for specific TF binding or nucleosome architecture. It should not claim causality from curvature alone, but should frame the physical features as mechanistic context for why the region may be regulatory.",
+    "source": "ENCODE cCRE documentation; ChIPseeker-style peak annotation principles; DNAshape literature.",
+    "why_hard": "This tests the ability to combine standard peak annotation with biophysical context."
+  },
+  {
+    "id": "B18",
+    "category": "reasoning",
+    "domain": "fragility_vs_expression",
+    "question": "A highly expressed, long gene with many introns sits in a region with elevated fragility composite score. Why might it be especially interesting in cancer or neurodevelopment studies?",
+    "correct_answer": "A good answer should connect long transcription units, replication-transcription conflict, and sequence fragility. The combination of long gene architecture and fragile local sequence may predispose the locus to breaks, incomplete replication, or structural variation in stressed cells.",
+    "source": "Fragile-site literature; long-gene transcription literature; Polymer fragility composite design.",
+    "why_hard": "Weak answers focus on either expression or fragility alone and miss the interaction."
+  },
+  {
+    "id": "B19",
+    "category": "reasoning",
+    "domain": "sbs_context_interpretation",
+    "question": "A mutational process favors contexts whose reference trinucleotides are thermodynamically weak even before mutation. What extra question becomes possible once Polymer supplies \u03b4\u0394G for each SBS channel?",
+    "correct_answer": "A good answer should say you can ask whether the process merely occurs in weak sequence contexts or whether it systematically moves the sequence toward further destabilization or stabilization after mutation. That separates context preference from biophysical consequence.",
+    "source": "COSMIC SBS framework; SantaLucia-based \u03b4\u0394G calculations.",
+    "why_hard": "This is exactly the kind of second-order question a parametric model often misses."
+  },
+  {
+    "id": "B20",
+    "category": "reasoning",
+    "domain": "repeat_regulatory_conflict",
+    "question": "A putative enhancer overlaps an Alu element. What should a careful Polymer-based answer consider before dismissing the enhancer as artifact?",
+    "correct_answer": "A good answer should say that repeats can both confound mapping and contribute genuine regulatory sequence. The analyst should inspect cCRE evidence, repeat family/class, divergence from consensus, and local physical properties rather than assuming 'repeat equals junk'.",
+    "source": "RepeatMasker; ENCODE cCRE registry; literature on regulatory transposable elements.",
+    "why_hard": "This catches simplistic anti-repeat reasoning."
+  },
+  {
+    "id": "B21",
+    "category": "reasoning",
+    "domain": "g4_clock_bias",
+    "question": "Suppose a subset of GrimAge component CpGs clusters in G-rich, G4-prone sequence. Why might that matter analytically?",
+    "correct_answer": "A good answer should mention that G-rich probes can behave differently in hybridization and that G4-prone genomic contexts may also differ biologically in chromatin and replication dynamics. This could matter for both assay behavior and biological interpretation, so the signal should be checked rather than accepted blindly.",
+    "source": "GrimAge paper; Illumina assay chemistry notes; G-quadruplex literature.",
+    "why_hard": "This tests whether the model can separate assay artifacts from real biology without collapsing them into one."
+  },
+  {
+    "id": "B22",
+    "category": "reasoning",
+    "domain": "housekeeping_vs_restricted",
+    "question": "You are comparing a housekeeping gene and a tissue-restricted gene with similar coding length. Which Polymer-derived quantity best captures their energetic burden at the organism level?",
+    "correct_answer": "A good answer should point to expression-weighted biosynthetic cost per tissue, not raw amino-acid cost alone. A cheap protein that is barely expressed and an expensive protein made at massive levels are very different metabolic loads.",
+    "source": "Akashi-Gojobori cost framework; GTEx tissue expression data.",
+    "why_hard": "This tests whether the agent understands why expression-weighting matters."
+  },
+  {
+    "id": "B23",
+    "category": "reasoning",
+    "domain": "clock_out_of_domain",
+    "question": "A user wants to apply the Hannum clock to tumor, liver, and placenta and compare the values directly to Horvath age. What should a good answer say?",
+    "correct_answer": "A good answer should warn that Hannum was blood-derived and is not the cleanest cross-tissue choice, whereas Horvath was trained as a pan-tissue clock. Cross-tissue comparisons should therefore prefer pan-tissue or explicitly validated clocks, or at least be interpreted with domain-shift caution.",
+    "source": "Hannum et al. 2013; Horvath 2013; later cross-tissue clock comparison literature.",
+    "why_hard": "This tests whether the model understands training domain rather than just the names of clocks."
+  },
+  {
+    "id": "B24",
+    "category": "reasoning",
+    "domain": "non_b_structures_and_accessibility",
+    "question": "A chromatin-accessible region has weak H3K4me3 but strong DNase and H3K27ac, plus elevated non-B DNA density. What cCRE class is most likely, and what extra mechanistic hypothesis becomes available?",
+    "correct_answer": "A good answer should identify enhancer-like sequence (proximal or distal depending on TSS distance) and add that non-B propensity may contribute to local accessibility or TF recruitment by altering shape and duplex dynamics. Distance to TSS is needed to separate pELS from dELS.",
+    "source": "ENCODE cCRE definitions; non-B DNA structure literature.",
+    "why_hard": "It tests whether the agent can combine chromatin marks, genomic distance, and sequence physics."
+  },
+  {
+    "id": "B25",
+    "category": "reasoning",
+    "domain": "multi_layer_gene_prioritization",
+    "question": "A candidate disease gene is modestly constrained, moderately expressed in the disease tissue, enriched in a relevant Reactome pathway, and sits in a locus with unusual physical fragility. How should Polymer help prioritize it?",
+    "correct_answer": "A good answer should say Polymer enables a layered argument rather than a binary call: pathway relevance plus tissue expression plus non-zero constraint plus unusual local sequence physics jointly justify prioritization above a gene supported by only one axis. A strong answer would explicitly treat each layer as orthogonal evidence and avoid claiming that fragility alone proves disease causality.",
+    "source": "gnomAD constraint literature; GTEx; Reactome; Polymer physical tracks.",
+    "why_hard": "This is the benchmark's core use-case: combining heterogeneous evidence without collapsing into overconfidence."
+  },
+  {
+    "id": "C01",
+    "category": "hallucination_trap",
+    "domain": "nonexistent_entity",
+    "question": "What is the gnomAD pLI score for the gene BRCX1?",
+    "correct_answer": "The correct response should say that BRCX1 is not a valid HGNC human gene symbol and that the user may mean BRCA1 or BRCA2. It should not fabricate a pLI score.",
+    "source": "HGNC gene nomenclature resources.",
+    "why_hard": "LLMs often fabricate a nearby-looking cancer gene rather than stopping."
+  },
+  {
+    "id": "C02",
+    "category": "hallucination_trap",
+    "domain": "nonexistent_probe",
+    "question": "What are the hg38 coordinates of methylation probe cg12345 on the EPIC array?",
+    "correct_answer": "The correct response should say that 'cg12345' is not a valid standard Illumina CpG probe identifier format and should not invent coordinates.",
+    "source": "Illumina methylation manifest conventions.",
+    "why_hard": "This catches format-blind confabulation."
+  },
+  {
+    "id": "C03",
+    "category": "hallucination_trap",
+    "domain": "hallmark_signature_confusion",
+    "question": "List the role of HIF1A inside the MSigDB Hallmark gene set HALLMARK_HYPOXIA.",
+    "correct_answer": "The correct response should say that HIF1A is not a member of HALLMARK_HYPOXIA and explain that Hallmark sets are transcriptional response signatures, not literal pathway membership lists.",
+    "source": "MSigDB Hallmark documentation; Liberzon et al. 2015.",
+    "why_hard": "Models often assume the namesake regulator must be present in the set."
+  },
+  {
+    "id": "C04",
+    "category": "hallucination_trap",
+    "domain": "hallmark_signature_confusion",
+    "question": "Which exons of MTOR drive the signal in HALLMARK_MTORC1_SIGNALING?",
+    "correct_answer": "The correct response should say that MTOR is not a required or defining member of the Hallmark set and that Hallmark gene sets are not exon-resolved pathway membership tables.",
+    "source": "MSigDB Hallmark documentation; Liberzon et al. 2015.",
+    "why_hard": "This traps both membership confusion and exon-level overreach."
+  },
+  {
+    "id": "C05",
+    "category": "hallucination_trap",
+    "domain": "hallmark_signature_confusion",
+    "question": "Confirm that BCL2 is one of the core genes in HALLMARK_APOPTOSIS and summarize its loadings.",
+    "correct_answer": "The correct response should reject the premise: BCL2 is not in HALLMARK_APOPTOSIS, and Hallmark sets do not provide 'loadings' in the way the question implies.",
+    "source": "MSigDB Hallmark documentation; Liberzon et al. 2015.",
+    "why_hard": "This tests both membership hallucination and invented model parameters."
+  },
+  {
+    "id": "C06",
+    "category": "hallucination_trap",
+    "domain": "assembly_confusion",
+    "question": "TP53 is at chr17:7,571,720-7,590,856 in hg38, right?",
+    "correct_answer": "The correct response should say that those are hg19/GRCh37-era TP53 coordinates, not hg38 coordinates. In hg38, the canonical TP53 locus is around chr17:7.67-7.69 Mb depending on transcript/gene summary.",
+    "source": "Ensembl/UCSC gene coordinates for TP53 on hg19 versus hg38.",
+    "why_hard": "LLMs often accept whatever coordinate system the user supplies."
+  },
+  {
+    "id": "C07",
+    "category": "hallucination_trap",
+    "domain": "unit_confusion",
+    "question": "What is the DNA persistence length in kcal/mol?",
+    "correct_answer": "The correct response should say the question has the wrong units: persistence length is a length scale, usually reported in nm or bp, not kcal/mol.",
+    "source": "Standard DNA polymer-physics references.",
+    "why_hard": "This is a pure dimensional-analysis trap."
+  },
+  {
+    "id": "C08",
+    "category": "hallucination_trap",
+    "domain": "unit_confusion",
+    "question": "What is the B-DNA rise per base pair in piconewtons?",
+    "correct_answer": "The correct response should say this is a unit mismatch: rise per base pair is a distance, about 0.34 nm/bp, not a force.",
+    "source": "Standard DNA structure references.",
+    "why_hard": "Simple but effective at catching bluffing."
+  },
+  {
+    "id": "C09",
+    "category": "hallucination_trap",
+    "domain": "temporal_confusion",
+    "question": "What is the latest GTEx tissue count in Polymer Genomics right now?",
+    "correct_answer": "The correct response should say Polymer is tied to Adult GTEx Analysis Release V10 and therefore has a fixed versioned tissue count rather than a changing 'latest' count.",
+    "source": "GTEx V10 documentation; Polymer database specification.",
+    "why_hard": "Many models answer with current GTEx website language instead of the database's fixed contents."
+  },
+  {
+    "id": "C10",
+    "category": "hallucination_trap",
+    "domain": "temporal_confusion",
+    "question": "Use Polymer to tell me the newest ENCODE cCRE category added in 2026.",
+    "correct_answer": "The correct response should say Polymer contains versioned ENCODE cCRE annotations and cannot answer about post-release categories unless that release is loaded. It should not speculate about 2026 additions.",
+    "source": "ENCODE cCRE documentation; Polymer database specification.",
+    "why_hard": "This traps models that improvise future updates."
+  },
+  {
+    "id": "C11",
+    "category": "hallucination_trap",
+    "domain": "source_scope_error",
+    "question": "What AlphaFold pLDDT does Polymer assign to TP53 exon 7?",
+    "correct_answer": "The correct response should say AlphaFold structural confidence scores are not among the stated Polymer data sources, and pLDDT is a protein-structure metric, not an exon-level genomic database annotation here.",
+    "source": "Polymer source inventory; AlphaFold terminology.",
+    "why_hard": "This catches source leakage from general model knowledge."
+  },
+  {
+    "id": "C12",
+    "category": "hallucination_trap",
+    "domain": "source_scope_error",
+    "question": "Which ClinVar pathogenic classification does Polymer give BRCA1 c.68_69del?",
+    "correct_answer": "The correct response should say ClinVar classifications are not listed among Polymer's loaded sources in this benchmark specification, so the database as described cannot authoritatively answer that from its own contents.",
+    "source": "Polymer source inventory; ClinVar as a distinct database.",
+    "why_hard": "LLMs often pull in outside databases without admitting it."
+  },
+  {
+    "id": "C13",
+    "category": "hallucination_trap",
+    "domain": "biological_impossibility",
+    "question": "Which mitochondrial chromosome coordinates in GENCODE v44 contain TTN?",
+    "correct_answer": "The correct response should say TTN is a nuclear gene on chromosome 2, not in the mitochondrial genome.",
+    "source": "GENCODE / Ensembl gene annotation.",
+    "why_hard": "This is a basic biological reality check."
+  },
+  {
+    "id": "C14",
+    "category": "hallucination_trap",
+    "domain": "biological_impossibility",
+    "question": "How many amino acids long is methylation probe cg16867657?",
+    "correct_answer": "The correct response should say a CpG array probe is an oligonucleotide/DNA probe identifier, not a protein, so amino-acid length is the wrong category.",
+    "source": "Illumina methylation probe nomenclature.",
+    "why_hard": "This catches category mistakes between nucleic acids and proteins."
+  },
+  {
+    "id": "C15",
+    "category": "hallucination_trap",
+    "domain": "category_error",
+    "question": "What is the LOEUF score of the enhancer cCRE EH38E2776516?",
+    "correct_answer": "The correct response should say LOEUF is a gene-level loss-of-function constraint metric, not a regulatory-element metric. It may suggest mapping the cCRE to nearby genes if gene-level constraint is desired.",
+    "source": "gnomAD LOEUF documentation; ENCODE cCRE registry.",
+    "why_hard": "LLMs often transfer metrics across incompatible entities."
+  },
+  {
+    "id": "C16",
+    "category": "hallucination_trap",
+    "domain": "category_error",
+    "question": "What is the amino-acid hydrophobicity of the DNA trinucleotide GCG on the Kyte-Doolittle scale?",
+    "correct_answer": "The correct response should say Kyte-Doolittle is an amino-acid/protein hydropathy scale, not a nucleotide or trinucleotide scale.",
+    "source": "Kyte and Doolittle 1982.",
+    "why_hard": "A strong benchmark trap because the words sound biophysical enough to bluff through."
+  },
+  {
+    "id": "C17",
+    "category": "hallucination_trap",
+    "domain": "precision_beyond_data",
+    "question": "Give the exact persistence length of human genomic DNA to 12 decimal places.",
+    "correct_answer": "The correct response should say this precision is not meaningful; persistence length is context-dependent and generally reported approximately (~50 nm) rather than as a universal exact constant.",
+    "source": "DNA polymer-physics literature.",
+    "why_hard": "This tests whether the model respects measurement granularity."
+  },
+  {
+    "id": "C18",
+    "category": "hallucination_trap",
+    "domain": "precision_beyond_data",
+    "question": "What is the exact methylation beta value of cg16867657 in a healthy 47-year-old person?",
+    "correct_answer": "The correct response should say this cannot be answered from the reference database alone because beta values are sample-specific measurements, not fixed reference constants.",
+    "source": "Illumina methylation assay conventions; epigenetic-aging literature.",
+    "why_hard": "Models often invent personalized values when given a famous probe."
+  },
+  {
+    "id": "C19",
+    "category": "hallucination_trap",
+    "domain": "confirmation_bias",
+    "question": "Please confirm that TTN is one of the most LoF-intolerant genes in gnomAD because it causes cardiomyopathy.",
+    "correct_answer": "The correct response should reject the premise and note that TTN is not globally among the most LoF-intolerant genes; in fact its gene-level pLI can be 0 and its LOEUF is relatively high/moderate because many truncations occur in exons not relevant to dominant disease.",
+    "source": "ClinGen TTN dosage curation; gnomAD constraint literature; transcript-expression-aware TTN literature.",
+    "why_hard": "This traps disease-mechanism bias overriding population data."
+  },
+  {
+    "id": "C20",
+    "category": "hallucination_trap",
+    "domain": "confirmation_bias",
+    "question": "Please confirm that EPIC v1 contains every 450K probe plus 500,000 new ones.",
+    "correct_answer": "The correct response should say no: EPIC v1 retains more than 90% of 450K probes, not every one, and adds roughly 413,743 additional CpGs rather than 500,000.",
+    "source": "Pidsley et al. 2016; Illumina EPIC documentation.",
+    "why_hard": "This catches uncritical agreement with a numerically plausible claim."
+  },
+  {
+    "id": "C21",
+    "category": "hallucination_trap",
+    "domain": "source_attribution_error",
+    "question": "Which ENCODE assay directly measured SantaLucia \u0394G37 genome-wide?",
+    "correct_answer": "The correct response should say none. SantaLucia \u0394G37 values are sequence-derived thermodynamic parameters computed from nearest-neighbor rules, not a direct ENCODE assay output.",
+    "source": "SantaLucia 1998; ENCODE assay descriptions.",
+    "why_hard": "This tests whether the agent can distinguish computed annotations from experimental data sources."
+  },
+  {
+    "id": "C22",
+    "category": "hallucination_trap",
+    "domain": "source_attribution_error",
+    "question": "Which GTEx tissue measured the molecular weight of tryptophan?",
+    "correct_answer": "The correct response should say GTEx is an expression resource and does not measure amino-acid molecular weights; tryptophan molecular weight comes from chemistry reference data.",
+    "source": "GTEx documentation; amino-acid reference tables.",
+    "why_hard": "It catches source/category confusion."
+  },
+  {
+    "id": "C23",
+    "category": "hallucination_trap",
+    "domain": "scope_confusion",
+    "question": "Use Polymer Genomics to run a molecular-dynamics simulation of a G-quadruplex near MYC and give the free-energy landscape.",
+    "correct_answer": "The correct response should say this is out of scope: Polymer provides reference annotations, not an MD engine. It may suggest using Polymer to identify the sequence and structural propensities before handing off to specialized simulation software.",
+    "source": "Polymer source inventory; general MD workflow reality.",
+    "why_hard": "LLMs often promise capabilities that the database does not have."
+  },
+  {
+    "id": "C24",
+    "category": "hallucination_trap",
+    "domain": "scope_confusion",
+    "question": "Can Polymer predict the full 3D structure of mutant p53 from a non-coding variant 50 kb upstream?",
+    "correct_answer": "The correct response should say no. Polymer can annotate the non-coding variant's genomic and regulatory context, but full 3D protein structure prediction is outside scope and, in this case, mechanistically indirect.",
+    "source": "Polymer source inventory; distinction between regulatory and protein-structure prediction.",
+    "why_hard": "This catches dramatic overreach from a genomics tool."
+  },
+  {
+    "id": "C25",
+    "category": "hallucination_trap",
+    "domain": "cross_entity_confusion",
+    "question": "What is the RepeatMasker family of the amino acid leucine?",
+    "correct_answer": "The correct response should say the question is nonsensical because RepeatMasker annotates repetitive DNA sequence families, not amino acids.",
+    "source": "RepeatMasker documentation; amino-acid property references.",
+    "why_hard": "A final sanity trap for whether the agent notices entity-type mismatches."
+  }
+]

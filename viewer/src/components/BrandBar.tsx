@@ -84,7 +84,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         <Link href="/clocks" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Clocks</Link>
         <Link href="/transposome" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Transposome</Link>
         <Link href="/dmp" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>DMP</Link>
-        <Link href="/docs"  style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'API' : 'API / MCP'}</Link>
+<Link href="/docs"  style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'API' : 'API / MCP'}</Link>
         {!isMobile && <Link href="/developers" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Dev</Link>}
       </div>
     </div>
