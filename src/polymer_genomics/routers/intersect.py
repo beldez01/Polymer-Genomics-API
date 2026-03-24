@@ -10,7 +10,9 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from polymer_genomics import __version__
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.envelope import DATA_VERSION
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool
 
@@ -297,6 +299,8 @@ async def intersect_layers(req: IntersectRequest):
 
     return {
         "status": "complete" if len(rows) < req.limit else "truncated",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
         "coordinate_system": "1-based_closed",
         "query": {
             "build": req.build,

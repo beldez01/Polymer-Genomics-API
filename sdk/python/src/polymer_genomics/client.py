@@ -173,6 +173,78 @@ class PolymerClient:
             "window_size": window_size,
         })
 
+    # ── Construct Design (Module 5) ─────────────────────────────────
+
+    def evaluate_construct(
+        self,
+        parts: List[Dict[str, str]],
+        name: str = "construct",
+        circular: bool = False,
+        salt_mm: float = 150.0,
+        analysis: str = "full",
+    ) -> Dict[str, Any]:
+        """Evaluate a multi-part DNA construct.
+
+        Takes an ordered list of construct parts and returns per-part
+        biophysical evaluation, junction analysis, and assembly flags.
+
+        Parameters
+        ----------
+        parts : list of dict
+            Each dict must have ``name`` (str), ``sequence`` (str), and
+            optionally ``role`` (str: promoter, cds, utr5, utr3,
+            terminator, backbone, linker, spacer, generic).
+        name : str
+            Label for the construct.
+        circular : bool
+            True for plasmid (evaluates closing junction).
+        salt_mm : float
+            NaCl in mM (150 = physiological default, 1000 = standard).
+        analysis : str
+            ``"full"`` (default), ``"thermodynamic"``, or ``"structural"``.
+
+        Returns
+        -------
+        dict
+            Keys: ``summary``, ``parts``, ``junctions``, ``assembly_flags``.
+        """
+        return self._post("/v1/design/construct", json={
+            "parts": parts,
+            "name": name,
+            "circular": circular,
+            "salt_mm": salt_mm,
+            "analysis": analysis,
+        })
+
+    def compare_constructs(
+        self,
+        constructs: List[Dict[str, Any]],
+        salt_mm: float = 150.0,
+        analysis: str = "full",
+    ) -> Dict[str, Any]:
+        """Compare two or more construct designs side-by-side.
+
+        Parameters
+        ----------
+        constructs : list of dict
+            Each dict must have ``name`` (str), ``parts`` (list of part
+            dicts), and optionally ``circular`` (bool).
+        salt_mm : float
+            NaCl in mM.
+        analysis : str
+            ``"full"``, ``"thermodynamic"``, or ``"structural"``.
+
+        Returns
+        -------
+        dict
+            Keys: ``comparison``, ``constructs``.
+        """
+        return self._post("/v1/design/construct/compare", json={
+            "constructs": constructs,
+            "salt_mm": salt_mm,
+            "analysis": analysis,
+        })
+
     # ── Gene Lookup ──────────────────────────────────────────────────
 
     def gene(self, build: str, symbol: str) -> Dict[str, Any]:

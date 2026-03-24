@@ -13,6 +13,8 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from polymer_genomics import __version__
+from polymer_genomics.envelope import DATA_VERSION
 from polymer_genomics.evaluate import evaluate_sequence, MAX_EVALUATE_LENGTH, MIN_EVALUATE_LENGTH
 
 router = APIRouter(prefix="/v1", tags=["evaluate"])
@@ -141,6 +143,8 @@ async def evaluate_design(body: EvaluateRequest):
     compute_ms = round((time.monotonic() - start_time) * 1000, 1)
     result["timing"] = {"compute_time_ms": compute_ms}
     result["status"] = "complete"
+    result["api_version"] = __version__
+    result["data_version"] = DATA_VERSION
 
     return result
 
@@ -269,6 +273,8 @@ async def compare_sequences(body: CompareRequest):
 
     return {
         "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
         "n_sequences": len(names),
         "reference": reference_name,
         "comparison": comparison,
@@ -352,6 +358,8 @@ async def batch_evaluate(body: BatchEvaluateRequest):
 
     response = {
         "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
         "n_sequences": len(body.sequences),
         "summary": summary,
         "evaluations": results,

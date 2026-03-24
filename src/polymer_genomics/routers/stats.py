@@ -287,8 +287,13 @@ async def region_stats(
 
     query_time_ms = round((time.monotonic() - start_time) * 1000, 1)
 
+    from polymer_genomics import __version__
+    from polymer_genomics.envelope import DATA_VERSION
+
     result = {
         "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
         "query": {
             "build": build,
             "region": {"chr": chr_name, "start": parsed["start"], "end": parsed["end"]},

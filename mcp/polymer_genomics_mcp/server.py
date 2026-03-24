@@ -71,12 +71,14 @@ mcp = FastMCP(
         "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
         "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n"
         "- Data validation → validate_layer (row counts, value ranges, null fractions per layer)\n"
+        "- Multi-part construct → evaluate_construct (per-part physics + junction analysis + assembly flags)\n"
         "- Batch evaluate → batch_evaluate (up to 100 sequences independently, batch summary)\n"
         "- Region profile → region_profile (everything about a region, all layers, significance flags)\n"
         "- Query recipes → query_recipe (prebuilt cross-layer queries: silencing, non-B DNA, fragility, TAD boundaries)\n"
         "- Platform stats → platform_summary (total layers, rows, builds, evidence classes)\n\n"
         "WORKFLOW PATTERNS:\n"
         "- Evaluate a construct: evaluate_design → review flags\n"
+        "- Evaluate multi-part construct: evaluate_construct → review per-part + junction + assembly flags\n"
         "- Compare designs: compare_sequences → check deltas_vs_reference\n"
         "- Investigate a gene: lookup_gene → lookup_gene_expression → compute_region_biophysics\n"
         "- Annotate methylation hits: annotate_probes_biophysics (one call for probe + biophysics context)\n"
@@ -1408,6 +1410,84 @@ async def compare_sequences(
         "salt_mm": salt_mm,
         "window_size": window_size,
     })
+
+
+@mcp.tool()
+async def evaluate_construct(
+    parts: list[dict],
+    name: str = "construct",
+    circular: bool = False,
+    salt_mm: float = 150.0,
+    analysis: str = "full",
+) -> dict:
+    """Evaluate a multi-part DNA construct (promoter + insert + terminator + backbone).
+
+    Takes an ordered list of construct parts and returns per-part biophysical
+    evaluation, junction analysis, and assembly-level flags. This is the
+    recommended tool for evaluating plasmids, expression cassettes, and any
+    multi-part synthetic DNA design.
+
+    Each part in the list must have:
+    - name: label (e.g., "CMV_promoter", "GFP_insert")
+    - sequence: DNA sequence (ACGT, 10-100,000 bp)
+    - role: functional role (promoter, cds, utr5, utr3, terminator, backbone, linker, spacer, generic)
+
+    Returns:
+    - summary: total length, GC, part count, assembly flag counts
+    - parts: per-part biophysical evaluation (same as evaluate_design output)
+    - junctions: biophysical properties of ~50bp around each part junction
+    - assembly_flags: construct-level warnings:
+      - INTERNAL_RESTRICTION_SITE: EcoRI/BamHI/HindIII/XbaI/SalI/NotI sites in parts
+      - JUNCTION_HOMOPOLYMER: homopolymer >6bp at a junction
+      - CROSS_PART_REPEAT: direct repeat >12bp between parts (recombination risk)
+      - EXTREME_GC_WINDOW: GC <25% or >75% in any 100bp window
+      - JUNCTION_CPG_ISLAND: CpG island spanning a junction (silencing risk)
+
+    Example input:
+    parts=[
+      {"name": "CMV", "sequence": "ATGCGA...", "role": "promoter"},
+      {"name": "GFP", "sequence": "ATGGTG...", "role": "cds"},
+      {"name": "bGH_pA", "sequence": "AATAAA...", "role": "terminator"}
+    ], circular=True
+
+    Set circular=True for plasmids (evaluates closing junction between last and first part).
+    Set salt_mm=150 for physiological conditions (default), 1000 for standard thermodynamic.
+
+    Args:
+        parts: Ordered list of dicts, each with 'name', 'sequence', and 'role' keys.
+        name: Label for the construct.
+        circular: True for plasmid (evaluates closing junction), False for linear.
+        salt_mm: NaCl in mM (150=physiological default, 1000=standard).
+        analysis: 'full' (default), 'thermodynamic', or 'structural'.
+    """
+    data = await _post("/v1/design/construct", {
+        "parts": parts,
+        "name": name,
+        "circular": circular,
+        "salt_mm": salt_mm,
+        "analysis": analysis,
+    })
+    # Build a summary line
+    summary = ""
+    try:
+        s = data.get("summary", {})
+        n_flags = s.get("n_assembly_warnings", 0)
+        n_info = s.get("n_assembly_flags", 0) - n_flags
+        parts_desc = ", ".join(
+            f"{p['name']} ({p['role']}, {p['length_bp']}bp)"
+            for p in s.get("parts", [])
+        )
+        summary = (
+            f"{s.get('name', 'construct')}: {s.get('total_length_bp', 0)} bp, "
+            f"{s.get('n_parts', 0)} parts, GC={s.get('gc_content', 0):.1%}, "
+            f"{'circular' if s.get('circular') else 'linear'}. "
+            f"{n_flags} assembly warning{'s' if n_flags != 1 else ''}, "
+            f"{s.get('n_junctions', 0)} junction{'s' if s.get('n_junctions', 0) != 1 else ''}. "
+            f"Parts: {parts_desc}."
+        )
+    except Exception:
+        pass
+    return _with_summary(data, summary)
 
 
 @mcp.tool()

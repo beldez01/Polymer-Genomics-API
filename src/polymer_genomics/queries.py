@@ -117,7 +117,7 @@ def region_regulatory_query() -> str:
     """ENCODE candidate cis-Regulatory Elements (cCREs V4)."""
     return """
         SELECT r.start_pos, r.end_pos, r.accession, r.score,
-               r.encode_label, r.ccre_class, r.z_score
+               r.encode_label, r.ccre_class, r.z_score, r.description
         FROM regulatory.ccre r
         WHERE r.build = $1::genome_build
           AND r.chr_id = $2
@@ -132,7 +132,31 @@ def region_expression_query() -> str:
     """Gene expression summary (GTEx v10, 54 tissues)."""
     return """
         SELECT e.gene_symbol, e.gene_id, e.start_pos, e.end_pos, e.strand,
-               e.median_tpm, e.max_tpm, e.max_tissue, e.n_tissues_detected
+               e.median_tpm, e.max_tpm, e.max_tissue, e.n_tissues_detected,
+               e.tpm_adipose_subcutaneous, e.tpm_adipose_visceral_omentum,
+               e.tpm_adrenal_gland, e.tpm_artery_aorta, e.tpm_artery_coronary,
+               e.tpm_artery_tibial, e.tpm_bladder,
+               e.tpm_brain_amygdala, e.tpm_brain_anterior_cingulate_cortex_ba24,
+               e.tpm_brain_caudate_basal_ganglia, e.tpm_brain_cerebellar_hemisphere,
+               e.tpm_brain_cerebellum, e.tpm_brain_cortex,
+               e.tpm_brain_frontal_cortex_ba9, e.tpm_brain_hippocampus,
+               e.tpm_brain_hypothalamus, e.tpm_brain_nucleus_accumbens_basal_ganglia,
+               e.tpm_brain_putamen_basal_ganglia, e.tpm_brain_spinal_cord_cervical_c1,
+               e.tpm_brain_substantia_nigra, e.tpm_breast_mammary_tissue,
+               e.tpm_cells_cultured_fibroblasts, e.tpm_cells_ebv_transformed_lymphocytes,
+               e.tpm_cervix_ectocervix, e.tpm_cervix_endocervix,
+               e.tpm_colon_sigmoid, e.tpm_colon_transverse,
+               e.tpm_esophagus_gastroesophageal_junction, e.tpm_esophagus_mucosa,
+               e.tpm_esophagus_muscularis, e.tpm_fallopian_tube,
+               e.tpm_heart_atrial_appendage, e.tpm_heart_left_ventricle,
+               e.tpm_kidney_cortex, e.tpm_kidney_medulla,
+               e.tpm_liver, e.tpm_lung, e.tpm_minor_salivary_gland,
+               e.tpm_muscle_skeletal, e.tpm_nerve_tibial,
+               e.tpm_ovary, e.tpm_pancreas, e.tpm_pituitary, e.tpm_prostate,
+               e.tpm_skin_not_sun_exposed_suprapubic, e.tpm_skin_sun_exposed_lower_leg,
+               e.tpm_small_intestine_terminal_ileum, e.tpm_spleen, e.tpm_stomach,
+               e.tpm_testis, e.tpm_thyroid, e.tpm_uterus, e.tpm_vagina,
+               e.tpm_whole_blood
         FROM expression.gene_tpm e
         WHERE e.build = $1::genome_build
           AND e.chr_id = $2
@@ -150,7 +174,15 @@ def region_gene_costs_query() -> str:
                gc.protein_length, gc.ecpa_b20, gc.c_protein,
                gc.n_protein, gc.s_protein, gc.cai, gc.tai,
                gc.mean_tpm, gc.max_tpm,
-               gc.frac_cheap, gc.frac_expensive
+               gc.frac_cheap, gc.frac_expensive,
+               gc.uniprot_id, gc.protein_name, gc.mw_kda, gc.cost_per_kda,
+               gc.transcript_length_nt, gc.c_transcription, gc.c_rna_total,
+               gc.frac_moderate, gc.frac_very_expensive,
+               gc.n_cys, gc.n_met, gc.n_trp, gc.n_arg, gc.n_lys,
+               gc.cds_length_nt, gc.n_codons, gc.gc3, gc.gc_cds, gc.enc, gc.fop,
+               gc.ecpa_h11, gc.c_aa_synthesis, gc.c_translation,
+               gc.c_atoms, gc.n_per_kda, gc.s_per_kda,
+               gc.burden_total
         FROM bioenergetics.gene_costs gc
         WHERE gc.build = $1::genome_build
           AND gc.chr_id = $2
@@ -165,7 +197,8 @@ def region_protein_abundance_query() -> str:
     """Tissue-specific protein abundance (PaxDb v6.0)."""
     return """
         SELECT pa.gene_symbol, pa.start_pos, pa.end_pos, pa.strand,
-               pa.tissue, pa.organ_group, pa.abundance_ppm
+               pa.tissue, pa.organ_group, pa.abundance_ppm,
+               pa.coverage, pa.spectral_count, pa.data_source, pa.uniprot_id
         FROM bioenergetics.protein_abundance pa
         WHERE pa.build = $1::genome_build
           AND pa.chr_id = $2
@@ -180,7 +213,8 @@ def region_protein_turnover_query() -> str:
     """Protein half-life measurements (Mathieson et al. 2018)."""
     return """
         SELECT pt.gene_symbol, pt.start_pos, pt.end_pos, pt.strand,
-               pt.cell_type, pt.half_life_hours, pt.k_degradation
+               pt.cell_type, pt.half_life_hours, pt.k_degradation,
+               pt.r_squared, pt.n_peptides, pt.measurement_method, pt.uniprot_id
         FROM bioenergetics.protein_turnover pt
         WHERE pt.build = $1::genome_build
           AND pt.chr_id = $2
@@ -196,7 +230,9 @@ def region_protein_properties_query() -> str:
     return """
         SELECT pp.gene_symbol, pp.start_pos, pp.end_pos, pp.strand,
                pp.h_atoms, pp.o_atoms, pp.p_atoms, pp.total_atoms,
-               pp.pi, pp.instability_index, pp.aliphatic_index, pp.gravy
+               pp.pi, pp.instability_index, pp.aliphatic_index, pp.gravy,
+               pp.uniprot_id, pp.molecular_formula,
+               pp.extinction_coeff_reduced, pp.extinction_coeff_oxidized
         FROM bioenergetics.protein_properties pp
         WHERE pp.build = $1::genome_build
           AND pp.chr_id = $2
@@ -211,7 +247,10 @@ def region_gene_constraint_query() -> str:
     """Gene-level constraint metrics (gnomAD pLI, LOEUF, Z-scores)."""
     return """
         SELECT gc.gene_symbol, gc.start_pos, gc.end_pos, gc.strand,
-               gc.pli, gc.loeuf, gc.mis_z, gc.syn_z
+               gc.pli, gc.loeuf, gc.mis_z, gc.syn_z,
+               gc.transcript, gc.obs_lof, gc.exp_lof,
+               gc.obs_mis, gc.exp_mis, gc.obs_syn, gc.exp_syn,
+               gc.gnomad_version
         FROM conservation.gene_constraint gc
         WHERE gc.build = $1::genome_build
           AND gc.chr_id = $2
@@ -226,7 +265,10 @@ def region_protein_evolution_query() -> str:
     """Protein-level evolutionary rates (dN/dS from Ensembl Compara)."""
     return """
         SELECT pe.gene_symbol, pe.start_pos, pe.end_pos, pe.strand,
-               pe.dn, pe.ds, pe.omega, pe.orthology_type
+               pe.dn, pe.ds, pe.omega, pe.orthology_type,
+               pe.ensembl_gene_id, pe.mouse_gene_symbol,
+               pe.mouse_ensembl_gene_id, pe.homology_id,
+               pe.perc_id_human, pe.perc_id_mouse
         FROM conservation.protein_evolution pe
         WHERE pe.build = $1::genome_build
           AND pe.chr_id = $2
@@ -352,7 +394,8 @@ def region_repeats_query() -> str:
         SELECT r.start_pos, r.end_pos, r.strand,
                r.repeat_name, r.repeat_class, r.repeat_family,
                r.divergence_pct,
-               r.repeat_age, r.is_active, r.superfamily
+               r.repeat_age, r.is_active, r.superfamily,
+               r.sw_score, r.deletion_pct, r.insertion_pct
         FROM annotation.repeats r
         WHERE r.build = $1::genome_build
           AND r.chr_id = $2
@@ -640,6 +683,7 @@ def _convert_conservation(rows: list, chr_name: str) -> dict:
 def _convert_regulatory(rows: list, chr_name: str) -> dict:
     starts, ends, widths = [], [], []
     accessions, scores, labels, classes, z_scores = [], [], [], [], []
+    descriptions = []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -650,6 +694,7 @@ def _convert_regulatory(rows: list, chr_name: str) -> dict:
         labels.append(r["encode_label"])
         classes.append(r["ccre_class"])
         z_scores.append(r["z_score"])
+        descriptions.append(r["description"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -661,15 +706,45 @@ def _convert_regulatory(rows: list, chr_name: str) -> dict:
             "encode_label": labels,
             "ccre_class": classes,
             "z_score": z_scores,
+            "description": descriptions,
         },
         "n": len(rows),
     }
+
+
+_EXPRESSION_TISSUE_COLS = [
+    "tpm_adipose_subcutaneous", "tpm_adipose_visceral_omentum",
+    "tpm_adrenal_gland", "tpm_artery_aorta", "tpm_artery_coronary",
+    "tpm_artery_tibial", "tpm_bladder",
+    "tpm_brain_amygdala", "tpm_brain_anterior_cingulate_cortex_ba24",
+    "tpm_brain_caudate_basal_ganglia", "tpm_brain_cerebellar_hemisphere",
+    "tpm_brain_cerebellum", "tpm_brain_cortex",
+    "tpm_brain_frontal_cortex_ba9", "tpm_brain_hippocampus",
+    "tpm_brain_hypothalamus", "tpm_brain_nucleus_accumbens_basal_ganglia",
+    "tpm_brain_putamen_basal_ganglia", "tpm_brain_spinal_cord_cervical_c1",
+    "tpm_brain_substantia_nigra", "tpm_breast_mammary_tissue",
+    "tpm_cells_cultured_fibroblasts", "tpm_cells_ebv_transformed_lymphocytes",
+    "tpm_cervix_ectocervix", "tpm_cervix_endocervix",
+    "tpm_colon_sigmoid", "tpm_colon_transverse",
+    "tpm_esophagus_gastroesophageal_junction", "tpm_esophagus_mucosa",
+    "tpm_esophagus_muscularis", "tpm_fallopian_tube",
+    "tpm_heart_atrial_appendage", "tpm_heart_left_ventricle",
+    "tpm_kidney_cortex", "tpm_kidney_medulla",
+    "tpm_liver", "tpm_lung", "tpm_minor_salivary_gland",
+    "tpm_muscle_skeletal", "tpm_nerve_tibial",
+    "tpm_ovary", "tpm_pancreas", "tpm_pituitary", "tpm_prostate",
+    "tpm_skin_not_sun_exposed_suprapubic", "tpm_skin_sun_exposed_lower_leg",
+    "tpm_small_intestine_terminal_ileum", "tpm_spleen", "tpm_stomach",
+    "tpm_testis", "tpm_thyroid", "tpm_uterus", "tpm_vagina",
+    "tpm_whole_blood",
+]
 
 
 def _convert_expression(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, gene_ids = [], []
     median_tpms, max_tpms, max_tissues, n_detected = [], [], [], []
+    tissue_data = {col: [] for col in _EXPRESSION_TISSUE_COLS}
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -682,21 +757,37 @@ def _convert_expression(rows: list, chr_name: str) -> dict:
         max_tpms.append(r["max_tpm"])
         max_tissues.append(r["max_tissue"])
         n_detected.append(r["n_tissues_detected"])
+        for col in _EXPRESSION_TISSUE_COLS:
+            tissue_data[col].append(r[col])
+    mcols = {
+        "gene_symbol": symbols,
+        "gene_id": gene_ids,
+        "median_tpm": median_tpms,
+        "max_tpm": max_tpms,
+        "max_tissue": max_tissues,
+        "n_tissues_detected": n_detected,
+    }
+    mcols.update(tissue_data)
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
         "ranges": {"start": starts, "end": ends, "width": widths},
         "strand": strands,
-        "mcols": {
-            "gene_symbol": symbols,
-            "gene_id": gene_ids,
-            "median_tpm": median_tpms,
-            "max_tpm": max_tpms,
-            "max_tissue": max_tissues,
-            "n_tissues_detected": n_detected,
-        },
+        "mcols": mcols,
         "n": len(rows),
     }
+
+
+_GENE_COST_EXTRA_COLS = [
+    "uniprot_id", "protein_name", "mw_kda", "cost_per_kda",
+    "transcript_length_nt", "c_transcription", "c_rna_total",
+    "frac_moderate", "frac_very_expensive",
+    "n_cys", "n_met", "n_trp", "n_arg", "n_lys",
+    "cds_length_nt", "n_codons", "gc3", "gc_cds", "enc", "fop",
+    "ecpa_h11", "c_aa_synthesis", "c_translation",
+    "c_atoms", "n_per_kda", "s_per_kda",
+    "burden_total",
+]
 
 
 def _convert_gene_cost(rows: list, chr_name: str) -> dict:
@@ -707,6 +798,7 @@ def _convert_gene_cost(rows: list, chr_name: str) -> dict:
     cais, tais = [], []
     mean_tpms, max_tpms = [], []
     frac_cheaps, frac_expensives = [], []
+    extra = {col: [] for col in _GENE_COST_EXTRA_COLS}
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -725,25 +817,29 @@ def _convert_gene_cost(rows: list, chr_name: str) -> dict:
         max_tpms.append(r["max_tpm"])
         frac_cheaps.append(r["frac_cheap"])
         frac_expensives.append(r["frac_expensive"])
+        for col in _GENE_COST_EXTRA_COLS:
+            extra[col].append(r[col])
+    mcols = {
+        "gene_symbol": symbols,
+        "protein_length": protein_lengths,
+        "ecpa_b20": ecpa_b20s,
+        "c_protein": c_proteins,
+        "n_protein": n_proteins,
+        "s_protein": s_proteins,
+        "cai": cais,
+        "tai": tais,
+        "mean_tpm": mean_tpms,
+        "max_tpm": max_tpms,
+        "frac_cheap": frac_cheaps,
+        "frac_expensive": frac_expensives,
+    }
+    mcols.update(extra)
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
         "ranges": {"start": starts, "end": ends, "width": widths},
         "strand": strands,
-        "mcols": {
-            "gene_symbol": symbols,
-            "protein_length": protein_lengths,
-            "ecpa_b20": ecpa_b20s,
-            "c_protein": c_proteins,
-            "n_protein": n_proteins,
-            "s_protein": s_proteins,
-            "cai": cais,
-            "tai": tais,
-            "mean_tpm": mean_tpms,
-            "max_tpm": max_tpms,
-            "frac_cheap": frac_cheaps,
-            "frac_expensive": frac_expensives,
-        },
+        "mcols": mcols,
         "n": len(rows),
     }
 
@@ -751,6 +847,7 @@ def _convert_gene_cost(rows: list, chr_name: str) -> dict:
 def _convert_protein_abundance(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, tissues, organ_groups, ppms = [], [], [], []
+    coverages, spectral_counts, data_sources, uniprot_ids = [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -761,6 +858,10 @@ def _convert_protein_abundance(rows: list, chr_name: str) -> dict:
         tissues.append(r["tissue"])
         organ_groups.append(r["organ_group"])
         ppms.append(r["abundance_ppm"])
+        coverages.append(r["coverage"])
+        spectral_counts.append(r["spectral_count"])
+        data_sources.append(r["data_source"])
+        uniprot_ids.append(r["uniprot_id"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -771,6 +872,10 @@ def _convert_protein_abundance(rows: list, chr_name: str) -> dict:
             "tissue": tissues,
             "organ_group": organ_groups,
             "abundance_ppm": ppms,
+            "coverage": coverages,
+            "spectral_count": spectral_counts,
+            "data_source": data_sources,
+            "uniprot_id": uniprot_ids,
         },
         "n": len(rows),
     }
@@ -779,6 +884,7 @@ def _convert_protein_abundance(rows: list, chr_name: str) -> dict:
 def _convert_protein_turnover(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, cell_types, half_lives, k_degs = [], [], [], []
+    r_squareds, n_peptides_list, methods, uniprot_ids = [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -789,6 +895,10 @@ def _convert_protein_turnover(rows: list, chr_name: str) -> dict:
         cell_types.append(r["cell_type"])
         half_lives.append(r["half_life_hours"])
         k_degs.append(r["k_degradation"])
+        r_squareds.append(r["r_squared"])
+        n_peptides_list.append(r["n_peptides"])
+        methods.append(r["measurement_method"])
+        uniprot_ids.append(r["uniprot_id"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -799,6 +909,10 @@ def _convert_protein_turnover(rows: list, chr_name: str) -> dict:
             "cell_type": cell_types,
             "half_life_hours": half_lives,
             "k_degradation": k_degs,
+            "r_squared": r_squareds,
+            "n_peptides": n_peptides_list,
+            "measurement_method": methods,
+            "uniprot_id": uniprot_ids,
         },
         "n": len(rows),
     }
@@ -809,6 +923,8 @@ def _convert_protein_properties(rows: list, chr_name: str) -> dict:
     symbols = []
     h_atoms, o_atoms, p_atoms, total_atoms = [], [], [], []
     pis, instabilities, aliphatics, gravys = [], [], [], []
+    uniprot_ids, mol_formulas = [], []
+    ext_reduced, ext_oxidized = [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -824,6 +940,10 @@ def _convert_protein_properties(rows: list, chr_name: str) -> dict:
         instabilities.append(r["instability_index"])
         aliphatics.append(r["aliphatic_index"])
         gravys.append(r["gravy"])
+        uniprot_ids.append(r["uniprot_id"])
+        mol_formulas.append(r["molecular_formula"])
+        ext_reduced.append(r["extinction_coeff_reduced"])
+        ext_oxidized.append(r["extinction_coeff_oxidized"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -835,6 +955,10 @@ def _convert_protein_properties(rows: list, chr_name: str) -> dict:
             "p_atoms": p_atoms, "total_atoms": total_atoms,
             "pi": pis, "instability_index": instabilities,
             "aliphatic_index": aliphatics, "gravy": gravys,
+            "uniprot_id": uniprot_ids,
+            "molecular_formula": mol_formulas,
+            "extinction_coeff_reduced": ext_reduced,
+            "extinction_coeff_oxidized": ext_oxidized,
         },
         "n": len(rows),
     }
@@ -843,6 +967,9 @@ def _convert_protein_properties(rows: list, chr_name: str) -> dict:
 def _convert_gene_constraint(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, plis, loeufs, mis_zs, syn_zs = [], [], [], [], []
+    transcripts = []
+    obs_lofs, exp_lofs, obs_miss, exp_miss, obs_syns, exp_syns = [], [], [], [], [], []
+    gnomad_versions = []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -854,6 +981,14 @@ def _convert_gene_constraint(rows: list, chr_name: str) -> dict:
         loeufs.append(r["loeuf"])
         mis_zs.append(r["mis_z"])
         syn_zs.append(r["syn_z"])
+        transcripts.append(r["transcript"])
+        obs_lofs.append(r["obs_lof"])
+        exp_lofs.append(r["exp_lof"])
+        obs_miss.append(r["obs_mis"])
+        exp_miss.append(r["exp_mis"])
+        obs_syns.append(r["obs_syn"])
+        exp_syns.append(r["exp_syn"])
+        gnomad_versions.append(r["gnomad_version"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -863,6 +998,11 @@ def _convert_gene_constraint(rows: list, chr_name: str) -> dict:
             "gene_symbol": symbols,
             "pli": plis, "loeuf": loeufs,
             "mis_z": mis_zs, "syn_z": syn_zs,
+            "transcript": transcripts,
+            "obs_lof": obs_lofs, "exp_lof": exp_lofs,
+            "obs_mis": obs_miss, "exp_mis": exp_miss,
+            "obs_syn": obs_syns, "exp_syn": exp_syns,
+            "gnomad_version": gnomad_versions,
         },
         "n": len(rows),
     }
@@ -871,6 +1011,8 @@ def _convert_gene_constraint(rows: list, chr_name: str) -> dict:
 def _convert_protein_evolution(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     symbols, dns, dss, omegas, orth_types = [], [], [], [], []
+    ensembl_ids, mouse_symbols, mouse_ensembl_ids = [], [], []
+    homology_ids, perc_id_humans, perc_id_mice = [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -882,6 +1024,12 @@ def _convert_protein_evolution(rows: list, chr_name: str) -> dict:
         dss.append(r["ds"])
         omegas.append(r["omega"])
         orth_types.append(r["orthology_type"])
+        ensembl_ids.append(r["ensembl_gene_id"])
+        mouse_symbols.append(r["mouse_gene_symbol"])
+        mouse_ensembl_ids.append(r["mouse_ensembl_gene_id"])
+        homology_ids.append(r["homology_id"])
+        perc_id_humans.append(r["perc_id_human"])
+        perc_id_mice.append(r["perc_id_mouse"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -891,6 +1039,12 @@ def _convert_protein_evolution(rows: list, chr_name: str) -> dict:
             "gene_symbol": symbols,
             "dn": dns, "ds": dss, "omega": omegas,
             "orthology_type": orth_types,
+            "ensembl_gene_id": ensembl_ids,
+            "mouse_gene_symbol": mouse_symbols,
+            "mouse_ensembl_gene_id": mouse_ensembl_ids,
+            "homology_id": homology_ids,
+            "perc_id_human": perc_id_humans,
+            "perc_id_mouse": perc_id_mice,
         },
         "n": len(rows),
     }
@@ -1159,6 +1313,7 @@ def _convert_repeats(rows: list, chr_name: str) -> dict:
     starts, ends, widths, strands = [], [], [], []
     names, classes, families, divergences = [], [], [], []
     ages, actives, superfamilies = [], [], []
+    sw_scores, deletion_pcts, insertion_pcts = [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -1172,6 +1327,9 @@ def _convert_repeats(rows: list, chr_name: str) -> dict:
         ages.append(r["repeat_age"])
         actives.append(r["is_active"])
         superfamilies.append(r["superfamily"])
+        sw_scores.append(r["sw_score"])
+        deletion_pcts.append(r["deletion_pct"])
+        insertion_pcts.append(r["insertion_pct"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -1182,6 +1340,8 @@ def _convert_repeats(rows: list, chr_name: str) -> dict:
             "repeat_family": families, "divergence_pct": divergences,
             "repeat_age": ages, "is_active": actives,
             "superfamily": superfamilies,
+            "sw_score": sw_scores, "deletion_pct": deletion_pcts,
+            "insertion_pct": insertion_pcts,
         },
         "n": len(rows),
     }
