@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import time
@@ -59,17 +60,21 @@ _POS_COL: dict[str, str] = {
     "protein_properties": "pp.start_pos",
     "constraint": "gc.start_pos",
     "protein_evolution": "pe.start_pos",
-    "protein_atlas": "pa.start_pos",
+    "protein_atlas": "te.start_pos",
     "chromatin_state": "cs.start_pos",
     "repeat": "r.start_pos",
     "herv": "h.start_pos",
     "biophysics": "b.start_pos",
     "sequence_biophysics": "b.start_pos",
     "histone_mark": "hp.start_pos",
-    "gwas": "g.pos",
+    "gwas": "ga.start_pos",
     "nonb_dna": "n.start_pos",
     "breakpoint": "b.start_pos",
     "fragility": "f.start_pos",
+    "cpg_island": "i.start_pos",
+    "hic_compartment": "h.start_pos",
+    "insulation_score": "s.start_pos",
+    "tad_domain": "t.start_pos",
 }
 
 
@@ -136,13 +141,14 @@ async def query_region(
     page_limit = min(limit or settings.default_page_size, settings.max_returned_rows)
 
     pool = await get_pool()
-    async with pool.acquire() as conn:
-        # Resolve requested layers
-        if layers:
-            layer_keys = [l.strip() for l in layers.split(",")]
-        else:
-            layer_keys = None
 
+    # Resolve requested layers (single short-lived connection)
+    if layers:
+        layer_keys = [l.strip() for l in layers.split(",")]
+    else:
+        layer_keys = None
+
+    async with pool.acquire() as conn:
         if layer_keys:
             layer_rows = await conn.fetch(
                 """SELECT id, layer_key, version, layer_type, content_hash,
@@ -159,101 +165,107 @@ async def query_region(
                    FROM registry.active_layers"""
             )
 
-        # Parse fields filter
-        field_set = {f.strip() for f in fields.split(",") if f.strip()} if fields else None
+    # Parse fields filter
+    field_set = {f.strip() for f in fields.split(",") if f.strip()} if fields else None
 
-        # Decode cursor if provided
-        cursor_data = _decode_cursor(cursor) if cursor else None
+    # Decode cursor if provided
+    cursor_data = _decode_cursor(cursor) if cursor else None
 
-        layers_resolved = []
-        data = {}
-        pagination_info: dict[str, dict] = {}
-        db_start = time.monotonic()
+    # Fetch all layers in parallel, each on its own pooled connection
+    db_start = time.monotonic()
+    sem = asyncio.Semaphore(4)  # limit concurrent DB connections
 
-        for lr in layer_rows:
-            layer_type = lr["layer_type"]
-            track = TRACK_REGISTRY.get(layer_type)
-            if not track:
-                continue
+    async def _fetch_layer(lr):
+        layer_type = lr["layer_type"]
+        track = TRACK_REGISTRY.get(layer_type)
+        if not track:
+            return None
 
-            # Determine whether to apply cursor for this layer
-            use_cursor = (
-                cursor_data is not None
-                and cursor_data["c"] == chr_id
-                and layer_type in _POS_COL
-            )
+        use_cursor = (
+            cursor_data is not None
+            and cursor_data["c"] == chr_id
+            and layer_type in _POS_COL
+        )
 
-            if use_cursor:
-                pos_col = _POS_COL[layer_type]
-                sql = _apply_cursor_clause(track["query_fn"](), pos_col)
-                rows = await conn.fetch(
-                    sql,
-                    build,
-                    chr_id,
-                    internal["start"],
-                    internal["end"],
-                    lr["id"],
-                    cursor_data["p"],
-                    page_limit,
-                )
-            else:
-                rows = await conn.fetch(
-                    track["query_fn"](),
-                    build,
-                    chr_id,
-                    internal["start"],
-                    internal["end"],
-                    lr["id"],
-                    page_limit,
-                )
+        async with sem:
+            async with pool.acquire() as layer_conn:
+                if use_cursor:
+                    pos_col = _POS_COL[layer_type]
+                    sql = _apply_cursor_clause(track["query_fn"](), pos_col)
+                    rows = await layer_conn.fetch(
+                        sql,
+                        build,
+                        chr_id,
+                        internal["start"],
+                        internal["end"],
+                        lr["id"],
+                        cursor_data["p"],
+                        page_limit,
+                    )
+                else:
+                    rows = await layer_conn.fetch(
+                        track["query_fn"](),
+                        build,
+                        chr_id,
+                        internal["start"],
+                        internal["end"],
+                        lr["id"],
+                        page_limit,
+                    )
 
-            converted = track["convert_fn"](rows, chr_name)
+        converted = track["convert_fn"](rows, chr_name)
 
-            # Apply fields filter to mcols
-            if field_set:
-                _filter_mcols(converted, field_set)
+        if field_set:
+            _filter_mcols(converted, field_set)
 
-            data[lr["layer_key"]] = converted
+        # Build per-layer pagination info
+        layer_pagination = None
+        n = converted.get("n", 0)
+        if n >= page_limit and layer_type in _POS_COL and rows:
+            last_row = rows[-1]
+            raw_pos_col = _POS_COL[layer_type].split(".")[-1]
+            last_pos = last_row.get(raw_pos_col, last_row.get("pos", last_row.get("start_pos", 0)))
+            layer_pagination = {
+                "next_cursor": _encode_cursor(chr_id, last_pos),
+                "has_more": True,
+            }
 
-            # Build per-layer cursor for next page if results hit the limit
-            n = converted.get("n", 0)
-            if n >= page_limit and layer_type in _POS_COL:
-                # Determine last position from the last row
-                if rows:
-                    last_row = rows[-1]
-                    # Use the position column name (without table alias)
-                    raw_pos_col = _POS_COL[layer_type].split(".")[-1]
-                    last_pos = last_row.get(raw_pos_col, last_row.get("pos", last_row.get("start_pos", 0)))
-                    pagination_info[lr["layer_key"]] = {
-                        "next_cursor": _encode_cursor(chr_id, last_pos),
-                        "has_more": True,
-                    }
+        source_info = LAYER_SOURCE_INFO.get(layer_type, {})
+        resolved_entry = {
+            "layer_key": lr["layer_key"],
+            "version": lr["version"],
+            "layer_id": str(lr["id"]),
+            "content_hash": lr["content_hash"],
+            "evidence_class": lr["evidence_class"],
+            "tier": lr["tier"],
+            "validation_status": lr["validation_status"],
+            "context_conditions": lr["context_conditions"],
+            "source": source_info.get("source", "Unknown"),
+            "source_license": source_info.get("license", "See polymerbio.org/data-sources"),
+            "license_class": lr["license_class"],
+            "status": "ok",
+        }
 
-            source_info = LAYER_SOURCE_INFO.get(layer_type, {})
-            layers_resolved.append(
-                {
-                    "layer_key": lr["layer_key"],
-                    "version": lr["version"],
-                    "layer_id": str(lr["id"]),
-                    "content_hash": lr["content_hash"],
-                    "evidence_class": lr["evidence_class"],
-                    "tier": lr["tier"],
-                    "validation_status": lr["validation_status"],
-                    "context_conditions": lr["context_conditions"],
-                    "source": source_info.get("source", "Unknown"),
-                    "source_license": source_info.get("license", "See polymerbio.org/data-sources"),
-                    "license_class": lr["license_class"],
-                    "status": "ok",
-                }
-            )
+        return lr["layer_key"], converted, resolved_entry, layer_pagination
 
-        db_time = (time.monotonic() - db_start) * 1000
+    results = await asyncio.gather(*[_fetch_layer(lr) for lr in layer_rows])
 
-    total_rows = sum(d.get("n", 0) for d in data.values())
-    if total_rows >= page_limit:
-        status = "truncated"
-    else:
-        status = "complete"
+    layers_resolved = []
+    data = {}
+    pagination_info: dict[str, dict] = {}
+    for result in results:
+        if result is None:
+            continue
+        layer_key, converted, resolved_entry, layer_pagination = result
+        data[layer_key] = converted
+        layers_resolved.append(resolved_entry)
+        if layer_pagination is not None:
+            pagination_info[layer_key] = layer_pagination
+
+    db_time = (time.monotonic() - db_start) * 1000
+
+    any_truncated = any(d.get("n", 0) >= page_limit for d in data.values())
+    status = "truncated" if any_truncated else "complete"
 
     query_meta = {
         "build": build,

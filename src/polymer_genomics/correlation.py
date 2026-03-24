@@ -380,7 +380,7 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
         "pos_col": "start_pos",
         "mode": "continuous",
         "fields": {
-            "pc1_gm12878": "avg(pc1_gm12878)",
+            "pc1_score": "avg(pc1_score)",
         },
     },
     "tad_domain": {

@@ -276,7 +276,13 @@ async def intersect_layers(req: IntersectRequest):
                     f"AND coord && int4range($3, $4)",
                     req.build, chr_id, internal["start"], internal["end"],
                 )
-                annotations[layer_key] = [dict(r) for r in ann_rows]
+                converted_anns = []
+                for r in ann_rows:
+                    d = dict(r)
+                    if "start_pos" in d:
+                        d["start_pos"] = d["start_pos"] + 1
+                    converted_anns.append(d)
+                annotations[layer_key] = converted_anns
 
     # Format results
     positions = []

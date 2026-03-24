@@ -1536,6 +1536,88 @@ async def validate_layer(
     return await _get("/v1/reference/validation", params)
 
 
+@mcp.tool()
+async def cpg_profile(
+    build: str,
+    query: str,
+) -> dict:
+    """Comprehensive CpG site or probe dossier — coordinates, gene context, regulatory state, biophysics.
+
+    Returns a unified profile combining probe annotation, CpG context, regulatory
+    overlap (DHS, TFBS), and biophysical properties for a single CpG site.
+    Query by probe ID or genomic position.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        query: Probe ID (e.g. 'cg00000029') or genomic position (e.g. 'chr1:15865').
+    """
+    return await _get(f"/v1/cpg-profile/{build}/{query}", build=build)
+
+
+@mcp.tool()
+async def gene_profile(
+    build: str,
+    symbol: str,
+) -> dict:
+    """Gene profile with anomaly detection — biophysical, expression, and constraint summary.
+
+    Returns a comprehensive gene dossier combining structure, expression, constraint
+    scores, and biophysical properties with anomaly flags highlighting unusual values.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol (e.g. 'TP53', 'BRCA1').
+    """
+    return await _get(f"/v1/genes/{build}/{symbol}/profile", build=build)
+
+
+@mcp.tool()
+async def similar_genes(
+    build: str,
+    symbol: str,
+    mode: str = "integrated",
+    limit: int = 20,
+) -> dict:
+    """Find genes with similar biophysical and expression profiles.
+
+    Returns a ranked list of genes most similar to the query gene, scored by
+    biophysical properties, expression pattern, or an integrated combination.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        symbol: Gene symbol to find similar genes for.
+        mode: Similarity mode ('integrated', 'biophysics', 'expression'). Defaults to 'integrated'.
+        limit: Maximum number of results (default 20).
+    """
+    params = {"mode": mode, "limit": str(limit)}
+    return await _get(f"/v1/genes/{build}/{symbol}/similar", params, build=build)
+
+
+@mcp.tool()
+async def transposome_families() -> dict:
+    """List all transposable element families with summary statistics.
+
+    Returns family-level aggregates: probe count, genomic coverage, mean biophysical
+    properties, and subfamily breakdown for all TE families in the database.
+    """
+    return await _get("/v1/transposome/families")
+
+
+@mcp.tool()
+async def transposome_family(
+    family_id: str,
+) -> dict:
+    """Get details for a specific transposable element family — probe coverage, biophysics, genomic distribution.
+
+    Returns per-subfamily breakdown, probe coverage, biophysical summary statistics,
+    and chromosomal distribution for the specified TE family.
+
+    Args:
+        family_id: TE family identifier (e.g. 'L1HS', 'AluY', 'HERVK').
+    """
+    return await _get(f"/v1/transposome/family/{family_id}")
+
+
 def _register_compute_tools() -> None:
     """Register compute tools if engine is available."""
     try:

@@ -327,7 +327,7 @@ async def get_similar_genes(
         else:
             compare_layers = [mode]
 
-        # Fetch ALL gene layer_vectors for the relevant layers
+        # Fetch gene layer_vectors for the relevant layers (capped for safety)
         all_vectors = await conn.fetch(
             """
             SELECT lv.gene_id, gi.ensembl_gene_id, gi.gene_symbol,
@@ -336,8 +336,10 @@ async def get_similar_genes(
             JOIN profiles.gene_identity gi ON gi.id = lv.gene_id
             WHERE lv.layer_id = $1 AND lv.layer_name = ANY($2)
               AND gi.build = $3::genome_build
+              AND lv.gene_id != $4
+            LIMIT 10000
             """,
-            layer["id"], compare_layers, build,
+            layer["id"], compare_layers, build, query_gene["id"],
         )
 
         db_time = (time.monotonic() - db_start) * 1000

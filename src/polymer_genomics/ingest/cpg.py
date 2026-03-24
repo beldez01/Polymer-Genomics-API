@@ -378,7 +378,7 @@ def classify_context(
 
         # Downstream of island (south).
         if pos >= isl_end:
-            dist = pos - isl_end + 1  # +1 because end is exclusive
+            dist = pos - isl_end  # end is exclusive, so pos - isl_end = 0 at boundary
             if dist <= SHORE_DISTANCE and dist < best_distance:
                 best_context = "s_shore"
                 best_distance = dist

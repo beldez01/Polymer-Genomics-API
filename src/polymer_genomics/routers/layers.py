@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.constants import VALID_BUILDS
 from polymer_genomics.db import get_pool
+from polymer_genomics.envelope import build_meta_envelope
 from polymer_genomics.layer_licenses import LAYER_SOURCE_INFO
 
 router = APIRouter(prefix="/v1/layers", tags=["layers"])
@@ -84,7 +85,7 @@ async def list_layers(
                     "is_default": True,
                 })
 
-    return {"layers": layers}
+    return build_meta_envelope({"layers": layers})
 
 
 @router.get("/summary/{build}")
@@ -147,13 +148,13 @@ async def layer_summary(build: str):
                 # gene_type column doesn't exist yet — that's fine
                 pass
 
-    return {
+    return build_meta_envelope({
         "build": build,
         "layer_counts": counts,
         "gene_features": gene_counts,
         "protein_coding_genes": protein_coding_count,
         "total_genes": gene_counts.get("gene"),
-    }
+    })
 
 
 @router.get("/{layer_key}")
@@ -170,7 +171,7 @@ async def get_layer(layer_key: str):
             status_code=404,
             detail={"error": {"code": "LAYER_NOT_FOUND", "message": f"Layer '{layer_key}' not found"}},
         )
-    return {
+    return build_meta_envelope({
         "layer_key": row["layer_key"],
         "version": row["version"],
         "name": row["name"],
@@ -192,7 +193,7 @@ async def get_layer(layer_key: str):
         "context_conditions": row["context_conditions"],
         "hypothesis_banner": row["hypothesis_banner"],
         "falsification_path": row["falsification_path"],
-    }
+    })
 
 
 @router.get("/{layer_key}/license")
@@ -223,7 +224,7 @@ async def get_layer_license(layer_key: str):
     # ODbL compliance flag for gnomAD-derived data
     is_odbl = "ODbL" in source_info.get("license", "")
 
-    return {
+    return build_meta_envelope({
         "layer_key": row["layer_key"],
         "name": row["name"],
         "source": source_info.get("source", row["source"] or "Unknown"),
@@ -236,4 +237,4 @@ async def get_layer_license(layer_key: str):
             "and Polymer Genomics (polymerbio.org)."
         ),
         "data_sources_url": "https://polymerbio.org/data-sources",
-    }
+    })

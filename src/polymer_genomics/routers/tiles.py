@@ -161,7 +161,7 @@ async def get_tile(
         "chr": chr_name,
         "index": tile_index,
         "resolution": resolution,
-        "start": tile_start,
+        "start": tile_start + 1,
         "end": tile_end,
     }
 

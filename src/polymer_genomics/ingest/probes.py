@@ -388,7 +388,7 @@ def _classify_context_from_island(pos: int, isl_start: int, isl_end: int) -> str
         return "open_sea"
 
     # Downstream (south) of island.
-    dist = pos - isl_end + 1
+    dist = pos - isl_end
     if dist <= SHORE_DISTANCE:
         return "s_shore"
     if dist <= SHELF_DISTANCE:

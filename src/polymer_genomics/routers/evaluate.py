@@ -7,6 +7,7 @@ synthetic biology, AI scientist agents, and genetic circuit designers.
 No database access required — pure sequence computation.
 """
 
+import asyncio
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -126,7 +127,8 @@ async def evaluate_design(body: EvaluateRequest):
     start_time = time.monotonic()
 
     try:
-        result = evaluate_sequence(
+        result = await asyncio.to_thread(
+            evaluate_sequence,
             seq=body.sequence,
             name=body.name,
             analysis=body.analysis,
@@ -161,18 +163,46 @@ async def compare_sequences(body: CompareRequest):
     results: dict[str, dict] = {}
     errors: dict[str, str] = {}
 
-    # Evaluate each sequence
-    for name, seq in body.sequences.items():
-        try:
-            results[name] = evaluate_sequence(
-                seq=seq,
-                name=name,
-                analysis=body.analysis,
-                salt_mm=body.salt_mm,
-                window_size=body.window_size,
-            )
-        except ValueError as e:
-            errors[name] = str(e)
+    # Evaluate each sequence in parallel threads
+    async def _eval_compare(name: str, seq: str):
+        return name, await asyncio.to_thread(
+            evaluate_sequence,
+            seq=seq,
+            name=name,
+            analysis=body.analysis,
+            salt_mm=body.salt_mm,
+            window_size=body.window_size,
+        )
+
+    tasks = [_eval_compare(name, seq) for name, seq in body.sequences.items()]
+    settled = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for item in settled:
+        if isinstance(item, ValueError):
+            # Can't easily recover the name from a bare exception, so fall
+            # back to sequential error collection below.
+            pass
+        elif isinstance(item, Exception):
+            raise item
+        else:
+            name, result = item
+            results[name] = result
+
+    # If any ValueError was raised we lost the name; re-run failures sequentially
+    if len(results) < len(body.sequences):
+        for name, seq in body.sequences.items():
+            if name not in results:
+                try:
+                    results[name] = await asyncio.to_thread(
+                        evaluate_sequence,
+                        seq=seq,
+                        name=name,
+                        analysis=body.analysis,
+                        salt_mm=body.salt_mm,
+                        window_size=body.window_size,
+                    )
+                except ValueError as e:
+                    errors[name] = str(e)
 
     if errors:
         raise HTTPException(400, {
@@ -266,17 +296,44 @@ async def batch_evaluate(body: BatchEvaluateRequest):
     results: dict[str, dict] = {}
     errors: dict[str, str] = {}
 
-    for name, seq in body.sequences.items():
-        try:
-            results[name] = evaluate_sequence(
-                seq=seq,
-                name=name,
-                analysis=body.analysis,
-                salt_mm=body.salt_mm,
-                window_size=body.window_size,
-            )
-        except ValueError as e:
-            errors[name] = str(e)
+    # Evaluate all sequences in parallel threads
+    async def _eval_batch(name: str, seq: str):
+        return name, await asyncio.to_thread(
+            evaluate_sequence,
+            seq=seq,
+            name=name,
+            analysis=body.analysis,
+            salt_mm=body.salt_mm,
+            window_size=body.window_size,
+        )
+
+    tasks = [_eval_batch(name, seq) for name, seq in body.sequences.items()]
+    settled = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for item in settled:
+        if isinstance(item, ValueError):
+            pass  # name lost; re-run below
+        elif isinstance(item, Exception):
+            raise item
+        else:
+            name, result = item
+            results[name] = result
+
+    # Re-run any that raised ValueError to capture the name→error mapping
+    if len(results) < len(body.sequences):
+        for name, seq in body.sequences.items():
+            if name not in results:
+                try:
+                    results[name] = await asyncio.to_thread(
+                        evaluate_sequence,
+                        seq=seq,
+                        name=name,
+                        analysis=body.analysis,
+                        salt_mm=body.salt_mm,
+                        window_size=body.window_size,
+                    )
+                except ValueError as e:
+                    errors[name] = str(e)
 
     compute_ms = round((time.monotonic() - start_time) * 1000, 1)
 

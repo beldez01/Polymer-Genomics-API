@@ -192,7 +192,7 @@ async def aggregate_region(
             for r in rows:
                 if is_gene_cost:
                     bin_entry = {
-                        "bin_start": int(r["bin_start"]),
+                        "bin_start": int(r["bin_start"]) + 1,
                         "bin_end": int(r["bin_start"]) + resolution,
                         "gene_count": r["gene_count"],
                         "density": r["density"],
@@ -202,7 +202,7 @@ async def aggregate_region(
                     }
                 else:
                     bin_entry = {
-                        "bin_start": int(r["bin_start"]),
+                        "bin_start": int(r["bin_start"]) + 1,
                         "bin_end": int(r["bin_start"]) + resolution,
                         "count": r["count"],
                         "density": r["density"],

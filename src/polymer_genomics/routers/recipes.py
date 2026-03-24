@@ -7,6 +7,8 @@ intersection.
 
 from fastapi import APIRouter, HTTPException
 
+from polymer_genomics.envelope import build_meta_envelope
+
 router = APIRouter(prefix="/v1/query", tags=["recipes"])
 
 
@@ -104,7 +106,7 @@ async def list_recipes():
     biological questions. Use /v1/query/recipe/{name} to get the full
     recipe with filters ready to submit to /v1/query/intersect.
     """
-    return {
+    return build_meta_envelope({
         "recipes": [
             {
                 "key": key,
@@ -115,7 +117,7 @@ async def list_recipes():
             }
             for key, r in RECIPES.items()
         ],
-    }
+    })
 
 
 @router.get("/recipe/{recipe_key}")
@@ -143,7 +145,7 @@ async def get_recipe(recipe_key: str):
             },
         )
 
-    return {
+    return build_meta_envelope({
         "key": recipe_key,
         "name": recipe["name"],
         "description": recipe["description"],
@@ -159,4 +161,4 @@ async def get_recipe(recipe_key: str):
                 "return_layers": recipe["return_layers"],
             },
         },
-    }
+    })

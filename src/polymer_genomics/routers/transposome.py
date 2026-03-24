@@ -344,7 +344,7 @@ async def transposome_family_detail(family_id: str):
     db_time = (time.monotonic() - t0) * 1000
     if detail is None:
         from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"Family '{family_id}' not found")
+        raise HTTPException(status_code=404, detail={"error": {"code": "NOT_FOUND", "message": f"Family '{family_id}' not found"}})
     return _envelope(
         query={"endpoint": "transposome_family_detail", "family_id": family_id},
         data=detail,

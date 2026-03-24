@@ -509,15 +509,21 @@ class PolymerClient:
         self,
         build: str,
         region: str,
-        layer_x: str,
-        layer_y: str,
-        method: str = "pearson",
+        layer_a: str,
+        layer_b: str,
+        stat: str = "pearson",
+        resolution: int = 10000,
+        field_a: str = "density",
+        field_b: str = "density",
     ) -> Dict[str, Any]:
-        """Cross-layer correlation analysis (Pearson, Spearman, overlap, Fisher)."""
+        """Cross-layer correlation for a genomic region."""
         return self._get(f"/v1/correlate/{build}/{region}", params={
-            "layer_x": layer_x,
-            "layer_y": layer_y,
-            "method": method,
+            "layer_a": layer_a,
+            "layer_b": layer_b,
+            "stat": stat,
+            "resolution": str(resolution),
+            "field_a": field_a,
+            "field_b": field_b,
         })
 
     def intersect(
@@ -536,6 +542,74 @@ class PolymerClient:
             "return_layers": return_layers,
             "limit": limit,
         })
+
+    # ── Probes + Biophysics ─────────────────────────────────────────
+
+    def annotate_probes_biophysics(
+        self,
+        build: str,
+        probe_ids: List[str],
+        *,
+        include_flags: bool = True,
+    ) -> Dict[str, Any]:
+        """Annotate probes with biophysical context (stacking energy, curvature, CpG context)."""
+        return self._post(f"/v1/probes/{build}/biophysics", json={
+            "probe_ids": probe_ids,
+            "include_flags": include_flags,
+        })
+
+    def cpg_profile(self, build: str, query: str) -> Dict[str, Any]:
+        """Comprehensive CpG site or probe dossier."""
+        return self._get(f"/v1/cpg-profile/{build}/{query}")
+
+    def probe_repeat_overlap(
+        self, build: str, probe_id: str,
+    ) -> Dict[str, Any]:
+        """Check if a probe overlaps transposable element repeats."""
+        return self._get("/v1/reference/probe-repeat-overlap", params={
+            "probe_id": probe_id,
+            "build": build,
+        })
+
+    # ── Gene Profiles & Similarity ───────────────────────────────────
+
+    def gene_profile(self, build: str, symbol: str) -> Dict[str, Any]:
+        """Gene profile with anomaly detection across layers."""
+        return self._get(f"/v1/genes/{build}/{symbol}/profile")
+
+    def similar_genes(
+        self,
+        build: str,
+        symbol: str,
+        *,
+        mode: str = "integrated",
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """Find genes with similar biophysical/expression profiles."""
+        return self._get(f"/v1/genes/{build}/{symbol}/similar", params={
+            "mode": mode,
+            "limit": str(limit),
+        })
+
+    # ── Transposable Elements ────────────────────────────────────────
+
+    def transposome_families(self) -> Dict[str, Any]:
+        """List all transposable element families."""
+        return self._get("/v1/transposome/families")
+
+    def transposome_family(self, family_id: str) -> Dict[str, Any]:
+        """Get details for a specific TE family."""
+        return self._get(f"/v1/transposome/family/{family_id}")
+
+    # ── Layers & Bulk Data ───────────────────────────────────────────
+
+    def layer_summary(self, build: str) -> Dict[str, Any]:
+        """Summary statistics for all layers in a build."""
+        return self._get(f"/v1/layers/summary/{build}")
+
+    def bulk_download(self, layer_key: str) -> Dict[str, Any]:
+        """Get a presigned download URL for a layer's bulk data."""
+        return self._get(f"/v1/bulk/{layer_key}")
 
     # ── Internal ─────────────────────────────────────────────────────
 

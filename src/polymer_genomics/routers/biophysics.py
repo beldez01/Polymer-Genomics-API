@@ -5,6 +5,7 @@ biophysical properties (thermodynamics, extinction, form propensity, groove
 geometry) using published lookup tables. Returns GRanges-format JSON.
 """
 
+import asyncio
 import time
 
 from fastapi import APIRouter, HTTPException, Query
@@ -91,7 +92,7 @@ async def compute_region_biophysics(
 
     # --- Fetch sequence ---
     try:
-        seq = get_sequence(build, chr_name, internal["start"], internal["end"])
+        seq = await asyncio.to_thread(get_sequence, build, chr_name, internal["start"], internal["end"])
     except FileNotFoundError as e:
         raise HTTPException(503, {"error": {"code": "FASTA_UNAVAILABLE", "message": str(e)}})
     except (KeyError, ValueError) as e:

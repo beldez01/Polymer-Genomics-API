@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.db import get_pool
+from polymer_genomics.envelope import build_meta_envelope
 
 router = APIRouter(prefix="/v1/search", tags=["search"])
 
@@ -114,4 +115,4 @@ async def search(
     # Cap at 20 total results
     results = results[:20]
 
-    return {"results": results, "total": len(results)}
+    return build_meta_envelope({"results": results, "total": len(results)})

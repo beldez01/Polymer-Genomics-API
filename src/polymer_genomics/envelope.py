@@ -36,3 +36,16 @@ def build_envelope(
     if pagination:
         envelope["pagination"] = pagination
     return envelope
+
+
+def build_meta_envelope(data: dict, *, timing_ms: float | None = None) -> dict:
+    """Lightweight envelope for metadata/reference endpoints."""
+    result = {
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
+        "coordinate_system": "1-based_closed",
+        "data": data,
+    }
+    if timing_ms is not None:
+        result["timing"] = {"query_time_ms": round(timing_ms, 1)}
+    return result

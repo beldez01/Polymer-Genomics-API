@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.coordinates import api_to_db, parse_region
+from polymer_genomics.envelope import build_meta_envelope
 from polymer_genomics.sequence import get_sequence
 
 router = APIRouter(prefix="/v1/sequence", tags=["sequence"])
@@ -79,7 +81,7 @@ async def get_sequence_endpoint(
 
     # --- Fetch sequence ---
     try:
-        seq = get_sequence(build, chr_name, internal["start"], internal["end"])
+        seq = await asyncio.to_thread(get_sequence, build, chr_name, internal["start"], internal["end"])
     except FileNotFoundError as e:
         raise HTTPException(
             503,
@@ -93,13 +95,11 @@ async def get_sequence_endpoint(
 
     elapsed_ms = (time.monotonic() - start_time) * 1000
 
-    return {
+    return build_meta_envelope({
         "build": build,
         "chr": chr_name,
         "start": parsed["start"],
         "end": parsed["end"],
-        "coordinate_system": "1-based_closed",
         "length": len(seq),
         "sequence": seq,
-        "timing": {"query_time_ms": round(elapsed_ms, 1)},
-    }
+    }, timing_ms=elapsed_ms)

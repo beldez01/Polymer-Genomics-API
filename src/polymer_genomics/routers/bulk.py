@@ -4,6 +4,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import APIRouter, HTTPException
 
 from polymer_genomics.db import get_pool
+from polymer_genomics.envelope import build_meta_envelope
 from polymer_genomics.s3 import generate_presigned_url
 
 router = APIRouter(prefix="/v1/bulk", tags=["bulk"])
@@ -55,7 +56,7 @@ async def bulk_download(layer_key: str):
             {"error": {"code": "S3_ERROR", "message": f"Failed to generate download URL: {exc}"}},
         )
 
-    return {
+    return build_meta_envelope({
         "layer_key": layer["layer_key"],
         "version": layer["version"],
         "row_count": layer["row_count"],
@@ -64,4 +65,4 @@ async def bulk_download(layer_key: str):
         "file_type": obj["file_type"],
         "download_url": url,
         "expires_in_seconds": EXPIRY_SECONDS,
-    }
+    })
