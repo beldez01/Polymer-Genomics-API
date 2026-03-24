@@ -22,6 +22,8 @@ from pathlib import Path
 import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 BATCH_SIZE = 50_000
 WINDOW_SIZE = 1000
@@ -247,15 +249,7 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
         print("Download Loyfer 2023 BED files from GEO GSE186458 to this directory.")
         return
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         print(f"\n{'='*60}")
@@ -272,7 +266,8 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
             print(f"  WARNING: {existing_count:,} rows already exist. Skipping.")
             return
 
-        total = await ingest_wgbs(conn, build, layer_id, data_dir)
+        async with ingest_transaction(conn):
+            total = await ingest_wgbs(conn, build, layer_id, data_dir)
         print(f"\n  WGBS rows loaded: {total:,}")
         print("Done.")
     finally:

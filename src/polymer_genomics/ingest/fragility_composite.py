@@ -305,27 +305,29 @@ if __name__ == "__main__":
 
     import asyncpg
 
+    from polymer_genomics.ingest._connection import get_ingest_connection
+    from polymer_genomics.ingest._transaction import ingest_transaction
+
     parser = argparse.ArgumentParser(
         description="Compute and ingest composite fragility scores"
     )
     parser.add_argument("--build", default="hg38", help="Genome build (default: hg38)")
-    parser.add_argument("--host", default="localhost")
-    parser.add_argument("--port", type=int, default=5432)
-    parser.add_argument("--db", default="polymer_genomics_api")
-    parser.add_argument("--user", default="ingest_writer")
-    parser.add_argument("--password", default="ingest_writer_dev")
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--db", default=None)
+    parser.add_argument("--user", default=None)
+    parser.add_argument("--password", default=None)
     args = parser.parse_args()
 
     async def main():
-        conn = await asyncpg.connect(
-            host=args.host,
-            port=args.port,
-            database=args.db,
-            user=args.user,
-            password=args.password,
+        conn = await get_ingest_connection(
+            admin=True,
+            host=args.host, port=args.port,
+            database=args.db, user=args.user, password=args.password,
         )
         try:
-            total = await ingest_fragility_composite(conn, build=args.build)
+            async with ingest_transaction(conn):
+                total = await ingest_fragility_composite(conn, build=args.build)
             print(f"\nTotal rows inserted: {total:,}")
         finally:
             await conn.close()

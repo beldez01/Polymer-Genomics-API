@@ -22,9 +22,8 @@ from __future__ import annotations
 
 import asyncio
 import math
-import os
 
-import asyncpg
+from polymer_genomics.ingest._connection import get_ingest_connection
 
 _TISSUES = [
     "adipose", "artery", "brain", "breast", "colon", "esophagus",
@@ -43,13 +42,7 @@ BATCH_SIZE = 1000
 
 async def main() -> None:
     """Compute and update metabolic burden columns in gene_costs."""
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         # Check if burden already computed

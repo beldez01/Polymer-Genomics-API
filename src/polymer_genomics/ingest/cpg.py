@@ -24,6 +24,8 @@ from pathlib import Path
 import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 from polymer_genomics.ingest.loader import batch_load, compute_content_hash, update_layer_stats
 from polymer_genomics.ingest.partitions import ensure_partitions
 
@@ -682,19 +684,7 @@ async def main(builds: list[str] | None = None) -> None:
     if builds is None:
         builds = ["hg38", "hg37"]
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     fasta_env = {"hg38": "FASTA_HG38", "hg37": "FASTA_HG37"}
     fasta_defaults = {
@@ -714,8 +704,9 @@ async def main(builds: list[str] | None = None) -> None:
                 print(f"  Set {fasta_env[build]} environment variable to the correct path.")
                 continue
 
-            island_count, site_count = await ingest_build(conn, build, fasta_path)
-            print(f"\n  Summary: {island_count:,} islands, {site_count:,} sites loaded")
+            async with ingest_transaction(conn):
+                island_count, site_count = await ingest_build(conn, build, fasta_path)
+                print(f"\n  Summary: {island_count:,} islands, {site_count:,} sites loaded")
 
         print("\nDone.")
     finally:

@@ -27,6 +27,8 @@ import asyncpg
 import pyBigWig
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 BATCH_SIZE = 50_000
 
@@ -240,15 +242,7 @@ async def main(
         print(f"ERROR: Data directory not found: {data_dir}")
         return
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         print(f"\n{'='*60}")
@@ -267,7 +261,8 @@ async def main(
             if existing > 0:
                 print(f"  WARNING: {cell_type} already has {existing:,} rows. Skipping.")
                 continue
-            total = await ingest_compartment(conn, build, layer_id, data_dir, cell_type)
+            async with ingest_transaction(conn):
+                total = await ingest_compartment(conn, build, layer_id, data_dir, cell_type)
             grand_total += total
 
         print(f"\n  Total rows loaded: {grand_total:,}")

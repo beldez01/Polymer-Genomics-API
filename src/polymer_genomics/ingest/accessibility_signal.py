@@ -20,6 +20,8 @@ from pathlib import Path
 import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 BATCH_SIZE = 50_000
 WINDOW_SIZE = 1000
@@ -223,15 +225,7 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
 
     Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         print(f"\n{'='*60}")
@@ -252,7 +246,8 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
             return
 
         print("\nStep 2: Binning to 1kb and loading...")
-        total = await ingest_accessibility(conn, build, layer_id, bigwig_paths)
+        async with ingest_transaction(conn):
+            total = await ingest_accessibility(conn, build, layer_id, bigwig_paths)
         print(f"\n  Accessibility rows loaded: {total:,}")
         print("Done.")
     finally:

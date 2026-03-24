@@ -505,15 +505,18 @@ if __name__ == "__main__":
     import asyncio
     import asyncpg
 
+    from polymer_genomics.ingest._connection import get_ingest_connection
+    from polymer_genomics.ingest._transaction import check_base_rows
+
     parser = argparse.ArgumentParser(description="Compute melting domain + SBS dG tracks")
     parser.add_argument("--fasta", default="data/hg38.fa", help="Path to genome FASTA")
     parser.add_argument("--build", default="hg38")
     parser.add_argument("--chr", nargs="*", help="Specific chromosomes (e.g. chr22)")
-    parser.add_argument("--host", default="localhost")
-    parser.add_argument("--port", type=int, default=5432)
-    parser.add_argument("--db", default="polymer_genomics_api")
-    parser.add_argument("--user", default="ingest_writer")
-    parser.add_argument("--password", default="ingest_writer_dev")
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--db", default=None)
+    parser.add_argument("--user", default=None)
+    parser.add_argument("--password", default=None)
     parser.add_argument("--batch-size", type=int, default=2000)
     args = parser.parse_args()
 
@@ -527,7 +530,8 @@ if __name__ == "__main__":
             print(f"  {chrom}: not in FASTA, skipping")
             return 0
 
-        conn = await asyncpg.connect(
+        conn = await get_ingest_connection(
+            admin=False,
             host=args.host, port=args.port,
             database=args.db, user=args.user, password=args.password,
         )
@@ -608,6 +612,18 @@ if __name__ == "__main__":
 
     async def main():
         from polymer_genomics.constants import CHR_NAME_TO_ID
+
+        # Pre-flight check: ensure base rows exist
+        preflight_conn = await get_ingest_connection(
+            admin=False,
+            host=args.host, port=args.port,
+            database=args.db, user=args.user, password=args.password,
+        )
+        try:
+            await check_base_rows(preflight_conn, args.build)
+        finally:
+            await preflight_conn.close()
+
         chroms = args.chr or sorted(CHR_NAME_TO_ID.keys(), key=lambda c: CHR_NAME_TO_ID[c])
         total = 0
         for chrom in chroms:

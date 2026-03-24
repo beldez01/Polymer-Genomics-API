@@ -26,10 +26,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
-import os
 from pathlib import Path
 
-import asyncpg
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -254,79 +254,74 @@ def load_clock_from_tsv(path: Path) -> list[tuple[str, float]]:
 
 async def main(data_dir: str | None = None) -> None:
     """Populate clock metadata and coefficients."""
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
-        # --- Clock metadata ---
-        meta_count = await conn.fetchval("SELECT count(*) FROM ref.clock_metadata")
-        if meta_count > 0:
-            print(f"  clock_metadata already has {meta_count} rows, skipping metadata.")
-        else:
-            for m in _CLOCK_METADATA:
-                await conn.execute(
-                    """INSERT INTO ref.clock_metadata
-                       (clock_name, display_name, n_probes, tissue, outcome,
-                        intercept, age_transform, platform, pmid, source_citation)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                       ON CONFLICT (clock_name) DO NOTHING""",
-                    m["clock_name"], m["display_name"], m["n_probes"],
-                    m["tissue"], m["outcome"], m["intercept"],
-                    m["age_transform"], m["platform"], m["pmid"],
-                    m["source_citation"],
-                )
-            print(f"  Inserted {len(_CLOCK_METADATA)} clock metadata entries.")
+        async with ingest_transaction(conn):
+            # --- Clock metadata ---
+            meta_count = await conn.fetchval("SELECT count(*) FROM ref.clock_metadata")
+            if meta_count > 0:
+                print(f"  clock_metadata already has {meta_count} rows, skipping metadata.")
+            else:
+                for m in _CLOCK_METADATA:
+                    await conn.execute(
+                        """INSERT INTO ref.clock_metadata
+                           (clock_name, display_name, n_probes, tissue, outcome,
+                            intercept, age_transform, platform, pmid, source_citation)
+                           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                           ON CONFLICT (clock_name) DO NOTHING""",
+                        m["clock_name"], m["display_name"], m["n_probes"],
+                        m["tissue"], m["outcome"], m["intercept"],
+                        m["age_transform"], m["platform"], m["pmid"],
+                        m["source_citation"],
+                    )
+                print(f"  Inserted {len(_CLOCK_METADATA)} clock metadata entries.")
 
-        # --- Clock coefficients ---
-        coeff_count = await conn.fetchval("SELECT count(*) FROM ref.clock_coefficients")
-        if coeff_count > 0:
-            print(f"  clock_coefficients already has {coeff_count} rows, skipping coefficients.")
-            return
+            # --- Clock coefficients ---
+            coeff_count = await conn.fetchval("SELECT count(*) FROM ref.clock_coefficients")
+            if coeff_count > 0:
+                print(f"  clock_coefficients already has {coeff_count} rows, skipping coefficients.")
+                return
 
-        total_loaded = 0
-        for clock_name, (embedded_probes, citation) in _ALL_CLOCKS_PROBES.items():
-            # Load from TSV if available (authoritative); fall back to embedded
-            probes = None
-            if data_dir:
-                tsv_path = Path(data_dir) / f"{clock_name}.tsv"
-                if tsv_path.exists():
-                    probes = load_clock_from_tsv(tsv_path)
-                    print(f"  Loaded {len(probes)} probes from {tsv_path}")
-            if probes is None:
-                probes = embedded_probes
-                if probes:
-                    print(f"  Using {len(probes)} embedded probes for {clock_name} (no TSV)")
+            total_loaded = 0
+            for clock_name, (embedded_probes, citation) in _ALL_CLOCKS_PROBES.items():
+                # Load from TSV if available (authoritative); fall back to embedded
+                probes = None
+                if data_dir:
+                    tsv_path = Path(data_dir) / f"{clock_name}.tsv"
+                    if tsv_path.exists():
+                        probes = load_clock_from_tsv(tsv_path)
+                        print(f"  Loaded {len(probes)} probes from {tsv_path}")
+                if probes is None:
+                    probes = embedded_probes
+                    if probes:
+                        print(f"  Using {len(probes)} embedded probes for {clock_name} (no TSV)")
 
-            for probe_id, coefficient in probes:
-                await conn.execute(
-                    """INSERT INTO ref.clock_coefficients
-                       (clock_name, probe_id, coefficient, source_citation)
-                       VALUES ($1, $2, $3, $4)
-                       ON CONFLICT (clock_name, probe_id) DO NOTHING""",
-                    clock_name, probe_id, coefficient, citation,
-                )
-            total_loaded += len(probes)
-            print(f"  {clock_name}: {len(probes)} probes loaded")
+                for probe_id, coefficient in probes:
+                    await conn.execute(
+                        """INSERT INTO ref.clock_coefficients
+                           (clock_name, probe_id, coefficient, source_citation)
+                           VALUES ($1, $2, $3, $4)
+                           ON CONFLICT (clock_name, probe_id) DO NOTHING""",
+                        clock_name, probe_id, coefficient, citation,
+                    )
+                total_loaded += len(probes)
+                print(f"  {clock_name}: {len(probes)} probes loaded")
 
-        # Update catalog row counts
-        await conn.execute(
-            "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'clock_metadata'",
-            len(_CLOCK_METADATA),
-        )
-        await conn.execute(
-            "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'clock_coefficients'",
-            total_loaded,
-        )
+            # Update catalog row counts
+            await conn.execute(
+                "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'clock_metadata'",
+                len(_CLOCK_METADATA),
+            )
+            await conn.execute(
+                "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'clock_coefficients'",
+                total_loaded,
+            )
 
-        print(f"\n  Total clock coefficients loaded: {total_loaded}")
-        if not data_dir:
-            print("  NOTE: Using embedded representative probes. For full coefficient sets,")
-            print("        re-run with --data-dir pointing to TSV files from clock publications.")
+            print(f"\n  Total clock coefficients loaded: {total_loaded}")
+            if not data_dir:
+                print("  NOTE: Using embedded representative probes. For full coefficient sets,")
+                print("        re-run with --data-dir pointing to TSV files from clock publications.")
 
     finally:
         await conn.close()

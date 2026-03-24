@@ -23,6 +23,9 @@ from pathlib import Path
 
 import asyncpg
 
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
+
 # ── Constants ────────────────────────────────────────────────────────────────
 
 BATCH_SIZE = 10_000
@@ -214,19 +217,7 @@ async def main(filepath: str | None = None) -> None:
         print(f"ERROR: File not found: {filepath}")
         return
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         print(f"\n{'='*60}")
@@ -254,7 +245,8 @@ async def main(filepath: str | None = None) -> None:
 
         try:
             # 4. Ingest
-            total = await ingest(conn, layer_id, filepath)
+            async with ingest_transaction(conn):
+                total = await ingest(conn, layer_id, filepath)
             print(f"\n  Total alias rows loaded: {total:,}")
         finally:
             if tmp_downloaded:

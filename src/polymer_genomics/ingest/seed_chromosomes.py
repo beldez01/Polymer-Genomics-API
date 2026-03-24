@@ -12,9 +12,10 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
 
 # ── Canonical chromosome lengths (UCSC) ─────────────────────────────────────
 
@@ -113,19 +114,7 @@ async def seed_chromosomes(conn: asyncpg.Connection) -> int:
 
 async def main() -> None:
     """Connect as admin and seed chromosome lengths."""
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         updated = await seed_chromosomes(conn)

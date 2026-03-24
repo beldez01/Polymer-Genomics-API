@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 
 
 # RepeatMasker family classes mapping
@@ -66,7 +68,7 @@ async def derive_te_fractions(conn: asyncpg.Connection, build: str) -> int:
               AND bp.start_pos = sub.start_pos
         """, build)
 
-        count = int(result.split()[-1]) if result else 0
+        count = assert_rows_updated(result, context=f"te_fractions {col_name}")
         print(f"    {col_name} updated: {count:,} rows")
 
         # Set windows with no overlapping repeats to 0
@@ -89,22 +91,14 @@ async def derive_te_fractions(conn: asyncpg.Connection, build: str) -> int:
         )
         WHERE build = $1::genome_build
     """, build)
-    count = int(result.split()[-1]) if result else 0
+    count = assert_rows_updated(result, context="te_fractions te_total_fraction")
     print(f"    te_total_fraction updated: {count:,} rows")
 
     return count
 
 
 async def main(build: str = "hg38") -> None:
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_USER", "ingest_writer")
-    password = os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         col_check = await conn.fetchval("""
@@ -125,6 +119,8 @@ async def main(build: str = "hg38") -> None:
         if sample is not None:
             print(f"  TE fraction data already present for {build}. Skipping.")
             return
+
+        await check_base_rows(conn, build)
 
         print(f"\n{'='*60}")
         print(f"TE Family Fraction Derivation - {build}")

@@ -17,9 +17,11 @@ import bisect
 import statistics
 import logging
 import math
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 log = logging.getLogger(__name__)
 
@@ -722,16 +724,7 @@ async def main(builds: list[str] | None = None, force: bool = False) -> None:
     if builds is None:
         builds = ["hg38"]
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database,
-        user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         for build in builds:
@@ -789,7 +782,8 @@ async def main(builds: list[str] | None = None, force: bool = False) -> None:
 
             # 6. Bulk insert
             print("  Bulk inserting...")
-            await bulk_insert(conn, layer_id, build, genes, all_layer_stats, all_anomalies, force=force)
+            async with ingest_transaction(conn):
+                await bulk_insert(conn, layer_id, build, genes, all_layer_stats, all_anomalies, force=force)
 
             print(f"\n  Gene profiles complete for {build}.")
 

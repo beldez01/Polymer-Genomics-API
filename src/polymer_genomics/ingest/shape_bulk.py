@@ -10,6 +10,9 @@ import asyncio, os, sys
 import asyncpg
 import pyBigWig
 
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
+
 DATA_DIR = os.path.expanduser("~/Desktop/Polymer_Evolution/phase1/output/window_1000")
 
 CHR_MAP = {f"chr{i}": i for i in range(1, 23)}
@@ -21,15 +24,7 @@ DELTA_FILES = {"delta_mgw": "delta_mgw.bw", "delta_prot": "delta_prot.bw",
                "delta_roll": "delta_roll.bw", "delta_helt": "delta_helt.bw"}
 
 async def get_conn():
-    return await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", ""),
-        command_timeout=600,
-        timeout=120,
-    )
+    return await get_ingest_connection(admin=False)
 
 def read_bw_chr(files_map: dict, chrom: str) -> list[tuple]:
     """Read all tracks for one chromosome, return list of (chr_id, start, v1, v2, v3, v4)."""
@@ -72,7 +67,7 @@ async def stage_and_update(rows, columns, set_clause, tag):
             WHERE bp.build = 'hg38'::genome_build AND bp.chr_id = s.chr_id AND bp.start_pos = s.start_pos
         """)
         await conn.execute(f"DROP TABLE {tbl}")
-        return int(result.split()[-1]) if result else 0
+        return assert_rows_updated(result, context="shape_bulk")
     finally:
         await conn.close()
 
@@ -89,6 +84,8 @@ async def main():
     await conn.close()
     if done_chrs:
         print(f"Resuming — {len(done_chrs)} chromosomes already done")
+
+    await check_base_rows(conn, "hg38")
 
     abs_cols = list(ABS_FILES.keys())
     abs_set = ", ".join(f"{c} = s.{c}" for c in abs_cols)

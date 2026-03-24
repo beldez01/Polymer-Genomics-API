@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 
 
 async def derive_gene_density(conn: asyncpg.Connection, build: str) -> int:
@@ -44,7 +46,7 @@ async def derive_gene_density(conn: asyncpg.Connection, build: str) -> int:
           AND bp.chr_id = sub.chr_id
           AND bp.start_pos = sub.start_pos
     """, build)
-    gene_density_count = int(result.split()[-1]) if result else 0
+    gene_density_count = assert_rows_updated(result, context="gene_density")
     print(f"    gene_density updated: {gene_density_count:,} rows")
 
     # Set windows with no overlapping genes to 0
@@ -82,7 +84,7 @@ async def derive_gene_density(conn: asyncpg.Connection, build: str) -> int:
           AND bp.chr_id = sub.chr_id
           AND bp.start_pos = sub.start_pos
     """, build)
-    bp_frac_count = int(result.split()[-1]) if result else 0
+    bp_frac_count = assert_rows_updated(result, context="gene_density gene_bp_fraction")
     print(f"    gene_bp_fraction updated: {bp_frac_count:,} rows")
 
     await conn.execute("""
@@ -111,22 +113,14 @@ async def derive_gene_density(conn: asyncpg.Connection, build: str) -> int:
           AND bp.chr_id = sub.chr_id
           AND bp.start_pos = sub.start_pos
     """, build)
-    tpm_count = int(result.split()[-1]) if result else 0
+    tpm_count = assert_rows_updated(result, context="gene_density median_tpm")
     print(f"    median_tpm updated: {tpm_count:,} rows")
 
     return gene_density_count
 
 
 async def main(build: str = "hg38") -> None:
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_USER", "ingest_writer")
-    password = os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         col_check = await conn.fetchval("""
@@ -147,6 +141,8 @@ async def main(build: str = "hg38") -> None:
         if sample is not None:
             print(f"  Gene density data already present for {build}. Skipping.")
             return
+
+        await check_base_rows(conn, build)
 
         print(f"\n{'='*60}")
         print(f"Gene/Expression Density Derivation - {build}")

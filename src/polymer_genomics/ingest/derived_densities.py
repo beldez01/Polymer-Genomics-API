@@ -14,9 +14,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 
 
 async def derive_densities(conn: asyncpg.Connection, build: str) -> int:
@@ -41,7 +43,7 @@ async def derive_densities(conn: asyncpg.Connection, build: str) -> int:
           AND bp.chr_id = sub.chr_id
           AND bp.start_pos = sub.start_pos
     """, build)
-    count = int(result.split()[-1]) if result else 0
+    count = assert_rows_updated(result, context="derived_densities ccre_density")
     print(f"    ccre_density: {count:,} rows updated")
 
     await conn.execute("""
@@ -80,7 +82,7 @@ async def derive_densities(conn: asyncpg.Connection, build: str) -> int:
               AND bp.chr_id = sub.chr_id
               AND bp.start_pos = sub.start_pos
         """, build, mark, cell_type)
-        hcount = int(result.split()[-1]) if result else 0
+        hcount = assert_rows_updated(result, context=f"derived_densities {col_name}")
         print(f"    {col_name}: {hcount:,} rows updated")
 
     # 3. ChromHMM active fraction for monocyte (E029)
@@ -112,22 +114,14 @@ async def derive_densities(conn: asyncpg.Connection, build: str) -> int:
           AND bp.chr_id = sub.chr_id
           AND bp.start_pos = sub.start_pos
     """, build)
-    chromhmm_count = int(result.split()[-1]) if result else 0
+    chromhmm_count = assert_rows_updated(result, context="derived_densities chromhmm_active_frac_e029")
     print(f"    chromhmm_active_frac_e029: {chromhmm_count:,} rows updated")
 
     return count
 
 
 async def main(build: str = "hg38") -> None:
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_USER", "ingest_writer")
-    password = os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         col_check = await conn.fetchval("""
@@ -148,6 +142,8 @@ async def main(build: str = "hg38") -> None:
         if sample is not None:
             print(f"  Derived density data already present for {build}. Skipping.")
             return
+
+        await check_base_rows(conn, build)
 
         print(f"\n{'='*60}")
         print(f"Derived Density Tracks - {build}")

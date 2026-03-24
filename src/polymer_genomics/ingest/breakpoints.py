@@ -18,6 +18,9 @@ import os
 
 import asyncpg
 
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Common Fragile Sites (hg38 coordinates)
@@ -141,13 +144,7 @@ _TRANSLOCATIONS: list[dict] = [
 
 async def main() -> None:
     """Populate fragility.breakpoints table."""
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         # Check for existing data
@@ -178,46 +175,47 @@ async def main() -> None:
                    RETURNING id""",
             )
 
-        # Insert fragile sites
-        n_fs = 0
-        for fs in _FRAGILE_SITES:
+        async with ingest_transaction(conn):
+            # Insert fragile sites
+            n_fs = 0
+            for fs in _FRAGILE_SITES:
+                await conn.execute(
+                    """INSERT INTO fragility.breakpoints
+                       (layer_id, build, chr_id, start_pos, end_pos,
+                        breakpoint_type, name, gene_a, gene_b, source, source_id)
+                       VALUES ($1, 'hg38', $2, $3, $4, 'fragile_site', $5, $6, NULL, 'HumCFS', $7)
+                       ON CONFLICT DO NOTHING""",
+                    layer_id, fs["chr"], fs["start"], fs["end"],
+                    fs["name"], fs.get("gene_a"), fs["source_id"],
+                )
+                n_fs += 1
+
+            # Insert translocations
+            n_tx = 0
+            for tx in _TRANSLOCATIONS:
+                source = "COSMIC" if tx["source_id"].startswith("COSMIC:") else "Mitelman"
+                await conn.execute(
+                    """INSERT INTO fragility.breakpoints
+                       (layer_id, build, chr_id, start_pos, end_pos,
+                        breakpoint_type, name, gene_a, gene_b, source, source_id)
+                       VALUES ($1, 'hg38', $2, $3, $4, 'translocation', $5, $6, $7, $8, $9)
+                       ON CONFLICT DO NOTHING""",
+                    layer_id, tx["chr"], tx["start"], tx["end"],
+                    tx["name"], tx["gene_a"], tx.get("gene_b"), source, tx["source_id"],
+                )
+                n_tx += 1
+
+            total = n_fs + n_tx
+
+            # Update catalog row count
             await conn.execute(
-                """INSERT INTO fragility.breakpoints
-                   (layer_id, build, chr_id, start_pos, end_pos,
-                    breakpoint_type, name, gene_a, gene_b, source, source_id)
-                   VALUES ($1, 'hg38', $2, $3, $4, 'fragile_site', $5, $6, NULL, 'HumCFS', $7)
-                   ON CONFLICT DO NOTHING""",
-                layer_id, fs["chr"], fs["start"], fs["end"],
-                fs["name"], fs.get("gene_a"), fs["source_id"],
+                "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'breakpoints'",
+                total,
             )
-            n_fs += 1
-
-        # Insert translocations
-        n_tx = 0
-        for tx in _TRANSLOCATIONS:
-            source = "COSMIC" if tx["source_id"].startswith("COSMIC:") else "Mitelman"
             await conn.execute(
-                """INSERT INTO fragility.breakpoints
-                   (layer_id, build, chr_id, start_pos, end_pos,
-                    breakpoint_type, name, gene_a, gene_b, source, source_id)
-                   VALUES ($1, 'hg38', $2, $3, $4, 'translocation', $5, $6, $7, $8, $9)
-                   ON CONFLICT DO NOTHING""",
-                layer_id, tx["chr"], tx["start"], tx["end"],
-                tx["name"], tx["gene_a"], tx.get("gene_b"), source, tx["source_id"],
+                "UPDATE registry.layers SET row_count = $1 WHERE layer_key = 'breakpoints'",
+                total,
             )
-            n_tx += 1
-
-        total = n_fs + n_tx
-
-        # Update catalog row count
-        await conn.execute(
-            "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'breakpoints'",
-            total,
-        )
-        await conn.execute(
-            "UPDATE registry.layers SET row_count = $1 WHERE layer_key = 'breakpoints'",
-            total,
-        )
 
         print(f"  Inserted {total} breakpoints ({n_fs} fragile sites, {n_tx} translocations).")
 

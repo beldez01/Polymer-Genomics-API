@@ -15,6 +15,8 @@ import sys
 
 import asyncpg
 
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 from polymer_genomics.ingest.melting_domains import compute_all_tracks_numpy
 
 
@@ -160,19 +162,21 @@ if __name__ == "__main__":
     parser.add_argument("--fasta", default="data/hg38.fa")
     parser.add_argument("--build", default="hg38")
     parser.add_argument("--chr", nargs="*", help="Specific chromosomes")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=5432)
-    parser.add_argument("--db", default="polymer_genomics_api")
-    parser.add_argument("--user", default="postgres")
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--host", default=None)
+    parser.add_argument("--port", type=int, default=None)
+    parser.add_argument("--db", default=None)
+    parser.add_argument("--user", default=None)
+    parser.add_argument("--password", default=None)
     args = parser.parse_args()
 
     async def main():
-        conn = await asyncpg.connect(
+        conn = await get_ingest_connection(
+            admin=True,
             host=args.host, port=args.port,
             database=args.db, user=args.user, password=args.password,
         )
         try:
+            await check_base_rows(conn, args.build)
             await bulk_update_sbs(conn, args.fasta, args.build, args.chr)
         finally:
             await conn.close()

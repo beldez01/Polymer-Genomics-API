@@ -23,6 +23,8 @@ from pathlib import Path
 import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 
 BATCH_SIZE = 10_000
 WINDOW_SIZE = 1000
@@ -137,7 +139,7 @@ async def ingest_from_bed(
           AND bp.start_pos = s.start_pos
     """, build)
 
-    updated = int(result.split()[-1]) if result else 0
+    updated = assert_rows_updated(result, context="replication_timing bed")
     print(f"  Updated {updated:,} rows")
 
     await conn.execute("DROP TABLE _repli_staging")
@@ -236,7 +238,7 @@ async def ingest_from_bigwig(
               AND bp.start_pos = s.start_pos
         """, build)
 
-        updated = int(result.split()[-1]) if result else 0
+        updated = assert_rows_updated(result, context="replication_timing bigwig")
         print(f"  Updated {updated:,} rows")
 
         await conn.execute("DROP TABLE _repli_staging")
@@ -254,15 +256,7 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
     if not Path(data_dir).is_dir():
         Path(data_dir).mkdir(parents=True, exist_ok=True)
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_USER", "ingest_writer")
-    password = os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         col_check = await conn.fetchval("""
@@ -283,6 +277,8 @@ async def main(build: str = "hg38", data_dir: str | None = None) -> None:
         if sample is not None:
             print(f"  Replication timing data already present for {build}. Skipping.")
             return
+
+        await check_base_rows(conn, build)
 
         print(f"\n{'='*60}")
         print(f"Replication Timing Ingestion - {build}")

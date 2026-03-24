@@ -13,9 +13,11 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import os
 
 import asyncpg
+
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -558,22 +560,17 @@ async def _load_physical_constants(conn: asyncpg.Connection) -> None:
 
 async def main() -> None:
     """Populate all reference tables."""
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
-        print("Loading biophysical reference constants...")
-        await _ensure_catalog(conn)
-        await _load_nn_thermodynamics(conn)
-        await _load_dinucleotide_properties(conn)
-        await _load_amino_acid_properties(conn)
-        await _load_physical_constants(conn)
-        print("Done. All reference tables populated.")
+        async with ingest_transaction(conn):
+            print("Loading biophysical reference constants...")
+            await _ensure_catalog(conn)
+            await _load_nn_thermodynamics(conn)
+            await _load_dinucleotide_properties(conn)
+            await _load_amino_acid_properties(conn)
+            await _load_physical_constants(conn)
+            print("Done. All reference tables populated.")
     finally:
         await conn.close()
 

@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 
-import asyncpg
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 
 SPATIAL_JOIN_SQL = """
@@ -54,15 +54,7 @@ async def main(builds: list[str] | None = None) -> None:
     if builds is None:
         builds = ["hg38"]
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host, port=port, database=database, user=user, password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         for build in builds:
@@ -81,7 +73,8 @@ async def main(builds: list[str] | None = None) -> None:
                 continue
 
             print("  Running spatial join (this may take several minutes)...")
-            result = await conn.execute(SPATIAL_JOIN_SQL, build)
+            async with ingest_transaction(conn):
+                result = await conn.execute(SPATIAL_JOIN_SQL, build)
             # asyncpg returns 'INSERT 0 NROWS'
             count_str = result.split()[-1] if result else "0"
             print(f"  Inserted {count_str} probe-repeat overlaps for {build}")

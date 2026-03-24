@@ -24,6 +24,7 @@ import re
 import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
+from polymer_genomics.ingest._connection import get_ingest_connection
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -192,13 +193,7 @@ async def main() -> None:
     parser.add_argument("--batch-size", type=int, default=5000, help="DB insert batch size")
     args = parser.parse_args()
 
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
         count = await conn.fetchval("SELECT count(*) FROM fragility.nonb_dna")

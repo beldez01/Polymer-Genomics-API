@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
-import os
 import tempfile
 from collections import defaultdict
 from csv import DictReader
@@ -30,6 +29,8 @@ import pyarrow.parquet as pq
 
 from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 from polymer_genomics.s3 import get_s3_client
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -916,24 +917,10 @@ async def main(
         ``"atlas"`` populates ``methylation.atlas_layers`` (S3/Parquet).
         ``"both"`` runs both pipelines.
     """
-    import asyncpg
-
     if builds is None:
         builds = ["hg38"]
 
-    host = os.environ.get("POSTGRES_HOST", "localhost")
-    port = int(os.environ.get("POSTGRES_PORT", "5432"))
-    database = os.environ.get("POSTGRES_DB", "polymer_genomics")
-    user = os.environ.get("POSTGRES_ADMIN_USER", "admin")
-    password = os.environ.get("POSTGRES_PASSWORD", "dev_password")
-
-    conn = await asyncpg.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=user,
-        password=password,
-    )
+    conn = await get_ingest_connection(admin=True)
 
     try:
         for build in builds:
@@ -957,15 +944,17 @@ async def main(
 
             if mode in ("reference", "both"):
                 print("\n--- Postgres reference table ---")
-                n = await ingest_reference(conn, build, matrix_path)
-                print(f"  Loaded {n:,} rows into ref.methylation_reference")
+                async with ingest_transaction(conn):
+                    n = await ingest_reference(conn, build, matrix_path)
+                    print(f"  Loaded {n:,} rows into ref.methylation_reference")
 
             if mode in ("atlas", "both"):
                 print("\n--- S3/Parquet atlas ---")
-                atlas_ids = await ingest_build(conn, build, matrix_path)
-                print(f"  Summary: {len(atlas_ids)} cell types registered")
-                for ct, aid in atlas_ids.items():
-                    print(f"    {ct}: {aid}")
+                async with ingest_transaction(conn):
+                    atlas_ids = await ingest_build(conn, build, matrix_path)
+                    print(f"  Summary: {len(atlas_ids)} cell types registered")
+                    for ct, aid in atlas_ids.items():
+                        print(f"    {ct}: {aid}")
 
         print("\nDone.")
     finally:

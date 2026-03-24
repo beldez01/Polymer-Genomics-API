@@ -19,9 +19,9 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import os
 
-import asyncpg
+from polymer_genomics.ingest._connection import get_ingest_connection
+from polymer_genomics.ingest._transaction import ingest_transaction
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -91,53 +91,48 @@ def compute_sbs_spectrum() -> list[dict]:
 
 async def main() -> None:
     """Populate mutation.sbs_spectrum table."""
-    conn = await asyncpg.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=int(os.environ.get("POSTGRES_PORT", "5432")),
-        database=os.environ.get("POSTGRES_DB", "polymer_genomics"),
-        user=os.environ.get("POSTGRES_USER", "ingest_writer"),
-        password=os.environ.get("POSTGRES_USER_PASSWORD", "ingest_writer_dev"),
-    )
+    conn = await get_ingest_connection(admin=False)
 
     try:
-        # Check for existing data
-        count = await conn.fetchval("SELECT count(*) FROM mutation.sbs_spectrum")
-        if count > 0:
-            print(f"  sbs_spectrum already has {count} rows, skipping.")
-            return
+        async with ingest_transaction(conn):
+            # Check for existing data
+            count = await conn.fetchval("SELECT count(*) FROM mutation.sbs_spectrum")
+            if count > 0:
+                print(f"  sbs_spectrum already has {count} rows, skipping.")
+                return
 
-        print("Computing 96-channel SBS thermodynamic spectrum...")
-        spectrum = compute_sbs_spectrum()
-        assert len(spectrum) == 96, f"Expected 96 channels, got {len(spectrum)}"
+            print("Computing 96-channel SBS thermodynamic spectrum...")
+            spectrum = compute_sbs_spectrum()
+            assert len(spectrum) == 96, f"Expected 96 channels, got {len(spectrum)}"
 
-        for row in spectrum:
+            for row in spectrum:
+                await conn.execute(
+                    """INSERT INTO mutation.sbs_spectrum
+                       (channel, mutation_type, ref_base, alt_base, flanking_5, flanking_3,
+                        trinuc_ref, trinuc_alt, dg_wt, dg_mut, delta_dg, source_citation)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                       ON CONFLICT (channel) DO NOTHING""",
+                    row["channel"], row["mutation_type"],
+                    row["ref_base"], row["alt_base"],
+                    row["flanking_5"], row["flanking_3"],
+                    row["trinuc_ref"], row["trinuc_alt"],
+                    row["dg_wt"], row["dg_mut"], row["delta_dg"],
+                    _CITATION,
+                )
+
+            # Update catalog row count
             await conn.execute(
-                """INSERT INTO mutation.sbs_spectrum
-                   (channel, mutation_type, ref_base, alt_base, flanking_5, flanking_3,
-                    trinuc_ref, trinuc_alt, dg_wt, dg_mut, delta_dg, source_citation)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                   ON CONFLICT (channel) DO NOTHING""",
-                row["channel"], row["mutation_type"],
-                row["ref_base"], row["alt_base"],
-                row["flanking_5"], row["flanking_3"],
-                row["trinuc_ref"], row["trinuc_alt"],
-                row["dg_wt"], row["dg_mut"], row["delta_dg"],
-                _CITATION,
+                "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'sbs_spectrum'",
+                len(spectrum),
             )
 
-        # Update catalog row count
-        await conn.execute(
-            "UPDATE reference.catalog SET row_count = $1 WHERE table_name = 'sbs_spectrum'",
-            len(spectrum),
-        )
+            print(f"  Inserted {len(spectrum)} SBS channels.")
 
-        print(f"  Inserted {len(spectrum)} SBS channels.")
-
-        # Summary statistics
-        max_destab = max(spectrum, key=lambda r: r["delta_dg"])
-        max_stab = min(spectrum, key=lambda r: r["delta_dg"])
-        print(f"  Most destabilizing: {max_destab['channel']} (δΔG = {max_destab['delta_dg']:+.4f} kcal/mol)")
-        print(f"  Most stabilizing:   {max_stab['channel']} (δΔG = {max_stab['delta_dg']:+.4f} kcal/mol)")
+            # Summary statistics
+            max_destab = max(spectrum, key=lambda r: r["delta_dg"])
+            max_stab = min(spectrum, key=lambda r: r["delta_dg"])
+            print(f"  Most destabilizing: {max_destab['channel']} (δΔG = {max_destab['delta_dg']:+.4f} kcal/mol)")
+            print(f"  Most stabilizing:   {max_stab['channel']} (δΔG = {max_stab['delta_dg']:+.4f} kcal/mol)")
 
     finally:
         await conn.close()
