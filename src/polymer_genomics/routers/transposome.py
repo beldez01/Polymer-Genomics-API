@@ -259,6 +259,7 @@ async def _load_detail(family_id: str, families: list[dict]) -> dict | None:
         "chr_density": [
             {"chr": r["chr_name"], "density": round(float(r["density"]), 3)}
             for r in chr_rows
+            if r["density"] is not None
         ],
         "top_probes": [
             {
