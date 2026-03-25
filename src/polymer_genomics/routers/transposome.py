@@ -77,28 +77,6 @@ def _reactivation_score(repeat_class: str, divergence_pct: float) -> float:
 # ── Family aggregation query ─────────────────────────────────────────────
 
 _FAMILIES_SQL = """
-WITH family_stats AS (
-    SELECT
-        repeat_class,
-        repeat_family,
-        count(*)                                AS copy_count,
-        sum(end_pos - start_pos)                AS total_bp,
-        avg(divergence_pct)                     AS avg_divergence,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY end_pos - start_pos) AS median_length
-    FROM annotation.repeats
-    WHERE build = 'hg38'
-    GROUP BY repeat_class, repeat_family
-    HAVING count(*) >= 10
-),
-probe_counts AS (
-    SELECT
-        repeat_class,
-        repeat_family,
-        count(*)                                                    AS epic_v2_probes
-    FROM probe.repeat_xref
-    WHERE platform = 'epic_v2' AND build = 'hg38'
-    GROUP BY repeat_class, repeat_family
-)
 SELECT
     f.repeat_class,
     f.repeat_family,
@@ -107,8 +85,8 @@ SELECT
     f.avg_divergence,
     f.median_length,
     COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes
-FROM family_stats f
-LEFT JOIN probe_counts p USING (repeat_class, repeat_family)
+FROM annotation.te_family_summary f
+LEFT JOIN annotation.te_probe_counts p USING (repeat_class, repeat_family)
 ORDER BY f.total_bp DESC
 """
 
