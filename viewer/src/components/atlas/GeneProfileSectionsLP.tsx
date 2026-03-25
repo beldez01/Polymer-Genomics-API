@@ -394,17 +394,20 @@ const COMPARTMENT_GROUPS: Record<string, string[]> = {
 };
 
 export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
-  const { tissue_expression, subcellular_location } = data;
+  const tissue_expression = data.tissue_expression;
+  const subcellular_location = data.subcellular_location;
+  const tissues = tissue_expression?.tissues ?? [];
+  const locations = subcellular_location?.locations ?? [];
 
   // Group tissues by expression level
   const levelCounts: Record<string, number> = {};
-  for (const t of tissue_expression.tissues) {
+  for (const t of tissues) {
     levelCounts[t.expression_level] = (levelCounts[t.expression_level] ?? 0) + 1;
   }
 
   // Unique tissues (deduplicate by tissue name, keep highest level)
   const tissueMap = new Map<string, string>();
-  for (const t of tissue_expression.tissues) {
+  for (const t of tissues) {
     const existing = tissueMap.get(t.tissue);
     if (!existing || HPA_LEVEL_ORDER.indexOf(t.expression_level) < HPA_LEVEL_ORDER.indexOf(existing)) {
       tissueMap.set(t.tissue, t.expression_level);
@@ -415,13 +418,13 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
   );
 
   // Subcellular — identify which compartments are lit
-  const locSet = new Set(subcellular_location.locations.map(l => l.location));
+  const locSet = new Set(locations.map(l => l.location));
 
   return (
     <SectionShell>
       <SectionHeader
         title="Protein Atlas"
-        subtitle={`HPA · ${tissue_expression.n_tissues} entries · ${subcellular_location.n_locations} compartments`}
+        subtitle={`HPA · ${tissue_expression?.n_tissues ?? 0} entries · ${subcellular_location?.n_locations ?? 0} compartments`}
       />
 
       {/* Summary strip */}
@@ -482,7 +485,7 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
       </div>
 
       {/* Subcellular compartments */}
-      {subcellular_location.locations.length > 0 && (
+      {locations.length > 0 && (
         <>
           <div style={{
             borderTop: `1px solid ${COLOR.border.subtle}`,
@@ -519,7 +522,7 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
                   </span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                     {active.map(loc => {
-                      const locData = subcellular_location.locations.find(l => l.location === loc);
+                      const locData = locations.find(l => l.location === loc);
                       const isEnhanced = locData?.reliability === 'Enhanced';
                       return (
                         <span
@@ -544,7 +547,7 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
               );
             })}
             {/* Show any locations not in our known groups */}
-            {subcellular_location.locations
+            {locations
               .filter(l => !Object.values(COMPARTMENT_GROUPS).flat().includes(l.location))
               .length > 0 && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: SPACE[2] }}>
@@ -560,7 +563,7 @@ export function ProteinAtlasSection({ data }: { data: ProteinAtlasData }) {
                   Other
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                  {subcellular_location.locations
+                  {locations
                     .filter(l => !Object.values(COMPARTMENT_GROUPS).flat().includes(l.location))
                     .map(l => (
                       <span
