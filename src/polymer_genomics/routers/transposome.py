@@ -180,16 +180,11 @@ async def _load_families() -> list[dict]:
 # ── Detail query (per-family) ────────────────────────────────────────────
 
 _DETAIL_CHR_DENSITY_SQL = """
-SELECT
-    c.chr_name,
-    count(*)::real / (c.chr_length / 1e6) AS density
-FROM annotation.repeats r
-JOIN ref.chromosomes c ON c.chr_id = r.chr_id AND c.build = r.build
-WHERE r.build = 'hg38'
-    AND r.repeat_class = $1
-    AND (r.repeat_family = $2 OR ($2 IS NULL AND r.repeat_family IS NULL))
-GROUP BY c.chr_name, c.chr_length
-ORDER BY c.chr_name
+SELECT chr_name, density
+FROM annotation.te_chr_density
+WHERE repeat_class = $1
+    AND (repeat_family = $2 OR ($2 IS NULL AND repeat_family IS NULL))
+ORDER BY chr_name
 """
 
 _DETAIL_TOP_PROBES_SQL = """
@@ -232,7 +227,7 @@ async def _load_detail(family_id: str, families: list[dict]) -> dict | None:
         # Map chr_id to chr_name for probes
         chr_map = {}
         chr_names = await conn.fetch(
-            "SELECT chr_id, chr_name FROM ref.chromosomes WHERE build = 'hg38'"
+            "SELECT chr_id, chr_name FROM ref.chromosomes"
         )
         for c in chr_names:
             chr_map[c["chr_id"]] = c["chr_name"]
