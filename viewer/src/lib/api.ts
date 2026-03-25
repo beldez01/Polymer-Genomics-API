@@ -4,12 +4,19 @@ const API_BASE = '/api';
 
 // --- Response types ---
 
-export interface SequenceResponse {
+export interface MetaEnvelope<T> {
+  api_version: string;
+  data_version: string;
+  coordinate_system: string;
+  data: T;
+  timing?: { query_time_ms: number };
+}
+
+export interface SequenceData {
   build: string;
   chr: string;
   start: number;
   end: number;
-  coordinate_system: string;
   length: number;
   sequence: string;
 }
@@ -99,8 +106,14 @@ async function fetchJSON<T>(url: string, opts?: { timeout?: number; signal?: Abo
     const res = await fetch(url, { signal });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
+      const apiBody = body as {
+        error?: { message?: string };
+        detail?: { error?: { message?: string } } | Array<{ msg?: string }>;
+      };
       throw new Error(
-        (body as Record<string, Record<string, string>>)?.error?.message ||
+        apiBody.error?.message ||
+          ((apiBody.detail && !Array.isArray(apiBody.detail)) ? apiBody.detail.error?.message : undefined) ||
+          (Array.isArray(apiBody.detail) ? apiBody.detail[0]?.msg : undefined) ||
           `API error: ${res.status}`,
       );
     }
@@ -109,17 +122,30 @@ async function fetchJSON<T>(url: string, opts?: { timeout?: number; signal?: Abo
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new Error('Request timed out — the server may be processing complex data. Try again.');
     }
+    if (err instanceof TypeError) {
+      throw new Error(
+        'Network error contacting the API proxy. If you are running the viewer locally, start the API on http://localhost:8000 or set NEXT_PUBLIC_API_BASE and POLYMER_API_KEY for a remote API.',
+      );
+    }
     throw err;
   } finally {
     clearTimeout(timer);
   }
 }
 
+async function fetchMetaJSON<T>(
+  url: string,
+  opts?: { timeout?: number; signal?: AbortSignal },
+): Promise<T> {
+  const envelope = await fetchJSON<MetaEnvelope<T>>(url, opts);
+  return envelope.data;
+}
+
 export async function fetchSequence(
   build: string,
   region: string,
-): Promise<SequenceResponse> {
-  return fetchJSON(`${API_BASE}/v1/sequence/${build}/${region}`);
+): Promise<SequenceData> {
+  return fetchMetaJSON(`${API_BASE}/v1/sequence/${build}/${region}`);
 }
 
 export async function fetchRegion(
@@ -168,7 +194,7 @@ export async function fetchLayers(build?: string): Promise<LayerInfo[]> {
   const cached = getCached<LayerInfo[]>(key);
   if (cached) return cached;
   const params = build ? `?build=${build}` : '';
-  const res = await fetchJSON<{ layers: LayerInfo[] }>(
+  const res = await fetchMetaJSON<{ layers: LayerInfo[] }>(
     `${API_BASE}/v1/layers${params}`,
   );
   setCache(key, res.layers);
@@ -187,7 +213,7 @@ export async function fetchLayerSummary(build: string): Promise<LayerSummary> {
   const key = `layerSummary:${build}`;
   const cached = getCached<LayerSummary>(key);
   if (cached) return cached;
-  const result = await fetchJSON<LayerSummary>(
+  const result = await fetchMetaJSON<LayerSummary>(
     `${API_BASE}/v1/layers/summary/${build}`,
   );
   setCache(key, result);
@@ -198,7 +224,7 @@ export async function searchGenes(
   query: string,
   build: string,
 ): Promise<SearchResult[]> {
-  const res = await fetchJSON<{ results: SearchResult[] }>(
+  const res = await fetchMetaJSON<{ results: SearchResult[] }>(
     `${API_BASE}/v1/search?q=${encodeURIComponent(query)}&build=${build}`,
   );
   return res.results;

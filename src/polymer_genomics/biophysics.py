@@ -165,8 +165,8 @@ def compute_form_propensity(seq: str) -> dict:
     A-form: El Hassan & Calladine 1996 — fraction of crystal structures
     with A-like geometry per dinucleotide step.
 
-    Z-form: Ho 1986 — B→Z free energy penalty (kcal/mol). Lower = more
-    Z-favorable. CG steps = 0.0 (most Z-favorable).
+    Z-form: Ho 1986 / Ellison 1985, using the Z-Hunt AS-AS free-energy
+    table. Lower = more Z-favorable. CG steps = 0.66 (most Z-favorable).
 
     Returns
     -------

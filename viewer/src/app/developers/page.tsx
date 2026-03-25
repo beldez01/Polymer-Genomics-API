@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
-import { usePlatformStats } from '@/lib/platform-stats';
+import {
+  MCP_TOOL_COUNT,
+  usePlatformStats,
+} from '@/lib/platform-stats';
 
 /* ── Data ── */
 
@@ -19,7 +22,7 @@ const USE_CASES = [
   {
     title: 'AI Scientists',
     accent: COLOR.accent.violet,
-    desc: '41 agent-composable MCP tools for biology research agents. Gene lookup, region queries, biophysical computation, cross-layer correlation — all in one server.',
+    desc: `${MCP_TOOL_COUNT} agent-composable MCP tools for biology research agents. Gene lookup, region queries, biophysical computation, cross-layer correlation — all in one server.`,
     example: 'evaluate_design(sequence=...)',
   },
   {
@@ -92,7 +95,15 @@ function TryIt() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sequence: cleaned, name: 'try-it', analysis: 'full' }),
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        const message =
+          body?.error?.message ||
+          body?.detail?.error?.message ||
+          body?.detail?.[0]?.msg ||
+          `HTTP ${resp.status}`;
+        throw new Error(message);
+      }
       setResult(await resp.json());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Request failed');
@@ -201,7 +212,7 @@ from polymer_genomics import PolymerClient
 client = PolymerClient()
 report = client.evaluate("ATGCGATCGATCGATCG" * 20)
 
-print(report["flag_counts"])   # {"warning": 0, "info": 2}
+print(report["flag_counts"])   # {"warnings": 0, "info": 2}
 print(report["summary"]["gc_content"])  # 0.529`}
           </pre>
         </div>

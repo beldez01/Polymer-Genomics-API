@@ -138,9 +138,9 @@ Interactive genome browser at [polymerbio.org](https://polymerbio.org). Canvas-b
 - `/developers` — API documentation and quickstart
 - `/data-sources` — per-layer citations and licenses
 
-## MCP Server (45 tools)
+## MCP Server (52 tools)
 
-AI agent integration via Model Context Protocol. 35 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
+AI agent integration via Model Context Protocol. 42 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
 
 ```bash
 cd mcp && uv run server.py

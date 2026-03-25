@@ -178,7 +178,7 @@ def compute_gc_content(sequence: str, pos: int, window: int = GC_WINDOW) -> floa
         Fraction of G + C bases in the window, in ``[0.0, 1.0]``.
     """
     start = max(0, pos - window)
-    end = min(len(sequence), pos + window + 1)  # +1 for symmetric window
+    end = min(len(sequence), pos + window)
     subseq = sequence[start:end]
     if not subseq:
         return 0.0
@@ -380,7 +380,9 @@ def classify_context(
 
         # Downstream of island (south).
         if pos >= isl_end:
-            dist = pos - isl_end  # end is exclusive, so pos - isl_end = 0 at boundary
+            # Downstream coordinates are 0-based half-open at the island end,
+            # so add 1 to keep shore/shelf widths symmetric with upstream logic.
+            dist = pos - isl_end + 1
             if dist <= SHORE_DISTANCE and dist < best_distance:
                 best_context = "s_shore"
                 best_distance = dist

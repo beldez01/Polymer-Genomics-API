@@ -168,11 +168,12 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }
         let totalProbes: number | null = null;
 
         if (layerSummary) {
+          const counts = layerSummary.layer_counts ?? {};
           // Prefer protein_coding count; fall back to total gene count
           totalGenes = layerSummary.protein_coding_genes ?? layerSummary.total_genes ?? null;
-          totalCpgSites = layerSummary.layer_counts['cpg_sites'] ?? null;
-          totalCpgIslands = layerSummary.layer_counts['cpg_islands'] ?? null;
-          totalProbes = layerSummary.layer_counts['probe_epic_v2'] ?? null;
+          totalCpgSites = counts['cpg_sites'] ?? null;
+          totalCpgIslands = counts['cpg_islands'] ?? null;
+          totalProbes = counts['probe_epic_v2'] ?? null;
         } else if (chrStats) {
           const entries = Object.entries(chrStats).filter(([name]) => name !== 'chrM');
           const allLoaded = entries.every(([, s]) => s.loaded);

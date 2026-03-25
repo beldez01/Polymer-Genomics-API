@@ -92,20 +92,20 @@ class TestComputeExtinction:
 
 
 class TestComputeFormPropensity:
-    def test_cg_z_form_zero(self):
-        """CG has Z-form propensity = 0.0 (most Z-favorable, Ho 1986)."""
+    def test_cg_z_form_matches_zhunt_value(self):
+        """CG has the lowest Z-Hunt AS-AS penalty (0.66 kcal/mol)."""
         result = compute_form_propensity("CG")
-        assert result["per_step"][0]["z_form_propensity"] == 0.0
+        assert result["per_step"][0]["z_form_propensity"] == 0.66
 
-    def test_cg_alternating_z_favorable(self):
-        """Alternating CG should have low total Z-penalty."""
+    def test_cg_alternation_includes_gc_penalty(self):
+        """Alternating CG includes GC steps, which are strongly Z-unfavorable."""
         result = compute_form_propensity("CGCGCG")
-        assert result["summary"]["total_z_penalty"] < 3.0
+        assert result["summary"]["total_z_penalty"] == 10.38
 
     def test_aa_z_unfavorable(self):
-        """AA has highest Z-form penalty (3.0)."""
+        """AA has a high Z-Hunt penalty (4.4 kcal/mol)."""
         result = compute_form_propensity("AA")
-        assert result["per_step"][0]["z_form_propensity"] == 3.0
+        assert result["per_step"][0]["z_form_propensity"] == 4.4
 
     def test_a_form_gc_rich(self):
         """GG step has high A-form propensity (0.92)."""

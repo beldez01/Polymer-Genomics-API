@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
+import { fetchLayerSummary } from '@/lib/api';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
 
 interface DataSource {
@@ -147,21 +148,24 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'Illumina EPIC v1 Manifest': 'probe_epic_v1',
   'Illumina 450K Manifest': 'probe_450k',
   'UCSC CpG Islands': 'cpg_islands',
-  'GTEx': 'gtex_expression',
-  'gnomAD': 'gnomad_constraint',
-  'ClinVar': 'clinvar',
-  'Reactome': 'reactome_pathways',
-  'MSigDB Hallmark': 'msigdb_hallmark',
-  'RepeatMasker': 'repeat_masker',
+  'GTEx': 'gtex_v10',
+  'gnomAD': 'gene_constraint_v1',
+  'Reactome': 'reactome_pathways_v1',
+  'MSigDB Hallmark': 'msigdb_hallmark_v1',
+  'RepeatMasker': 'repeatmasker_v1',
   'Horvath Clock': 'clock_horvath',
   'Hannum Clock': 'clock_hannum',
   'PhenoAge': 'clock_phenoage',
   'GrimAge': 'clock_grimage',
   'DunedinPACE': 'clock_dunedinpace',
-  'COSMIC SBS Signatures': 'sbs_signatures',
-  'PhyloP 100-way': 'phylop_100way',
-  'PhastCons 100-way': 'phastcons_100way',
-  'EBI GWAS Catalog': 'gwas_catalog',
+  'COSMIC SBS Signatures': 'sbs_mutation_thermo_v1',
+  'PhyloP 100-way': 'phylop_phastcons_100way',
+  'PhastCons 100-way': 'phylop_phastcons_100way',
+  'EBI GWAS Catalog': 'gwas_catalog_ebi_v1',
+  'Human Protein Atlas': 'protein_atlas_v1',
+  'PaxDb': 'protein_abundance_v1',
+  'ENCODE': 'encode_ccre_v4',
+  'ChromHMM 15-state Model': 'chromhmm_15state_v1',
   'Polymer Evolution Layer 0': 'sequence_biophysics_l0',
 };
 
@@ -191,15 +195,13 @@ const headerCellStyle = {
 };
 
 export default function DataSourcesPage() {
-  const [layerCounts, setLayerCounts] = useState<Record<string, number>>({});
+  const [layerCounts, setLayerCounts] = useState<Record<string, number | null>>({});
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/v1/layers/summary/hg38');
-        if (!res.ok) return;
-        const data = await res.json();
-        setLayerCounts(data.layer_counts ?? {});
+        const summary = await fetchLayerSummary('hg38');
+        setLayerCounts(summary.layer_counts ?? {});
       } catch {
         // Keep empty — rows column will show "—"
       }

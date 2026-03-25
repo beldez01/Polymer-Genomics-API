@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const apiBase =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  (process.env.POLYMER_API_KEY ? "https://api.polymerbio.org" : "http://localhost:8000");
 
 const nextConfig: NextConfig = {
   async rewrites() {

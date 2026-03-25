@@ -166,15 +166,16 @@ async def test_sequence_e2e_roundtrip(mock_fn, client):
     resp = await client.get("/v1/sequence/hg38/chr16:70699930-70700000")
     assert resp.status_code == 200
     body = resp.json()
+    data = body["data"]
 
     # Structure
-    assert body["build"] == "hg38"
-    assert body["chr"] == "chr16"
-    assert body["start"] == 70699930
-    assert body["end"] == 70700000
+    assert data["build"] == "hg38"
+    assert data["chr"] == "chr16"
+    assert data["start"] == 70699930
+    assert data["end"] == 70700000
     assert body["coordinate_system"] == "1-based_closed"
-    assert body["length"] == 71  # 1-based closed: 70700000 - 70699930 + 1
-    assert len(body["sequence"]) == 71
+    assert data["length"] == 71  # 1-based closed: 70700000 - 70699930 + 1
+    assert len(data["sequence"]) == 71
     assert "timing" in body
     assert "query_time_ms" in body["timing"]
 
@@ -186,7 +187,7 @@ async def test_sequence_coordinate_conversion_e2e(mock_fn, client):
     resp_0 = await client.get("/v1/sequence/hg38/chr16:70699929-70700000?coords=0based")
     assert resp_1.status_code == 200
     assert resp_0.status_code == 200
-    assert resp_1.json()["length"] == resp_0.json()["length"]
+    assert resp_1.json()["data"]["length"] == resp_0.json()["data"]["length"]
 
 
 # ---------------------------------------------------------------------------
@@ -309,7 +310,7 @@ async def test_search_e2e_prefix_match(client, seed_gene_data):
     """Search for 'VAC' returns VAC14 among results."""
     resp = await client.get("/v1/search?q=VAC&build=hg38")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert body["total"] >= 1
     symbols = [r["gene_symbol"] for r in body["results"]]
     assert "VAC14" in symbols
@@ -320,7 +321,7 @@ async def test_search_e2e_case_insensitive(client, seed_gene_data):
     """Search is case-insensitive (ILIKE)."""
     resp = await client.get("/v1/search?q=vac14&build=hg38")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert body["total"] >= 1
     assert body["results"][0]["gene_symbol"] == "VAC14"
 
@@ -329,7 +330,7 @@ async def test_search_e2e_no_results(client, seed_gene_data):
     """Search for a non-existent gene returns empty results."""
     resp = await client.get("/v1/search?q=ZZZZZ&build=hg38")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert body["total"] == 0
     assert body["results"] == []
 
@@ -396,7 +397,7 @@ async def test_layer_list_e2e(client, seed_layers):
     """List all active layers returns the seeded layers."""
     resp = await client.get("/v1/layers")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     keys = [l["layer_key"] for l in body["layers"]]
     assert "probe_epic_v2" in keys
     assert "cpg_sites" in keys
@@ -407,7 +408,7 @@ async def test_layer_list_filter_by_build_e2e(client, seed_layers):
     """Filter layers by build=hg38 returns all seeded layers."""
     resp = await client.get("/v1/layers?build=hg38")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert len(body["layers"]) >= 3
     assert all(l["build"] == "hg38" for l in body["layers"])
 
@@ -416,7 +417,7 @@ async def test_layer_list_filter_by_type_e2e(client, seed_layers):
     """Filter layers by type=probe returns only probe layers."""
     resp = await client.get("/v1/layers?type=probe&build=hg38")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert len(body["layers"]) >= 1
     assert all(l["type"] == "probe" for l in body["layers"])
 
@@ -425,7 +426,7 @@ async def test_layer_get_by_key_e2e(client, seed_layers):
     """Get a single layer by key returns full metadata."""
     resp = await client.get("/v1/layers/cpg_sites")
     assert resp.status_code == 200
-    body = resp.json()
+    body = resp.json()["data"]
     assert body["layer_key"] == "cpg_sites"
     assert body["version"] == "1.0"
     assert body["type"] == "cpg"

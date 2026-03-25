@@ -447,7 +447,12 @@ export default function EvaluatePage() {
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        throw new Error(body?.detail || `HTTP ${resp.status}`);
+        const message =
+          body?.error?.message ||
+          body?.detail?.error?.message ||
+          body?.detail?.[0]?.msg ||
+          `HTTP ${resp.status}`;
+        throw new Error(message);
       }
       const data = await resp.json();
       setResult(data);

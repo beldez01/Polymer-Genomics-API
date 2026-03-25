@@ -7,6 +7,11 @@ import { Footer } from '@/components/Footer';
 import { useIsMobile, useIsTablet } from '@/hooks/useBreakpoint';
 import { copyToClipboard } from '@/lib/clipboard';
 import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
+import {
+  MCP_COMPUTE_TOOL_COUNT,
+  MCP_REFERENCE_TOOL_COUNT,
+  MCP_TOOL_COUNT,
+} from '@/lib/platform-stats';
 import { loadEndpointsFromOpenAPI, groupByTag, EndpointDoc } from '@/lib/openapi-loader';
 
 // ---------------------------------------------------------------------------
@@ -314,7 +319,7 @@ probe = resp.json()["data"]`,
     title: 'Search Genes',
     description: 'Search for gene symbols by prefix. Returns matching gene names for autocomplete.',
     params: [
-      { name: 'q', location: 'query', type: 'string', required: true, description: 'Search query (min 1 character)' },
+      { name: 'q', location: 'query', type: 'string', required: true, description: 'Search query (min 2 characters)' },
       { name: 'build', location: 'query', type: 'string', required: true, description: 'Genome build' },
     ],
     examples: {
@@ -1189,11 +1194,11 @@ export default function DocsPage() {
                 lineHeight: 1.7,
                 marginBottom: SPACE[4],
               }}>
-                The Polymer Genomics MCP server exposes 41 tools for AI agent
+                The Polymer Genomics MCP server exposes {MCP_TOOL_COUNT} tools for AI agent
                 consumption via the{' '}
                 <span style={{ color: COLOR.accent.teal }}>Model Context Protocol</span>.
-                31 reference tools query polymerbio.org over HTTP.
-                10 compute tools run local R/Bioconductor analysis via subprocess.
+                {MCP_REFERENCE_TOOL_COUNT} reference tools query polymerbio.org over HTTP.
+                {MCP_COMPUTE_TOOL_COUNT} compute tools run local R/Bioconductor analysis via subprocess.
               </p>
 
               {/* Architecture diagram */}
@@ -1212,8 +1217,8 @@ export default function DocsPage() {
                 }}>{`Claude Code
     \u2502
 polymer-genomics MCP server (local)
-    \u251C\u2500 Reference tools (23)  \u2192 HTTP \u2192 api.polymerbio.org
-    \u251C\u2500 Compute tools  (10)  \u2192 Rscript subprocess
+    \u251C\u2500 Reference tools (${MCP_REFERENCE_TOOL_COUNT})  \u2192 HTTP \u2192 api.polymerbio.org
+    \u251C\u2500 Compute tools  (${MCP_COMPUTE_TOOL_COUNT})  \u2192 Rscript subprocess
     \u2514\u2500 Session state        \u2192 /tmp/polymer/sessions/`}</pre>
               </div>
 
@@ -1562,7 +1567,7 @@ volcano_plot / cluster_probes
                 fontWeight: WEIGHT.medium,
                 marginBottom: SPACE[2],
               }}>
-                REFERENCE TOOLS (23)
+                REFERENCE TOOLS ({MCP_REFERENCE_TOOL_COUNT})
               </div>
               <p style={{
                 fontSize: TYPE.sm.fontSize,

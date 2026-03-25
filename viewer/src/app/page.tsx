@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
-import { usePlatformStats } from '@/lib/platform-stats';
+import {
+  MCP_COMPUTE_TOOL_COUNT,
+  MCP_REFERENCE_TOOL_COUNT,
+  MCP_TOOL_COUNT,
+  usePlatformStats,
+} from '@/lib/platform-stats';
 
 /* ── Module directory ── */
 
@@ -62,7 +67,7 @@ const TIER_2: Module[] = [
 const TIER_3: Module[] = [
   {
     name: 'API / MCP',
-    desc: '41 tools (31 reference + 10 compute). REST endpoints and Model Context Protocol for AI agents.',
+    desc: `${MCP_TOOL_COUNT} tools (${MCP_REFERENCE_TOOL_COUNT} reference + ${MCP_COMPUTE_TOOL_COUNT} compute). REST endpoints and Model Context Protocol for AI agents.`,
     href: '/docs',
     accent: COLOR.accent.teal,
   },

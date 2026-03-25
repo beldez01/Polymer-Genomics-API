@@ -33,14 +33,15 @@ async def test_sequence_basic(mock_fn, client):
     resp = await client.get("/v1/sequence/hg38/chr16:70699930-70700000")
     assert resp.status_code == 200
     body = resp.json()
+    data = body["data"]
 
-    assert body["build"] == "hg38"
-    assert body["chr"] == "chr16"
-    assert body["start"] == 70699930
-    assert body["end"] == 70700000
+    assert data["build"] == "hg38"
+    assert data["chr"] == "chr16"
+    assert data["start"] == 70699930
+    assert data["end"] == 70700000
     assert body["coordinate_system"] == "1-based_closed"
-    assert body["length"] == 71  # 1-based closed: 70700000 - 70699930 + 1 = 71
-    assert len(body["sequence"]) == 71
+    assert data["length"] == 71  # 1-based closed: 70700000 - 70699930 + 1 = 71
+    assert len(data["sequence"]) == 71
     assert "timing" in body
     assert "query_time_ms" in body["timing"]
 
@@ -50,9 +51,9 @@ async def test_sequence_response_fields(mock_fn, client):
     """All expected response fields are present."""
     resp = await client.get("/v1/sequence/hg38/chr1:100-200")
     body = resp.json()
-    expected_keys = {"build", "chr", "start", "end", "coordinate_system", "length", "sequence",
-                     "timing"}
+    expected_keys = {"api_version", "data_version", "coordinate_system", "data", "timing"}
     assert expected_keys == set(body.keys())
+    assert {"build", "chr", "start", "end", "length", "sequence"} <= set(body["data"].keys())
 
 
 @patch("polymer_genomics.routers.sequence.get_sequence", side_effect=_mock_get_sequence)
@@ -61,12 +62,13 @@ async def test_sequence_0based_coords(mock_fn, client):
     resp = await client.get("/v1/sequence/hg38/chr1:99-200?coords=0based")
     assert resp.status_code == 200
     body = resp.json()
+    data = body["data"]
     # Input echoed back as-is (user's coordinates)
-    assert body["start"] == 99
-    assert body["end"] == 200
+    assert data["start"] == 99
+    assert data["end"] == 200
     assert body["coordinate_system"] == "1-based_closed"
     # Length: 0-based [99, 200) = 101 bases
-    assert body["length"] == 101
+    assert data["length"] == 101
 
 
 @patch("polymer_genomics.routers.sequence.get_sequence", side_effect=_mock_get_sequence)
@@ -77,7 +79,7 @@ async def test_sequence_coordinate_conversion(mock_fn, client):
     assert resp_1.status_code == 200
     assert resp_0.status_code == 200
     # Both should request the same internal range [99, 200) = 101 bases
-    assert resp_1.json()["length"] == resp_0.json()["length"]
+    assert resp_1.json()["data"]["length"] == resp_0.json()["data"]["length"]
 
 
 @patch("polymer_genomics.routers.sequence.get_sequence", side_effect=_mock_get_sequence)
@@ -86,8 +88,8 @@ async def test_sequence_single_base(mock_fn, client):
     resp = await client.get("/v1/sequence/hg38/chr1:100-100")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["length"] == 1
-    assert len(body["sequence"]) == 1
+    assert body["data"]["length"] == 1
+    assert len(body["data"]["sequence"]) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +162,7 @@ async def test_sequence_max_boundary(mock_fn, client):
     resp = await client.get("/v1/sequence/hg38/chr1:1-100000")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["length"] == 100000
+    assert body["data"]["length"] == 100000
 
 
 @patch("polymer_genomics.routers.sequence.get_sequence", side_effect=_mock_get_sequence)

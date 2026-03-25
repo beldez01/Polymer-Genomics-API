@@ -66,7 +66,7 @@ class TestAliasSearch:
         """Direct symbol matches have match_type 'direct'."""
         resp = await client.get("/v1/search?q=TP53&build=hg38")
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         results = data.get("results", [])
         for r in results:
             if r["gene_symbol"] == "TP53":
@@ -77,7 +77,7 @@ class TestAliasSearch:
         resp = await client.get("/v1/search?q=OCT4&build=hg38")
         if resp.status_code != 200:
             pytest.skip("Search endpoint or alias data not available")
-        data = resp.json()
+        data = resp.json()["data"]
         results = data.get("results", [])
         alias_results = [r for r in results if r.get("match_type") == "alias"]
         if not alias_results:
@@ -89,7 +89,7 @@ class TestAliasSearch:
         """Direct matches always sort before alias matches."""
         resp = await client.get("/v1/search?q=TP&build=hg38")
         if resp.status_code == 200:
-            data = resp.json()
+            data = resp.json()["data"]
             results = data.get("results", [])
             saw_alias = False
             for r in results:
