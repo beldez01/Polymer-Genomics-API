@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { CHROMOSOMES, GENOME_LENGTH, ChromosomeInfo } from '@/config/chromosomes';
 import { getBandsForChromosome } from '@/config/cytobands';
 import { ChromosomeSVG } from './ChromosomeSVG';
 import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
-import type { LayerSummary } from '@/lib/api';
+import type { LayerSummary, AggBin } from '@/lib/api';
+import { aggBinsToIsochores, type IsochoreBin } from '@/lib/isochore';
 
 interface ChrStats {
   genes: number | null;
@@ -19,6 +20,8 @@ interface KaryotypeOverviewProps {
   chrStats?: Record<string, ChrStats>;
   /** Authoritative genome-wide summary from /v1/layers/summary */
   layerSummary?: LayerSummary | null;
+  /** Raw isochore aggregation bins per chromosome */
+  chrIsochores?: Record<string, AggBin[]>;
 }
 
 // Max height for chr1 (largest chromosome); others scale proportionally
@@ -34,8 +37,17 @@ function chrHeight(chr: ChromosomeInfo): number {
   return Math.max(36, Math.round((chr.length / MAX_CHR_LENGTH) * MAX_HEIGHT));
 }
 
-export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }: KaryotypeOverviewProps) {
+export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary, chrIsochores }: KaryotypeOverviewProps) {
   const [hoveredChr, setHoveredChr] = useState<string | null>(null);
+
+  const isochoreData = useMemo(() => {
+    if (!chrIsochores) return {} as Record<string, IsochoreBin[]>;
+    const result: Record<string, IsochoreBin[]> = {};
+    for (const [chrName, bins] of Object.entries(chrIsochores)) {
+      result[chrName] = aggBinsToIsochores(bins);
+    }
+    return result;
+  }, [chrIsochores]);
 
   return (
     <div style={{
@@ -43,6 +55,20 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }
       margin: '0 auto',
       padding: `${SPACE[8]}px ${SPACE[4]}px ${SPACE[12]}px`,
     }}>
+      {/* Title */}
+      <div style={{ textAlign: 'center', marginBottom: SPACE[6] }}>
+        <h1 style={{
+          color: COLOR.text.primary,
+          fontSize: TYPE.xl.fontSize,
+          fontFamily: FONT_FAMILY,
+          fontWeight: WEIGHT.medium,
+          letterSpacing: TYPE.xl.letterSpacing,
+          margin: 0,
+        }}>
+          Digital Karyotype
+        </h1>
+      </div>
+
       {/* Single row — all chromosomes bottom-aligned */}
       <div style={{
         display: 'flex',
@@ -104,6 +130,7 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }
                 height={h}
                 detail="low"
                 hovered={isHovered}
+                isochoreBins={isochoreData[chr.name]}
               />
               <span style={{
                 color: isHovered ? COLOR.accent.teal : COLOR.text.tertiary,
@@ -155,6 +182,41 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }
             M
           </span>
         </div>
+      </div>
+
+      {/* Isochore legend */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: SPACE[4],
+        marginTop: SPACE[4],
+      }}>
+        {(['L1', 'L2', 'H1', 'H2', 'H3'] as const).map(cls => (
+          <div key={cls} style={{ display: 'flex', alignItems: 'center', gap: SPACE[1] }}>
+            <div style={{
+              width: 10,
+              height: 10,
+              backgroundColor: COLOR.isochore[cls],
+              borderRadius: 1,
+            }} />
+            <span style={{
+              color: COLOR.text.tertiary,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+            }}>
+              {cls}
+            </span>
+          </div>
+        ))}
+        <span style={{
+          color: COLOR.text.muted,
+          fontSize: TYPE.xs.fontSize,
+          fontFamily: FONT_FAMILY,
+          marginLeft: SPACE[2],
+        }}>
+          AT-rich &larr; &rarr; GC-rich
+        </span>
       </div>
 
       {/* Genome Overview summary */}

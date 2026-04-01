@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { CytoBand, GIEMSA_COLORS } from '@/config/cytobands';
 import { COLOR } from '@/config/theme';
+import type { IsochoreBin } from '@/lib/isochore';
 
 export type DetailLevel = 'low' | 'minimal' | 'high';
 
@@ -17,6 +18,7 @@ interface ChromosomeSVGProps {
   detail: DetailLevel;
   onClick?: () => void;
   hovered?: boolean;
+  isochoreBins?: IsochoreBin[];
 }
 
 // Centromere pinch ratio — how narrow the constriction gets
@@ -39,6 +41,7 @@ export function ChromosomeSVG({
   detail,
   onClick,
   hovered,
+  isochoreBins,
 }: ChromosomeSVGProps) {
   // chrM: draw a small teal circle
   if (chrName === 'chrM') {
@@ -170,44 +173,54 @@ export function ChromosomeSVG({
       {/* Band fills clipped to chromosome shape */}
       <g clipPath={`url(#${clipId})`}>
         {/* Background fill */}
-        <rect x={0} y={0} width={width} height={height} fill={GIEMSA_COLORS.gneg} />
+        <rect x={0} y={0} width={width} height={height} fill={isochoreBins?.length ? '#1a1a1a' : GIEMSA_COLORS.gneg} />
 
-        {/* Cytoband rects */}
-        {visibleBands.map((band, i) => {
-          const y = bpToY(band.start);
-          const h = Math.max(bpToY(band.end) - y, 0.5);
-          const fill = GIEMSA_COLORS[band.gieStain] || GIEMSA_COLORS.gneg;
-          return (
-            <rect
-              key={`${band.name}-${i}`}
-              x={0}
-              y={y}
-              width={width}
-              height={h}
-              fill={fill}
-            />
-          );
-        })}
-
-        {/* Telomere caps — teal tint at chromosome tips */}
-        {bands.length > 0 && (
+        {isochoreBins?.length ? (
           <>
+            {/* Isochore-colored bands */}
+            {isochoreBins.map((bin, i) => {
+              const y = bpToY(bin.bin_start);
+              const h = Math.max(bpToY(bin.bin_end) - y, 0.5);
+              return (
+                <rect key={i} x={0} y={y} width={width} height={h} fill={bin.color} />
+              );
+            })}
+            {/* Centromere overlay */}
             <rect
               x={0}
-              y={0}
+              y={bpToY(centromereStart)}
               width={width}
-              height={Math.max(bpToY(bands[0].end), 1)}
-              fill={COLOR.accent.teal}
-              opacity={0.4}
+              height={Math.max(bpToY(centromereEnd) - bpToY(centromereStart), 1)}
+              fill={GIEMSA_COLORS.acen}
+              opacity={0.7}
             />
-            <rect
-              x={0}
-              y={bpToY(bands[bands.length - 1].start)}
-              width={width}
-              height={Math.max(height - bpToY(bands[bands.length - 1].start), 1)}
-              fill={COLOR.accent.teal}
-              opacity={0.4}
-            />
+          </>
+        ) : (
+          <>
+            {/* Giemsa cytoband rects — fallback */}
+            {visibleBands.map((band, i) => {
+              const y = bpToY(band.start);
+              const h = Math.max(bpToY(band.end) - y, 0.5);
+              const fill = GIEMSA_COLORS[band.gieStain] || GIEMSA_COLORS.gneg;
+              return (
+                <rect key={`${band.name}-${i}`} x={0} y={y} width={width} height={h} fill={fill} />
+              );
+            })}
+            {/* Telomere caps — teal tint at chromosome tips */}
+            {bands.length > 0 && (
+              <>
+                <rect
+                  x={0} y={0} width={width}
+                  height={Math.max(bpToY(bands[0].end), 1)}
+                  fill={COLOR.accent.teal} opacity={0.4}
+                />
+                <rect
+                  x={0} y={bpToY(bands[bands.length - 1].start)} width={width}
+                  height={Math.max(height - bpToY(bands[bands.length - 1].start), 1)}
+                  fill={COLOR.accent.teal} opacity={0.4}
+                />
+              </>
+            )}
           </>
         )}
       </g>

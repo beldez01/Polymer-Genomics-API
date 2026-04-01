@@ -39,8 +39,8 @@ const TIER_1: Module[] = [
 
 const TIER_2: Module[] = [
   {
-    name: 'DMP',
-    desc: 'Differential methylation plots. IDAT and CSV workflows, browser-side processing.',
+    name: 'Methylation',
+    desc: 'DMP volcano/manhattan, TE/ERV family scoring, reactivation risk, Retro-Age clock. Auto-detects DMP results or beta values.',
     href: '/dmp',
     accent: COLOR.accent.rose,
   },
@@ -61,12 +61,6 @@ const TIER_2: Module[] = [
     desc: '5.6M transposable elements. TE age, awakening potential, EPIC v2 probe overlap.',
     href: '/transposome',
     accent: COLOR.accent.violet,
-  },
-  {
-    name: 'TE Methylation',
-    desc: 'Upload betas. Per-family methylation scoring, reactivation risk, Retro-Age clock.',
-    href: '/te-methylation',
-    accent: '#a855f7',
   },
 ];
 

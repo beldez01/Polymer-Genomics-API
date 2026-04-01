@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
+import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
 import { parseCSV } from '@/lib/dmp/parse-csv';
+import { parseBetaFile } from '@/lib/te-methylation/parse-betas';
+import { detectFileType } from '@/lib/methylation-detect';
 import type { DMPDataset } from '@/lib/dmp/types';
+import type { Platform } from '@/lib/te-methylation/parse-betas';
+
+export type UploadResult =
+  | { type: 'dmp'; dataset: DMPDataset }
+  | { type: 'betas'; betas: Map<string, number>; platform: Platform; filename: string };
 
 interface UploadZoneProps {
-  onDataLoaded: (dataset: DMPDataset) => void;
+  onDataLoaded: (result: UploadResult) => void;
 }
 
 export function UploadZone({ onDataLoaded }: UploadZoneProps) {
@@ -20,8 +27,24 @@ export function UploadZone({ onDataLoaded }: UploadZoneProps) {
     setParsing(true);
     try {
       const text = await file.text();
-      const dataset = parseCSV(text, file.name);
-      onDataLoaded(dataset);
+      const fileType = detectFileType(text);
+
+      if (fileType === 'dmp') {
+        const dataset = parseCSV(text, file.name);
+        onDataLoaded({ type: 'dmp', dataset });
+      } else {
+        const result = parseBetaFile(text);
+        if (result.betas.size === 0) {
+          setError('No valid probe data found. Expected CSV/TSV with probe_id + beta or DMP columns.');
+          return;
+        }
+        onDataLoaded({
+          type: 'betas',
+          betas: result.betas,
+          platform: result.platform,
+          filename: file.name,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file');
     } finally {
@@ -104,15 +127,17 @@ export function UploadZone({ onDataLoaded }: UploadZoneProps) {
         fontFamily: FONT_FAMILY,
         fontWeight: WEIGHT.medium,
       }}>
-        {parsing ? 'Parsing...' : 'Drop DMP results CSV here'}
+        {parsing ? 'Parsing...' : 'Drop methylation data here'}
       </div>
 
       <div style={{
         color: COLOR.text.muted,
         fontSize: TYPE.sm.fontSize,
         fontFamily: FONT_FAMILY,
+        textAlign: 'center',
+        lineHeight: 1.5,
       }}>
-        CSV or TSV with probe_id, delta_beta, p_value columns
+        Auto-detects: DMP results (limma/minfi) or beta values (single sample)
       </div>
 
       {error && (
