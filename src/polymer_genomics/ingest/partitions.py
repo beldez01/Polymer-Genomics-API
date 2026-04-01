@@ -15,7 +15,7 @@ import asyncpg
 ALLOWED_SCHEMAS = frozenset({
     "cpg", "gene", "probe", "methylation", "ref", "registry", "storage",
     "bioenergetics", "conservation", "expression", "regulatory", "annotation", "proteomics",
-    "biophysics",
+    "biophysics", "hla",
 })
 ALLOWED_TABLES = frozenset({
     "features",
@@ -59,6 +59,10 @@ ALLOWED_TABLES = frozenset({
     "accessibility_signal",
     "mutation_density",
     "hic_compartment",
+    # Phase 10: HLA alleles
+    "alleles",
+    "allele_features",
+    "allele_sequences",
 })
 ALLOWED_BUILDS = frozenset({"hg37", "hg38"})
 

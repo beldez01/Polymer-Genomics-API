@@ -70,6 +70,8 @@ mcp = FastMCP(
         "- SBS spectrum → lookup_sbs_spectrum (96-channel mutation thermodynamics, δΔG per trinucleotide)\n"
         "- Clock probes → lookup_clock_probes (Horvath/Hannum/PhenoAge/GrimAge/DunedinPACE/Retro-Age coefficients)\n"
         "- Probe-repeat overlap → lookup_probe_repeat_overlap (which probes sit in LINE/SINE/LTR/DNA repeats)\n"
+        "- **TE methylation analysis → analyze_te_methylation (upload betas → per-family scores, reactivation risk, Retro-Age)**\n"
+        "- TE platform coverage → te_platform_coverage (which TE families measurable per platform)\n"
         "- Data validation → validate_layer (row counts, value ranges, null fractions per layer)\n"
         "- Multi-part construct → evaluate_construct (per-part physics + junction analysis + assembly flags)\n"
         "- Batch evaluate → batch_evaluate (up to 100 sequences independently, batch summary)\n"
@@ -1696,6 +1698,220 @@ async def transposome_family(
         family_id: TE family identifier (e.g. 'L1HS', 'AluY', 'HERVK').
     """
     return await _get(f"/v1/transposome/family/{family_id}")
+
+
+# ── TE Methylation Analysis ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def analyze_te_methylation(
+    beta_values: dict[str, float],
+    platform: str | None = None,
+    chronological_age: float | None = None,
+) -> dict:
+    """Analyze transposable element methylation state from beta values.
+
+    Upload a dict of probe_id → beta_value and get per-TE-family methylation
+    scores, reactivation risk assessment, and optionally Retro-Age clock.
+
+    Returns per-family: mean beta, n probes, coverage fraction, delta from
+    reference range, reactivation risk (composite of family reactivation
+    potential × hypomethylation degree), and risk level classification.
+
+    Example output (truncated):
+    {"data": {"platform": "epic_v2", "total_probes": 423891,
+     "te_probes_scored": 67234, "te_fraction": 0.159,
+     "family_scores": [
+       {"family_id": "LINE_L1", "display_name": "L1 (LINE)",
+        "mean_beta": 0.72, "n_probes": 8234, "reference_midpoint": 0.73,
+        "delta": -0.01, "reactivation_risk": 0.12, "risk_level": "low"},
+       ...],
+     "retro_age": {"age": 54.2, "probes_used": 1204, "coverage": 0.87}}}
+
+    Args:
+        beta_values: Dict of probe_id → beta value (0.0–1.0). From parsed CSV/IDAT.
+        platform: Platform ('epic_v2', 'epic_v1', '450k'). Auto-detected if omitted.
+        chronological_age: Optional chronological age for Retro-Age delta.
+    """
+    n_input = len(beta_values)
+
+    # Auto-detect platform from probe count if not specified
+    if platform is None:
+        if n_input > 800_000:
+            platform = "epic_v2"
+        elif n_input > 500_000:
+            platform = "epic_v1"
+        else:
+            platform = "450k"
+
+    # Fetch probe-TE mapping
+    mapping_resp = await _get(
+        f"/v1/transposome/probe-te-mapping?platform={platform}&build=hg38"
+    )
+    mapping_data = mapping_resp.get("data", {})
+    families_map = mapping_data.get("families", {})
+
+    # Fetch family metadata
+    families_resp = await _get("/v1/transposome/families")
+    families_list = families_resp.get("data", {}).get("families", [])
+    family_meta = {f["family"]: f for f in families_list}
+
+    # Score each family
+    family_scores = []
+    total_te_probes = 0
+
+    for fam_name, fam_info in families_map.items():
+        probe_ids = fam_info.get("probe_ids", [])
+        matched_betas = [
+            beta_values[pid] for pid in probe_ids if pid in beta_values
+        ]
+        n_matched = len(matched_betas)
+        if n_matched == 0:
+            continue
+
+        total_te_probes += n_matched
+        mean_beta = sum(matched_betas) / n_matched
+        meta = family_meta.get(fam_name, {})
+        ref_range = meta.get("reference_beta_range", [0.55, 0.80])
+        ref_mid = (ref_range[0] + ref_range[1]) / 2
+        delta = mean_beta - ref_mid
+        reactivation = meta.get("reactivation_score", 0.3)
+        # Risk = reactivation potential × degree of hypomethylation
+        hypo_degree = max(0.0, (ref_mid - mean_beta) / ref_mid)
+        risk = round(reactivation * hypo_degree, 3)
+
+        if risk < 0.1:
+            risk_level = "low"
+        elif risk < 0.25:
+            risk_level = "moderate"
+        elif risk < 0.4:
+            risk_level = "elevated"
+        else:
+            risk_level = "high"
+
+        family_scores.append({
+            "family_id": meta.get("id", fam_name),
+            "display_name": meta.get("display_name", fam_name),
+            "class": fam_info.get("class", "Unknown"),
+            "mean_beta": round(mean_beta, 4),
+            "n_probes": n_matched,
+            "n_total": len(probe_ids),
+            "coverage": round(n_matched / len(probe_ids), 3),
+            "reference_range": ref_range,
+            "reference_midpoint": round(ref_mid, 3),
+            "delta": round(delta, 4),
+            "reactivation_score": reactivation,
+            "reactivation_risk": risk,
+            "risk_level": risk_level,
+            "biophysics": {
+                "gc_content": meta.get("gc_content"),
+                "stacking_dg37": meta.get("stacking_dg37"),
+                "wrapping_energy": meta.get("wrapping_energy"),
+            },
+        })
+
+    family_scores.sort(key=lambda x: x["reactivation_risk"], reverse=True)
+
+    # Retro-Age computation (optional)
+    retro_age_result = None
+    if chronological_age is not None or True:  # always compute if we can
+        try:
+            clock_resp = await _get(
+                "/v1/reference/clock-probes", {"clock": "retro_age_v2"}
+            )
+            clock_data = clock_resp.get("data", {})
+            clock_probes = clock_data.get("probes", [])
+            intercept = clock_data.get("intercept", 62.074)
+
+            if clock_probes:
+                age_sum = intercept
+                n_used = 0
+                for cp in clock_probes:
+                    pid = cp.get("probe_id")
+                    coeff = cp.get("coefficient", 0)
+                    if pid in beta_values:
+                        age_sum += beta_values[pid] * coeff
+                        n_used += 1
+
+                if n_used > 0:
+                    retro_age_result = {
+                        "age": round(age_sum, 2),
+                        "probes_used": n_used,
+                        "probes_total": len(clock_probes),
+                        "coverage": round(n_used / len(clock_probes), 3),
+                    }
+                    if chronological_age is not None:
+                        retro_age_result["chronological_age"] = chronological_age
+                        retro_age_result["acceleration"] = round(
+                            age_sum - chronological_age, 2
+                        )
+        except Exception:
+            pass  # Clock data not available
+
+    return {
+        "status": "complete",
+        "data": {
+            "platform": platform,
+            "total_input_probes": n_input,
+            "te_probes_scored": total_te_probes,
+            "te_fraction": round(total_te_probes / max(1, n_input), 4),
+            "n_families_scored": len(family_scores),
+            "family_scores": family_scores,
+            "retro_age": retro_age_result,
+        },
+    }
+
+
+@mcp.tool()
+async def te_platform_coverage(
+    platform: str = "epic_v2",
+) -> dict:
+    """TE family probe coverage by platform.
+
+    Returns which TE families can be measured on a given platform, with
+    probe counts per family. Useful for understanding array limitations
+    before analyzing TE methylation.
+
+    Args:
+        platform: Platform ('epic_v2', 'epic_v1', '450k').
+    """
+    families_resp = await _get("/v1/transposome/families")
+    families = families_resp.get("data", {}).get("families", [])
+
+    platform_key = {
+        "epic_v2": "epic_v2",
+        "epic_v1": "epic_v1",
+        "450k": "450k",
+    }.get(platform, platform)
+
+    coverage = []
+    for f in families:
+        counts = f.get("probe_counts_by_platform", {})
+        n = counts.get(platform_key, f.get("epic_v2_probes", 0))
+        coverage.append({
+            "family_id": f["id"],
+            "display_name": f["display_name"],
+            "class": f["class"],
+            "n_probes": n,
+            "copy_count": f["copy_count"],
+            "coverage_fraction": round(n / max(1, f["copy_count"]), 6),
+            "measurable": n >= 3,
+            "reference_beta_range": f.get("reference_beta_range"),
+        })
+
+    coverage.sort(key=lambda x: x["n_probes"], reverse=True)
+    measurable = sum(1 for c in coverage if c["measurable"])
+
+    return {
+        "status": "complete",
+        "data": {
+            "platform": platform,
+            "total_families": len(coverage),
+            "measurable_families": measurable,
+            "total_probes_in_te": sum(c["n_probes"] for c in coverage),
+            "families": coverage,
+        },
+    }
 
 
 def _register_compute_tools() -> None:

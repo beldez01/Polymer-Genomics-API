@@ -62,6 +62,12 @@ const TIER_2: Module[] = [
     href: '/transposome',
     accent: COLOR.accent.violet,
   },
+  {
+    name: 'TE Methylation',
+    desc: 'Upload betas. Per-family methylation scoring, reactivation risk, Retro-Age clock.',
+    href: '/te-methylation',
+    accent: '#a855f7',
+  },
 ];
 
 const TIER_3: Module[] = [

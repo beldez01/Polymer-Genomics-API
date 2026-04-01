@@ -11,12 +11,22 @@ with biophysics, probe coverage, and silencing metadata. Data comes from:
 import time
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
 
 router = APIRouter(prefix="/v1/transposome", tags=["transposome"])
+
+# ── Platform name mapping ────────────────────────────────────────────────
+# User-facing names → DB layer_key in probe.repeat_xref
+
+_PLATFORM_TO_DB = {
+    "epic_v2": "probe_epic_v2",
+    "epic_v1": "probe_epic_v1",
+    "450k": "probe_450k",
+}
+_DB_TO_PLATFORM = {v: k for k, v in _PLATFORM_TO_DB.items()}
 
 # ── In-memory cache (populated once per cold start) ───────────────────────
 
@@ -74,6 +84,38 @@ def _reactivation_score(repeat_class: str, divergence_pct: float) -> float:
     return round(min(1.0, base * (0.5 + 0.5 * age_factor)), 3)
 
 
+# ── Reference methylation ranges (curated heuristics) ───────────────────
+# Based on known biology: normal blood tissue, healthy adults.
+# Young TEs more heavily methylated; ERVs heterogeneous.
+# Format: { repeat_class: [low, high] }, overrides by family below.
+
+_REFERENCE_METHYLATION_CLASS: dict[str, list[float]] = {
+    "LINE": [0.60, 0.82],
+    "SINE": [0.70, 0.90],
+    "LTR":  [0.55, 0.80],
+    "DNA":  [0.50, 0.75],
+    "SVA":  [0.55, 0.78],
+}
+
+_REFERENCE_METHYLATION_FAMILY: dict[str, list[float]] = {
+    "L1":          [0.62, 0.84],   # LINE-1 consensus
+    "L2":          [0.55, 0.78],   # ancient, lower methylation
+    "Alu":         [0.72, 0.92],   # high CpG, heavily methylated
+    "MIR":         [0.58, 0.76],   # ancient SINE
+    "ERV1":        [0.55, 0.80],   # Class I gammaretroviral
+    "ERVK":        [0.60, 0.85],   # youngest ERV, heavily silenced
+    "ERVL":        [0.50, 0.75],   # ancient Class III
+    "ERVL-MaLR":   [0.52, 0.78],   # THE1A/C show rapid age loss
+}
+
+
+def _reference_range(repeat_class: str, repeat_family: str | None) -> list[float]:
+    """Get reference methylation range [low, high] for a TE family."""
+    if repeat_family and repeat_family in _REFERENCE_METHYLATION_FAMILY:
+        return _REFERENCE_METHYLATION_FAMILY[repeat_family]
+    return _REFERENCE_METHYLATION_CLASS.get(repeat_class, [0.50, 0.75])
+
+
 # ── Family aggregation query ─────────────────────────────────────────────
 
 _FAMILIES_SQL = """
@@ -84,7 +126,9 @@ SELECT
     f.total_bp,
     f.avg_divergence,
     f.median_length,
-    COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes
+    COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes,
+    COALESCE(p.epic_v1_probes, 0) AS epic_v1_probes,
+    COALESCE(p."450k_probes", 0)  AS "450k_probes"
 FROM annotation.te_family_summary f
 LEFT JOIN annotation.te_probe_counts p USING (repeat_class, repeat_family)
 ORDER BY f.total_bp DESC
@@ -147,6 +191,7 @@ async def _load_families() -> list[dict]:
         gc = gc_by_class.get(rc, 0.42)
         dg = dg_by_class.get(rc, -1.50)
 
+        ref_range = _reference_range(rc, rf)
         families.append({
             "id": _build_family_id(rc, rf),
             "display_name": _display_name(rc, rf),
@@ -167,6 +212,12 @@ async def _load_families() -> list[dict]:
             "reactivation_score": _reactivation_score(rc, div),
             "reactivation_contexts": contexts,
             "epic_v2_probes": r["epic_v2_probes"],
+            "probe_counts_by_platform": {
+                "epic_v2": r["epic_v2_probes"],
+                "epic_v1": r["epic_v1_probes"],
+                "450k": r["450k_probes"],
+            },
+            "reference_beta_range": ref_range,
             "retro_age_probes": 0,  # would need clock probe xref
             "has_intact_orfs": rc == "LTR" and div < 5.0,
             "is_active": rc in ("LINE", "SVA", "LTR") and div < 3.0,
@@ -194,7 +245,7 @@ SELECT
     chr_id,
     pos
 FROM probe.repeat_xref
-WHERE platform = 'epic_v2'
+WHERE platform = 'probe_epic_v2'
     AND build = 'hg38'
     AND repeat_class = $1
     AND (repeat_family = $2 OR ($2 IS NULL AND repeat_family IS NULL))
@@ -323,5 +374,120 @@ async def transposome_family_detail(family_id: str):
         query={"endpoint": "transposome_family_detail", "family_id": family_id},
         data=detail,
         db_time_ms=db_time,
+        _start_time=t0,
+    )
+
+
+# ── Probe-TE mapping (for TE methylation analyzer) ─────────────────────
+
+_mapping_cache: dict[str, dict] = {}
+
+_PROBE_TE_MAPPING_SQL = """
+SELECT
+    probe_id,
+    repeat_class,
+    repeat_family,
+    repeat_name,
+    repeat_age::text AS repeat_age,
+    divergence_pct
+FROM probe.repeat_xref
+WHERE platform = $1 AND build = $2
+ORDER BY repeat_class, repeat_family, probe_id
+"""
+
+
+@router.get("/probe-te-mapping")
+async def probe_te_mapping(
+    platform: str = Query(
+        "epic_v2",
+        description="Platform: 'epic_v2', 'epic_v1', '450k'",
+    ),
+    build: str = Query("hg38", description="Genome build"),
+):
+    """Full probe-to-TE-family mapping for a platform.
+
+    Returns all probes that overlap transposable elements, grouped by
+    repeat_family. Designed for one-time client fetch + caching. Use
+    this to score TE family methylation from user beta values.
+    """
+    t0 = time.monotonic()
+
+    cache_key = f"{platform}:{build}"
+    if cache_key in _mapping_cache:
+        return _envelope(
+            query={"endpoint": "probe_te_mapping", "platform": platform, "build": build},
+            data=_mapping_cache[cache_key],
+            db_time_ms=0.0,
+            _start_time=t0,
+        )
+
+    db_platform = _PLATFORM_TO_DB.get(platform, f"probe_{platform}")
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        db_start = time.monotonic()
+        rows = await conn.fetch(_PROBE_TE_MAPPING_SQL, db_platform, build)
+        db_time = (time.monotonic() - db_start) * 1000
+
+    # Group by repeat_family (not repeat_name — too granular)
+    families: dict[str, dict] = {}
+    for r in rows:
+        rf = r["repeat_family"] or r["repeat_class"]
+        if rf not in families:
+            families[rf] = {
+                "class": r["repeat_class"],
+                "repeat_family": rf,
+                "probe_ids": [],
+                "divergence_pct": float(r["divergence_pct"]) if r["divergence_pct"] else None,
+                "repeat_age": r["repeat_age"],
+            }
+        families[rf]["probe_ids"].append(r["probe_id"])
+
+    result = {
+        "platform": platform,
+        "build": build,
+        "families": families,
+        "total_probes": len(rows),
+        "n_families": len(families),
+    }
+
+    _mapping_cache[cache_key] = result
+
+    return _envelope(
+        query={"endpoint": "probe_te_mapping", "platform": platform, "build": build},
+        data=result,
+        db_time_ms=db_time,
+        _start_time=t0,
+    )
+
+
+@router.get("/reference-methylation")
+async def reference_methylation():
+    """Reference methylation ranges per TE family.
+
+    Returns curated heuristic ranges for normal blood tissue in healthy
+    adults. Useful for comparing user beta values against expected ranges
+    to identify hypo- or hypermethylation.
+    """
+    t0 = time.monotonic()
+    families = await _load_families()
+
+    ranges: dict[str, dict] = {}
+    for f in families:
+        ref = _reference_range(f["class"], f.get("family"))
+        ranges[f["id"]] = {
+            "display_name": f["display_name"],
+            "class": f["class"],
+            "family": f["family"],
+            "reference_beta_range": ref,
+            "reference_midpoint": round((ref[0] + ref[1]) / 2, 3),
+            "silencing_primary": f["silencing_primary"],
+            "reactivation_score": f["reactivation_score"],
+        }
+
+    return _envelope(
+        query={"endpoint": "reference_methylation"},
+        data={"families": ranges},
+        db_time_ms=0.0,
         _start_time=t0,
     )

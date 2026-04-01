@@ -669,3 +669,52 @@ export async function fetchTEFamilyDetail(familyId: string): Promise<TEFamilyDet
     `${API_BASE}/v1/transposome/family/${encodeURIComponent(familyId)}`,
   );
 }
+
+// ─── TE Methylation Analyzer ──────────────────────────────────────────────
+
+import type { TEProbeMapping } from '@/lib/te-methylation/types';
+
+export interface TEProbeMappingResponse {
+  status: string;
+  data: TEProbeMapping;
+}
+
+const _teMappingCache = new Map<string, TEProbeMappingResponse>();
+
+export async function fetchTEProbeMapping(
+  platform: string = 'epic_v2',
+  build: string = 'hg38',
+): Promise<TEProbeMappingResponse> {
+  const key = `${platform}:${build}`;
+  const cached = _teMappingCache.get(key);
+  if (cached) return cached;
+
+  const result = await fetchJSON<TEProbeMappingResponse>(
+    `${API_BASE}/v1/transposome/probe-te-mapping?platform=${platform}&build=${build}`,
+    { timeout: 15000 },
+  );
+  _teMappingCache.set(key, result);
+  return result;
+}
+
+export interface TEReferenceMethylationResponse {
+  status: string;
+  data: {
+    families: Record<string, {
+      display_name: string;
+      class: string;
+      family: string;
+      reference_beta_range: [number, number];
+      reference_midpoint: number;
+      silencing_primary: string;
+      reactivation_score: number;
+    }>;
+  };
+}
+
+export async function fetchTEReferenceMethylation(): Promise<TEReferenceMethylationResponse> {
+  return fetchJSON<TEReferenceMethylationResponse>(
+    `${API_BASE}/v1/transposome/reference-methylation`,
+    { timeout: 5000 },
+  );
+}

@@ -36,6 +36,7 @@ from polymer_genomics.routers.gene_profiles import router as gene_profiles_route
 from polymer_genomics.routers.recipes import router as recipes_router
 from polymer_genomics.routers.transposome import router as transposome_router
 from polymer_genomics.routers.design import router as design_router
+from polymer_genomics.routers.hla import router as hla_router
 
 
 @asynccontextmanager
@@ -103,6 +104,7 @@ app.include_router(gene_profiles_router)
 app.include_router(recipes_router)
 app.include_router(transposome_router)
 app.include_router(design_router)
+app.include_router(hla_router)
 
 
 @app.get("/ping")
