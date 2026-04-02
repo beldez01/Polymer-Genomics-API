@@ -10,7 +10,7 @@ import type {
   ExpressionCorrelationResult,
 } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.polymerbio.org';
+const API_BASE = '/api';
 
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);

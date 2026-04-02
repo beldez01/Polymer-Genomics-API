@@ -31,7 +31,7 @@ import { buildAnalysis, computeRetroAge } from '@/lib/te-methylation/scoring';
 import { buildDiffAnalysis } from '@/lib/te-methylation/dmp-scoring';
 import { computeSummary } from '@/lib/dmp/stats';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.polymerbio.org';
+const API_BASE = '/api';
 
 /* ── Types ── */
 
