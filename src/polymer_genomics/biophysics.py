@@ -561,7 +561,7 @@ def compute_all(
 ) -> dict:
     """Compute all biophysical properties for a sequence.
 
-    Convenience wrapper that calls all four compute functions and
+    Convenience wrapper that calls all compute functions and
     returns their results keyed by property name.
     """
     return {
@@ -569,4 +569,8 @@ def compute_all(
         "extinction": compute_extinction(seq),
         "form_propensity": compute_form_propensity(seq),
         "groove": compute_groove_profile(seq),
+        "structural": compute_structural(seq),
+        "contextual": compute_contextual(seq),
+        "curvature": compute_curvature(seq),
+        "motifs": detect_motifs(seq),
     }

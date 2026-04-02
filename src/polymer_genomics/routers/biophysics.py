@@ -12,10 +12,14 @@ from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.biophysics import (
     compute_all,
+    compute_contextual,
+    compute_curvature,
     compute_extinction,
     compute_form_propensity,
     compute_groove_profile,
+    compute_structural,
     compute_thermodynamics,
+    detect_motifs,
 )
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.coordinates import api_to_db, parse_region
@@ -24,9 +28,12 @@ from polymer_genomics.sequence import get_sequence
 
 router = APIRouter(prefix="/v1/biophysics", tags=["biophysics"])
 
-MAX_BIOPHYSICS_LENGTH = 10_000  # 10 kb max at full resolution
+MAX_BIOPHYSICS_LENGTH = 1_000_000  # 1 Mb max (contextual features are O(n), fast)
 
-_VALID_PROPERTIES = {"thermodynamics", "extinction", "form_propensity", "groove"}
+_VALID_PROPERTIES = {
+    "thermodynamics", "extinction", "form_propensity", "groove",
+    "structural", "contextual", "curvature", "motifs",
+}
 
 
 @router.get("/{build}/{region}")
@@ -43,7 +50,13 @@ async def compute_region_biophysics(
     per-dinucleotide profiles. Each dinucleotide step becomes one range element
     in the GRanges output (2 bp wide).
 
-    Maximum 10,000 bp per request at full resolution.
+    Property groups: thermodynamics, extinction, form_propensity, groove,
+    structural (roll/tilt/twist/rise/slide/shift + deformability),
+    contextual (bubble propensity, context deviation, local flexibility),
+    curvature (windowed roll/tilt accumulation),
+    motifs (G-quadruplex, Z-DNA, homopolymers, inverted repeats).
+
+    Maximum 1,000,000 bp per request.
     """
     start_time = time.monotonic()
 
@@ -102,6 +115,7 @@ async def compute_region_biophysics(
 
     # --- Compute properties ---
     results: dict = {}
+    motifs_result: dict | None = None
     if "thermodynamics" in requested:
         results["thermodynamics"] = compute_thermodynamics(seq, salt_mm=salt_mm)
     if "extinction" in requested:
@@ -110,6 +124,14 @@ async def compute_region_biophysics(
         results["form_propensity"] = compute_form_propensity(seq)
     if "groove" in requested:
         results["groove"] = compute_groove_profile(seq)
+    if "structural" in requested:
+        results["structural"] = compute_structural(seq)
+    if "contextual" in requested:
+        results["contextual"] = compute_contextual(seq)
+    if "curvature" in requested:
+        results["curvature"] = compute_curvature(seq)
+    if "motifs" in requested:
+        motifs_result = detect_motifs(seq)
 
     # --- Build GRanges output ---
     # Each dinucleotide step = one range element (2 bp, 1-based closed)
@@ -140,6 +162,18 @@ async def compute_region_biophysics(
     compute_time = (time.monotonic() - seq_time) * 1000
     total_time = (time.monotonic() - start_time) * 1000
 
+    data = {
+        "seqnames": seqnames,
+        "ranges": {"start": starts, "end": ends},
+        "strand": strand,
+        "mcols": mcols,
+        "summaries": summaries,
+        "n_steps": n_steps,
+        "sequence_length": len(seq),
+    }
+    if motifs_result is not None:
+        data["motifs"] = motifs_result
+
     return build_envelope(
         status="complete",
         query={
@@ -150,15 +184,7 @@ async def compute_region_biophysics(
             "properties": sorted(requested),
         },
         layers_resolved=[],
-        data={
-            "seqnames": seqnames,
-            "ranges": {"start": starts, "end": ends},
-            "strand": strand,
-            "mcols": mcols,
-            "summaries": summaries,
-            "n_steps": n_steps,
-            "sequence_length": len(seq),
-        },
+        data=data,
         db_time_ms=round(compute_time, 1),
         _start_time=start_time,
     )
