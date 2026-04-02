@@ -212,7 +212,7 @@ export default function HLAPage() {
       const locus = exprAllLoci ? undefined : selectedLocus ?? undefined;
       const result = await fetchWithinProtein({
         locus: locus ?? undefined,
-        include_features: true,
+        include_features: false,
       });
       setWpResult(result);
     } catch (e) {

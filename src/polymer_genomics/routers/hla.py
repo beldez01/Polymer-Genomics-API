@@ -1025,23 +1025,26 @@ async def expression_within_protein(
     feature_breakdown = []
     if include_features and qualifying:
         top_groups = qualifying[:5]
+
+        # Batch: collect all allele IDs across top groups in a single query
+        all_feature_ids: list[int] = []
+        group_id_map: dict[str, dict[str, set[int]]] = {}  # protein -> {normal: set, suffix: set}
         for group in top_groups:
             loc = group["locus"]
             grp = group["allele_group"]
             prot = group["protein_field"]
-
-            # Get allele IDs for this protein group
             group_alleles = protein_groups[(loc, grp, prot)]
-            normal_ids = [a["id"] for a in group_alleles if a["expression_suffix"] is None]
-            suffix_ids = [a["id"] for a in group_alleles
-                         if a["expression_suffix"] is not None and a["expression_suffix"] != "N"]
-
+            normal_ids = {a["id"] for a in group_alleles if a["expression_suffix"] is None}
+            suffix_ids = {a["id"] for a in group_alleles
+                         if a["expression_suffix"] is not None and a["expression_suffix"] != "N"}
             if not normal_ids or not suffix_ids:
                 continue
+            group_id_map[group["protein"]] = {"normal": normal_ids, "suffix": suffix_ids}
+            all_feature_ids.extend(normal_ids | suffix_ids)
 
-            all_ids = normal_ids + suffix_ids
+        if all_feature_ids:
             async with pool.acquire() as conn:
-                features = await conn.fetch(
+                all_features = await conn.fetch(
                     """SELECT allele_id, feature_type, feature_label, length_bp,
                               gc_content, cpg_count, cpg_density,
                               mean_stacking_dg37, melting_temp_est,
@@ -1050,21 +1053,30 @@ async def expression_within_protein(
                        WHERE layer_id = $1 AND allele_id = ANY($2::bigint[])
                          AND feature_type IN ('intron', '5utr', '3utr')
                        ORDER BY feature_label""",
-                    layer_id, all_ids,
+                    layer_id, all_feature_ids,
                 )
+
+            # Index all features by allele_id
+            features_by_allele: dict[int, list[dict]] = {}
+            for f in all_features:
+                features_by_allele.setdefault(f["allele_id"], []).append(dict(f))
+
+        # Process per group
+        feat_metrics = ["gc_content", "cpg_density", "mean_stacking_dg37", "melting_temp_est"]
+        for group in top_groups:
+            ids = group_id_map.get(group["protein"])
+            if not ids:
+                continue
 
             # Group features by label
             by_label: dict[str, dict[str, list]] = {}
-            normal_id_set = set(normal_ids)
-            for f in features:
-                label = f["feature_label"]
-                is_normal = f["allele_id"] in normal_id_set
-                cat = "normal" if is_normal else "suffix"
-                by_label.setdefault(label, {"normal": [], "suffix": []})
-                by_label[label][cat].append(dict(f))
+            for aid in ids["normal"] | ids["suffix"]:
+                cat = "normal" if aid in ids["normal"] else "suffix"
+                for f in features_by_allele.get(aid, []):
+                    label = f["feature_label"]
+                    by_label.setdefault(label, {"normal": [], "suffix": []})
+                    by_label[label][cat].append(f)
 
-            # Compute per-feature effects
-            feat_metrics = ["gc_content", "cpg_density", "mean_stacking_dg37", "melting_temp_est"]
             feature_effects = []
             for label, groups_by_cat in sorted(by_label.items()):
                 for fm in feat_metrics:

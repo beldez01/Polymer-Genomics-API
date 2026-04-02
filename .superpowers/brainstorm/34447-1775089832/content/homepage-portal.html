@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polymer Genomics — Homepage Concept</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0A0A0A;
+    color: #E0E0E0;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+    min-height: 100vh;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: #0D0D0D;
+    border-right: 1px solid #1a1a1a;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sidebar-brand {
+    color: #4ECDC4;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    margin-bottom: 32px;
+    line-height: 1.4;
+  }
+  .sidebar-section {
+    color: #555;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    color: #8a8a8a;
+    font-size: 11px;
+    text-decoration: none;
+    border-radius: 3px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .sidebar-link:hover {
+    color: #ccc;
+    background: rgba(78,205,196,0.05);
+  }
+  .sidebar-link .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .sidebar-spacer { flex: 1; }
+  .sidebar-stats {
+    color: #555;
+    font-size: 9px;
+    line-height: 1.8;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 12px;
+    margin-top: 8px;
+  }
+  .sidebar-stats .val { color: #8a8a8a; }
+
+  /* ── Main ── */
+  .main {
+    padding: 32px 40px;
+    max-width: 960px;
+  }
+
+  /* Search */
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .search-input {
+    flex: 1;
+    background: #111;
+    border: 1px solid #222;
+    color: #ccc;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-input:focus {
+    border-color: #4ECDC4;
+  }
+  .search-input::placeholder {
+    color: #444;
+  }
+  .search-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #8a8a8a;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .search-btn:hover {
+    border-color: #4ECDC4;
+    color: #4ECDC4;
+  }
+
+  /* Karyotype panel */
+  .karyotype-panel {
+    background: #0D0D0D;
+    border: 1px solid #1a1a1a;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .panel-title {
+    color: #4ECDC4;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .panel-meta {
+    color: #444;
+    font-size: 9px;
+  }
+  .chr-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 100px;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .chr-bar {
+    width: 6px;
+    border-radius: 3px 3px 0 0;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    position: relative;
+  }
+  .chr-bar:hover { opacity: 0.8; }
+  .chr-labels {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+  }
+  .chr-label {
+    width: 6px;
+    text-align: center;
+    font-size: 7px;
+    color: #444;
+  }
+  .iso-legend {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 8px;
+    align-items: center;
+  }
+  .iso-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: #555;
+  }
+  .iso-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+  }
+
+  /* Module cards grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: #0D0D0D;
+    border: 1px solid #1a1a1a;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .card:hover {
+    border-color: #333;
+  }
+  .card-name {
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .card-desc {
+    color: #555;
+    font-size: 9px;
+    line-height: 1.5;
+    padding-left: 12px;
+  }
+
+  /* Evaluate panel */
+  .evaluate-panel {
+    background: #0D0D0D;
+    border: 1px solid #1a1a1a;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .eval-input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #222;
+    color: #555;
+    font-family: inherit;
+    font-size: 11px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    outline: none;
+    resize: none;
+    height: 56px;
+  }
+  .eval-hint {
+    color: #333;
+    font-size: 9px;
+    margin-top: 6px;
+  }
+
+  /* Bottom row */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .info-panel {
+    background: #0D0D0D;
+    border: 1px solid #1a1a1a;
+    padding: 14px 16px;
+  }
+  .stat-line {
+    font-size: 11px;
+    line-height: 2;
+  }
+  .stat-val { color: #ccc; font-weight: 500; }
+  .stat-label { color: #555; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">POLYMER<br>GENOMICS</div>
+
+    <div class="sidebar-section">Explore</div>
+    <a class="sidebar-link"><span class="dot" style="background:#4ECDC4;"></span> Viewer</a>
+    <a class="sidebar-link"><span class="dot" style="background:#3b82f6;"></span> Atlas</a>
+
+    <div class="sidebar-section">Analyze</div>
+    <a class="sidebar-link"><span class="dot" style="background:#10b981;"></span> Evaluate</a>
+    <a class="sidebar-link"><span class="dot" style="background:#F43F5E;"></span> Methylation</a>
+    <a class="sidebar-link"><span class="dot" style="background:#F0A500;"></span> Clocks</a>
+    <a class="sidebar-link"><span class="dot" style="background:#8B5CF6;"></span> Transposome</a>
+    <a class="sidebar-link"><span class="dot" style="background:#3b82f6;"></span> HLA</a>
+
+    <div class="sidebar-section">Build</div>
+    <a class="sidebar-link"><span class="dot" style="background:#4ECDC4;"></span> API / MCP</a>
+    <a class="sidebar-link"><span class="dot" style="background:#4ECDC4;"></span> Developers</a>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="sidebar-stats">
+      <span class="val">29M</span> CpG sites<br>
+      <span class="val">937K</span> probes<br>
+      <span class="val">28</span> layers<br>
+      <span class="val">52</span> MCP tools<br>
+      <span class="val">hg38</span> + <span class="val">hg37</span>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <div class="main">
+
+    <!-- Search bar -->
+    <div class="search-row">
+      <input class="search-input" placeholder="Search gene, probe, or region...  TP53, cg00000029, chr17:7668421-7687490" />
+      <button class="search-btn">hg38</button>
+    </div>
+
+    <!-- Digital Karyotype -->
+    <div class="karyotype-panel">
+      <div class="panel-header">
+        <span class="panel-title">Digital Karyotype</span>
+        <span class="panel-meta">GRCh38/hg38 &middot; Bernardi isochores &middot; 1 Mb</span>
+      </div>
+      <div class="chr-row">
+        <div class="chr-bar" style="height:90px; background:linear-gradient(180deg, #3a7a5a 0%, #5a7a3a 15%, #2a5a8c 30%, #3a7a5a 45%, #999 48%, #999 52%, #2f5a6a 55%, #3a7a5a 70%, #2a5a8c 85%, #5a7a3a 100%);"></div>
+        <div class="chr-bar" style="height:84px; background:linear-gradient(180deg, #5a7a3a 0%, #3a7a5a 20%, #2f5a6a 35%, #999 38%, #999 42%, #2a5a8c 45%, #3a7a5a 65%, #2f5a6a 80%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:70px; background:linear-gradient(180deg, #3a7a5a 0%, #2a5a8c 25%, #2f5a6a 40%, #999 45%, #999 50%, #3a7a5a 55%, #2a5a8c 75%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:66px; background:linear-gradient(180deg, #2a5a8c 0%, #2f5a6a 20%, #999 25%, #999 30%, #3a7a5a 35%, #2a5a8c 60%, #2f5a6a 80%, #2a5a8c 100%);"></div>
+        <div class="chr-bar" style="height:64px; background:linear-gradient(180deg, #3a7a5a 0%, #2f5a6a 20%, #999 25%, #999 30%, #2a5a8c 35%, #3a7a5a 55%, #2f5a6a 75%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:60px; background:linear-gradient(180deg, #3a7a5a 0%, #5a7a3a 20%, #2f5a6a 30%, #999 33%, #999 37%, #2a5a8c 40%, #3a7a5a 65%, #2f5a6a 85%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:56px; background:linear-gradient(180deg, #3a7a5a 0%, #2f5a6a 25%, #999 35%, #999 40%, #3a7a5a 45%, #2a5a8c 70%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:52px; background:linear-gradient(180deg, #2f5a6a 0%, #3a7a5a 20%, #999 30%, #999 34%, #2a5a8c 38%, #3a7a5a 60%, #2f5a6a 80%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:50px; background:linear-gradient(180deg, #3a7a5a 0%, #2a5a8c 20%, #999 30%, #999 35%, #2f5a6a 40%, #3a7a5a 65%, #2a5a8c 85%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:48px; background:linear-gradient(180deg, #3a7a5a 0%, #2f5a6a 25%, #999 30%, #999 34%, #3a7a5a 38%, #2a5a8c 60%, #3a7a5a 80%, #2f5a6a 100%);"></div>
+        <div class="chr-bar" style="height:48px; background:linear-gradient(180deg, #5a7a3a 0%, #3a7a5a 20%, #2f5a6a 35%, #999 38%, #999 42%, #2a5a8c 45%, #3a7a5a 70%, #2f5a6a 90%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:48px; background:linear-gradient(180deg, #3a7a5a 0%, #5a7a3a 15%, #2f5a6a 25%, #999 28%, #999 32%, #3a7a5a 35%, #2a5a8c 55%, #3a7a5a 80%, #2f5a6a 100%);"></div>
+        <div class="chr-bar" style="height:40px; background:linear-gradient(180deg, #2a5a8c 0%, #2f5a6a 15%, #999 18%, #999 22%, #3a7a5a 30%, #2a5a8c 55%, #2f5a6a 80%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:38px; background:linear-gradient(180deg, #2a5a8c 0%, #2f5a6a 15%, #999 18%, #999 22%, #3a7a5a 30%, #2f5a6a 55%, #3a7a5a 80%, #2f5a6a 100%);"></div>
+        <div class="chr-bar" style="height:36px; background:linear-gradient(180deg, #2a5a8c 0%, #999 16%, #999 22%, #3a7a5a 28%, #2f5a6a 50%, #3a7a5a 75%, #5a7a3a 100%);"></div>
+        <div class="chr-bar" style="height:32px; background:linear-gradient(180deg, #5a7a3a 0%, #3a7a5a 20%, #999 38%, #999 44%, #2f5a6a 50%, #3a7a5a 75%, #5a7a3a 100%);"></div>
+        <div class="chr-bar" style="height:30px; background:linear-gradient(180deg, #5a7a3a 0%, #3a7a5a 15%, #999 27%, #999 33%, #2f5a6a 40%, #3a7a5a 65%, #5a7a3a 90%, #8c5a2a 100%);"></div>
+        <div class="chr-bar" style="height:28px; background:linear-gradient(180deg, #2a5a8c 0%, #2f5a6a 20%, #999 25%, #999 30%, #3a7a5a 40%, #2a5a8c 65%, #2f5a6a 100%);"></div>
+        <div class="chr-bar" style="height:22px; background:linear-gradient(180deg, #5a7a3a 0%, #8c5a2a 15%, #5a7a3a 30%, #999 40%, #999 48%, #3a7a5a 55%, #5a7a3a 75%, #8c5a2a 100%);"></div>
+        <div class="chr-bar" style="height:24px; background:linear-gradient(180deg, #3a7a5a 0%, #2f5a6a 20%, #999 38%, #999 48%, #3a7a5a 55%, #2f5a6a 80%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:18px; background:linear-gradient(180deg, #2a5a8c 0%, #999 22%, #999 30%, #3a7a5a 40%, #2f5a6a 70%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:20px; background:linear-gradient(180deg, #3a7a5a 0%, #5a7a3a 15%, #999 25%, #999 32%, #3a7a5a 40%, #5a7a3a 65%, #8c5a2a 85%, #5a7a3a 100%);"></div>
+        <div class="chr-bar" style="height:56px; background:linear-gradient(180deg, #2a5a8c 0%, #2f5a6a 20%, #3a7a5a 35%, #999 38%, #999 42%, #2a5a8c 48%, #2f5a6a 65%, #2a5a8c 80%, #3a7a5a 100%);"></div>
+        <div class="chr-bar" style="height:22px; background:linear-gradient(180deg, #2a5a8c 0%, #999 16%, #999 22%, #2a5a8c 30%, #2f5a6a 60%, #2a5a8c 100%);"></div>
+      </div>
+      <div class="chr-labels">
+        <span class="chr-label">1</span><span class="chr-label">2</span><span class="chr-label">3</span><span class="chr-label">4</span><span class="chr-label">5</span><span class="chr-label">6</span><span class="chr-label">7</span><span class="chr-label">8</span><span class="chr-label">9</span><span class="chr-label">10</span><span class="chr-label">11</span><span class="chr-label">12</span><span class="chr-label">13</span><span class="chr-label">14</span><span class="chr-label">15</span><span class="chr-label">16</span><span class="chr-label">17</span><span class="chr-label">18</span><span class="chr-label">19</span><span class="chr-label">20</span><span class="chr-label">21</span><span class="chr-label">22</span><span class="chr-label">X</span><span class="chr-label">Y</span>
+      </div>
+      <div class="iso-legend">
+        <span class="iso-legend-item"><span class="iso-swatch" style="background:#2a5a8c;"></span> L1</span>
+        <span class="iso-legend-item"><span class="iso-swatch" style="background:#2f5a6a;"></span> L2</span>
+        <span class="iso-legend-item"><span class="iso-swatch" style="background:#3a7a5a;"></span> H1</span>
+        <span class="iso-legend-item"><span class="iso-swatch" style="background:#5a7a3a;"></span> H2</span>
+        <span class="iso-legend-item"><span class="iso-swatch" style="background:#8c5a2a;"></span> H3</span>
+        <span style="color:#333; font-size:9px; margin-left:4px;">AT-rich &larr; &rarr; GC-rich</span>
+      </div>
+    </div>
+
+    <!-- Module cards -->
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#4ECDC4;"></span> Genome Viewer</div>
+        <div class="card-desc">CpG, probe, isochore, biophysics layers. hg38 + hg37.</div>
+      </div>
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#F43F5E;"></span> Methylation</div>
+        <div class="card-desc">DMP analysis, TE/ERV scoring, reactivation risk.</div>
+      </div>
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#F0A500;"></span> Epigenetic Clocks</div>
+        <div class="card-desc">6 clock systems. Probe anatomy, coefficients.</div>
+      </div>
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#8B5CF6;"></span> Transposome</div>
+        <div class="card-desc">5.6M elements. TE age, awakening, probe overlap.</div>
+      </div>
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#3b82f6;"></span> HLA</div>
+        <div class="card-desc">Allele biophysics. 6 loci, expression mismatch.</div>
+      </div>
+      <div class="card">
+        <div class="card-name"><span class="card-dot" style="background:#4ECDC4;"></span> API / MCP</div>
+        <div class="card-desc">52 tools. REST + Model Context Protocol.</div>
+      </div>
+    </div>
+
+    <!-- Evaluate + info row -->
+    <div class="bottom-row">
+      <div class="evaluate-panel">
+        <div class="panel-header">
+          <span class="panel-title">Evaluate Sequence</span>
+          <span class="panel-meta">10 bp &ndash; 100 kb</span>
+        </div>
+        <textarea class="eval-input" placeholder="Paste any DNA sequence...  ATCGATCG..."></textarea>
+        <div class="eval-hint">GC content &middot; stacking energy &middot; melting temp &middot; CpG islands &middot; structural flags</div>
+      </div>
+      <div class="info-panel">
+        <div class="panel-header">
+          <span class="panel-title">Data</span>
+          <span class="panel-meta">GRCh38 + GRCh37</span>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="stat-line"><span class="stat-val">29,107,693</span> <span class="stat-label">CpG sites</span></div>
+          <div class="stat-line"><span class="stat-val">937,688</span> <span class="stat-label">EPIC v2 probes</span></div>
+          <div class="stat-line"><span class="stat-val">63,608</span> <span class="stat-label">GENCODE v44 transcripts</span></div>
+          <div class="stat-line"><span class="stat-val">28</span> <span class="stat-label">annotation layers</span></div>
+          <div class="stat-line"><span class="stat-val">52</span> <span class="stat-label">MCP tools</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
