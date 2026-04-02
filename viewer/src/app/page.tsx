@@ -62,6 +62,12 @@ const TIER_2: Module[] = [
     href: '/transposome',
     accent: COLOR.accent.violet,
   },
+  {
+    name: 'HLA',
+    desc: 'Allele biophysics for 6 transplant loci. Non-coding divergence, expression mismatch, match scoring.',
+    href: '/hla',
+    accent: '#3b82f6',
+  },
 ];
 
 const TIER_3: Module[] = [
