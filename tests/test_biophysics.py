@@ -4,6 +4,7 @@ import pytest
 
 from polymer_genomics.biophysics import (
     compute_all,
+    compute_contextual,
     compute_extinction,
     compute_form_propensity,
     compute_groove_profile,
@@ -188,3 +189,55 @@ class TestComputeStructuralParams:
         result = compute_structural("ACGT")
         assert "mean_twist" in result["summary"]
         assert "mean_deformability" in result["summary"]
+
+
+# ── Contextual Features ───────────────────────────────────────────────────
+
+
+class TestComputeContextualFeatures:
+    def test_bubble_propensity_weak_region(self):
+        # TA steps are weakest (-0.58 kcal/mol), high bubble propensity
+        seq = "TATATATATATA"
+        result = compute_contextual(seq, window=5)
+        steps_with_bp = [s for s in result["per_step"] if "bubble_propensity" in s]
+        assert all(s["bubble_propensity"] > 0.5 for s in steps_with_bp)
+
+    def test_bubble_propensity_stable_region(self):
+        # GC steps are strongest (-2.24 kcal/mol)
+        seq = "GCGCGCGCGCGC"
+        result = compute_contextual(seq, window=5)
+        steps_with_bp = [s for s in result["per_step"] if "bubble_propensity" in s]
+        assert all(s["bubble_propensity"] < 0.2 for s in steps_with_bp)
+
+    def test_context_deviation_anchor(self):
+        # G in weak AT context should be an anchor (negative deviation = stronger than context)
+        seq = "AAAAAGAAAAA"
+        result = compute_contextual(seq, window=5)
+        # AG step at position 4 or GA step at position 5 should have negative deviation
+        g_adjacent = [s for s in result["per_step"] if s["position"] in (4, 5)]
+        assert any(s["context_deviation"] < 0 for s in g_adjacent)
+
+    def test_context_deviation_vulnerability(self):
+        # A in strong GC context should be a vulnerability (positive deviation)
+        seq = "GGGGGAGGGGG"
+        result = compute_contextual(seq, window=5)
+        a_adjacent = [s for s in result["per_step"] if s["position"] in (4, 5)]
+        assert any(s["context_deviation"] > 0 for s in a_adjacent)
+
+    def test_output_length(self):
+        seq = "ACGTACGTACGT"
+        result = compute_contextual(seq, window=3)
+        assert len(result["per_step"]) == 11
+        assert result["summary"]["n_steps"] == 11
+
+    def test_empty_sequence(self):
+        result = compute_contextual("A", window=5)
+        assert result["per_step"] == []
+        assert result["summary"]["n_steps"] == 0
+
+    def test_summary_fields(self):
+        result = compute_contextual("ACGTACGT", window=3)
+        assert "mean_bubble_propensity" in result["summary"]
+        assert "max_bubble_propensity" in result["summary"]
+        assert "mean_flexibility" in result["summary"]
+        assert "window" in result["summary"]

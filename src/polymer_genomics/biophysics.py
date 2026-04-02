@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+
 from polymer_genomics.ingest.reference_constants import (
     _A_FORM_PROPENSITY,
     _GROOVE_GEOMETRY,
@@ -308,6 +310,90 @@ def compute_structural(sequence: str) -> dict:
         for key in ("roll", "tilt", "twist", "rise", "slide", "shift", "deformability"):
             vals = [s[key] for s in per_step]
             summary[f"mean_{key}"] = round(sum(vals) / n, 3)
+    return {"per_step": per_step, "summary": summary}
+
+
+def compute_contextual(sequence: str, window: int = 10) -> dict:
+    """Compute contextual biophysical features using sliding windows.
+
+    Features per step:
+    - delta_g_37: raw step stacking energy (kcal/mol)
+    - local_stability: windowed mean ΔG (kcal/mol/step)
+    - context_deviation: step ΔG minus local mean (positive = weaker than context)
+    - bubble_propensity: sigmoid-scaled probability of local denaturation (0-1)
+    - deformability: raw TRX value (0-43)
+    - local_flexibility: windowed mean TRX deformability
+    """
+    seq = sequence.upper()
+    n = len(seq) - 1
+    if n < 1:
+        return {"per_step": [], "summary": {"n_steps": 0}}
+
+    # Build per-step arrays
+    dg_values = np.full(n, np.nan)
+    trx_values = np.full(n, np.nan)
+
+    for i in range(n):
+        dinuc = seq[i:i+2]
+        params = _NN_PARAMS.get(dinuc)
+        if params:
+            dg_values[i] = params["delta_g_37"]
+        trx = _TRX_DEFORMABILITY.get(dinuc)
+        if trx is not None:
+            trx_values[i] = float(trx)
+
+    # Centered rolling mean with edge handling
+    def _windowed_mean(arr: np.ndarray, w: int) -> np.ndarray:
+        result = np.full(len(arr), np.nan)
+        valid = ~np.isnan(arr)
+        cs = np.where(valid, arr, 0.0).cumsum()
+        cs = np.insert(cs, 0, 0.0)
+        cv = valid.astype(float).cumsum()
+        cv = np.insert(cv, 0, 0.0)
+        half = w // 2
+        for i in range(len(arr)):
+            lo = max(0, i - half)
+            hi = min(len(arr), i + half + 1)
+            count = cv[hi] - cv[lo]
+            if count > 0:
+                result[i] = (cs[hi] - cs[lo]) / count
+        return result
+
+    local_dg = _windowed_mean(dg_values, window)
+    local_trx = _windowed_mean(trx_values, window)
+
+    # Context deviation: step ΔG minus local mean
+    # Positive = weaker than context (vulnerability), negative = stronger (anchor)
+    context_dev = dg_values - local_dg
+
+    # Bubble propensity: sigmoid of how much local ΔG exceeds stability threshold
+    # Centered at -1.2 kcal/mol/step (typical genome average)
+    # More positive (less negative) ΔG = more bubble-prone
+    bubble_prop = 1.0 / (1.0 + np.exp(-4.0 * (local_dg + 1.2)))
+
+    # Build per-step output
+    per_step = []
+    for i in range(n):
+        dinuc = seq[i:i+2]
+        entry: dict = {"position": i, "dinucleotide": dinuc}
+        if not np.isnan(dg_values[i]):
+            entry["delta_g_37"] = round(float(dg_values[i]), 3)
+            entry["local_stability"] = round(float(local_dg[i]), 3)
+            entry["context_deviation"] = round(float(context_dev[i]), 3)
+            entry["bubble_propensity"] = round(float(bubble_prop[i]), 4)
+        if not np.isnan(trx_values[i]):
+            entry["deformability"] = int(trx_values[i])
+            entry["local_flexibility"] = round(float(local_trx[i]), 2)
+        per_step.append(entry)
+
+    summary = {
+        "n_steps": n,
+        "window": window,
+        "mean_bubble_propensity": round(float(np.nanmean(bubble_prop)), 4),
+        "max_bubble_propensity": round(float(np.nanmax(bubble_prop)), 4),
+        "mean_flexibility": round(float(np.nanmean(local_trx)), 2),
+    }
+
     return {"per_step": per_step, "summary": summary}
 
 
