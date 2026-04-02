@@ -50,11 +50,12 @@ async def seed_hla_data(_txn_conn):
     # Ensure hla schema exists
     await conn.execute("CREATE SCHEMA IF NOT EXISTS hla")
 
-    # Insert test alleles: 3 HLA-A alleles (2 share same protein)
+    # Insert test alleles: 4 HLA-A alleles (3 share protein 01, 1 different protein)
     allele_ids = []
     for allele_name, group, protein, syn, nc, gc, dg37, tm, nc_gc, nc_dg37, nc_tm, expr_suf in [
         ("A*02:01:01:01", "02", "01", "01", "01", 0.412, -1.45, 78.2, 0.385, -1.32, 74.1, None),
         ("A*02:01:01:02", "02", "01", "01", "02", 0.415, -1.44, 78.5, 0.390, -1.35, 74.8, None),
+        ("A*02:01:01:03", "02", "01", "01", "03", 0.420, -1.42, 79.0, 0.400, -1.40, 75.5, "Q"),
         ("A*02:05:01:01", "02", "05", "01", "01", 0.408, -1.48, 77.1, 0.375, -1.28, 73.2, "N"),
     ]:
         aid = await conn.fetchval("""
@@ -137,7 +138,7 @@ class TestHLALoci:
         hla_a = next(l for l in body["loci"] if l["locus"] == "HLA-A")
         assert hla_a["mean_gc_content"] is not None
         assert hla_a["mean_stacking_dg37"] is not None
-        assert hla_a["genomic_alleles"] == 3
+        assert hla_a["genomic_alleles"] == 4
 
 
 class TestHLAAlleles:
@@ -147,20 +148,20 @@ class TestHLAAlleles:
         resp = await client.get("/v1/hla/alleles/A")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["total"] == 3
-        assert len(body["alleles"]) == 3
+        assert body["total"] == 4
+        assert len(body["alleles"]) == 4
 
     async def test_filter_by_allele_group(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/alleles/A?allele_group=02&protein=01")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["total"] == 2  # A*02:01:01:01 and A*02:01:01:02
+        assert body["total"] == 3  # A*02:01:01:01, A*02:01:01:02, A*02:01:01:03
 
     async def test_filter_genomic_only(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/alleles/A?genomic_only=true")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["total"] == 3  # all have has_genomic=true
+        assert body["total"] == 4  # all have has_genomic=true
 
     async def test_invalid_locus(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/alleles/XYZ")
@@ -255,7 +256,7 @@ class TestHLAExpressionCorrelation:
         assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "complete"
-        assert body["n_alleles"] == 3
+        assert body["n_alleles"] == 4
 
     async def test_class_distribution(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/expression-correlation")
@@ -265,6 +266,8 @@ class TestHLAExpressionCorrelation:
         assert dist["normal"]["n"] == 2  # two normal alleles
         assert "null" in dist
         assert dist["null"]["n"] == 1  # one N allele
+        assert "questionable" in dist
+        assert dist["questionable"]["n"] == 1  # one Q allele
 
     async def test_effect_sizes_present(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/expression-correlation")
@@ -285,7 +288,7 @@ class TestHLAExpressionCorrelation:
         resp = await client.get("/v1/hla/expression-correlation?locus=A")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["n_alleles"] == 3
+        assert body["n_alleles"] == 4
 
     async def test_focus_full(self, client, seed_hla_data):
         resp = await client.get("/v1/hla/expression-correlation?focus=full")
@@ -309,6 +312,52 @@ class TestHLAExpressionCorrelation:
         assert resp.status_code == 400
 
 
+class TestHLAWithinProtein:
+    """GET /v1/hla/expression-within-protein"""
+
+    async def test_within_protein_returns(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-within-protein?min_alleles=2")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "complete"
+        assert body["n_protein_groups_total"] >= 1
+
+    async def test_finds_qualifying_group(self, client, seed_hla_data):
+        """Protein 02:01 has 2 normal + 1 Q allele → should qualify."""
+        resp = await client.get("/v1/hla/expression-within-protein?min_alleles=2")
+        body = resp.json()
+        # Should find at least 1 qualifying group (A*02:01)
+        assert body["n_protein_groups_tested"] >= 1
+        group = body["protein_groups"][0]
+        assert group["n_normal"] >= 1
+        assert group["n_suffix"] >= 1
+        assert "Q" in group["suffix_types"]
+
+    async def test_aggregate_effects(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-within-protein?min_alleles=2")
+        body = resp.json()
+        if body["n_protein_groups_tested"] > 0:
+            assert len(body["aggregate_effects"]) > 0
+            top = body["aggregate_effects"][0]
+            assert "mean_d" in top
+            assert "direction_consistency" in top
+
+    async def test_excludes_null_alleles(self, client, seed_hla_data):
+        """N-suffix alleles should be excluded (coding knockouts)."""
+        resp = await client.get("/v1/hla/expression-within-protein?min_alleles=2")
+        body = resp.json()
+        for group in body["protein_groups"]:
+            assert "N" not in group["suffix_types"]
+
+    async def test_with_features(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-within-protein?min_alleles=2&include_features=true")
+        assert resp.status_code == 200
+
+    async def test_filter_by_locus(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-within-protein?locus=A&min_alleles=2")
+        assert resp.status_code == 200
+
+
 class TestHLADivergence:
     """POST /v1/hla/noncoding-divergence"""
 
@@ -320,7 +369,7 @@ class TestHLADivergence:
         })
         assert resp.status_code == 200
         body = resp.json()
-        assert body["n_alleles"] == 2  # A*02:01:01:01 and A*02:01:01:02
+        assert body["n_alleles"] == 3  # A*02:01:01:01, A*02:01:01:02, A*02:01:01:03
         assert body["most_variable_metric"] is not None
 
     async def test_divergence_has_variance_ranking(self, client, seed_hla_data):

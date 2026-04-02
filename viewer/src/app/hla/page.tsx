@@ -5,10 +5,11 @@ import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/the
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { HLASidebar } from '@/components/hla/HLASidebar';
-import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation } from '@/lib/hla/api';
+import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation, fetchWithinProtein } from '@/lib/hla/api';
 import type {
   HLALocus, HLAClass, HLATab, LocusSummary, AlleleListItem,
   AlleleDetail, CompareResult, DivergenceResult, ExpressionCorrelationResult,
+  WithinProteinResult,
 } from '@/lib/hla/types';
 
 /* ── Styles ── */
@@ -84,6 +85,11 @@ export default function HLAPage() {
   const [exprAllLoci, setExprAllLoci] = useState(false);
   const [exprResult, setExprResult] = useState<ExpressionCorrelationResult | null>(null);
   const [exprLoading, setExprLoading] = useState(false);
+
+  // Within-protein state
+  const [wpResult, setWpResult] = useState<WithinProteinResult | null>(null);
+  const [wpLoading, setWpLoading] = useState(false);
+  const [wpExpanded, setWpExpanded] = useState<string | null>(null);
 
   // Sort
   const [sortKey, setSortKey] = useState<string>('allele_name');
@@ -199,10 +205,30 @@ export default function HLAPage() {
     }
   }, [selectedLocus, exprFocus, exprAllLoci]);
 
-  // Auto-fetch when switching to expression tab
+  /* ── Within-protein test ── */
+  const handleWithinProtein = useCallback(async () => {
+    setWpLoading(true);
+    try {
+      const locus = exprAllLoci ? undefined : selectedLocus ?? undefined;
+      const result = await fetchWithinProtein({
+        locus: locus ?? undefined,
+        include_features: true,
+      });
+      setWpResult(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Within-protein test failed');
+    } finally {
+      setWpLoading(false);
+    }
+  }, [selectedLocus, exprAllLoci]);
+
+  // Auto-fetch both when switching to expression tab
   useEffect(() => {
     if (activeTab === 'expression' && !exprResult && !exprLoading) {
       handleExprCorrelation();
+    }
+    if (activeTab === 'expression' && !wpResult && !wpLoading) {
+      handleWithinProtein();
     }
   }, [activeTab]);
 
@@ -847,6 +873,198 @@ export default function HLAPage() {
                       )}
                     </div>
                   )}
+
+                  {/* ── WITHIN-PROTEIN TEST ── */}
+                  <div style={{ marginTop: SPACE[6], borderTop: `1px solid ${COLOR.border.subtle}`, paddingTop: SPACE[5] }}>
+                    <div style={SECTION_HEADER}>Within-Protein Expression Test</div>
+                    <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
+                      The Bettens test: among alleles encoding the <strong>same protein</strong>, do
+                      expression-suffix alleles (L, Q, S, C, A) differ in non-coding biophysics from
+                      their normally-expressed siblings? Excludes null (N) alleles (coding knockouts).
+                    </p>
+
+                    {!wpResult && !wpLoading && (
+                      <button onClick={handleWithinProtein} style={{ ...COMPONENT.button.small, backgroundColor: COLOR.accent.teal, color: COLOR.bg.primary, borderColor: COLOR.accent.teal }}>
+                        Run Within-Protein Test
+                      </button>
+                    )}
+
+                    {wpLoading && (
+                      <div style={{ padding: SPACE[4], color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>
+                        Analyzing protein groups...
+                      </div>
+                    )}
+
+                    {wpResult && (
+                      <div>
+                        <div style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.muted, marginBottom: SPACE[4] }}>
+                          {wpResult.n_protein_groups_tested} protein groups qualify
+                          (of {wpResult.n_protein_groups_total.toLocaleString()} total) —
+                          groups with ≥{wpResult.min_alleles} alleles, at least 1 normal + 1 suffix (excl. N)
+                        </div>
+
+                        {wpResult.n_protein_groups_tested === 0 && (
+                          <div style={{ padding: SPACE[4], color: COLOR.text.muted, fontSize: TYPE.sm.fontSize, border: `1px solid ${COLOR.border.subtle}`, textAlign: 'center' }}>
+                            No qualifying protein groups found. Try &ldquo;All loci&rdquo; or lower the minimum allele threshold.
+                          </div>
+                        )}
+
+                        {/* Aggregate effects */}
+                        {wpResult.aggregate_effects.length > 0 && (
+                          <div style={{ marginBottom: SPACE[5] }}>
+                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                              AGGREGATE — mean effect across {wpResult.n_protein_groups_tested} protein groups
+                            </div>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr>
+                                  <th style={HEADER}>NC Metric</th>
+                                  <th style={{ ...HEADER, textAlign: 'right' }}>Mean d</th>
+                                  <th style={{ ...HEADER, textAlign: 'right' }}>Mean |d|</th>
+                                  <th style={{ ...HEADER, textAlign: 'right' }}>Groups</th>
+                                  <th style={{ ...HEADER, textAlign: 'right' }}>Consistency</th>
+                                  <th style={HEADER}>Direction</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {wpResult.aggregate_effects.map((e) => {
+                                  const isLarge = e.mean_abs_d >= 0.8;
+                                  const isMed = e.mean_abs_d >= 0.5;
+                                  return (
+                                    <tr key={e.metric}>
+                                      <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal }}>
+                                        {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
+                                      </td>
+                                      <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
+                                        {e.mean_d > 0 ? '+' : ''}{e.mean_d.toFixed(3)}
+                                      </td>
+                                      <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.mean_abs_d.toFixed(3)}</td>
+                                      <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.n_groups}</td>
+                                      <td style={{ ...CELL, textAlign: 'right', color: e.direction_consistency >= 0.8 ? COLOR.accent.teal : COLOR.text.muted }}>
+                                        {(e.direction_consistency * 100).toFixed(0)}%
+                                        <span style={{ fontSize: 8, color: COLOR.text.faint, marginLeft: 3 }}>
+                                          ({e.direction_positive}+ / {e.direction_negative}−)
+                                        </span>
+                                      </td>
+                                      <td style={{ ...CELL, fontSize: 9, color: COLOR.text.muted }}>{e.dominant_direction}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* Top protein groups */}
+                        {wpResult.protein_groups.length > 0 && (
+                          <div style={{ marginBottom: SPACE[5] }}>
+                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                              TOP PROTEIN GROUPS by max |d|
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
+                              {wpResult.protein_groups.slice(0, 15).map((g) => {
+                                const isExpanded = wpExpanded === g.protein;
+                                return (
+                                  <div key={g.protein} style={{
+                                    border: `1px solid ${g.max_abs_d >= 0.8 ? COLOR.accent.teal : COLOR.border.subtle}30`,
+                                    padding: `${SPACE[2]}px ${SPACE[3]}px`,
+                                    cursor: 'pointer',
+                                    background: isExpanded ? `${COLOR.accent.teal}05` : 'transparent',
+                                  }} onClick={() => setWpExpanded(isExpanded ? null : g.protein)}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <div>
+                                        <span style={{ fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary }}>{g.protein}</span>
+                                        <span style={{ fontSize: 9, color: COLOR.text.muted, marginLeft: SPACE[2] }}>
+                                          {g.n_normal} normal + {g.n_suffix} suffix ({g.suffix_types.join(', ')})
+                                        </span>
+                                      </div>
+                                      <span style={{
+                                        fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.bold, fontVariantNumeric: 'tabular-nums',
+                                        color: g.max_abs_d >= 0.8 ? COLOR.accent.teal : g.max_abs_d >= 0.5 ? COLOR.accent.amber : COLOR.text.secondary,
+                                      }}>
+                                        |d| = {g.max_abs_d.toFixed(2)}
+                                      </span>
+                                    </div>
+                                    {isExpanded && g.effects.length > 0 && (
+                                      <div style={{ marginTop: SPACE[2], paddingTop: SPACE[2], borderTop: `1px solid ${COLOR.border.subtle}30` }}>
+                                        <div style={{ fontSize: 8, color: COLOR.text.faint, marginBottom: SPACE[1] }}>
+                                          Suffix alleles: {g.suffix_alleles.join(', ')}
+                                        </div>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                          <thead>
+                                            <tr>
+                                              <th style={{ ...HEADER, fontSize: 8 }}>Metric</th>
+                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>d</th>
+                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>Normal</th>
+                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>Suffix</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {g.effects.map((e) => (
+                                              <tr key={e.metric}>
+                                                <td style={{ ...CELL, fontSize: 9 }}>{e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}</td>
+                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right', color: e.abs_d >= 0.5 ? COLOR.accent.teal : COLOR.text.secondary }}>
+                                                  {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
+                                                </td>
+                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
+                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right' }}>{e.suffix_mean.toFixed(4)}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Feature breakdown */}
+                        {wpResult.feature_breakdown && wpResult.feature_breakdown.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                              FEATURE-LEVEL BREAKDOWN — which intron/UTR drives the signal?
+                            </div>
+                            {wpResult.feature_breakdown.map((fb) => (
+                              <div key={fb.protein} style={{ marginBottom: SPACE[4] }}>
+                                <div style={{ fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.medium, color: COLOR.text.primary, marginBottom: SPACE[2] }}>
+                                  {fb.protein} — {fb.n_features_compared} feature×metric comparisons
+                                </div>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr>
+                                      <th style={HEADER}>Feature</th>
+                                      <th style={HEADER}>Metric</th>
+                                      <th style={{ ...HEADER, textAlign: 'right' }}>d</th>
+                                      <th style={{ ...HEADER, textAlign: 'right' }}>Normal</th>
+                                      <th style={{ ...HEADER, textAlign: 'right' }}>Suffix</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {fb.effects.slice(0, 10).map((e, i) => (
+                                      <tr key={`${e.feature}-${e.metric}`}>
+                                        <td style={{ ...CELL, fontWeight: i === 0 ? WEIGHT.bold : WEIGHT.normal, color: i < 3 ? COLOR.accent.teal : COLOR.text.primary }}>
+                                          {e.feature}
+                                        </td>
+                                        <td style={CELL}>{e.metric.replace(/_/g, ' ')}</td>
+                                        <td style={{ ...CELL, textAlign: 'right', color: e.abs_d >= 0.5 ? COLOR.accent.teal : COLOR.text.secondary }}>
+                                          {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
+                                        </td>
+                                        <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
+                                        <td style={{ ...CELL, textAlign: 'right' }}>{e.suffix_mean.toFixed(4)}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

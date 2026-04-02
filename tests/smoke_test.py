@@ -186,6 +186,17 @@ class TestHLA:
         body = r.json()
         assert body["n_alleles"] > 0
 
+    def test_within_protein(self):
+        r = _get("/v1/hla/expression-within-protein")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "complete"
+        assert body["n_protein_groups_total"] > 100
+
+    def test_within_protein_with_features(self):
+        r = _get("/v1/hla/expression-within-protein?locus=A&include_features=true")
+        assert r.status_code == 200
+
 
 class TestReference:
     def test_clock_probes(self):

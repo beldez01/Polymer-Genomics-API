@@ -865,3 +865,251 @@ async def expression_correlation(
         "pooled_normal_vs_aberrant": pooled_effects,
         "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
     }
+
+
+# ── Within-protein expression test ─────────────────────────────────────────
+
+
+@router.get("/expression-within-protein")
+async def expression_within_protein(
+    locus: str | None = Query(None, description="Filter by locus"),
+    min_alleles: int = Query(3, ge=2, description="Minimum alleles per protein group"),
+    include_features: bool = Query(False, description="Include per-feature breakdown for top groups"),
+):
+    """Test whether non-coding biophysics predict expression within protein-identical alleles.
+
+    The strongest test of the Bettens hypothesis: among alleles encoding the
+    SAME protein, do the ones with expression suffixes (L, Q, S, C, A) have
+    different non-coding biophysics than their normally-expressed siblings?
+
+    Controls for protein-level variation — any difference must come from
+    non-coding regions (introns, UTRs).
+
+    Algorithm:
+    1. Find protein groups with ≥ min_alleles genomic alleles AND at least
+       1 suffix-bearing AND 1 normal allele
+    2. Within each group, compute Cohen's d (normal vs suffix) per NC metric
+    3. Aggregate across groups: mean d, direction consistency, top hits
+    """
+    start = time.monotonic()
+    layer_id = await _get_hla_layer_id()
+
+    # Build query
+    clauses = ["layer_id = $1", "has_genomic = true"]
+    params: list[Any] = [layer_id]
+    idx = 2
+
+    if locus is not None:
+        normalized = locus.upper()
+        if not normalized.startswith("HLA-"):
+            normalized = f"HLA-{normalized}"
+        if normalized not in VALID_LOCI:
+            raise HTTPException(400, {
+                "error": {"code": "INVALID_LOCUS", "message": f"Unknown locus '{locus}'."}
+            })
+        clauses.append(f"locus = ${idx}")
+        params.append(normalized)
+        idx += 1
+
+    where = " AND ".join(clauses)
+    metrics = NC_METRICS
+
+    cols = ", ".join([
+        "allele_name", "locus", "allele_group", "protein",
+        "expression_suffix",
+    ] + metrics)
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"SELECT id, {cols} FROM hla.alleles WHERE {where}", *params)
+
+    # Group by protein
+    protein_groups: dict[tuple[str, str, str], list[dict]] = {}
+    for r in rows:
+        key = (r["locus"], r["allele_group"], r["protein"])
+        protein_groups.setdefault(key, []).append(dict(r))
+
+    # Filter to qualifying groups
+    qualifying: list[dict] = []
+    for (loc, grp, prot), alleles in protein_groups.items():
+        if len(alleles) < min_alleles:
+            continue
+        normal = [a for a in alleles if a["expression_suffix"] is None]
+        suffix = [a for a in alleles if a["expression_suffix"] is not None
+                  and a["expression_suffix"] != "N"]  # Exclude null — coding knockouts
+        if not normal or not suffix:
+            continue
+
+        # Compute per-metric Cohen's d within this protein group
+        group_effects = []
+        for metric in metrics:
+            nv = [a[metric] for a in normal if a[metric] is not None]
+            sv = [a[metric] for a in suffix if a[metric] is not None]
+            ns = _group_stats(nv)
+            ss = _group_stats(sv)
+            if not ns or not ss:
+                continue
+            if ns["sd"] is not None and ss["sd"] is not None:
+                d = _cohens_d(ns["mean"], ns["sd"], ns["n"], ss["mean"], ss["sd"], ss["n"])
+            elif ns["sd"] is not None and ss["n"] == 1:
+                # Single suffix allele: use normal SD for effect size
+                d = (ns["mean"] - ss["mean"]) / ns["sd"] if ns["sd"] > 0 else None
+            else:
+                d = None
+            if d is not None:
+                group_effects.append({
+                    "metric": metric,
+                    "cohens_d": round(d, 4),
+                    "abs_d": round(abs(d), 4),
+                    "normal_mean": ns["mean"],
+                    "normal_n": ns["n"],
+                    "suffix_mean": ss["mean"],
+                    "suffix_n": ss["n"],
+                })
+
+        suffix_labels = [a["expression_suffix"] for a in suffix]
+        suffix_names = [a["allele_name"] for a in suffix]
+
+        qualifying.append({
+            "protein": f"{loc.replace('HLA-', '')}*{grp}:{prot}",
+            "locus": loc,
+            "allele_group": grp,
+            "protein_field": prot,
+            "n_total": len(alleles),
+            "n_normal": len(normal),
+            "n_suffix": len(suffix),
+            "suffix_types": sorted(set(suffix_labels)),
+            "suffix_alleles": suffix_names[:10],  # cap at 10 for response size
+            "effects": sorted(group_effects, key=lambda x: x["abs_d"], reverse=True),
+            "max_abs_d": max((e["abs_d"] for e in group_effects), default=0),
+        })
+
+    # Sort groups by max effect size
+    qualifying.sort(key=lambda x: x["max_abs_d"], reverse=True)
+
+    # Aggregate across all qualifying groups: mean effect per metric
+    metric_aggregates: dict[str, list[float]] = {m: [] for m in metrics}
+    metric_directions: dict[str, dict[str, int]] = {m: {"positive": 0, "negative": 0} for m in metrics}
+    for group in qualifying:
+        for effect in group["effects"]:
+            m = effect["metric"]
+            metric_aggregates[m].append(effect["cohens_d"])
+            if effect["cohens_d"] > 0:
+                metric_directions[m]["positive"] += 1
+            else:
+                metric_directions[m]["negative"] += 1
+
+    aggregate_effects = []
+    for metric in metrics:
+        values = metric_aggregates[metric]
+        if not values:
+            continue
+        mean_d = sum(values) / len(values)
+        mean_abs_d = sum(abs(v) for v in values) / len(values)
+        dirs = metric_directions[metric]
+        total = dirs["positive"] + dirs["negative"]
+        consistency = max(dirs["positive"], dirs["negative"]) / total if total > 0 else 0
+        aggregate_effects.append({
+            "metric": metric,
+            "mean_d": round(mean_d, 4),
+            "mean_abs_d": round(mean_abs_d, 4),
+            "n_groups": len(values),
+            "direction_positive": dirs["positive"],
+            "direction_negative": dirs["negative"],
+            "direction_consistency": round(consistency, 3),
+            "dominant_direction": "normal > suffix" if dirs["positive"] >= dirs["negative"] else "suffix > normal",
+        })
+    aggregate_effects.sort(key=lambda x: x["mean_abs_d"], reverse=True)
+
+    # Feature-level breakdown for top groups (if requested)
+    feature_breakdown = []
+    if include_features and qualifying:
+        top_groups = qualifying[:5]
+        for group in top_groups:
+            loc = group["locus"]
+            grp = group["allele_group"]
+            prot = group["protein_field"]
+
+            # Get allele IDs for this protein group
+            group_alleles = protein_groups[(loc, grp, prot)]
+            normal_ids = [a["id"] for a in group_alleles if a["expression_suffix"] is None]
+            suffix_ids = [a["id"] for a in group_alleles
+                         if a["expression_suffix"] is not None and a["expression_suffix"] != "N"]
+
+            if not normal_ids or not suffix_ids:
+                continue
+
+            all_ids = normal_ids + suffix_ids
+            async with pool.acquire() as conn:
+                features = await conn.fetch(
+                    """SELECT allele_id, feature_type, feature_label, length_bp,
+                              gc_content, cpg_count, cpg_density,
+                              mean_stacking_dg37, melting_temp_est,
+                              mean_a_form_prop, mean_z_form_prop
+                       FROM hla.allele_features
+                       WHERE layer_id = $1 AND allele_id = ANY($2::bigint[])
+                         AND feature_type IN ('intron', '5utr', '3utr')
+                       ORDER BY feature_label""",
+                    layer_id, all_ids,
+                )
+
+            # Group features by label
+            by_label: dict[str, dict[str, list]] = {}
+            normal_id_set = set(normal_ids)
+            for f in features:
+                label = f["feature_label"]
+                is_normal = f["allele_id"] in normal_id_set
+                cat = "normal" if is_normal else "suffix"
+                by_label.setdefault(label, {"normal": [], "suffix": []})
+                by_label[label][cat].append(dict(f))
+
+            # Compute per-feature effects
+            feat_metrics = ["gc_content", "cpg_density", "mean_stacking_dg37", "melting_temp_est"]
+            feature_effects = []
+            for label, groups_by_cat in sorted(by_label.items()):
+                for fm in feat_metrics:
+                    nv = [f[fm] for f in groups_by_cat["normal"] if f[fm] is not None]
+                    sv = [f[fm] for f in groups_by_cat["suffix"] if f[fm] is not None]
+                    ns = _group_stats(nv)
+                    ss = _group_stats(sv)
+                    if not ns or not ss:
+                        continue
+                    if ns["sd"] is not None and ss["sd"] is not None:
+                        d = _cohens_d(ns["mean"], ns["sd"], ns["n"], ss["mean"], ss["sd"], ss["n"])
+                    elif ns["sd"] is not None and ss["n"] == 1:
+                        d = (ns["mean"] - ss["mean"]) / ns["sd"] if ns["sd"] > 0 else None
+                    else:
+                        d = None
+                    if d is not None:
+                        feature_effects.append({
+                            "feature": label,
+                            "metric": fm,
+                            "cohens_d": round(d, 4),
+                            "abs_d": round(abs(d), 4),
+                            "normal_mean": ns["mean"],
+                            "suffix_mean": ss["mean"],
+                        })
+
+            feature_effects.sort(key=lambda x: x["abs_d"], reverse=True)
+            feature_breakdown.append({
+                "protein": group["protein"],
+                "n_features_compared": len(feature_effects),
+                "effects": feature_effects[:20],
+            })
+
+    result: dict[str, Any] = {
+        "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
+        "locus": locus,
+        "min_alleles": min_alleles,
+        "n_protein_groups_tested": len(qualifying),
+        "n_protein_groups_total": len(protein_groups),
+        "aggregate_effects": aggregate_effects,
+        "protein_groups": qualifying[:30],  # top 30
+        "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
+    }
+    if feature_breakdown:
+        result["feature_breakdown"] = feature_breakdown
+
+    return result

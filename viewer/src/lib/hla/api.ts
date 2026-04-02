@@ -8,6 +8,7 @@ import type {
   CompareResult,
   DivergenceResult,
   ExpressionCorrelationResult,
+  WithinProteinResult,
 } from './types';
 
 const API_BASE = '/api';
@@ -80,6 +81,20 @@ export async function fetchDivergence(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ locus, allele_group: alleleGroup, protein }),
   });
+}
+
+/** Fetch within-protein expression test. */
+export async function fetchWithinProtein(
+  opts: { locus?: string; min_alleles?: number; include_features?: boolean } = {},
+): Promise<WithinProteinResult> {
+  const params = new URLSearchParams();
+  if (opts.locus) params.set('locus', opts.locus.replace('HLA-', ''));
+  if (opts.min_alleles) params.set('min_alleles', String(opts.min_alleles));
+  if (opts.include_features) params.set('include_features', 'true');
+  const qs = params.toString();
+  return fetchJSON<WithinProteinResult>(
+    `${API_BASE}/v1/hla/expression-within-protein${qs ? `?${qs}` : ''}`,
+  );
 }
 
 /** Fetch expression-biophysics correlation analysis. */

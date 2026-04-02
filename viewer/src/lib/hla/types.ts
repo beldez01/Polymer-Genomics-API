@@ -200,5 +200,64 @@ export interface ExpressionCorrelationResult {
   pooled_normal_vs_aberrant: PooledEffect[];
 }
 
+/** Within-protein expression test */
+export interface ProteinGroupEffect {
+  metric: string;
+  cohens_d: number;
+  abs_d: number;
+  normal_mean: number;
+  normal_n: number;
+  suffix_mean: number;
+  suffix_n: number;
+}
+
+export interface ProteinGroup {
+  protein: string;
+  locus: string;
+  n_total: number;
+  n_normal: number;
+  n_suffix: number;
+  suffix_types: string[];
+  suffix_alleles: string[];
+  effects: ProteinGroupEffect[];
+  max_abs_d: number;
+}
+
+export interface AggregateEffect {
+  metric: string;
+  mean_d: number;
+  mean_abs_d: number;
+  n_groups: number;
+  direction_positive: number;
+  direction_negative: number;
+  direction_consistency: number;
+  dominant_direction: string;
+}
+
+export interface FeatureEffect {
+  feature: string;
+  metric: string;
+  cohens_d: number;
+  abs_d: number;
+  normal_mean: number;
+  suffix_mean: number;
+}
+
+export interface FeatureBreakdown {
+  protein: string;
+  n_features_compared: number;
+  effects: FeatureEffect[];
+}
+
+export interface WithinProteinResult {
+  locus: string | null;
+  min_alleles: number;
+  n_protein_groups_tested: number;
+  n_protein_groups_total: number;
+  aggregate_effects: AggregateEffect[];
+  protein_groups: ProteinGroup[];
+  feature_breakdown?: FeatureBreakdown[];
+}
+
 /** UI state */
 export type HLATab = 'alleles' | 'compare' | 'divergence' | 'expression';
