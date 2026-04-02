@@ -128,7 +128,7 @@ SELECT
     f.median_length,
     COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes,
     COALESCE(p.epic_v1_probes, 0) AS epic_v1_probes,
-    COALESCE(p."450k_probes", 0)  AS probes_450k
+    COALESCE(p.hm450_probes, 0)   AS probes_450k
 FROM annotation.te_family_summary f
 LEFT JOIN annotation.te_probe_counts p USING (repeat_class, repeat_family)
 ORDER BY f.total_bp DESC
