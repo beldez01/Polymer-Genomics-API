@@ -573,16 +573,29 @@ async def register_layers(conn: asyncpg.Connection, imgt_version: str) -> tuple[
         ("hla_allele_sequences", "R", "HLA Allele Sequences (IPD-IMGT/HLA)"),
         ("hla_allele_biophysics", "D", "HLA Allele Biophysics (computed)"),
     ]:
-        version = f"1.0.{imgt_version}"
+        version = imgt_version  # Use IMGT version directly (e.g. '3.56.0')
 
+        # Check for existing layer with this key (any version)
         existing = await conn.fetchval(
-            "SELECT id FROM registry.layers WHERE layer_key = $1 AND version = $2",
-            layer_key, version,
+            "SELECT id FROM registry.layers WHERE layer_key = $1 AND is_active = true ORDER BY version DESC LIMIT 1",
+            layer_key,
         )
+        if existing is None:
+            # Also check exact version match
+            existing = await conn.fetchval(
+                "SELECT id FROM registry.layers WHERE layer_key = $1 AND version = $2",
+                layer_key, version,
+            )
         if existing is not None:
             print(f"  Layer already registered: {layer_key} v{version} -> {existing}")
             layers.append(existing)
             continue
+
+        # Deactivate existing default for this key before inserting
+        await conn.execute(
+            "UPDATE registry.layers SET is_default = false WHERE layer_key = $1 AND is_default = true",
+            layer_key,
+        )
 
         layer_id = await conn.fetchval(
             """

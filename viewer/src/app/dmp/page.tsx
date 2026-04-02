@@ -11,7 +11,6 @@ import { ManhattanPlot } from '@/components/dmp/ManhattanPlot';
 import { ProbeDetail } from '@/components/dmp/ProbeDetail';
 import { ResultsTable } from '@/components/dmp/ResultsTable';
 import { SummaryBar } from '@/components/dmp/SummaryBar';
-import { ThresholdControls } from '@/components/dmp/ThresholdControls';
 import { EnrichmentPanel } from '@/components/dmp/EnrichmentPanel';
 import { ClusteringPanel } from '@/components/dmp/ClusteringPanel';
 import { ComparisonPanel } from '@/components/dmp/ComparisonPanel';
@@ -27,6 +26,7 @@ import type { TEMethylationAnalysis, TEProbeMapping, ClockProbe } from '@/lib/te
 import type { TEFamily } from '@/lib/transposome-types';
 import type { Platform } from '@/lib/te-methylation/parse-betas';
 import type { TEDiffAnalysis } from '@/lib/te-methylation/dmp-scoring';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import { buildAnalysis, computeRetroAge } from '@/lib/te-methylation/scoring';
 import { buildDiffAnalysis } from '@/lib/te-methylation/dmp-scoring';
 import { computeSummary } from '@/lib/dmp/stats';
@@ -109,6 +109,9 @@ export default function MethylationPage() {
 
   // TE/ERV sidebar filter
   const [teClassFilter, setTeClassFilter] = useState<string | null>(null);
+
+  // Mobile
+  const isMobile = useIsMobile();
 
   // UI
   const [modeHover, setModeHover] = useState<AnalysisMode | null>(null);
@@ -264,6 +267,30 @@ export default function MethylationPage() {
     return teDiffAnalysis.familyScores.filter((s) => s.teClass === teClassFilter);
   }, [teDiffAnalysis, teClassFilter]);
 
+  /* ── Export handler ── */
+  const handleExport = useCallback(() => {
+    let csvContent = '';
+    if (inputType === 'dmp' && dmpDataset) {
+      const header = 'probe_id,delta_beta,p_value,adj_p_value,gene_symbol,chr,pos\n';
+      csvContent = header + rows.map((r) =>
+        `${r.probe_id},${r.delta_beta},${r.p_value},${r.adj_p_value},${r.gene_symbol ?? ''},${r.chr ?? ''},${r.pos ?? ''}`,
+      ).join('\n');
+    } else if (inputType === 'betas' && teAnalysis) {
+      const header = 'family,class,mean_beta,delta,n_probes,risk_level,reactivation_risk\n';
+      csvContent = header + teAnalysis.familyScores.map((s) =>
+        `${s.familyName},${s.teClass},${s.meanBeta},${s.delta},${s.nProbes},${s.riskLevel},${s.reactivationRisk}`,
+      ).join('\n');
+    }
+    if (!csvContent) return;
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename.replace(/\.[^.]+$/, '')}_export.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [inputType, dmpDataset, rows, teAnalysis, filename]);
+
   /* ── Render ── */
   return (
     <div style={{
@@ -386,16 +413,16 @@ export default function MethylationPage() {
         <div style={{
           flex: 1,
           display: 'grid',
-          gridTemplateColumns: '220px 1fr',
+          gridTemplateColumns: isMobile ? '1fr' : '220px 1fr',
           overflow: 'hidden',
         }}>
-          {/* Left sidebar */}
+          {/* Left sidebar — hidden on mobile */}
           <div style={{
             borderRight: `1px solid ${COLOR.border.subtle}`,
             background: COLOR.bg.elevated,
             overflowY: 'auto',
             padding: '16px 12px',
-            display: 'flex',
+            display: isMobile ? 'none' : 'flex',
             flexDirection: 'column',
           }}>
             <MethylationSidebar
@@ -410,6 +437,7 @@ export default function MethylationPage() {
               teDiffAnalysis={teDiffAnalysis}
               teClassFilter={teClassFilter}
               onTeClassFilter={setTeClassFilter}
+              onExport={handleExport}
             />
           </div>
 
@@ -563,7 +591,6 @@ export default function MethylationPage() {
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <ThresholdControls thresholds={thresholds} onChange={setThresholds} />
                         <div style={{ flex: 1, minHeight: 300, overflow: 'hidden' }}>
                           <VolcanoPlot
                             rows={rows}
@@ -592,7 +619,6 @@ export default function MethylationPage() {
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                        <ThresholdControls thresholds={thresholds} onChange={setThresholds} />
                         <div style={{ flex: 1, minHeight: 300, overflow: 'hidden' }}>
                           <ManhattanPlot
                             rows={rows}
