@@ -188,12 +188,75 @@ This heterogeneity is biologically expected — HLA expression regulation involv
 3. **No causal validation** — biophysical separation does not prove causation. The non-coding sequence differences could correlate with expression through mechanisms unrelated to the measured biophysical properties.
 4. **DPB1 outlier** — d=25.4 for DPB1\*11:01 needs scrutiny; likely a single very divergent allele.
 
+## Bettens Quantitative Expression Correlation (2026-04-02)
+
+**Data source:** Bettens et al. 2022 supplementary data from Yareta repository (CC-BY-4.0).
+- 63 individuals, RNA-seq TPM per allele (unstimulated PBMCs)
+- 69 unique alleles (19 HLA-A, 31 HLA-B, 19 HLA-C)
+- 50 alleles with n≥2 observations matched to our biophysics database (2-field → 4-field :01:01)
+
+### Per-locus correlations (Spearman rho / Pearson r)
+
+#### HLA-A (n=14 alleles) — STRONG
+
+| NC Metric | Spearman rho | Pearson r |
+|-----------|-------------|-----------|
+| Stacking dG37 | **-0.714** | **-0.756** |
+| CpG density | +0.530 | +0.631 |
+| Melting temp | +0.495 | +0.672 |
+| GC content | +0.464 | +0.616 |
+| Z penalty | -0.152 | +0.124 |
+
+**Interpretation:** More thermodynamically stable non-coding DNA (more negative dG37) → higher expression. Higher CpG density in regulatory regions → higher expression. Both mechanistically coherent: stable regulatory DNA may resist silencing; CpG density enables methylation-dependent regulation.
+
+#### HLA-C (n=17 alleles) — MODERATE
+
+| NC Metric | Spearman rho | Pearson r |
+|-----------|-------------|-----------|
+| Z penalty | -0.370 | **-0.601** |
+| GC content | +0.225 | +0.536 |
+| Stacking dG37 | -0.199 | -0.502 |
+| Melting temp | +0.213 | +0.464 |
+| CpG density | -0.054 | +0.152 |
+
+Same directional pattern as HLA-A (stable → high expression) but attenuated. Z-penalty is the top discriminator for HLA-C (Pearson r = -0.60).
+
+#### HLA-B (n=19 alleles) — NULL
+
+| NC Metric | Spearman rho | Pearson r |
+|-----------|-------------|-----------|
+| GC content | +0.196 | -0.152 |
+| Melting temp | +0.177 | -0.136 |
+| Stacking dG37 | -0.093 | +0.152 |
+| CpG density | +0.058 | -0.194 |
+
+Near-zero correlations. Consistent with Bettens finding that HLA-B had the weakest cis-eQTL signal (only 13% variance explained vs 29% for A and 31% for C).
+
+#### All loci pooled (n=50)
+
+CpG count rho=+0.32 is best; most near zero. Cross-locus pooling is dominated by between-locus expression differences (B >> C >> A mean TPM) that swamp within-locus allele variation.
+
+### Concordance with within-protein test
+
+Both analyses converge:
+- **CpG density** and **thermodynamic stability** are the top discriminators in both the within-protein test (Cohen's d) and the quantitative correlation (Pearson r)
+- **HLA-A** shows the strongest signal in both analyses
+- **HLA-B** shows the weakest signal in both — consistent with Bettens eQTL results
+- **Direction:** more stable non-coding DNA → higher expression. More CpGs → higher expression.
+
+### Caveats
+
+- 2-field → 4-field matching uses the :01:01 representative allele, which may not exactly match the Bettens subjects' alleles at the synonymous/noncoding level
+- n=14 for HLA-A is small; p-values not computed (would need permutation or Fisher z-transform)
+- Bettens TPM from unstimulated PBMCs; stimulated conditions show different patterns
+
 ## Next Steps
 
 1. ~~**Cross-locus replication**~~ — DONE (2026-04-02). Signal replicates across all 6 loci.
 2. ~~**Feature-level breakdown**~~ — DONE (2026-04-02). UTRs and intron 1 are primary drivers.
-3. **Quantitative expression data** — ingest Bettens et al. allele-specific expression measurements to replace coarse IMGT suffixes with continuous values
+3. ~~**Quantitative expression data**~~ — DONE (2026-04-02). HLA-A: dG37 r=-0.76, CpG density r=+0.63.
 4. **GTEx HLA typing** — allele-resolved expression across 54 tissues
+5. **Stimulated conditions** — Bettens has TNFα/IFNβ stimulated data (56 donors); test if biophysics predict stimulated expression differently
 
 ## Reproducibility
 
