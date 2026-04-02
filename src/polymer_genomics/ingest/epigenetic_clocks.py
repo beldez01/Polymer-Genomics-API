@@ -302,7 +302,9 @@ async def main(data_dir: str | None = None) -> None:
                         """INSERT INTO ref.clock_coefficients
                            (clock_name, probe_id, coefficient, source_citation)
                            VALUES ($1, $2, $3, $4)
-                           ON CONFLICT (clock_name, probe_id) DO NOTHING""",
+                           ON CONFLICT (clock_name, probe_id)
+                           DO UPDATE SET coefficient = EXCLUDED.coefficient,
+                                         source_citation = EXCLUDED.source_citation""",
                         clock_name, probe_id, coefficient, citation,
                     )
                 total_loaded += len(probes)
