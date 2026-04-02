@@ -123,6 +123,11 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "kmer_complexity": "avg(kmer_complexity)",
             "dinucleotide_entropy": "avg(dinucleotide_entropy)",
             "dominant_period": "avg(dominant_period)",
+            "phylop_241way_mean": "avg(phylop_241way_mean)",
+            "phastcons_241way_mean": "avg(phastcons_241way_mean)",
+            "b_score_mean": "avg(b_score_mean)",
+            "recomb_rate_cmmb": "avg(recomb_rate_cmmb)",
+            "mutation_rate_mean": "avg(mutation_rate_mean)",
         },
     },
     "conservation": {

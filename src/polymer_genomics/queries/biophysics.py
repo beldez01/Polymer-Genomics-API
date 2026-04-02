@@ -48,7 +48,10 @@ def region_biophysics_query() -> str:
                b.ccre_density,
                b.histone_h3k4me3_gm12878, b.histone_h3k27me3_gm12878,
                b.histone_h3k4me1_gm12878, b.histone_h3k27ac_gm12878,
-               b.chromhmm_active_frac_e029
+               b.chromhmm_active_frac_e029,
+               -- Evolutionary physics (Phase 10)
+               b.phylop_241way_mean, b.phastcons_241way_mean,
+               b.b_score_mean, b.recomb_rate_cmmb, b.mutation_rate_mean
         FROM biophysics.sequence_properties b
         WHERE b.build = $1::genome_build
           AND b.chr_id = $2
@@ -101,6 +104,8 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
     ccre_d = []
     h_k4me3, h_k27me3, h_k4me1, h_k27ac = [], [], [], []
     chromhmm_act = []
+    # Evolutionary physics (Phase 10)
+    phylop_241, phastcons_241, b_score, recomb, mut_rate = [], [], [], [], []
     for r in rows:
         api = db_to_api(r["start_pos"], r["end_pos"])
         starts.append(api["start"])
@@ -169,6 +174,12 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
         h_k4me1.append(r["histone_h3k4me1_gm12878"])
         h_k27ac.append(r["histone_h3k27ac_gm12878"])
         chromhmm_act.append(r["chromhmm_active_frac_e029"])
+        # Evolutionary physics
+        phylop_241.append(r["phylop_241way_mean"])
+        phastcons_241.append(r["phastcons_241way_mean"])
+        b_score.append(r["b_score_mean"])
+        recomb.append(r["recomb_rate_cmmb"])
+        mut_rate.append(r["mutation_rate_mean"])
     return {
         "class": "GRanges",
         "seqnames": [chr_name] * len(rows),
@@ -218,6 +229,10 @@ def _convert_biophysics(rows: list, chr_name: str) -> dict:
             "histone_h3k4me1_gm12878": h_k4me1,
             "histone_h3k27ac_gm12878": h_k27ac,
             "chromhmm_active_frac_e029": chromhmm_act,
+            # Evolutionary physics (Phase 10)
+            "phylop_241way_mean": phylop_241, "phastcons_241way_mean": phastcons_241,
+            "b_score_mean": b_score, "recomb_rate_cmmb": recomb,
+            "mutation_rate_mean": mut_rate,
         },
         "n": len(rows),
     }

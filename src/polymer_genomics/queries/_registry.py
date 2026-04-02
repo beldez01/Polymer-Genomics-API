@@ -36,6 +36,12 @@ from polymer_genomics.queries.genome3d import (
     region_insulation_score_query, _convert_insulation_score,
     region_tad_domains_query, _convert_tad_domains,
 )
+from polymer_genomics.queries.evolution import (
+    region_ultraconserved_query, _convert_ultraconserved,
+)
+from polymer_genomics.queries.variation import (
+    region_clinvar_query, _convert_clinvar,
+)
 from polymer_genomics.queries.annotation import (
     region_gwas_query, _convert_gwas,
     region_repeats_query, _convert_repeats,
@@ -161,6 +167,15 @@ TRACK_REGISTRY: dict[str, dict] = {
     "insulation_score": {
         "query_fn": region_insulation_score_query,
         "convert_fn": _convert_insulation_score,
+    },
+    # Phase 10: Rosetta Stone expansion
+    "ultraconserved": {
+        "query_fn": region_ultraconserved_query,
+        "convert_fn": _convert_ultraconserved,
+    },
+    "clinvar": {
+        "query_fn": region_clinvar_query,
+        "convert_fn": _convert_clinvar,
     },
 }
 

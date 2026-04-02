@@ -65,6 +65,8 @@ INTERSECT_TABLES: dict[str, dict] = {
             "correlation_length", "integrated_response", "perturbation_reach", "response_asymmetry",
             "deformability", "g4_density", "g4_max_score", "kmer_complexity",
             "dinucleotide_entropy", "dominant_period",
+            "phylop_241way_mean", "phastcons_241way_mean",
+            "b_score_mean", "recomb_rate_cmmb", "mutation_rate_mean",
         },
     },
     "conservation": {

@@ -40,6 +40,9 @@ _BIOPHYSICS_COLS = (
     # L0 extended
     "deformability", "g4_density", "g4_max_score",
     "kmer_complexity", "dinucleotide_entropy", "dominant_period",
+    # Evolutionary physics (Phase 10)
+    "phylop_241way_mean", "phastcons_241way_mean",
+    "b_score_mean", "recomb_rate_cmmb", "mutation_rate_mean",
 )
 
 # Columns to include in summary statistics
