@@ -158,5 +158,47 @@ export interface DivergenceResult {
   most_variable_metric: string | null;
 }
 
+/** Expression correlation response */
+export interface ExprClassStats {
+  n: number;
+  mean: number;
+  sd: number | null;
+}
+
+export interface EffectSize {
+  metric: string;
+  expression_class: string;
+  cohens_d: number;
+  abs_d: number;
+  normal_mean: number;
+  normal_sd: number;
+  normal_n: number;
+  class_mean: number;
+  class_sd: number;
+  class_n: number;
+  direction: string;
+}
+
+export interface PooledEffect {
+  metric: string;
+  cohens_d: number;
+  abs_d: number;
+  normal_mean: number;
+  normal_n: number;
+  aberrant_mean: number;
+  aberrant_n: number;
+  direction: string;
+}
+
+export interface ExpressionCorrelationResult {
+  focus: string;
+  locus: string | null;
+  n_alleles: number;
+  class_distribution: Record<string, { n: number; suffix: string | null }>;
+  per_class_stats: Record<string, Record<string, ExprClassStats>>;
+  effect_sizes: EffectSize[];
+  pooled_normal_vs_aberrant: PooledEffect[];
+}
+
 /** UI state */
-export type HLATab = 'alleles' | 'compare' | 'divergence';
+export type HLATab = 'alleles' | 'compare' | 'divergence' | 'expression';

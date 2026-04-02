@@ -5,10 +5,10 @@ import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/the
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { HLASidebar } from '@/components/hla/HLASidebar';
-import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence } from '@/lib/hla/api';
+import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation } from '@/lib/hla/api';
 import type {
   HLALocus, HLAClass, HLATab, LocusSummary, AlleleListItem,
-  AlleleDetail, CompareResult, DivergenceResult,
+  AlleleDetail, CompareResult, DivergenceResult, ExpressionCorrelationResult,
 } from '@/lib/hla/types';
 
 /* ── Styles ── */
@@ -78,6 +78,12 @@ export default function HLAPage() {
   const [divProtein, setDivProtein] = useState('');
   const [divResult, setDivResult] = useState<DivergenceResult | null>(null);
   const [divLoading, setDivLoading] = useState(false);
+
+  // Expression correlation state
+  const [exprFocus, setExprFocus] = useState<'noncoding' | 'full' | 'both'>('noncoding');
+  const [exprAllLoci, setExprAllLoci] = useState(false);
+  const [exprResult, setExprResult] = useState<ExpressionCorrelationResult | null>(null);
+  const [exprLoading, setExprLoading] = useState(false);
 
   // Sort
   const [sortKey, setSortKey] = useState<string>('allele_name');
@@ -178,6 +184,27 @@ export default function HLAPage() {
       setDivLoading(false);
     }
   }, [selectedLocus, divGroup, divProtein]);
+
+  /* ── Expression correlation ── */
+  const handleExprCorrelation = useCallback(async () => {
+    setExprLoading(true);
+    try {
+      const locus = exprAllLoci ? undefined : selectedLocus ?? undefined;
+      const result = await fetchExpressionCorrelation({ locus: locus ?? undefined, focus: exprFocus });
+      setExprResult(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Expression correlation failed');
+    } finally {
+      setExprLoading(false);
+    }
+  }, [selectedLocus, exprFocus, exprAllLoci]);
+
+  // Auto-fetch when switching to expression tab
+  useEffect(() => {
+    if (activeTab === 'expression' && !exprResult && !exprLoading) {
+      handleExprCorrelation();
+    }
+  }, [activeTab]);
 
   /* ── Sorting ── */
   const sortedAlleles = useMemo(() => {
@@ -637,6 +664,187 @@ export default function HLAPage() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── EXPRESSION TAB ── */}
+              {activeTab === 'expression' && (
+                <div style={{ padding: `${SPACE[5]}px ${SPACE[6]}px`, maxWidth: 1000, overflow: 'auto' }}>
+                  <div style={SECTION_HEADER}>Expression Correlation</div>
+                  <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
+                    Do biophysical properties of HLA allele DNA predict expression phenotype?
+                    Groups alleles by IMGT expression suffix and computes Cohen&apos;s d effect sizes
+                    for each biophysical metric (normal vs aberrant expression classes).
+                  </p>
+
+                  {/* Controls */}
+                  <div style={{ display: 'flex', gap: SPACE[2], marginBottom: SPACE[4], alignItems: 'center', flexWrap: 'wrap' }}>
+                    <select
+                      value={exprFocus}
+                      onChange={(e) => { setExprFocus(e.target.value as any); setExprResult(null); }}
+                      style={{
+                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
+                        padding: `${SPACE[1]}px ${SPACE[2]}px`,
+                        border: `1px solid ${COLOR.border.default}`,
+                        background: COLOR.bg.surface, color: COLOR.text.secondary,
+                      }}
+                    >
+                      <option value="noncoding">Non-coding metrics</option>
+                      <option value="full">Whole-allele metrics</option>
+                      <option value="both">All metrics</option>
+                    </select>
+                    <button
+                      onClick={() => { setExprAllLoci(!exprAllLoci); setExprResult(null); }}
+                      style={exprAllLoci ? { ...COMPONENT.button.small, borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : COMPONENT.button.small}
+                    >
+                      {exprAllLoci ? 'All loci' : selectedLocus?.replace('HLA-', '') ?? 'This locus'}
+                    </button>
+                    <button
+                      onClick={handleExprCorrelation}
+                      disabled={exprLoading}
+                      style={{
+                        ...COMPONENT.button.small,
+                        backgroundColor: COLOR.accent.teal,
+                        color: COLOR.bg.primary,
+                        borderColor: COLOR.accent.teal,
+                        opacity: exprLoading ? 0.5 : 1,
+                      }}
+                    >
+                      {exprLoading ? 'Analyzing...' : 'Run'}
+                    </button>
+                  </div>
+
+                  {exprLoading && !exprResult && (
+                    <div style={{ padding: SPACE[8], textAlign: 'center', color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>
+                      Analyzing expression correlation...
+                    </div>
+                  )}
+
+                  {exprResult && (
+                    <div>
+                      {/* Class distribution */}
+                      <div style={{ ...SECTION, marginBottom: SPACE[5] }}>
+                        <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                          CLASS DISTRIBUTION — {exprResult.n_alleles.toLocaleString()} genomic alleles
+                        </div>
+                        <div style={{ display: 'flex', gap: SPACE[2], flexWrap: 'wrap' }}>
+                          {Object.entries(exprResult.class_distribution).map(([label, info]) => {
+                            const isNormal = label === 'normal';
+                            const pct = ((info.n / exprResult.n_alleles) * 100).toFixed(1);
+                            return (
+                              <div key={label} style={{
+                                padding: `${SPACE[2]}px ${SPACE[3]}px`,
+                                border: `1px solid ${isNormal ? COLOR.accent.teal : COLOR.accent.amber}30`,
+                                background: isNormal ? `${COLOR.accent.teal}08` : 'transparent',
+                                minWidth: 80,
+                              }}>
+                                <div style={{ fontSize: 9, color: isNormal ? COLOR.accent.teal : COLOR.accent.amber, fontWeight: WEIGHT.medium, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
+                                  {label}{info.suffix ? ` (${info.suffix})` : ''}
+                                </div>
+                                <div style={{ fontSize: TYPE.md.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontVariantNumeric: 'tabular-nums' }}>
+                                  {info.n.toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: 8, color: COLOR.text.muted }}>{pct}%</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Pooled: normal vs all-aberrant */}
+                      {exprResult.pooled_normal_vs_aberrant.length > 0 && (
+                        <div style={{ marginBottom: SPACE[5] }}>
+                          <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                            NORMAL vs ALL ABERRANT — ranked by |Cohen&apos;s d|
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr>
+                                <th style={HEADER}>Metric</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>Cohen&apos;s d</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>Normal mean</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>Aberrant mean</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>n normal</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>n aberrant</th>
+                                <th style={HEADER}>Direction</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {exprResult.pooled_normal_vs_aberrant.map((e, i) => {
+                                const isLarge = e.abs_d >= 0.8;
+                                const isMed = e.abs_d >= 0.5;
+                                return (
+                                  <tr key={e.metric}>
+                                    <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal, color: isLarge ? COLOR.accent.teal : COLOR.text.primary }}>
+                                      {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
+                                    </td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
+                                      {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
+                                    </td>
+                                    <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>
+                                      {e.abs_d.toFixed(3)}
+                                    </td>
+                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
+                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.aberrant_mean.toFixed(4)}</td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.normal_n.toLocaleString()}</td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.aberrant_n.toLocaleString()}</td>
+                                    <td style={{ ...CELL, fontSize: 9, color: COLOR.text.muted }}>{e.direction}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          <div style={{ marginTop: SPACE[2], fontSize: 8, color: COLOR.text.faint }}>
+                            Effect size: |d| &ge; 0.8 large · &ge; 0.5 medium · &ge; 0.2 small
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Per-class effect sizes (top 20) */}
+                      {exprResult.effect_sizes.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
+                            PER-CLASS EFFECT SIZES — top {Math.min(30, exprResult.effect_sizes.length)}
+                          </div>
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr>
+                                <th style={HEADER}>Metric</th>
+                                <th style={HEADER}>Class</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>d</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>Normal</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>Class mean</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {exprResult.effect_sizes.slice(0, 30).map((e, i) => {
+                                const isLarge = e.abs_d >= 0.8;
+                                const isMed = e.abs_d >= 0.5;
+                                return (
+                                  <tr key={`${e.metric}-${e.expression_class}`}>
+                                    <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal }}>
+                                      {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
+                                    </td>
+                                    <td style={{ ...CELL, color: COLOR.accent.amber }}>{e.expression_class}</td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
+                                      {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
+                                    </td>
+                                    <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.abs_d.toFixed(3)}</td>
+                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
+                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.class_mean.toFixed(4)}</td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.class_n}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

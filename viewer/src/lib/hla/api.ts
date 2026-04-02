@@ -7,6 +7,7 @@ import type {
   AlleleDetail,
   CompareResult,
   DivergenceResult,
+  ExpressionCorrelationResult,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://api.polymerbio.org';
@@ -79,4 +80,17 @@ export async function fetchDivergence(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ locus, allele_group: alleleGroup, protein }),
   });
+}
+
+/** Fetch expression-biophysics correlation analysis. */
+export async function fetchExpressionCorrelation(
+  opts: { locus?: string; focus?: 'noncoding' | 'full' | 'both' } = {},
+): Promise<ExpressionCorrelationResult> {
+  const params = new URLSearchParams();
+  if (opts.locus) params.set('locus', opts.locus.replace('HLA-', ''));
+  if (opts.focus) params.set('focus', opts.focus);
+  const qs = params.toString();
+  return fetchJSON<ExpressionCorrelationResult>(
+    `${API_BASE}/v1/hla/expression-correlation${qs ? `?${qs}` : ''}`,
+  );
 }

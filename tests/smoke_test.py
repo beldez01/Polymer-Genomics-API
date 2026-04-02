@@ -171,6 +171,21 @@ class TestHLA:
         assert body["identity"]["locus"] == "HLA-A"
         assert len(body["features"]) > 10
 
+    def test_expression_correlation(self):
+        r = _get("/v1/hla/expression-correlation")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "complete"
+        assert body["n_alleles"] > 100
+        assert "class_distribution" in body
+        assert "normal" in body["class_distribution"]
+
+    def test_expression_correlation_per_locus(self):
+        r = _get("/v1/hla/expression-correlation?locus=A&focus=both")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["n_alleles"] > 0
+
 
 class TestReference:
     def test_clock_probes(self):

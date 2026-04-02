@@ -106,6 +106,7 @@ export function HLASidebar({
     { key: 'alleles', label: 'Allele Browser', icon: 'A' },
     { key: 'compare', label: 'Compare', icon: 'C' },
     { key: 'divergence', label: 'NC Divergence', icon: 'D' },
+    { key: 'expression', label: 'Expression', icon: 'E' },
   ];
 
   return (

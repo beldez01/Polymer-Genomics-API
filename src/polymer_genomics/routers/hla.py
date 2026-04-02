@@ -10,6 +10,7 @@ All data pre-ingested — no external API calls at query time.
 
 from __future__ import annotations
 
+import math
 import time
 from typing import Any
 
@@ -640,5 +641,227 @@ async def noncoding_divergence(body: NCDivergenceRequest):
         "metric_variance": metric_stats,
         "ranked_by_variance": [{"metric": k, **v} for k, v in ranked],
         "most_variable_metric": ranked[0][0] if ranked else None,
+        "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
+    }
+
+
+# ── Expression correlation ─────────────────────────────────────────────────
+
+# Expression suffix semantics (IPD-IMGT/HLA nomenclature):
+#   NULL  = normal expression
+#   N     = null (not expressed)
+#   L     = low cell-surface expression
+#   S     = soluble/secreted (not on cell surface)
+#   C     = cytoplasmic (retained intracellularly)
+#   A     = aberrant expression
+#   Q     = questionable expression
+
+EXPRESSION_LABELS: dict[str | None, str] = {
+    None: "normal",
+    "N": "null",
+    "L": "low",
+    "S": "secreted",
+    "C": "cytoplasmic",
+    "A": "aberrant",
+    "Q": "questionable",
+}
+
+# Biophysical metrics to test — whole-allele and non-coding
+WHOLE_METRICS = [
+    "gc_content", "cpg_count", "cpg_density", "cpg_obs_exp", "cpg_island_count",
+    "mean_stacking_dg37", "melting_temp_est",
+    "mean_a_form_prop", "mean_z_form_prop", "total_z_penalty",
+    "mean_major_groove_w", "mean_minor_groove_w",
+]
+NC_METRICS = [
+    "nc_gc_content", "nc_cpg_count", "nc_cpg_density",
+    "nc_mean_stacking_dg37", "nc_melting_temp_est",
+    "nc_mean_a_form_prop", "nc_mean_z_form_prop",
+    "nc_total_z_penalty", "nc_cpg_island_count",
+]
+
+
+def _cohens_d(mean1: float, sd1: float, n1: int, mean2: float, sd2: float, n2: int) -> float | None:
+    """Compute Cohen's d (pooled SD) between two groups. Returns None if undefined."""
+    if n1 < 2 or n2 < 2:
+        return None
+    pooled_var = ((n1 - 1) * sd1 ** 2 + (n2 - 1) * sd2 ** 2) / (n1 + n2 - 2)
+    if pooled_var <= 0:
+        return None
+    return (mean1 - mean2) / math.sqrt(pooled_var)
+
+
+def _group_stats(values: list[float]) -> dict | None:
+    """Compute n, mean, sd for a list of values."""
+    if len(values) < 1:
+        return None
+    n = len(values)
+    mean = sum(values) / n
+    if n < 2:
+        return {"n": n, "mean": round(mean, 6), "sd": None}
+    var = sum((v - mean) ** 2 for v in values) / (n - 1)
+    return {"n": n, "mean": round(mean, 6), "sd": round(math.sqrt(var), 6)}
+
+
+@router.get("/expression-correlation")
+async def expression_correlation(
+    locus: str | None = Query(None, description="Filter by locus (e.g., 'A' or 'HLA-A')"),
+    focus: str = Query("noncoding", pattern="^(noncoding|full|both)$",
+                       description="Metric set: 'noncoding' (default), 'full' (whole-allele), or 'both'"),
+):
+    """Correlate biophysical properties with expression class.
+
+    Groups all genomic HLA alleles by their IMGT expression suffix
+    (normal, null, low, secreted, cytoplasmic, aberrant, questionable)
+    and computes per-class summary statistics for each biophysical metric.
+
+    Returns Cohen's d effect sizes for normal vs each aberrant class,
+    ranked by absolute effect size. This tests the Bettens et al. 2022
+    hypothesis: do material-channel properties of non-coding DNA predict
+    expression phenotype?
+    """
+    start = time.monotonic()
+    layer_id = await _get_hla_layer_id()
+
+    # Build query
+    clauses = ["layer_id = $1", "has_genomic = true"]
+    params: list[Any] = [layer_id]
+    idx = 2
+
+    if locus is not None:
+        normalized = locus.upper()
+        if not normalized.startswith("HLA-"):
+            normalized = f"HLA-{normalized}"
+        if normalized not in VALID_LOCI:
+            raise HTTPException(400, {
+                "error": {"code": "INVALID_LOCUS", "message": f"Unknown locus '{locus}'. Valid: {sorted(VALID_LOCI)}"}
+            })
+        clauses.append(f"locus = ${idx}")
+        params.append(normalized)
+        idx += 1
+
+    where = " AND ".join(clauses)
+
+    # Select the metrics we need
+    if focus == "noncoding":
+        metrics = NC_METRICS
+    elif focus == "full":
+        metrics = WHOLE_METRICS
+    else:
+        metrics = WHOLE_METRICS + NC_METRICS
+
+    cols = ", ".join(["expression_suffix", "locus"] + metrics)
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"SELECT {cols} FROM hla.alleles WHERE {where}",
+            *params,
+        )
+
+    if not rows:
+        raise HTTPException(404, {
+            "error": {"code": "NO_ALLELES", "message": "No genomic alleles found for the given filters."}
+        })
+
+    # Group by expression class
+    groups: dict[str, list[dict]] = {}
+    for r in rows:
+        label = EXPRESSION_LABELS.get(r["expression_suffix"], r["expression_suffix"] or "normal")
+        groups.setdefault(label, []).append(dict(r))
+
+    # Class distribution
+    class_distribution = {
+        label: {"n": len(alleles), "suffix": next(
+            (k for k, v in EXPRESSION_LABELS.items() if v == label), None
+        )}
+        for label, alleles in sorted(groups.items(), key=lambda x: -len(x[1]))
+    }
+
+    # Per-class stats for each metric
+    per_class_stats: dict[str, dict[str, dict]] = {}
+    for metric in metrics:
+        per_class_stats[metric] = {}
+        for label, alleles_in_class in groups.items():
+            values = [r[metric] for r in alleles_in_class if r[metric] is not None]
+            stats = _group_stats(values)
+            if stats:
+                per_class_stats[metric][label] = stats
+
+    # Cohen's d: normal vs each aberrant class
+    effect_sizes: list[dict] = []
+    normal_alleles = groups.get("normal", [])
+
+    for metric in metrics:
+        normal_values = [r[metric] for r in normal_alleles if r[metric] is not None]
+        normal_stats = _group_stats(normal_values)
+        if not normal_stats or normal_stats["sd"] is None:
+            continue
+
+        for label, alleles_in_class in groups.items():
+            if label == "normal":
+                continue
+            class_values = [r[metric] for r in alleles_in_class if r[metric] is not None]
+            class_stats = _group_stats(class_values)
+            if not class_stats or class_stats["sd"] is None:
+                continue
+
+            d = _cohens_d(
+                normal_stats["mean"], normal_stats["sd"], normal_stats["n"],
+                class_stats["mean"], class_stats["sd"], class_stats["n"],
+            )
+            if d is not None:
+                effect_sizes.append({
+                    "metric": metric,
+                    "expression_class": label,
+                    "cohens_d": round(d, 4),
+                    "abs_d": round(abs(d), 4),
+                    "normal_mean": normal_stats["mean"],
+                    "normal_sd": normal_stats["sd"],
+                    "normal_n": normal_stats["n"],
+                    "class_mean": class_stats["mean"],
+                    "class_sd": class_stats["sd"],
+                    "class_n": class_stats["n"],
+                    "direction": "normal > class" if d > 0 else "class > normal",
+                })
+
+    # Sort by absolute effect size
+    effect_sizes.sort(key=lambda x: x["abs_d"], reverse=True)
+
+    # Also compute normal vs ALL-aberrant (pooled)
+    aberrant_alleles = [r for label, recs in groups.items() if label != "normal" for r in recs]
+    pooled_effects: list[dict] = []
+    if aberrant_alleles:
+        for metric in metrics:
+            normal_values = [r[metric] for r in normal_alleles if r[metric] is not None]
+            aberrant_values = [r[metric] for r in aberrant_alleles if r[metric] is not None]
+            ns = _group_stats(normal_values)
+            ab = _group_stats(aberrant_values)
+            if ns and ab and ns["sd"] is not None and ab["sd"] is not None:
+                d = _cohens_d(ns["mean"], ns["sd"], ns["n"], ab["mean"], ab["sd"], ab["n"])
+                if d is not None:
+                    pooled_effects.append({
+                        "metric": metric,
+                        "cohens_d": round(d, 4),
+                        "abs_d": round(abs(d), 4),
+                        "normal_mean": ns["mean"],
+                        "normal_n": ns["n"],
+                        "aberrant_mean": ab["mean"],
+                        "aberrant_n": ab["n"],
+                        "direction": "normal > aberrant" if d > 0 else "aberrant > normal",
+                    })
+        pooled_effects.sort(key=lambda x: x["abs_d"], reverse=True)
+
+    return {
+        "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
+        "focus": focus,
+        "locus": locus,
+        "n_alleles": len(rows),
+        "class_distribution": class_distribution,
+        "per_class_stats": per_class_stats,
+        "effect_sizes": effect_sizes,
+        "pooled_normal_vs_aberrant": pooled_effects,
         "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
     }

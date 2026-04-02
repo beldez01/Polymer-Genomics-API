@@ -247,6 +247,68 @@ class TestHLACompare:
         assert resp.status_code == 422  # validation error
 
 
+class TestHLAExpressionCorrelation:
+    """GET /v1/hla/expression-correlation"""
+
+    async def test_expression_correlation_returns(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "complete"
+        assert body["n_alleles"] == 3
+
+    async def test_class_distribution(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation")
+        body = resp.json()
+        dist = body["class_distribution"]
+        assert "normal" in dist
+        assert dist["normal"]["n"] == 2  # two normal alleles
+        assert "null" in dist
+        assert dist["null"]["n"] == 1  # one N allele
+
+    async def test_effect_sizes_present(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation")
+        body = resp.json()
+        assert len(body["effect_sizes"]) > 0
+        top = body["effect_sizes"][0]
+        assert "cohens_d" in top
+        assert "abs_d" in top
+        assert "metric" in top
+        assert "expression_class" in top
+
+    async def test_pooled_effects(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation")
+        body = resp.json()
+        assert len(body["pooled_normal_vs_aberrant"]) > 0
+
+    async def test_filter_by_locus(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation?locus=A")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["n_alleles"] == 3
+
+    async def test_focus_full(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation?focus=full")
+        assert resp.status_code == 200
+        body = resp.json()
+        # Whole-allele metrics should be present
+        metrics = [e["metric"] for e in body["effect_sizes"]]
+        assert any("gc_content" in m for m in metrics)
+
+    async def test_focus_both(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation?focus=both")
+        assert resp.status_code == 200
+        body = resp.json()
+        metrics = [e["metric"] for e in body["effect_sizes"]]
+        # Should include both nc_ and non-nc_ metrics
+        assert any(m.startswith("nc_") for m in metrics)
+        assert any(not m.startswith("nc_") for m in metrics)
+
+    async def test_invalid_locus(self, client, seed_hla_data):
+        resp = await client.get("/v1/hla/expression-correlation?locus=XYZ")
+        assert resp.status_code == 400
+
+
 class TestHLADivergence:
     """POST /v1/hla/noncoding-divergence"""
 
