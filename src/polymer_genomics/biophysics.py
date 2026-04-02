@@ -249,6 +249,68 @@ def compute_groove_profile(seq: str) -> dict:
     return {"per_step": steps, "summary": summary}
 
 
+# Olson et al. 1998 structural parameters (degrees / Angstrom)
+_OLSON_STRUCTURAL = {
+    "AA": {"roll": -0.7, "tilt": -0.2, "twist": 35.6, "rise": 3.27, "slide": -0.06, "shift": 0.00},
+    "AC": {"roll":  1.0, "tilt":  1.0, "twist": 34.0, "rise": 3.38, "slide":  0.22, "shift":  0.13},
+    "AG": {"roll":  5.3, "tilt": -0.3, "twist": 34.4, "rise": 3.29, "slide":  0.30, "shift": -0.01},
+    "AT": {"roll":  2.6, "tilt":  0.0, "twist": 31.5, "rise": 3.39, "slide": -0.22, "shift":  0.00},
+    "CA": {"roll":  4.2, "tilt":  0.7, "twist": 34.5, "rise": 3.26, "slide":  0.34, "shift":  0.18},
+    "CC": {"roll":  2.4, "tilt": -1.0, "twist": 32.9, "rise": 3.38, "slide":  0.47, "shift":  0.15},
+    "CG": {"roll":  3.5, "tilt":  0.0, "twist": 29.8, "rise": 3.32, "slide":  0.19, "shift":  0.00},
+    "CT": {"roll":  5.3, "tilt":  0.3, "twist": 34.4, "rise": 3.29, "slide":  0.30, "shift": -0.01},
+    "GA": {"roll":  1.3, "tilt":  1.5, "twist": 36.9, "rise": 3.38, "slide":  0.09, "shift":  0.12},
+    "GC": {"roll":  0.7, "tilt":  0.0, "twist": 40.0, "rise": 3.38, "slide":  0.57, "shift":  0.00},
+    "GG": {"roll":  2.4, "tilt":  1.0, "twist": 32.9, "rise": 3.38, "slide":  0.47, "shift":  0.15},
+    "GT": {"roll":  1.0, "tilt": -1.0, "twist": 34.0, "rise": 3.38, "slide":  0.22, "shift":  0.13},
+    "TA": {"roll":  3.3, "tilt":  0.0, "twist": 36.0, "rise": 3.38, "slide":  0.20, "shift":  0.00},
+    "TC": {"roll":  1.3, "tilt": -1.5, "twist": 36.9, "rise": 3.38, "slide":  0.09, "shift":  0.12},
+    "TG": {"roll":  4.2, "tilt": -0.7, "twist": 34.5, "rise": 3.26, "slide":  0.34, "shift":  0.18},
+    "TT": {"roll": -0.7, "tilt":  0.2, "twist": 35.6, "rise": 3.27, "slide": -0.06, "shift":  0.00},
+}
+
+# Heddi et al. 2010 TRX flexibility scale (% BII conformer population)
+_TRX_DEFORMABILITY = {
+    "AA":  5, "AC":  4, "AG":  9, "AT":  0,
+    "CA": 42, "CC": 42, "CG": 43, "CT":  9,
+    "GA": 22, "GC": 25, "GG": 42, "GT":  4,
+    "TA": 14, "TC": 22, "TG": 42, "TT":  5,
+}
+
+
+def compute_structural(sequence: str) -> dict:
+    """Compute Olson 1998 structural parameters + TRX deformability per step."""
+    seq = sequence.upper()
+    if len(seq) < 2:
+        return {"per_step": [], "summary": {"n_steps": 0}}
+
+    per_step = []
+    for i in range(len(seq) - 1):
+        dinuc = seq[i:i+2]
+        struct = _OLSON_STRUCTURAL.get(dinuc)
+        trx = _TRX_DEFORMABILITY.get(dinuc)
+        if struct is None or trx is None:
+            continue
+        per_step.append({
+            "dinucleotide": dinuc,
+            "roll": struct["roll"],
+            "tilt": struct["tilt"],
+            "twist": struct["twist"],
+            "rise": struct["rise"],
+            "slide": struct["slide"],
+            "shift": struct["shift"],
+            "deformability": trx,
+        })
+
+    n = len(per_step)
+    summary = {"n_steps": n}
+    if n > 0:
+        for key in ("roll", "tilt", "twist", "rise", "slide", "shift", "deformability"):
+            vals = [s[key] for s in per_step]
+            summary[f"mean_{key}"] = round(sum(vals) / n, 3)
+    return {"per_step": per_step, "summary": summary}
+
+
 def compute_all(
     seq: str,
     salt_mm: float = 1000.0,

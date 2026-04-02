@@ -7,6 +7,7 @@ from polymer_genomics.biophysics import (
     compute_extinction,
     compute_form_propensity,
     compute_groove_profile,
+    compute_structural,
     compute_thermodynamics,
 )
 
@@ -151,3 +152,39 @@ class TestComputeAll:
     def test_salt_passthrough(self):
         result = compute_all("ACGT", salt_mm=150.0)
         assert result["thermodynamics"]["summary"]["salt_mm"] == 150.0
+
+
+# ── Structural Parameters ─────────────────────────────────────────────────
+
+
+class TestComputeStructuralParams:
+    def test_cg_twist(self):
+        result = compute_structural("ACGT")
+        assert result["per_step"][1]["twist"] == pytest.approx(29.8, abs=0.1)
+
+    def test_cg_roll(self):
+        result = compute_structural("ACGT")
+        assert result["per_step"][1]["roll"] == pytest.approx(3.5, abs=0.1)
+
+    def test_aa_deformability(self):
+        result = compute_structural("AAAA")
+        assert result["per_step"][0]["deformability"] == 5
+
+    def test_cg_deformability(self):
+        result = compute_structural("ACGT")
+        assert result["per_step"][1]["deformability"] == 43
+
+    def test_step_count(self):
+        result = compute_structural("ACGTACGT")
+        assert len(result["per_step"]) == 7
+        assert result["summary"]["n_steps"] == 7
+
+    def test_empty_sequence(self):
+        result = compute_structural("A")
+        assert result["per_step"] == []
+        assert result["summary"]["n_steps"] == 0
+
+    def test_summary_means(self):
+        result = compute_structural("ACGT")
+        assert "mean_twist" in result["summary"]
+        assert "mean_deformability" in result["summary"]
