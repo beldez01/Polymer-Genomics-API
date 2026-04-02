@@ -128,7 +128,7 @@ SELECT
     f.median_length,
     COALESCE(p.epic_v2_probes, 0) AS epic_v2_probes,
     COALESCE(p.epic_v1_probes, 0) AS epic_v1_probes,
-    COALESCE(p."450k_probes", 0)  AS "450k_probes"
+    COALESCE(p."450k_probes", 0)  AS probes_450k
 FROM annotation.te_family_summary f
 LEFT JOIN annotation.te_probe_counts p USING (repeat_class, repeat_family)
 ORDER BY f.total_bp DESC
@@ -215,7 +215,7 @@ async def _load_families() -> list[dict]:
             "probe_counts_by_platform": {
                 "epic_v2": r["epic_v2_probes"],
                 "epic_v1": r["epic_v1_probes"],
-                "450k": r["450k_probes"],
+                "450k": r["probes_450k"],
             },
             "reference_beta_range": ref_range,
             "retro_age_probes": 0,  # would need clock probe xref
