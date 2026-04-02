@@ -142,7 +142,9 @@ class TestTransposome:
         r = _get("/v1/transposome/families")
         assert r.status_code == 200
         body = r.json()
-        assert body["data"]["n_families"] > 50
+        assert body["status"] == "complete"
+        families = body.get("data", {}).get("families", [])
+        assert len(families) > 50
 
     def test_probe_te_mapping(self):
         r = _get("/v1/transposome/probe-te-mapping?platform=epic_v2&build=hg38")
