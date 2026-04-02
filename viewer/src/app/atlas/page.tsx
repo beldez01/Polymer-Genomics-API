@@ -17,7 +17,8 @@ import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
 // ---------------------------------------------------------------------------
 
 const BUILD = 'hg38';
-const LAYERS = ['gencode_v44', 'cpg_sites', 'probe_epic_v2', 'isochores'] as const;
+const LAYERS = ['gencode_v44', 'cpg_sites', 'probe_epic_v2'] as const;
+const ISO_LAYER = ['isochores'] as const;
 const AGG_RESOLUTION = 1_000_000;
 
 // ---------------------------------------------------------------------------
@@ -130,7 +131,8 @@ export default function AtlasPage() {
     setChrAgg({});
 
     async function loadAll() {
-      const tasks = CHROMOSOMES.map((chr) => async () => {
+      // Stats tasks (original 3 layers)
+      const statsTasks = CHROMOSOMES.map((chr) => async () => {
         if (chr.name === 'chrM') {
           if (!cancelled) {
             setChrStats(prev => ({
@@ -155,10 +157,6 @@ export default function AtlasPage() {
               loaded: true,
             },
           }));
-          const isoBins = agg.data['isochores']?.bins ?? [];
-          if (isoBins.length > 0) {
-            setChrAgg(prev => ({ ...prev, [chr.name]: isoBins }));
-          }
         } catch {
           if (!cancelled) {
             setChrStats(prev => ({
@@ -169,7 +167,25 @@ export default function AtlasPage() {
         }
       });
 
-      await runWithConcurrency(tasks, 4);
+      // Isochore tasks (separate call — avoids overloading the 3-layer query)
+      const isoTasks = CHROMOSOMES.filter(c => c.name !== 'chrM').map((chr) => async () => {
+        try {
+          const region = `${chr.name}:1-${chr.length}`;
+          const agg = await fetchAggregation(BUILD, region, AGG_RESOLUTION, [...ISO_LAYER]);
+          if (cancelled) return;
+          const bins = agg.data['isochores']?.bins ?? [];
+          if (bins.length > 0) {
+            setChrAgg(prev => ({ ...prev, [chr.name]: bins }));
+          }
+        } catch {
+          // Isochore failure is non-critical — Giemsa fallback
+        }
+      });
+
+      await Promise.all([
+        runWithConcurrency(statsTasks, 4),
+        runWithConcurrency(isoTasks, 4),
+      ]);
     }
 
     loadAll();
