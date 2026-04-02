@@ -57,7 +57,7 @@ mcp = FastMCP(
         "- Dinucleotide properties → lookup_dinucleotide_properties (ε₂₆₀, groove geometry, form propensity)\n"
         "- Amino acid properties → lookup_amino_acid_properties (MW, volume, hydrophobicity, pKa, cost)\n"
         "- Physical constants → lookup_physical_constants (Lp, Manning ξ, elastic moduli, enzymatic rates)\n"
-        "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove geometry)\n"
+        "- Region biophysics → compute_region_biophysics (ΔG₃₇, ε₂₆₀, form propensity, groove, structural, contextual, curvature, motifs — up to 1Mb)\n"
         "- Sequence biophysics (1kb bins) → query_region with layers='sequence_biophysics_l0'\n"
         "  (GC, stacking ΔG₃₇, Tm, curvature, groove width, dipole, periodicity, MGW, ProT, Roll, HelT — genome-wide pre-computed)\n"
         "  + L1 methylation perturbation (CpG density, meth ΔG₃₇/ΔTm, sensitivity, capacity, demethylation cost, taut-relaxed)\n"
@@ -1072,32 +1072,34 @@ async def compute_region_biophysics(
 ) -> dict:
     """Compute per-dinucleotide biophysical properties for a genomic region.
 
-    Fetches the DNA sequence and applies published lookup tables to compute
-    profiles: stacking ΔG₃₇ (SantaLucia), extinction ε₂₆₀ (Tataurov),
-    A/Z-form propensity, and groove geometry. Each dinucleotide step = one row.
+    Fetches the DNA sequence and computes per-step biophysical profiles using
+    published lookup tables. Each dinucleotide step = one row. Now includes
+    contextual features that reveal structural properties emergent from
+    sequence arrangement (not just composition).
 
-    Example output (truncated):
-    {"data": {"seqnames": ["chr17","chr17",...],
-     "ranges": {"start": [7668402,7668403,...], "end": [7668403,7668404,...]},
-     "mcols": {"stacking_dG37_kcal": [-1.44,-2.17,...], "extinction_260": [7200,7600,...],
-               "a_form_propensity": [0.5,0.85,...], "z_form_propensity": [0.1,0.92,...],
-               "major_groove_width_A": [11.7,11.2,...]}}}
-
-    Key output fields in mcols:
-    - stacking_dG37_kcal: free energy per step (more negative = more stable)
-    - z_form_propensity: Z-DNA propensity (>0.5 = Z-form prone)
-    - major/minor_groove_width_A: groove dimensions in angstroms
+    Property groups:
+    - thermodynamics: ΔG₃₇, ΔH, ΔS, cumulative energy (SantaLucia 1998)
+    - extinction: ε₂₆₀ per step (Tataurov 2008)
+    - form_propensity: A-form and Z-form propensity
+    - groove: major/minor groove width and depth (Å)
+    - structural: roll, tilt, twist, rise, slide, shift (Olson 1998) + deformability (Heddi 2010 TRX)
+    - contextual: bubble_propensity (0-1), context_deviation (weak spots vs anchors),
+                   local_stability, local_flexibility (sliding window analysis)
+    - curvature: local DNA curvature from accumulated roll/tilt over helical turns
+    - motifs: G-quadruplex, Z-DNA-prone regions, homopolymer runs, inverted repeats
+              (returned as top-level 'motifs' key, not per-step)
 
     Does NOT work on arbitrary sequences — use evaluate_design for non-genomic DNA.
-    Maximum 10,000 bp per request.
+    Maximum 1,000,000 bp per request.
 
     Args:
         build: Genome build ('hg38' or 'hg37').
-        region: Genomic region 'chr16:70699930-70700000' (1-based closed, max 10kb).
+        region: Genomic region 'chr16:70699930-70700000' (1-based closed, max 1Mb).
         duplex_type: 'dna_dna' (default), 'rna_rna', or 'rna_dna'.
         salt_mm: NaCl in mM. 1000 = standard (1 M), 150 = physiological.
         properties: Comma-separated: 'thermodynamics', 'extinction', 'form_propensity',
-                    'groove', or 'all' (default).
+                    'groove', 'structural', 'contextual', 'curvature', 'motifs',
+                    or 'all' (default).
     """
     params: dict = {
         "duplex_type": duplex_type,
