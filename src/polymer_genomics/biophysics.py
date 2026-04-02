@@ -9,6 +9,7 @@ El Hassan & Calladine 1996/1997.
 from __future__ import annotations
 
 import math
+import re
 
 import numpy as np
 
@@ -395,6 +396,163 @@ def compute_contextual(sequence: str, window: int = 10) -> dict:
     }
 
     return {"per_step": per_step, "summary": summary}
+
+
+def compute_curvature(sequence: str, window: int = 21) -> dict:
+    """Compute local DNA curvature from accumulated roll and tilt.
+
+    Curvature = sqrt(mean(roll²) + mean(tilt²)) over a sliding window.
+    Window default = 21bp (two helical turns, standard for curvature analysis).
+    """
+    seq = sequence.upper()
+    n = len(seq) - 1
+    if n < 1:
+        return {"per_step": [], "summary": {"n_steps": 0}}
+
+    roll_vals = np.zeros(n)
+    tilt_vals = np.zeros(n)
+    valid = np.zeros(n, dtype=bool)
+
+    for i in range(n):
+        dinuc = seq[i:i+2]
+        s = _OLSON_STRUCTURAL.get(dinuc)
+        if s:
+            roll_vals[i] = s["roll"]
+            tilt_vals[i] = s["tilt"]
+            valid[i] = True
+
+    # Windowed curvature via cumulative sums of squared components
+    cs_roll2 = np.insert(np.cumsum(roll_vals ** 2), 0, 0)
+    cs_tilt2 = np.insert(np.cumsum(tilt_vals ** 2), 0, 0)
+
+    curvatures = np.zeros(n)
+    half = window // 2
+    for i in range(n):
+        lo = max(0, i - half)
+        hi = min(n, i + half + 1)
+        w = hi - lo
+        if w > 0:
+            mean_roll2 = (cs_roll2[hi] - cs_roll2[lo]) / w
+            mean_tilt2 = (cs_tilt2[hi] - cs_tilt2[lo]) / w
+            curvatures[i] = float(np.sqrt(mean_roll2 + mean_tilt2))
+
+    per_step = []
+    for i in range(n):
+        dinuc = seq[i:i+2]
+        entry: dict = {
+            "position": i,
+            "dinucleotide": dinuc,
+            "curvature": round(curvatures[i], 3),
+        }
+        if valid[i]:
+            entry["roll"] = round(float(roll_vals[i]), 2)
+            entry["tilt"] = round(float(tilt_vals[i]), 2)
+        per_step.append(entry)
+
+    summary = {
+        "n_steps": n,
+        "window": window,
+        "mean_curvature": round(float(np.mean(curvatures)), 3),
+        "max_curvature": round(float(np.max(curvatures)), 3),
+    }
+    return {"per_step": per_step, "summary": summary}
+
+
+_COMPLEMENT = str.maketrans("ACGT", "TGCA")
+
+
+def detect_motifs(sequence: str) -> dict:
+    """Detect structural motifs in a DNA sequence.
+
+    Returns dict with lists of motif annotations:
+    - g_quadruplex: G3+N1-7 patterns (potential G4 structures)
+    - z_dna_prone: alternating purine-pyrimidine runs ≥8bp with low Z penalty
+    - homopolymer_runs: poly-A, poly-T, poly-G, poly-C runs ≥5bp
+    - inverted_repeats: potential hairpin stems (≥6bp palindromic sequences)
+    """
+    seq = sequence.upper()
+    n = len(seq)
+
+    # G-quadruplex: G3+N{1,7}G3+N{1,7}G3+N{1,7}G3+
+    g4_pattern = re.compile(r"(G{3,})\w{1,7}(G{3,})\w{1,7}(G{3,})\w{1,7}(G{3,})")
+    g4_hits = []
+    for m in g4_pattern.finditer(seq):
+        g4_hits.append({
+            "start": m.start(),
+            "end": m.end(),
+            "sequence": m.group(),
+            "g_run_lengths": [len(g) for g in m.groups()],
+        })
+
+    # Z-DNA: alternating purine-pyrimidine ≥8bp
+    z_dna = []
+    pur_pyr = "".join("R" if b in "AG" else "Y" if b in "CT" else "N" for b in seq)
+    for m in re.finditer(r"(?:RY){4,}|(?:YR){4,}", pur_pyr):
+        region = seq[m.start():m.end()]
+        penalties = [_Z_FORM_PROPENSITY.get(region[i:i+2], 5.0) for i in range(len(region)-1)]
+        mean_penalty = sum(penalties) / len(penalties) if penalties else 5.0
+        if mean_penalty < 2.5:
+            z_dna.append({
+                "start": m.start(),
+                "end": m.end(),
+                "length": m.end() - m.start(),
+                "mean_z_penalty": round(mean_penalty, 2),
+            })
+
+    # Homopolymer runs ≥5bp
+    homo_runs = []
+    for base, label in [("A", "poly_A"), ("T", "poly_T"), ("G", "poly_G"), ("C", "poly_C")]:
+        for m in re.finditer(f"{base}{{5,}}", seq):
+            homo_runs.append({
+                "type": label,
+                "start": m.start(),
+                "end": m.end(),
+                "length": m.end() - m.start(),
+            })
+    homo_runs.sort(key=lambda x: x["start"])
+
+    # Inverted repeats (potential hairpins): palindromic sequences ≥6bp
+    inv_repeats = []
+    min_stem = 6
+    max_loop = 12
+    for stem_len in range(min_stem, min(20, n // 2) + 1):
+        for i in range(n - 2 * stem_len - 1):
+            stem5 = seq[i:i + stem_len]
+            if "N" in stem5:
+                continue
+            rc = stem5.translate(_COMPLEMENT)[::-1]
+            search_start = i + stem_len
+            search_end = min(i + stem_len + max_loop + stem_len, n)
+            search_region = seq[search_start:search_end]
+            pos = search_region.find(rc)
+            if pos != -1:
+                loop_len = pos
+                if loop_len >= 3:
+                    inv_repeats.append({
+                        "start": i,
+                        "end": search_start + pos + stem_len,
+                        "stem_length": stem_len,
+                        "loop_length": loop_len,
+                        "stem_5prime": stem5,
+                    })
+
+    # Deduplicate overlapping inverted repeats — keep longest
+    inv_repeats.sort(key=lambda x: -(x["stem_length"]))
+    kept = []
+    used = set()
+    for ir in inv_repeats:
+        positions = set(range(ir["start"], ir["end"]))
+        if not positions & used:
+            kept.append(ir)
+            used |= positions
+    inv_repeats = sorted(kept, key=lambda x: x["start"])
+
+    return {
+        "g_quadruplex": g4_hits,
+        "z_dna_prone": z_dna,
+        "homopolymer_runs": homo_runs,
+        "inverted_repeats": inv_repeats,
+    }
 
 
 def compute_all(

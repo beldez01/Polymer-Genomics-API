@@ -5,11 +5,13 @@ import pytest
 from polymer_genomics.biophysics import (
     compute_all,
     compute_contextual,
+    compute_curvature,
     compute_extinction,
     compute_form_propensity,
     compute_groove_profile,
     compute_structural,
     compute_thermodynamics,
+    detect_motifs,
 )
 
 
@@ -241,3 +243,78 @@ class TestComputeContextualFeatures:
         assert "max_bubble_propensity" in result["summary"]
         assert "mean_flexibility" in result["summary"]
         assert "window" in result["summary"]
+
+
+# ── Curvature ────────────────────────────────────────────────────────────
+
+
+class TestComputeCurvature:
+    def test_a_tract_curved(self):
+        seq = "A" * 30
+        result = compute_curvature(seq, window=21)
+        assert result["summary"]["mean_curvature"] > 0
+
+    def test_gc_alternating_less_curved(self):
+        seq = "GCGCGCGCGCGCGCGCGCGCGCGCGCGCGC"
+        result = compute_curvature(seq, window=21)
+        a_result = compute_curvature("A" * 30, window=21)
+        # GC alternating should have different curvature than A-tract
+        assert result["summary"]["mean_curvature"] != a_result["summary"]["mean_curvature"]
+
+    def test_curvature_per_step(self):
+        seq = "ACGTACGTACGTACGTACGTACGT"
+        result = compute_curvature(seq, window=10)
+        assert len(result["per_step"]) == 23
+        assert all("curvature" in s for s in result["per_step"])
+
+    def test_empty_sequence(self):
+        result = compute_curvature("A", window=10)
+        assert result["per_step"] == []
+        assert result["summary"]["n_steps"] == 0
+
+    def test_roll_tilt_present(self):
+        result = compute_curvature("ACGT", window=3)
+        assert "roll" in result["per_step"][0]
+        assert "tilt" in result["per_step"][0]
+
+
+# ── Motif Detection ────────────────────────────────────────────────────────
+
+
+class TestDetectMotifs:
+    def test_g_quadruplex(self):
+        seq = "AAAGGGCCCGGGAAAGGGTTGGGAAA"
+        result = detect_motifs(seq)
+        assert len(result["g_quadruplex"]) >= 1
+
+    def test_no_g_quadruplex(self):
+        seq = "ACGTACGTACGTACGT"
+        result = detect_motifs(seq)
+        assert len(result["g_quadruplex"]) == 0
+
+    def test_z_dna_alternating_gc(self):
+        seq = "TTGCGCGCGCGCGCGCTT"
+        result = detect_motifs(seq)
+        assert len(result["z_dna_prone"]) >= 1
+
+    def test_poly_a_tract(self):
+        seq = "GCGCAAAAAAGCGC"
+        result = detect_motifs(seq)
+        assert any(m["type"] == "poly_A" for m in result["homopolymer_runs"])
+
+    def test_no_short_homopolymer(self):
+        seq = "GCGCAAAAGCGC"  # only 4 As, below threshold
+        result = detect_motifs(seq)
+        assert not any(m["type"] == "poly_A" for m in result["homopolymer_runs"])
+
+    def test_empty_sequence(self):
+        result = detect_motifs("")
+        assert result["g_quadruplex"] == []
+        assert result["homopolymer_runs"] == []
+
+    def test_all_keys_present(self):
+        result = detect_motifs("ACGT")
+        assert "g_quadruplex" in result
+        assert "z_dna_prone" in result
+        assert "homopolymer_runs" in result
+        assert "inverted_repeats" in result
