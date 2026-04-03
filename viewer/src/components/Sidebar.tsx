@@ -59,6 +59,12 @@ interface SidebarProps {
   onToggleCodons: () => void;
   showGC: boolean;
   onToggleGC: () => void;
+  showStability: boolean;
+  onToggleStability: () => void;
+  showStructure: boolean;
+  onToggleStructure: () => void;
+  showMotifs: boolean;
+  onToggleMotifs: () => void;
   visibleCellTypes: string[];
   onToggleCellType: (cellType: string) => void;
   enabledMotifs: string[];
@@ -78,6 +84,12 @@ export function Sidebar({
   onToggleCodons,
   showGC,
   onToggleGC,
+  showStability,
+  onToggleStability,
+  showStructure,
+  onToggleStructure,
+  showMotifs,
+  onToggleMotifs,
   visibleCellTypes,
   onToggleCellType,
   enabledMotifs,
@@ -726,11 +738,28 @@ export function Sidebar({
             );
           })()}
 
-          {/* 15. GC% — toggle, always last */}
+          {/* 15. GC% — toggle */}
           <AnnotationRow
             active={showGC}
             name="GC%"
             onClick={onToggleGC}
+          />
+
+          {/* 16-18. Contextual biophysics */}
+          <AnnotationRow
+            active={showStability}
+            name="Stability"
+            onClick={onToggleStability}
+          />
+          <AnnotationRow
+            active={showStructure}
+            name="Structure"
+            onClick={onToggleStructure}
+          />
+          <AnnotationRow
+            active={showMotifs}
+            name="Motifs"
+            onClick={onToggleMotifs}
           />
 
         </div>

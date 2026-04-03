@@ -19,6 +19,7 @@ import { useAnimatedNav } from '@/hooks/useAnimatedNav';
 import { usePinchZoom } from '@/hooks/usePinchZoom';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { COLOR, FONT_FAMILY, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { fetchBiophysicsCompute, type BiophysicsComputeResponse } from '@/lib/api';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
   const decoded = decodeURIComponent(region);
@@ -29,7 +30,7 @@ function parseRegionParam(region: string): { chr: string; start: number; end: nu
 
 function ViewerPage() {
   const params = useParams<{ build: string; region: string }>();
-  const { build, chr, start, end, width, activeLayers, showCodons, showGC, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleCellType, toggleMotif, toggleAllProbes, toggleAllCellTypes } = useViewport();
+  const { build, chr, start, end, width, activeLayers, showCodons, showGC, showStability, showStructure, showMotifs, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleStability, toggleStructure, toggleMotifs, toggleCellType, toggleMotif, toggleAllProbes, toggleAllCellTypes } = useViewport();
   const { toggleAllMotifs } = useViewport();
   const { data, loading, error } = useViewportData();
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
@@ -45,6 +46,29 @@ function ViewerPage() {
   const urlInitializedRef = useRef(false);
   const isMobile = useIsMobile();
   const regionContext = useRegionContext(data, chr, start, end);
+
+  // Fetch contextual biophysics when zoomed ≤1Mb and any new track is enabled
+  const [biophysicsData, setBiophysicsData] = useState<BiophysicsComputeResponse | null>(null);
+  const needsBiophysics = showStability || showStructure || showMotifs;
+  useEffect(() => {
+    if (!needsBiophysics || width > 1_000_000 || !chr || !start || !end) {
+      setBiophysicsData(null);
+      return;
+    }
+    let cancelled = false;
+    const region = `${chr}:${start}-${end}`;
+    const props = [
+      showStability ? 'thermodynamics,contextual' : '',
+      showStructure ? 'curvature,structural' : '',
+      showMotifs ? 'motifs' : '',
+    ].filter(Boolean).join(',');
+
+    fetchBiophysicsCompute(build, region, props)
+      .then((res) => { if (!cancelled) setBiophysicsData(res); })
+      .catch(() => { if (!cancelled) setBiophysicsData(null); });
+
+    return () => { cancelled = true; };
+  }, [build, chr, start, end, width, needsBiophysics, showStability, showStructure, showMotifs]);
   usePinchZoom(containerRef);
 
   useEffect(() => {
@@ -269,6 +293,12 @@ function ViewerPage() {
           onToggleCodons={toggleCodons}
           showGC={showGC}
           onToggleGC={toggleGC}
+          showStability={showStability}
+          onToggleStability={toggleStability}
+          showStructure={showStructure}
+          onToggleStructure={toggleStructure}
+          showMotifs={showMotifs}
+          onToggleMotifs={toggleMotifs}
           visibleCellTypes={visibleCellTypes}
           onToggleCellType={toggleCellType}
           enabledMotifs={enabledMotifs}
@@ -326,6 +356,10 @@ function ViewerPage() {
                 error={error}
                 showCodons={showCodons}
                 showGC={showGC}
+                showStability={showStability}
+                showStructure={showStructure}
+                showMotifs={showMotifs}
+                biophysicsData={biophysicsData ?? undefined}
                 visibleCellTypes={visibleCellTypes}
                 enabledMotifs={enabledMotifs}
               />
