@@ -298,8 +298,77 @@ HLA-B's null correlation (rho ≈ 0) despite having the most alleles (n=19) and 
 3. ~~**Quantitative expression data**~~ — DONE (2026-04-02). HLA-A: dG37 r=-0.76, CpG density r=+0.63.
 4. ~~**Genomic context**~~ — DONE (2026-04-02). A > B > C stability gradient explains locus-specific correlation strength.
 5. **GTEx HLA typing** — allele-resolved expression across 54 tissues
-6. **Stimulated conditions** — Bettens has TNFα/IFNβ stimulated data (56 donors); test if biophysics predict stimulated expression differently
-7. **Class II loci context** — query surrounding biophysics for DRB1, DQB1, DPB1
+
+## TNF+IFN Stimulated Expression (2026-04-02)
+
+**Data:** Bettens et al. stimulated cohort — 56 donors, PBMCs cultured overnight ± TNFα/IFNβ. 45 alleles with n≥2 per condition.
+
+### Per-locus, per-condition top correlations
+
+| Condition | HLA-A (n=12) | r | HLA-B (n=18) | r | HLA-C (n=15) | r |
+|-----------|-------------|---|-------------|---|-------------|---|
+| Unstimulated | CpG islands | -0.35 | Z-penalty | **+0.60** | CpG islands | +0.52 |
+| TNF+IFN stim | **dG37** | **-0.72** | CpG density | -0.32 | **Z-penalty** | **-0.62** |
+| Upregulation ratio | CpG islands | +0.46 | — | null | **CpG density** | **+0.54** |
+
+### Detailed: HLA-A stimulated (the strongest result)
+
+| NC Metric | Spearman rho | Pearson r |
+|-----------|-------------|-----------|
+| Stacking dG37 | **-0.699** | **-0.722** |
+| GC content | +0.699 | +0.622 |
+| Z-form propensity | -0.385 | -0.594 |
+| Melting temp | +0.650 | +0.587 |
+| CpG density | +0.392 | +0.471 |
+
+### Detailed: HLA-C upregulation ratio (cytokine inducibility)
+
+| NC Metric | Spearman rho | Pearson r |
+|-----------|-------------|-----------|
+| CpG density | +0.389 | **+0.544** |
+| Stacking dG37 | -0.564 | -0.521 |
+| A-form propensity | +0.429 | +0.485 |
+| GC content | +0.486 | +0.473 |
+| Z-form propensity | -0.393 | -0.463 |
+
+### Interpretation
+
+1. **Stimulation reveals the biophysical signal.** HLA-A dG37 goes from r=-0.23 (unstimulated) to r=-0.72 (stimulated). The allele-intrinsic thermodynamic properties matter more under immune activation, when expression is driven harder against the biophysical landscape.
+
+2. **HLA-C cytokine inducibility correlates with CpG density** (r=+0.54). Alleles with higher non-coding CpG density are more inducible — consistent with CpG-mediated regulatory mechanisms responding to inflammatory signaling.
+
+3. **HLA-B inverts.** Unstimulated shows Z-penalty r=+0.60; stimulated drops to null. The biophysical coupling is condition-dependent — different regulatory programs engage different aspects of the physical substrate.
+
+4. **Concordance with original Bettens finding:** They reported eQTL variance explained as A: 9% (stim) vs 29% (unstim), B: 23% vs 13%, C: 50% vs 31%. Our result inverts for A (stronger when stimulated) but agrees on C (strong in both conditions). The difference: we measure allele-intrinsic biophysics, they measured cis-eQTL SNPs. The biophysical signal is a different regulatory layer than the genetic one.
+
+## Class II Genomic Context (2026-04-02)
+
+### All 6 loci: surrounding biophysics (±50kb, hg38)
+
+| Locus | Class | Position | GC | dG37 | Tm (°C) | Curvature | Corr Length |
+|-------|-------|----------|:---:|:----:|:-------:|:---------:|:-----------:|
+| HLA-A | I | 29.9 Mb | **0.459** | **-1.350** | **85.0** | 0.341 | 0.220 |
+| HLA-C | I | 31.3 Mb | 0.430 | -1.321 | 83.7 | 0.359 | 0.249 |
+| HLA-B | I | 31.4 Mb | 0.444 | -1.335 | 84.3 | 0.353 | 0.244 |
+| HLA-DRB1 | II | 32.6 Mb | 0.415 | -1.305 | 82.9 | 0.364 | 0.256 |
+| HLA-DQB1 | II | 32.7 Mb | 0.397 | -1.285 | 82.1 | 0.363 | 0.254 |
+| HLA-DPB1 | II | 33.1 Mb | 0.422 | -1.310 | 83.2 | 0.358 | 0.243 |
+
+### Observations
+
+- **Telomeric→centromeric stability gradient across the MHC:** HLA-A (most stable) at the telomeric end → DQB1 (least stable) toward the centromere. DPB1 breaks the gradient slightly (more stable than DQB1).
+- **Class I vs Class II:** Class I loci are in more stable neighborhoods overall (mean dG37 = -1.335 vs -1.300 for Class II). Class II has higher curvature (0.362 vs 0.351) and longer correlation lengths (0.251 vs 0.238).
+- **HLA-A is isolated:** 1.3 Mb telomeric of the Class I cluster (B+C are only 82 kb apart). Its unique biophysical context may explain why it shows the strongest allele-expression coupling.
+
+## Next Steps
+
+1. ~~**Cross-locus replication**~~ — DONE
+2. ~~**Feature-level breakdown**~~ — DONE
+3. ~~**Quantitative expression data**~~ — DONE
+4. ~~**Genomic context**~~ — DONE (all 6 loci)
+5. ~~**Stimulated conditions**~~ — DONE. Stimulation amplifies biophysical signal.
+6. **GTEx HLA typing** — allele-resolved expression across 54 tissues
+7. **NAR figure generation** — scatter plots of dG37 vs TPM for HLA-A (unstim + stim side-by-side)
 
 ## Reproducibility
 
