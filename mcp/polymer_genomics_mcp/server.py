@@ -407,7 +407,7 @@ async def query_region(
     - mcols{}: layer-specific annotation columns
 
     Biophysical properties: use layers='sequence_biophysics_l0' for full material stack
-    (L0 core + L1 methylation + L3.5 Green's function + L0 extended = 43 columns).
+    (L0 core + L1 methylation + L3.5 Green's function + L0 extended + evolutionary physics = 64 columns).
     For short-sequence ΔG₃₇/groove/form analysis, use compute_region_biophysics.
     Does NOT return expression — use lookup_gene_expression.
     Prefer aggregate_region for regions > 500kb to avoid truncation.

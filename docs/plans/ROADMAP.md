@@ -35,14 +35,14 @@ Polymer Genomics is the first production database of genome-wide DNA biophysical
 | Component | Status | Notes |
 |-----------|--------|-------|
 | REST API | ✅ Live | 17+ endpoints, FastAPI + asyncpg, api.polymerbio.org (Fly.io iad) |
-| MCP Server | ✅ Live | 45 tools (35 reference + 10 compute), FastMCP, stdio transport |
+| MCP Server | ✅ Live | 44 tools (34 reference + 10 compute), FastMCP, stdio transport |
 | Frontend Viewer | ✅ Live | Canvas-based multi-track, keyboard nav, polymerbio.org (Vercel) |
 | Python SDK | ✅ PyPI | `pip install polymer-genomics` (v0.2.0, MIT) |
 | Test Suite | ✅ | 41 files, 440+ tests |
 | Epistemic Schema | ✅ | Evidence classes, tier, equilibrium, statefulness on all layers |
 | Methylation Engine | ✅ | 10 compute tools, R subprocess, session management |
 
-### Data Layers (28 on hg38)
+### Data Layers (41 on hg38)
 | Layer | Source | Evidence Class | Rows |
 |-------|--------|----------------|------|
 | Gene models | GENCODE v44 | K | 3,039,917 |
@@ -70,7 +70,7 @@ Polymer Genomics is the first production database of genome-wide DNA biophysical
 | GWAS catalog | EBI | S | genome-wide |
 | SBS mutation spectrum | COSMIC v3.4 | K | 96 channels |
 | Epigenetic clock probes | Literature | K | multi-clock |
-| **Sequence biophysics L0** | **Computed (43 cols)** | **D** | **genome-wide** |
+| **Sequence biophysics L0** | **Computed (64 cols)** | **D** | **genome-wide** |
 
 ### API Features Live
 | Feature | Endpoint | Notes |

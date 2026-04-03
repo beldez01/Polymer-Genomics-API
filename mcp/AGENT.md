@@ -1,6 +1,6 @@
 # Polymer Genomics MCP — Agent Context
 
-The first production database of genome-wide DNA biophysical properties. 28 curated layers on hg38/hg37, 45 MCP tools, anti-hallucination design.
+The first production database of genome-wide DNA biophysical properties. 41 curated layers on hg38/hg37, 44 MCP tools, anti-hallucination design.
 
 ## Anti-Hallucination Design
 
@@ -156,7 +156,7 @@ load_idats(dir) → normalize(session) → filter_probes(session) → run_limma(
 → volcano_plot(session) → batch_probes(top_hits) → lookup_gene_expression(gene)
 ```
 
-## Available Layers (28 on hg38)
+## Available Layers (41 on hg38)
 
 | layer_key | type | Description |
 |-----------|------|-------------|
@@ -185,7 +185,7 @@ load_idats(dir) → normalize(session) → filter_probes(session) → run_limma(
 | fragility_composite | fragility | Composite fragility score — 2.9M |
 | breakpoints | breakpoint | COSMIC SV breakpoints |
 | gwas_catalog_ebi_v1 | gwas | EBI GWAS Catalog |
-| sequence_biophysics_l0 | biophysics | **43 columns** — see sublayers below |
+| sequence_biophysics_l0 | biophysics | **64 columns** — see sublayers below |
 
 Use `list_layers(build)` to confirm current availability and row counts.
 
@@ -202,6 +202,7 @@ All sublayers returned together via `query_region` with `layers='sequence_biophy
 | **L0 extended** (6) | deformability, g4_density, g4_max_score, kmer_complexity, dinucleotide_entropy, dominant_period | Flexibility, G4, complexity |
 | **L1 methylation** (10) | cpg_count, cpg_density, cpg_obs_exp, meth_delta_g, meth_delta_tm, meth_sensitivity, methylation_capacity, demethylation_cost, oxidation_depth, taut_relaxed | CpG landscape + methylation perturbation |
 | **L3.5 Green's fn** (4) | correlation_length, integrated_response, perturbation_reach, response_asymmetry | Mechanical connectivity |
+| **Evolutionary physics** (5) | phylop_241way_mean, phastcons_241way_mean, b_score_mean, recomb_rate_cmmb, mutation_rate_mean | Conservation, selection, recombination |
 
 ## Compute Tools (Methylation Pipeline)
 

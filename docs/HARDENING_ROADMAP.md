@@ -1,6 +1,6 @@
 # Hardening & Tasteful Expansion Roadmap
 
-**Current state**: 28 layers, 46M features, 18/20 GB used, API live, MCP working, SDK on PyPI, validated.
+**Current state**: 41 layers, 53M features, 18/20 GB used, API live, MCP working, SDK on PyPI, validated.
 
 **Goal**: Go from "works" to "trusted infrastructure" that AI companies and researchers rely on.
 

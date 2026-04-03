@@ -6,8 +6,8 @@ Live at polymerbio.org · API at api.polymerbio.org · SDK: `pip install polymer
 
 ## What This Is
 
-A curated, multi-layer genomic reference database (28 layers, hg38/hg37) that provides:
-- **Material-channel DNA properties** genome-wide (stacking ΔG₃₇, Tm, curvature, groove geometry, form propensity — 43 biophysics columns at 1 kb resolution)
+A curated, multi-layer genomic reference database (41 layers, hg38/hg37) that provides:
+- **Material-channel DNA properties** genome-wide (stacking ΔG₃₇, Tm, curvature, groove geometry, form propensity — 64 biophysics columns at 1 kb resolution)
 - **Cross-layer correlation and intersection** in a single query (no other genomic database offers this)
 - **Physics linter** for evaluating synthetic constructs (13 flag types, batch mode, comparison mode)
 - **Anti-hallucination responses** with evidence classes (M/R/D/S/K/H/L), provenance, and version metadata in every response
@@ -39,7 +39,7 @@ A curated, multi-layer genomic reference database (28 layers, hg38/hg37) that pr
 
 - `src/` — FastAPI application (`polymer_genomics/`)
 - `viewer/` — Next.js 15 + React 19 frontend (deployed to Vercel)
-- `mcp/` — MCP server (45 tools: 35 reference + 10 compute)
+- `mcp/` — MCP server (44 tools: 34 reference + 10 compute)
 - `sdk/python/` — Python SDK (PyPI: `polymer-genomics` v0.2.0)
 - `engine/` — R-based methylation compute engine
 - `docker/` — Local dev Postgres init scripts

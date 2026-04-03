@@ -16,7 +16,7 @@
 
 ## ABSTRACT
 
-Polymer Genomics (https://polymerbio.org) is a freely accessible database providing genome-wide DNA biophysical properties — including stacking free energy (ΔG₃₇), melting temperature, intrinsic curvature, groove geometry, dinucleotide periodicity, and structural form propensity — pre-computed at 1 kb resolution across the human genome (GRCh38 and GRCh37). These sequence-intrinsic material properties are integrated with 28 curated annotation layers from authoritative sources (GENCODE, ENCODE, gnomAD, GTEx, UCSC, RepeatMasker, and others), totaling over 45 million indexed features. A unified REST API enables cross-layer correlation and boolean intersection queries — for example, identifying CpG islands with unusual thermodynamic stability or correlating conservation with stacking energy across a gene locus. The platform also provides a physics linter that evaluates arbitrary DNA sequences (10–100,000 bp) for biophysical properties relevant to synthetic construct design. A Python SDK is available on PyPI. Polymer Genomics fills a gap in the genomic database ecosystem: while existing resources catalogue sequence, annotation, variation, and function, none provide the physical-chemical properties of DNA as a material polymer in a queryable, cross-referenced format.
+Polymer Genomics (https://polymerbio.org) is a freely accessible database providing genome-wide DNA biophysical properties — including stacking free energy (ΔG₃₇), melting temperature, intrinsic curvature, groove geometry, dinucleotide periodicity, and structural form propensity — pre-computed at 1 kb resolution across the human genome (GRCh38 and GRCh37). These sequence-intrinsic material properties are integrated with 41 curated annotation layers from authoritative sources (GENCODE, ENCODE, gnomAD, GTEx, UCSC, RepeatMasker, and others), totaling over 53 million indexed features. A unified REST API enables cross-layer correlation and boolean intersection queries — for example, identifying CpG islands with unusual thermodynamic stability or correlating conservation with stacking energy across a gene locus. The platform also provides a physics linter that evaluates arbitrary DNA sequences (10–100,000 bp) for biophysical properties relevant to synthetic construct design. A Python SDK is available on PyPI. Polymer Genomics fills a gap in the genomic database ecosystem: while existing resources catalogue sequence, annotation, variation, and function, none provide the physical-chemical properties of DNA as a material polymer in a queryable, cross-referenced format.
 
 ## INTRODUCTION
 
@@ -26,17 +26,17 @@ DNA is simultaneously a physical polymer. Its material properties — thermodyna
 
 These properties are computable from published nearest-neighbor thermodynamic parameters (6, 11) and structural lookup tables (12, 13). Yet no existing database provides them genome-wide in a programmatically accessible format that can be queried alongside biological annotations. A researcher investigating whether conserved CpG islands have unusual thermodynamic properties must compute stacking energies ad hoc, download conservation scores separately, and write custom intersection code. Polymer Genomics eliminates this friction.
 
-We present Polymer Genomics, a curated multi-layer database that provides genome-wide DNA biophysical properties alongside 27 biological annotation layers, queryable through a unified REST API with cross-layer correlation and intersection capabilities. The database is freely accessible, requires no registration, and includes a published Python SDK.
+We present Polymer Genomics, a curated multi-layer database that provides genome-wide DNA biophysical properties alongside 40 biological annotation layers, queryable through a unified REST API with cross-layer correlation and intersection capabilities. The database is freely accessible, requires no registration, and includes a published Python SDK.
 
 ## DATABASE CONTENT
 
 ### Overview
 
-Polymer Genomics organizes data into typed layers, each carrying structured provenance metadata: source database, license, evidence class, biological tier, and validation status. The database currently contains 28 active layers on GRCh38 (Table 1), with 14 GB of indexed data serving over 45 million features. Both GRCh38 and GRCh37 builds are supported.
+Polymer Genomics organizes data into typed layers, each carrying structured provenance metadata: source database, license, evidence class, biological tier, and validation status. The database currently contains 41 active layers on GRCh38 (Table 1), with 14 GB of indexed data serving over 53 million features. Both GRCh38 and GRCh37 builds are supported.
 
 ### Sequence biophysics layer
 
-The core novel contribution is the sequence biophysics layer (`sequence_biophysics_l0`), which provides 43 pre-computed properties at 1 kb resolution across the entire genome, organized into five groups:
+The core novel contribution is the sequence biophysics layer (`sequence_biophysics_l0`), which provides 64 pre-computed properties at 1 kb resolution across the entire genome, organized into five groups:
 
 *Core properties (8 tracks):* GC content, stacking free energy (ΔG₃₇; SantaLucia 1998 (6)), melting temperature, intrinsic curvature (Bolshoy wedge model (14)), dipole moment, minor groove width, dinucleotide periodicity, and deformability.
 
@@ -52,13 +52,13 @@ All properties are computed deterministically from the reference sequence using 
 
 ### Biological annotation layers
 
-Twenty-seven additional layers integrate curated data from authoritative sources (Table 1). These span gene models (GENCODE v44 (16)), CpG annotation (29.4 million sites, 28,000 islands), methylation array probes (450K, EPIC v1, EPIC v2 with cross-platform mapping), evolutionary conservation (PhyloP/PhastCons 100-way (17)), regulatory elements (ENCODE cCREs v4 (3)), chromatin states (ChromHMM (18)), gene expression (GTEx v10 (5)), genetic constraint (gnomAD v4 (4)), repeat elements (RepeatMasker (19)), non-B DNA structure predictions (G-quadruplex, Z-DNA, cruciform; 2.9 million features), protein abundance (PaxDb (20)), protein localization (Human Protein Atlas (21)), pathway memberships (Reactome (22), MSigDB Hallmark (23)), and specialized layers including epigenetic clock probe coefficients, SBS mutation thermodynamics, and gene biosynthetic costs.
+Forty additional layers integrate curated data from authoritative sources (Table 1). These span gene models (GENCODE v44 (16)), CpG annotation (29.4 million sites, 28,000 islands), methylation array probes (450K, EPIC v1, EPIC v2 with cross-platform mapping), evolutionary conservation (PhyloP/PhastCons 100-way (17)), regulatory elements (ENCODE cCREs v4 (3)), chromatin states (ChromHMM (18)), gene expression (GTEx v10 (5)), genetic constraint (gnomAD v4 (4)), repeat elements (RepeatMasker (19)), non-B DNA structure predictions (G-quadruplex, Z-DNA, cruciform; 2.9 million features), protein abundance (PaxDb (20)), protein localization (Human Protein Atlas (21)), pathway memberships (Reactome (22), MSigDB Hallmark (23)), and specialized layers including epigenetic clock probe coefficients, SBS mutation thermodynamics, and gene biosynthetic costs.
 
 **Table 1.** Data layers in Polymer Genomics (GRCh38). Evidence classes: M = measured, K = curated, D = derived/computed, S = statistical.
 
 | Category | Layer | Source | Features | Class |
 |----------|-------|--------|----------|-------|
-| **Biophysics** | Sequence biophysics L0 | This work | genome-wide (43 cols) | D |
+| **Biophysics** | Sequence biophysics L0 | This work | genome-wide (64 cols) | D |
 | | Non-B DNA structures | Computed | 2,937,698 | D |
 | | Fragility composite | Computed | 2,937,681 | D |
 | **Gene annotation** | GENCODE v44 | GENCODE (16) | 3,039,917 | K |
@@ -129,7 +129,7 @@ corr = client.correlate("hg38", "chr17:7668402-7687550",
 
 ### MCP server
 
-An MCP (Model Context Protocol) server exposes 45 tools, enabling AI agents to query the database during reasoning with structured, hallucination-resistant responses.
+An MCP (Model Context Protocol) server exposes 44 tools, enabling AI agents to query the database during reasoning with structured, hallucination-resistant responses.
 
 ## THE PHYSICS LINTER
 

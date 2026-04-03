@@ -2,7 +2,7 @@
 
 **The first production database of genome-wide DNA biophysical properties.**
 
-Polymer Genomics is an integrated genomic reference database that treats DNA as a physical polymer — not just an information-carrying sequence. It provides genome-wide thermodynamic stability, groove geometry, form propensity, curvature, and mechanical properties alongside 28 curated annotation layers, all queryable through a unified REST API designed for AI agents, bioinformaticians, and discovery scientists.
+Polymer Genomics is an integrated genomic reference database that treats DNA as a physical polymer — not just an information-carrying sequence. It provides genome-wide thermodynamic stability, groove geometry, form propensity, curvature, and mechanical properties alongside 41 curated annotation layers, all queryable through a unified REST API designed for AI agents, bioinformaticians, and discovery scientists.
 
 Live at [polymerbio.org](https://polymerbio.org) · API at [api.polymerbio.org](https://api.polymerbio.org/docs)
 
@@ -100,10 +100,10 @@ Every response carries epistemic metadata so AI agents never confuse measured da
 
 All endpoints return 1-based closed coordinates in a uniform response envelope with provenance, version metadata, and timing.
 
-## Data Layers (28 on hg38)
+## Data Layers (41 on hg38)
 
 ### Unique to Polymer Genomics
-- **Sequence Biophysics L0** — 43 columns: stacking ΔG₃₇, melting temp, curvature, groove geometry, form propensity, periodicity, DNAshape, methylation perturbation field, Green's function mechanical connectivity
+- **Sequence Biophysics L0** — 64 columns: stacking ΔG₃₇, melting temp, curvature, groove geometry, form propensity, periodicity, DNAshape, methylation perturbation field, Green's function mechanical connectivity
 - **Non-B DNA Structures** — G-quadruplex, Z-DNA, cruciform, triplex, slipped strand (2.9M features)
 - **Fragility Composite** — integrated fragility score from non-B + stacking + curvature
 - **Gene Biosynthetic Costs** — Akashi-Gojobori + expression-weighted metabolic burden
@@ -138,9 +138,9 @@ Interactive genome browser at [polymerbio.org](https://polymerbio.org). Canvas-b
 - `/developers` — API documentation and quickstart
 - `/data-sources` — per-layer citations and licenses
 
-## MCP Server (52 tools)
+## MCP Server (44 tools)
 
-AI agent integration via Model Context Protocol. 42 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
+AI agent integration via Model Context Protocol. 34 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
 
 ```bash
 cd mcp && uv run server.py

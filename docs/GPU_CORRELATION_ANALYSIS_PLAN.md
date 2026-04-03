@@ -242,7 +242,7 @@ If the partial correlation drops to zero, GC was the only driver.
 - repli_k562, median_tpm (0%) — not ingested
 
 ### Total columns for correlation: ~75-80
-(43 biophysics + 4 conservation + 4 fragility + 6 non-B DNA + 6 TE fractions + gene_density + gene_bp + ccre + chromhmm + repli_gm + 15 TF binding + 4 accessibility + ~7 mutation + 1 Hi-C PC1)
+(64 biophysics + 4 conservation + 4 fragility + 6 non-B DNA + 6 TE fractions + gene_density + gene_bp + ccre + chromhmm + repli_gm + 15 TF binding + 4 accessibility + ~7 mutation + 1 Hi-C PC1)
 
 ---
 

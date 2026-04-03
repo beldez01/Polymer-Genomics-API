@@ -25,7 +25,7 @@
 | Volume | 14 GB used / 20 GB | Expandable via `fly volumes extend` (no downtime) |  |
 | RAM | 1 GB | Binding constraint for complex queries |  |
 | CPU | shared-cpu-2x | Upgradeable via `fly machine update --vm-size` |  |
-| Rows | ~45M features across 28 layers | | |
+| Rows | ~53M features across 41 layers | | |
 
 ### Versions
 
@@ -34,7 +34,7 @@
 | API | 0.2.0 | Semantic (defined in `src/polymer_genomics/__init__.py`) |
 | Data | 2026.03 | Calendar YYYY.MM (defined in `src/polymer_genomics/envelope.py`) |
 | SDK | 0.3.0 | Semantic (PyPI: `polymer-genomics`) |
-| MCP | 1.0.0 | Semantic (44 tools: 35 reference + 10 compute) |
+| MCP | 1.0.0 | Semantic (44 tools: 34 reference + 10 compute) |
 | Frontend | Next.js 16.1.6 + React 19.2.3 | Vercel deployment |
 
 ### Tech Stack
@@ -49,7 +49,7 @@
 
 ### Database Architecture
 
-**8 schemas:** `ref`, `registry`, `cpg`, `gene`, `probe`, `methylation`, `biophysics`, `hla`
+**12 schemas:** `ref`, `registry`, `cpg`, `gene`, `probe`, `methylation`, `biophysics`, `hla`, `evolution`, `variation`, `nuclear`, `qtl`
 
 **Partitioning:** Two-level LIST partitioning on large tables:
 - Primary: by `build` (hg37, hg38)
@@ -118,9 +118,9 @@ CLI: `./scripts/ingest_all.sh [--step N] [--tier N] [--module NAME] [--dry-run]`
 
 | Layer | Type | Source | Version | Features | Evidence | License | Validation |
 |---|---|---|---|---|---|---|---|
-| `sequence_biophysics_l0` | 43 columns at 1kb | Polymer Evolution Phase 1-3.5 | v1.0 | 2,937,992 windows | D (Derived) | Proprietary computation | Gold: NN params exact match SantaLucia 1998. Engine: 7/7 test sequences pass. |
+| `sequence_biophysics_l0` | 64 columns at 1kb | Polymer Evolution Phase 1-3.5 | v1.0 | 2,937,992 windows | D (Derived) | Proprietary computation | Gold: NN params exact match SantaLucia 1998. Engine: 7/7 test sequences pass. |
 
-**Columns (43):**
+**Columns (64):**
 - Core (8): GC, stacking_dg37, melting_temp, curvature, dipole_density, minor_groove_width, periodicity_power, deformability
 - DNAshape (8): MGW, ProT, Roll, HelT + positional derivatives
 - Methylation perturbation (10): cpg_density, cpg_obs_exp, meth_delta_dg, meth_delta_tm, meth_sensitivity, meth_capacity, demeth_cost, cpg_context metrics
@@ -307,7 +307,7 @@ fly postgres connect -a polymer-db
 | Integration | Status | Priority |
 |---|---|---|
 | PyPI SDK (`polymer-genomics`) | Live, v0.3.0 | Maintained |
-| MCP Server (45 tools) | Live, stdio | Maintained |
+| MCP Server (44 tools) | Live, stdio | Maintained |
 | Bioconductor AnnotationHub | Planned, not submitted | Medium |
 | OpenAPI spec (`/docs`) | Live | Maintained |
 | Viewer (polymerbio.org) | Live, Vercel | Maintained |
