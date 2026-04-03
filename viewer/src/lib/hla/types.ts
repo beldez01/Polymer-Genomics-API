@@ -259,5 +259,27 @@ export interface WithinProteinResult {
   feature_breakdown?: FeatureBreakdown[];
 }
 
+/** Per-metric distribution stats (from /v1/hla/distributions/{locus}) */
+export interface MetricDistribution {
+  n: number;
+  min: number;
+  max: number;
+  mean: number;
+  p5: number;
+  p10: number;
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+  p95: number;
+  histogram: number[];
+}
+
+export interface DistributionsResult {
+  locus: string;
+  n_alleles: number;
+  metrics: Record<string, MetricDistribution>;
+}
+
 /** UI state */
 export type HLATab = 'alleles' | 'compare' | 'divergence' | 'expression';

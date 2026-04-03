@@ -245,6 +245,113 @@ async def list_hla_alleles(
     }
 
 
+# ── Distributions endpoint ──────────────────────────────────────────────────
+
+_DIST_METRICS_WHOLE = [
+    "gc_content", "cpg_count", "cpg_density", "cpg_obs_exp", "cpg_island_count",
+    "mean_stacking_dg37", "melting_temp_est",
+    "mean_a_form_prop", "mean_z_form_prop", "total_z_penalty",
+    "mean_major_groove_w", "mean_minor_groove_w",
+]
+
+_DIST_METRICS_NC = [
+    "nc_gc_content", "nc_cpg_count", "nc_cpg_density",
+    "nc_mean_stacking_dg37", "nc_melting_temp_est",
+    "nc_mean_a_form_prop", "nc_mean_z_form_prop", "nc_total_z_penalty",
+    "nc_cpg_island_count",
+]
+
+_DIST_METRICS = _DIST_METRICS_WHOLE + _DIST_METRICS_NC + ["sequence_length"]
+
+_NUM_BINS = 30
+
+
+def _compute_distribution(values: list[float]) -> dict:
+    """Compute histogram bins and percentiles for a list of numeric values."""
+    values = sorted(values)
+    n = len(values)
+    if n == 0:
+        return {"n": 0}
+
+    mn, mx = values[0], values[-1]
+    mean = sum(values) / n
+
+    def pctl(p: float) -> float:
+        k = (n - 1) * p
+        f = int(k)
+        c = f + 1 if f + 1 < n else f
+        d = k - f
+        return round(values[f] + d * (values[c] - values[f]), 6)
+
+    # Histogram bins — evenly spaced from min to max
+    if mx == mn:
+        histogram = [n]
+    else:
+        bin_width = (mx - mn) / _NUM_BINS
+        histogram = [0] * _NUM_BINS
+        for v in values:
+            b = min(int((v - mn) / bin_width), _NUM_BINS - 1)
+            histogram[b] += 1
+
+    return {
+        "n": n,
+        "min": round(mn, 6),
+        "max": round(mx, 6),
+        "mean": round(mean, 6),
+        "p5": pctl(0.05),
+        "p10": pctl(0.10),
+        "p25": pctl(0.25),
+        "p50": pctl(0.50),
+        "p75": pctl(0.75),
+        "p90": pctl(0.90),
+        "p95": pctl(0.95),
+        "histogram": histogram,
+    }
+
+
+@router.get("/distributions/{locus}")
+async def hla_distributions(locus: str):
+    """Return per-metric distribution statistics for a locus.
+
+    Provides histogram bins (30 bins), percentiles, and summary stats
+    for all biophysical metrics. Used for sparkline histograms and
+    percentile indicators in the frontend. Only includes genomic alleles.
+    """
+    start = time.monotonic()
+    locus = _validate_locus(locus)
+    layer_id = await _get_hla_layer_id()
+
+    cols = ", ".join(_DIST_METRICS)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            f"""SELECT {cols}
+                FROM hla.alleles
+                WHERE layer_id = $1 AND locus = $2 AND has_genomic = true""",
+            layer_id, locus,
+        )
+
+    # Collect non-null values per metric
+    metric_values: dict[str, list[float]] = {m: [] for m in _DIST_METRICS}
+    for row in rows:
+        for m in _DIST_METRICS:
+            v = row[m]
+            if v is not None:
+                metric_values[m].append(float(v))
+
+    metrics = {m: _compute_distribution(vals) for m, vals in metric_values.items()}
+
+    return {
+        "status": "complete",
+        "api_version": __version__,
+        "data_version": DATA_VERSION,
+        "locus": locus,
+        "n_alleles": len(rows),
+        "metrics": metrics,
+        "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
+    }
+
+
 @router.get("/allele/{allele_name:path}")
 async def get_hla_allele(allele_name: str):
     """Lookup a single HLA allele with full biophysical profile.

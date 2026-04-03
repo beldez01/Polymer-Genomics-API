@@ -9,6 +9,7 @@ import type {
   DivergenceResult,
   ExpressionCorrelationResult,
   WithinProteinResult,
+  DistributionsResult,
 } from './types';
 
 const API_BASE = '/api';
@@ -95,6 +96,12 @@ export async function fetchWithinProtein(
   return fetchJSON<WithinProteinResult>(
     `${API_BASE}/v1/hla/expression-within-protein${qs ? `?${qs}` : ''}`,
   );
+}
+
+/** Fetch per-metric distribution stats for a locus. */
+export async function fetchDistributions(locus: string): Promise<DistributionsResult> {
+  const shortLocus = locus.replace('HLA-', '');
+  return fetchJSON<DistributionsResult>(`${API_BASE}/v1/hla/distributions/${shortLocus}`);
 }
 
 /** Fetch expression-biophysics correlation analysis. */

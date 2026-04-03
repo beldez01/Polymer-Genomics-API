@@ -5,11 +5,13 @@ import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/the
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { HLASidebar } from '@/components/hla/HLASidebar';
-import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation, fetchWithinProtein } from '@/lib/hla/api';
+import { Term } from '@/components/hla/Term';
+import { SparklineHistogram, percentileRank } from '@/components/hla/SparklineHistogram';
+import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation, fetchWithinProtein, fetchDistributions } from '@/lib/hla/api';
 import type {
   HLALocus, HLAClass, HLATab, LocusSummary, AlleleListItem,
   AlleleDetail, CompareResult, DivergenceResult, ExpressionCorrelationResult,
-  WithinProteinResult,
+  WithinProteinResult, DistributionsResult,
 } from '@/lib/hla/types';
 
 /* ── Styles ── */
@@ -91,6 +93,9 @@ export default function HLAPage() {
   const [wpLoading, setWpLoading] = useState(false);
   const [wpExpanded, setWpExpanded] = useState<string | null>(null);
 
+  // Distributions state
+  const [distributions, setDistributions] = useState<DistributionsResult | null>(null);
+
   // Sort
   const [sortKey, setSortKey] = useState<string>('allele_name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -122,6 +127,12 @@ export default function HLAPage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [selectedLocus, genomicOnly, alleleGroup]);
+
+  /* ── Fetch distributions when locus changes ── */
+  useEffect(() => {
+    if (!selectedLocus) { setDistributions(null); return; }
+    fetchDistributions(selectedLocus).then(setDistributions).catch(() => {});
+  }, [selectedLocus]);
 
   /* ── Load more ── */
   const loadMore = useCallback(async () => {
@@ -356,23 +367,23 @@ export default function HLAPage() {
                       <thead>
                         <tr>
                           {[
-                            { key: 'allele_name', label: 'Allele', w: '18%' },
-                            { key: 'has_genomic', label: 'Seq', w: '5%' },
-                            { key: 'gc_content', label: 'GC', w: '8%', align: 'right' as const },
-                            { key: 'mean_stacking_dg37', label: 'ΔG₃₇', w: '9%', align: 'right' as const },
-                            { key: 'melting_temp_est', label: 'Tm', w: '8%', align: 'right' as const },
-                            { key: 'nc_gc_content', label: 'nc GC', w: '8%', align: 'right' as const },
-                            { key: 'nc_mean_stacking_dg37', label: 'nc ΔG₃₇', w: '9%', align: 'right' as const },
-                            { key: 'nc_melting_temp_est', label: 'nc Tm', w: '8%', align: 'right' as const },
+                            { key: 'allele_name', label: 'Allele', w: '16%' },
+                            { key: 'has_genomic', label: 'Seq', w: '4%' },
+                            { key: 'gc_content', label: 'GC', w: '10%', align: 'right' as const },
+                            { key: 'mean_stacking_dg37', label: 'ΔG₃₇', w: '10%', align: 'right' as const },
+                            { key: 'melting_temp_est', label: 'Tm', w: '10%', align: 'right' as const },
+                            { key: 'nc_gc_content', label: 'nc GC', w: '10%', align: 'right' as const },
+                            { key: 'nc_mean_stacking_dg37', label: 'nc ΔG₃₇', w: '10%', align: 'right' as const },
+                            { key: 'nc_melting_temp_est', label: 'nc Tm', w: '10%', align: 'right' as const },
                             { key: 'sequence_length', label: 'Length', w: '8%', align: 'right' as const },
-                            { key: 'expression_suffix', label: 'Expr', w: '6%' },
+                            { key: 'expression_suffix', label: 'Expr', w: '5%' },
                           ].map((col) => (
                             <th
                               key={col.key}
                               onClick={() => handleSort(col.key)}
                               style={{ ...HEADER, width: col.w, textAlign: col.align ?? 'left' }}
                             >
-                              {col.label}
+                              <Term label={col.label} />
                               {sortKey === col.key && (
                                 <span style={{ marginLeft: 3, fontSize: 8 }}>
                                   {sortDir === 'asc' ? '▲' : '▼'}
@@ -404,12 +415,42 @@ export default function HLAPage() {
                                   background: a.has_genomic ? COLOR.accent.teal : `${COLOR.text.faint}40`,
                                 }} />
                               </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{fmt(a.gc_content)}</td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{fmt(a.mean_stacking_dg37)}</td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{fmt(a.melting_temp_est, 1)}</td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>{fmt(a.nc_gc_content)}</td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>{fmt(a.nc_mean_stacking_dg37)}</td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>{fmt(a.nc_melting_temp_est, 1)}</td>
+                              <td style={{ ...CELL, textAlign: 'right' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.gc_content!} value={a.gc_content} />
+                                  {fmt(a.gc_content)}
+                                </span>
+                              </td>
+                              <td style={{ ...CELL, textAlign: 'right' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.mean_stacking_dg37!} value={a.mean_stacking_dg37} />
+                                  {fmt(a.mean_stacking_dg37)}
+                                </span>
+                              </td>
+                              <td style={{ ...CELL, textAlign: 'right' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.melting_temp_est!} value={a.melting_temp_est} />
+                                  {fmt(a.melting_temp_est, 1)}
+                                </span>
+                              </td>
+                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.nc_gc_content!} value={a.nc_gc_content} />
+                                  {fmt(a.nc_gc_content)}
+                                </span>
+                              </td>
+                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.nc_mean_stacking_dg37!} value={a.nc_mean_stacking_dg37} />
+                                  {fmt(a.nc_mean_stacking_dg37)}
+                                </span>
+                              </td>
+                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <SparklineHistogram dist={distributions?.metrics.nc_melting_temp_est!} value={a.nc_melting_temp_est} />
+                                  {fmt(a.nc_melting_temp_est, 1)}
+                                </span>
+                              </td>
                               <td style={{ ...CELL, textAlign: 'right' }}>{a.sequence_length?.toLocaleString() ?? '—'}</td>
                               <td style={{ ...CELL, color: a.expression_suffix ? COLOR.accent.amber : COLOR.text.muted }}>
                                 {a.expression_suffix ?? '—'}
@@ -458,7 +499,7 @@ export default function HLAPage() {
                       </div>
                     )}
                     {!detailLoading && selectedAllele && (
-                      <AlleleDetailPanel detail={selectedAllele} />
+                      <AlleleDetailPanel detail={selectedAllele} distributions={distributions} />
                     )}
                   </div>
                 </div>
@@ -789,13 +830,13 @@ export default function HLAPage() {
                             <thead>
                               <tr>
                                 <th style={HEADER}>Metric</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>Cohen&apos;s d</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}><Term label="Cohen's d" style={{ fontSize: 9 }} /></th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
+                                <th style={{ ...HEADER, width: '15%' }}>Effect</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>Normal mean</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>Aberrant mean</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>n normal</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>n aberrant</th>
-                                <th style={HEADER}>Direction</th>
+                                <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
+                                <th style={HEADER}>Dir</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -813,10 +854,12 @@ export default function HLAPage() {
                                     <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>
                                       {e.abs_d.toFixed(3)}
                                     </td>
+                                    <td style={CELL}>
+                                      <EffectSizeBar value={e.abs_d} />
+                                    </td>
                                     <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
                                     <td style={{ ...CELL, textAlign: 'right' }}>{e.aberrant_mean.toFixed(4)}</td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.normal_n.toLocaleString()}</td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.aberrant_n.toLocaleString()}</td>
+                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.normal_n.toLocaleString()} / {e.aberrant_n.toLocaleString()}</td>
                                     <td style={{ ...CELL, fontSize: 9, color: COLOR.text.muted }}>{e.direction}</td>
                                   </tr>
                                 );
@@ -842,6 +885,7 @@ export default function HLAPage() {
                                 <th style={HEADER}>Class</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>d</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
+                                <th style={{ ...HEADER, width: '12%' }}>Effect</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>Normal</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>Class mean</th>
                                 <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
@@ -861,6 +905,9 @@ export default function HLAPage() {
                                       {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
                                     </td>
                                     <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.abs_d.toFixed(3)}</td>
+                                    <td style={CELL}>
+                                      <EffectSizeBar value={e.abs_d} />
+                                    </td>
                                     <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
                                     <td style={{ ...CELL, textAlign: 'right' }}>{e.class_mean.toFixed(4)}</td>
                                     <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.class_n}</td>
@@ -921,9 +968,10 @@ export default function HLAPage() {
                                   <th style={HEADER}>NC Metric</th>
                                   <th style={{ ...HEADER, textAlign: 'right' }}>Mean d</th>
                                   <th style={{ ...HEADER, textAlign: 'right' }}>Mean |d|</th>
+                                  <th style={{ ...HEADER, width: '12%' }}>Effect</th>
                                   <th style={{ ...HEADER, textAlign: 'right' }}>Groups</th>
                                   <th style={{ ...HEADER, textAlign: 'right' }}>Consistency</th>
-                                  <th style={HEADER}>Direction</th>
+                                  <th style={HEADER}>Dir</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -939,6 +987,9 @@ export default function HLAPage() {
                                         {e.mean_d > 0 ? '+' : ''}{e.mean_d.toFixed(3)}
                                       </td>
                                       <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.mean_abs_d.toFixed(3)}</td>
+                                      <td style={CELL}>
+                                        <EffectSizeBar value={e.mean_abs_d} />
+                                      </td>
                                       <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.n_groups}</td>
                                       <td style={{ ...CELL, textAlign: 'right', color: e.direction_consistency >= 0.8 ? COLOR.accent.teal : COLOR.text.muted }}>
                                         {(e.direction_consistency * 100).toFixed(0)}%
@@ -1090,24 +1141,40 @@ export default function HLAPage() {
 
 /* ── Sub-components ── */
 
-function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function StatRow({ label, value, highlight, percentile }: {
+  label: string; value: string; highlight?: boolean; percentile?: number | null;
+}) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '1px 0' }}>
-      <span style={{ fontSize: 9, color: COLOR.text.muted, fontFamily: FONT_FAMILY }}>{label}</span>
-      <span style={{
-        fontSize: 10, fontFamily: FONT_FAMILY, fontWeight: WEIGHT.medium,
-        fontVariantNumeric: 'tabular-nums',
-        color: highlight ? COLOR.accent.teal : COLOR.text.secondary,
-      }}>
-        {value}
+      <Term label={label} style={{ fontSize: 9, color: COLOR.text.muted, fontFamily: FONT_FAMILY }} />
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        {percentile != null && (
+          <span style={{ fontSize: 8, color: COLOR.text.faint, fontFamily: FONT_FAMILY, fontVariantNumeric: 'tabular-nums' }}>
+            P{percentile}
+          </span>
+        )}
+        <span style={{
+          fontSize: 10, fontFamily: FONT_FAMILY, fontWeight: WEIGHT.medium,
+          fontVariantNumeric: 'tabular-nums',
+          color: highlight ? COLOR.accent.teal : COLOR.text.secondary,
+        }}>
+          {value}
+        </span>
       </span>
     </div>
   );
 }
 
-function AlleleDetailPanel({ detail }: { detail: AlleleDetail }) {
+function AlleleDetailPanel({ detail, distributions }: { detail: AlleleDetail; distributions: DistributionsResult | null }) {
   const { identity: id, sequence_metadata: seq, biophysics: bio, noncoding_biophysics: nc, features } = detail;
   const fmt = (v: number | null, dp = 4) => v != null ? v.toFixed(dp) : '—';
+  const dm = distributions?.metrics;
+
+  /** Compute percentile rank for a metric, or null if no distribution data. */
+  const pctl = (metricKey: string, value: number | null): number | null => {
+    if (value == null || !dm?.[metricKey]) return null;
+    return percentileRank(dm[metricKey], value);
+  };
 
   const SECT: React.CSSProperties = {
     marginBottom: 14, paddingBottom: 14,
@@ -1145,7 +1212,7 @@ function AlleleDetailPanel({ detail }: { detail: AlleleDetail }) {
             </span>
           )}
         </div>
-        <StatRow label="length" value={seq.sequence_length?.toLocaleString() ?? '—'} />
+        <StatRow label="Length" value={seq.sequence_length?.toLocaleString() ?? '—'} percentile={pctl('sequence_length', seq.sequence_length)} />
         <StatRow label="CDS" value={seq.cds_length?.toLocaleString() ?? '—'} />
         <StatRow label="exons" value={String(seq.n_exons ?? '—')} />
         <StatRow label="introns" value={String(seq.n_introns ?? '—')} />
@@ -1154,29 +1221,29 @@ function AlleleDetailPanel({ detail }: { detail: AlleleDetail }) {
       {/* Whole-allele biophysics */}
       <div style={SECT}>
         <div style={SECT_TITLE}>WHOLE-ALLELE BIOPHYSICS</div>
-        <StatRow label="GC" value={fmt(bio.gc_content)} />
-        <StatRow label="CpG count" value={String(bio.cpg_count ?? '—')} />
-        <StatRow label="CpG obs/exp" value={fmt(bio.cpg_obs_exp)} />
-        <StatRow label="CpG islands" value={String(bio.cpg_island_count ?? '—')} />
-        <StatRow label="ΔG₃₇" value={fmt(bio.mean_stacking_dg37)} />
-        <StatRow label="Tm" value={fmt(bio.melting_temp_est, 1)} />
-        <StatRow label="A-form" value={fmt(bio.mean_a_form_prop)} />
-        <StatRow label="Z-form" value={fmt(bio.mean_z_form_prop)} />
-        <StatRow label="Z penalty" value={fmt(bio.total_z_penalty, 2)} />
-        <StatRow label="major groove" value={`${fmt(bio.mean_major_groove_w, 2)} Å`} />
-        <StatRow label="minor groove" value={`${fmt(bio.mean_minor_groove_w, 2)} Å`} />
+        <StatRow label="GC" value={fmt(bio.gc_content)} percentile={pctl('gc_content', bio.gc_content)} />
+        <StatRow label="CpG count" value={String(bio.cpg_count ?? '—')} percentile={pctl('cpg_count', bio.cpg_count)} />
+        <StatRow label="CpG obs/exp" value={fmt(bio.cpg_obs_exp)} percentile={pctl('cpg_obs_exp', bio.cpg_obs_exp)} />
+        <StatRow label="CpG islands" value={String(bio.cpg_island_count ?? '—')} percentile={pctl('cpg_island_count', bio.cpg_island_count)} />
+        <StatRow label="ΔG₃₇" value={fmt(bio.mean_stacking_dg37)} percentile={pctl('mean_stacking_dg37', bio.mean_stacking_dg37)} />
+        <StatRow label="Tm" value={fmt(bio.melting_temp_est, 1)} percentile={pctl('melting_temp_est', bio.melting_temp_est)} />
+        <StatRow label="A-form" value={fmt(bio.mean_a_form_prop)} percentile={pctl('mean_a_form_prop', bio.mean_a_form_prop)} />
+        <StatRow label="Z-form" value={fmt(bio.mean_z_form_prop)} percentile={pctl('mean_z_form_prop', bio.mean_z_form_prop)} />
+        <StatRow label="Z penalty" value={fmt(bio.total_z_penalty, 2)} percentile={pctl('total_z_penalty', bio.total_z_penalty)} />
+        <StatRow label="major groove" value={`${fmt(bio.mean_major_groove_w, 2)} Å`} percentile={pctl('mean_major_groove_w', bio.mean_major_groove_w)} />
+        <StatRow label="minor groove" value={`${fmt(bio.mean_minor_groove_w, 2)} Å`} percentile={pctl('mean_minor_groove_w', bio.mean_minor_groove_w)} />
       </div>
 
       {/* Non-coding biophysics */}
       <div style={SECT}>
         <div style={SECT_TITLE}>NON-CODING BIOPHYSICS</div>
-        <StatRow label="nc GC" value={fmt(nc.gc_content)} highlight />
-        <StatRow label="nc CpG" value={String(nc.cpg_count ?? '—')} highlight />
-        <StatRow label="nc ΔG₃₇" value={fmt(nc.mean_stacking_dg37)} highlight />
-        <StatRow label="nc Tm" value={fmt(nc.melting_temp_est, 1)} highlight />
-        <StatRow label="nc A-form" value={fmt(nc.mean_a_form_prop)} highlight />
-        <StatRow label="nc Z-form" value={fmt(nc.mean_z_form_prop)} highlight />
-        <StatRow label="nc CpG islands" value={String(nc.cpg_island_count ?? '—')} highlight />
+        <StatRow label="nc GC" value={fmt(nc.gc_content)} highlight percentile={pctl('nc_gc_content', nc.gc_content)} />
+        <StatRow label="nc CpG" value={String(nc.cpg_count ?? '—')} highlight percentile={pctl('nc_cpg_count', nc.cpg_count)} />
+        <StatRow label="nc ΔG₃₇" value={fmt(nc.mean_stacking_dg37)} highlight percentile={pctl('nc_mean_stacking_dg37', nc.mean_stacking_dg37)} />
+        <StatRow label="nc Tm" value={fmt(nc.melting_temp_est, 1)} highlight percentile={pctl('nc_melting_temp_est', nc.melting_temp_est)} />
+        <StatRow label="nc A-form" value={fmt(nc.mean_a_form_prop)} highlight percentile={pctl('nc_mean_a_form_prop', nc.mean_a_form_prop)} />
+        <StatRow label="nc Z-form" value={fmt(nc.mean_z_form_prop)} highlight percentile={pctl('nc_mean_z_form_prop', nc.mean_z_form_prop)} />
+        <StatRow label="nc CpG islands" value={String(nc.cpg_island_count ?? '—')} highlight percentile={pctl('nc_cpg_island_count', nc.cpg_island_count)} />
       </div>
 
       {/* Features */}
@@ -1207,6 +1274,35 @@ function AlleleDetailPanel({ detail }: { detail: AlleleDetail }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * EffectSizeBar — horizontal bar showing |Cohen's d| against conventional thresholds.
+ * Shows threshold markers at 0.2 (small), 0.5 (medium), 0.8 (large).
+ * Capped at |d| = 2.0 for display purposes.
+ */
+function EffectSizeBar({ value }: { value: number }) {
+  const maxD = 2.0;
+  const pct = Math.min(value / maxD, 1) * 100;
+  const barColor = value >= 0.8 ? COLOR.accent.teal : value >= 0.5 ? COLOR.accent.amber : COLOR.text.faint;
+
+  return (
+    <div style={{ position: 'relative', height: 10, background: `${COLOR.border.subtle}60`, width: '100%' }}>
+      {/* Filled bar */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: `${pct}%`, background: barColor, opacity: 0.6,
+        transition: 'width 0.2s',
+      }} />
+      {/* Threshold markers */}
+      {[0.2, 0.5, 0.8].map((t) => (
+        <div key={t} style={{
+          position: 'absolute', left: `${(t / maxD) * 100}%`, top: 0, bottom: 0,
+          width: 1, background: COLOR.text.faint, opacity: 0.4,
+        }} />
+      ))}
     </div>
   );
 }
