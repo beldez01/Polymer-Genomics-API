@@ -59,7 +59,7 @@ WHERE r.build = 'hg38'::genome_build
 
 EVIDENCE = "computational"
 SOURCE_STUDY = "ENCODE cCRE v4 \u00d7 RepeatMasker overlap"
-STATEMENT_TIMEOUT_MS = 120_000  # 2 min per chromosome query
+STATEMENT_TIMEOUT_MS = 300_000  # 5 min per chromosome query (shared-cpu DB is slow)
 
 
 # ── Layer registration ───────────────────────────────────────────────────────
@@ -203,13 +203,23 @@ async def main() -> None:
             print("  ERROR: Source tables are empty. Ingest repeats and cCREs first.")
             return
 
-        # Process chromosome by chromosome within a single transaction
+        # Process chromosome by chromosome (no wrapping transaction — each chr auto-commits)
         grand_total = 0
 
-        async with ingest_transaction(conn):
-            for chr_id in range(1, 26):  # chr1-22, X(23), Y(24), M(25)
+        for chr_id in range(1, 26):  # chr1-22, X(23), Y(24), M(25)
+            try:
                 count = await ingest_chromosome(conn, chr_id, layer_id, build)
                 grand_total += count
+            except Exception as e:
+                print(f"    chr{chr_id} FAILED: {e} — skipping")
+                # Reset connection state if in failed transaction
+                try:
+                    await conn.execute("SELECT 1")
+                except Exception:
+                    # Connection is in failed state — reconnect
+                    await conn.close()
+                    conn = await get_ingest_connection(admin=True)
+                continue
 
         # Summary
         print(f"\n  Total exapted TEs loaded: {grand_total:,}")
