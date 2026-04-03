@@ -2,7 +2,7 @@
 
 **Date:** 2026-04-02
 **Status:** Design approved, pending implementation
-**Scope:** Transform PolymerGenomicsAPI from 28 layers to 44+ layers with deep-time integration, causal links, sub-1kb on-demand computation, and 12 cross-domain query recipes.
+**Scope:** Transform PolymerGenomicsAPI from 28 to 44+ layers (41 achieved as of 2026-04-03) with deep-time integration, causal links, sub-1kb on-demand computation, and 12 cross-domain query recipes.
 
 ## Vision
 
@@ -722,10 +722,10 @@ After all 4 tiers:
 
 | Metric | Before | After |
 |--------|--------|-------|
-| Queryable layers | 28 | 44+ |
-| Biophysics columns per window | 59 | 64 |
-| Feature tables | ~15 | ~31 |
-| Schemas | 8 | 12 |
+| Queryable layers | 28 | 44+ (41 achieved) |
+| Biophysics columns per window | 59 | 64 (achieved) |
+| Feature tables | ~15 | ~31 (~25 achieved) |
+| Schemas | 8 | 12 (achieved) |
 | Cross-domain recipes | 5 | 17 |
 | Temporal depth | PhyloP 100-way only | Archaic methylation, introgression, HARs, UCEs, TE ages, selection sweeps, B-scores, Zoonomia 241-way |
 | Causal links | None | eQTLs, meQTLs, enhancer-gene, GWAS |

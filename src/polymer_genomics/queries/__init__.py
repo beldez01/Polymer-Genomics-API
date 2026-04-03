@@ -3,12 +3,16 @@
 This package is split into domain modules for maintainability:
   cpg.py          — CpG sites, islands, methylation reference
   gene.py         — Gene features, probes, biosynthetic costs
-  biophysics.py   — Sequence properties, isochores (49 columns)
+  biophysics.py   — Sequence properties, isochores (64 columns)
   conservation.py — PhyloP/PhastCons, gene constraint, dN/dS
   expression.py   — GTEx expression, protein abundance/turnover/properties/atlas
-  regulatory.py   — ENCODE cCREs, ChromHMM, histone marks
+  regulatory.py   — ENCODE cCREs, ChromHMM, histone marks, enhancer-gene links
   genome3d.py     — Hi-C compartments, insulation scores, TAD domains
   annotation.py   — GWAS, repeats, HERV, non-B DNA, fragility
+  evolution.py    — UCEs, HARs, introgression, selection, exaptation, archaic methylation
+  variation.py    — ClinVar pathogenic variants
+  nuclear.py      — LADs, NADs, DMVs, super-enhancers
+  qtl.py          — eQTLs (GTEx), meQTLs (GoDMC)
 
 All consumers should import from this package:
   from polymer_genomics.queries import TRACK_REGISTRY

@@ -274,7 +274,7 @@ def test_region_profile_include_negative():
 
 
 def test_platform_summary_sends_get():
-    c, t = _mock_client({"total_layers": 28})
+    c, t = _mock_client({"total_layers": 41})
     c.platform_summary()
     assert t.last_request.method == "GET"
     assert "/v1/stats/summary" in str(t.last_request.url)

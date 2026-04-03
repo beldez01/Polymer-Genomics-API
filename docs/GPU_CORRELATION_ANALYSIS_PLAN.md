@@ -217,7 +217,7 @@ If the partial correlation drops to zero, GC was the only driver.
 ## Data Available for This Run
 
 ### Full coverage (100%, ~2.94M rows):
-- 43 core biophysics columns (Tier 0 + Tier 1 + Tier 2)
+- 64 core biophysics columns (Tier 0 + Tier 1 + Tier 2 + evolutionary physics)
 - gene_density, gene_bp_fraction
 - All 6 TE fractions
 - Conservation (4 columns)
