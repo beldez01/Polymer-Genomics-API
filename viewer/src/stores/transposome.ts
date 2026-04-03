@@ -1,7 +1,7 @@
 // src/stores/transposome.ts
 // Zustand store for the Transposome Explorer feature.
 import { create } from 'zustand';
-import type { TEFamily, TEFamilyDetail, Lens, YAxis, TEClass } from '@/lib/transposome-types';
+import type { TEFamily, TEFamilyDetail, TEClass } from '@/lib/transposome-types';
 
 interface TransposomeState {
   // Data
@@ -12,17 +12,12 @@ interface TransposomeState {
   loadingDetail: boolean;
   error: string | null;
 
-  // Lens & axes
-  activeLens: Lens;
-  yAxis: YAxis;
-
   // Filters
   classFilter: TEClass[];       // empty = all
   ageRange: number[];           // [min, max] divergence_pct, empty = all
   cpgRichOnly: boolean;
   probeCoveredOnly: boolean;
   perturbationResponsiveOnly: boolean;
-  awakeningThreshold: number;   // 0-100 slider value
   searchQuery: string;
 
   // Actions
@@ -32,15 +27,12 @@ interface TransposomeState {
   setLoading: (loading: boolean) => void;
   setLoadingDetail: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setActiveLens: (lens: Lens) => void;
-  setYAxis: (axis: YAxis) => void;
   toggleClassFilter: (cls: TEClass) => void;
   setAllClasses: () => void;
   setAgeRange: (range: number[]) => void;
   toggleCpgRich: () => void;
   toggleProbeCovered: () => void;
   togglePerturbationResponsive: () => void;
-  setAwakeningThreshold: (val: number) => void;
   setSearchQuery: (query: string) => void;
 }
 
@@ -52,15 +44,11 @@ export const useTransposome = create<TransposomeState>((set) => ({
   loadingDetail: false,
   error: null,
 
-  activeLens: 'silencing',
-  yAxis: 'cpg_density',
-
   classFilter: [],
   ageRange: [],
   cpgRichOnly: false,
   probeCoveredOnly: false,
   perturbationResponsiveOnly: false,
-  awakeningThreshold: 0,
   searchQuery: '',
 
   setFamilies: (families) => set({ families, loading: false }),
@@ -69,8 +57,6 @@ export const useTransposome = create<TransposomeState>((set) => ({
   setLoading: (loading) => set({ loading }),
   setLoadingDetail: (loading) => set({ loadingDetail: loading }),
   setError: (error) => set({ error, loading: false }),
-  setActiveLens: (lens) => set({ activeLens: lens }),
-  setYAxis: (axis) => set({ yAxis: axis }),
   toggleClassFilter: (cls) =>
     set((s) => ({
       classFilter: s.classFilter.includes(cls)
@@ -83,7 +69,6 @@ export const useTransposome = create<TransposomeState>((set) => ({
   toggleProbeCovered: () => set((s) => ({ probeCoveredOnly: !s.probeCoveredOnly })),
   togglePerturbationResponsive: () =>
     set((s) => ({ perturbationResponsiveOnly: !s.perturbationResponsiveOnly })),
-  setAwakeningThreshold: (val) => set({ awakeningThreshold: val }),
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));
 
@@ -111,11 +96,6 @@ export function filterFamilies(state: TransposomeState): TEFamily[] {
 
   if (state.perturbationResponsiveOnly) {
     result = result.filter((f) => f.reactivation_contexts.length > 0);
-  }
-
-  if (state.awakeningThreshold > 0) {
-    const threshold = state.awakeningThreshold / 100;
-    result = result.filter((f) => f.reactivation_score >= threshold);
   }
 
   if (state.searchQuery.trim()) {

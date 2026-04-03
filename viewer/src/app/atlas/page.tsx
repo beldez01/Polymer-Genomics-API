@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CHROMOSOMES, getChromosomeByName } from '@/config/chromosomes';
-import { fetchAggregation, fetchLayerSummary, AggregationResponse, LayerSummary, AggBin } from '@/lib/api';
+import { fetchAggregation, fetchLayerSummary, AggregationResponse, LayerSummary } from '@/lib/api';
 import { BrandBar } from '@/components/BrandBar';
 import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
@@ -18,7 +18,6 @@ import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
 
 const BUILD = 'hg38';
 const LAYERS = ['gencode_v44', 'cpg_sites', 'probe_epic_v2'] as const;
-const ISO_LAYER = ['isochores'] as const;
 const AGG_RESOLUTION = 1_000_000;
 
 // ---------------------------------------------------------------------------
@@ -109,7 +108,6 @@ export default function AtlasPage() {
   }, []);
 
   const [chrStats, setChrStats] = useState<Record<string, ChrStats>>(createInitialChrStats);
-  const [chrAgg, setChrAgg] = useState<Record<string, AggBin[]>>({});
 
   // Authoritative counts from the layers summary endpoint
   const [layerSummary, setLayerSummary] = useState<LayerSummary | null>(null);
@@ -128,7 +126,6 @@ export default function AtlasPage() {
   useEffect(() => {
     let cancelled = false;
     setChrStats(createInitialChrStats());
-    setChrAgg({});
 
     async function loadAll() {
       // Stats tasks (original 3 layers)
@@ -167,25 +164,7 @@ export default function AtlasPage() {
         }
       });
 
-      // Isochore tasks (separate call — avoids overloading the 3-layer query)
-      const isoTasks = CHROMOSOMES.filter(c => c.name !== 'chrM').map((chr) => async () => {
-        try {
-          const region = `${chr.name}:1-${chr.length}`;
-          const agg = await fetchAggregation(BUILD, region, AGG_RESOLUTION, [...ISO_LAYER]);
-          if (cancelled) return;
-          const bins = agg.data['isochores']?.bins ?? [];
-          if (bins.length > 0) {
-            setChrAgg(prev => ({ ...prev, [chr.name]: bins }));
-          }
-        } catch {
-          // Isochore failure is non-critical — Giemsa fallback
-        }
-      });
-
-      await Promise.all([
-        runWithConcurrency(statsTasks, 4),
-        runWithConcurrency(isoTasks, 4),
-      ]);
+      await runWithConcurrency(statsTasks, 4);
     }
 
     loadAll();
@@ -375,7 +354,7 @@ export default function AtlasPage() {
           transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}>
           <ErrorBoundary fallbackLabel="Karyotype Overview">
-            <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} chrIsochores={chrAgg} />
+            <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
           </ErrorBoundary>
         </div>
       )}

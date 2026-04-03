@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { CHROMOSOMES, GENOME_LENGTH, ChromosomeInfo } from '@/config/chromosomes';
 import { getBandsForChromosome } from '@/config/cytobands';
 import { ChromosomeSVG } from './ChromosomeSVG';
 import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
-import type { LayerSummary, AggBin } from '@/lib/api';
-import { aggBinsToIsochores, type IsochoreBin } from '@/lib/isochore';
+import type { LayerSummary } from '@/lib/api';
+import type { IsochoreBin } from '@/lib/isochore';
+import { KARYOTYPE_ISOCHORES } from '@/config/karyotypeIsochores';
 
 interface ChrStats {
   genes: number | null;
@@ -20,8 +21,6 @@ interface KaryotypeOverviewProps {
   chrStats?: Record<string, ChrStats>;
   /** Authoritative genome-wide summary from /v1/layers/summary */
   layerSummary?: LayerSummary | null;
-  /** Raw isochore aggregation bins per chromosome */
-  chrIsochores?: Record<string, AggBin[]>;
 }
 
 // Max height for chr1 (largest chromosome); others scale proportionally
@@ -37,17 +36,8 @@ function chrHeight(chr: ChromosomeInfo): number {
   return Math.max(36, Math.round((chr.length / MAX_CHR_LENGTH) * MAX_HEIGHT));
 }
 
-export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary, chrIsochores }: KaryotypeOverviewProps) {
+export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary }: KaryotypeOverviewProps) {
   const [hoveredChr, setHoveredChr] = useState<string | null>(null);
-
-  const isochoreData = useMemo(() => {
-    if (!chrIsochores) return {} as Record<string, IsochoreBin[]>;
-    const result: Record<string, IsochoreBin[]> = {};
-    for (const [chrName, bins] of Object.entries(chrIsochores)) {
-      result[chrName] = aggBinsToIsochores(bins);
-    }
-    return result;
-  }, [chrIsochores]);
 
   return (
     <div style={{
@@ -130,7 +120,7 @@ export function KaryotypeOverview({ onSelectChromosome, chrStats, layerSummary, 
                 height={h}
                 detail="low"
                 hovered={isHovered}
-                isochoreBins={isochoreData[chr.name]}
+                isochoreBins={KARYOTYPE_ISOCHORES[chr.name]}
               />
               <span style={{
                 color: isHovered ? COLOR.accent.teal : COLOR.text.tertiary,

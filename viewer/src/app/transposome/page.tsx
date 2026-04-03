@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useCallback, useState } from 'react';
 import { BrandBar } from '@/components/BrandBar';
-import { ModeTabs } from '@/components/transposome/ModeTabs';
 import { LensPanel } from '@/components/transposome/LensPanel';
 import { LandscapeCanvas } from '@/components/transposome/LandscapeCanvas';
 import { FamilyInspector } from '@/components/transposome/FamilyInspector';
@@ -17,8 +16,6 @@ export default function TransposomePage() {
   const isMobile = useIsMobile();
   const [dataMode, setDataMode] = useState<'live' | 'demo'>('live');
 
-  // Live data loading — failures are surfaced explicitly so users can decide
-  // whether to retry or inspect the demo dataset.
   const loadData = useCallback(() => {
     store.setLoading(true);
     store.setError(null);
@@ -55,7 +52,6 @@ export default function TransposomePage() {
       store.cpgRichOnly,
       store.probeCoveredOnly,
       store.perturbationResponsiveOnly,
-      store.awakeningThreshold,
       store.searchQuery,
     ],
   );
@@ -220,7 +216,7 @@ export default function TransposomePage() {
         </div>
       )}
 
-      {/* Hero Header — compact to fit in single viewport */}
+      {/* Hero Header — compact */}
       <div style={{ padding: '12px 24px 10px', borderBottom: `1px solid ${COLOR.border.subtle}` }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
           <h1 style={{
@@ -240,11 +236,11 @@ export default function TransposomePage() {
             color: COLOR.text.muted,
             fontFamily: FONT_FAMILY,
           }}>
-            Mechanics, Age, Awakening
+            Class, Silencing, Awakening
           </span>
         </div>
 
-        {/* Stats bar — inline with header */}
+        {/* Stats bar */}
         <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span style={{ fontSize: 13, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>{store.loading ? '\u2014' : store.families.length}</span>
@@ -265,18 +261,15 @@ export default function TransposomePage() {
         </div>
       </div>
 
-      {/* Mode Tabs */}
-      <ModeTabs activeTab="landscape" onTabChange={() => {}} />
-
-      {/* Three-Panel Layout (single column on mobile) */}
+      {/* Two-Panel Layout with slim left rail */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isMobile ? '1fr' : '220px 1fr 300px',
+        gridTemplateColumns: isMobile ? '1fr' : '180px 1fr 300px',
         flex: 1,
         minHeight: isMobile ? undefined : 500,
         overflow: 'hidden',
       }}>
-        {/* Left Rail — hidden on mobile */}
+        {/* Left Rail */}
         {!isMobile && (
           <div style={{
             borderRight: `1px solid ${COLOR.border.subtle}`,

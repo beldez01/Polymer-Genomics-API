@@ -1,8 +1,7 @@
 'use client';
 
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT } from '@/config/theme';
-import { LENS_OPTIONS, Y_AXIS_OPTIONS } from '@/lib/transposome-types';
-import type { TEClass, Lens, YAxis } from '@/lib/transposome-types';
+import { COLOR, FONT_FAMILY, WEIGHT } from '@/config/theme';
+import type { TEClass } from '@/lib/transposome-types';
 import { useTransposome } from '@/stores/transposome';
 
 const SECTION_TITLE: React.CSSProperties = {
@@ -39,28 +38,13 @@ const PILL_ACTIVE: React.CSSProperties = {
   background: 'rgba(78,205,196,0.15)',
 };
 
-const LENS_BTN: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  width: '100%',
-  padding: '7px 10px',
-  background: 'transparent',
-  border: '1px solid transparent',
-  color: COLOR.text.tertiary,
-  fontSize: 10,
-  fontFamily: FONT_FAMILY,
-  cursor: 'pointer',
-  textAlign: 'left' as const,
-  marginBottom: 2,
-  transition: 'all 0.15s',
-};
-
-const LENS_BTN_ACTIVE: React.CSSProperties = {
-  ...LENS_BTN,
-  background: 'rgba(78,205,196,0.15)',
-  borderColor: 'rgba(78,205,196,0.3)',
-  color: COLOR.accent.teal,
+const CLASS_COLORS: Record<string, string> = {
+  LINE: COLOR.repeat.LINE,
+  SINE: COLOR.repeat.SINE,
+  LTR: COLOR.repeat.LTR,
+  DNA: COLOR.repeat.DNA,
+  SVA: '#a855f7',
+  Other: COLOR.repeat.Other,
 };
 
 const CLASS_OPTIONS: { label: string; value: TEClass | 'All' }[] = [
@@ -92,79 +76,46 @@ export function LensPanel() {
 
   return (
     <div style={{ fontFamily: FONT_FAMILY }}>
-      {/* INTERPRETIVE LENS */}
-      <div style={SECTION_TITLE_FIRST}>INTERPRETIVE LENS</div>
-      {LENS_OPTIONS.map((opt) => {
-        const isActive = store.activeLens === opt.value;
-        const isDisabled = !opt.mvp;
-        return (
-          <button
-            key={opt.value}
-            onClick={() => !isDisabled && store.setActiveLens(opt.value as Lens)}
-            style={{
-              ...(isActive ? LENS_BTN_ACTIVE : LENS_BTN),
-              ...(isDisabled ? { opacity: 0.3, cursor: 'default' } : {}),
-            }}
-          >
-            <span style={{
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
-              border: '1.5px solid currentColor',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 7,
-              flexShrink: 0,
-              lineHeight: 1,
-            }}>
-              {opt.icon}
-            </span>
-            {opt.label}
-          </button>
-        );
-      })}
-
-      {/* Y-AXIS */}
-      <div style={SECTION_TITLE}>Y-AXIS</div>
-      <select
-        value={store.yAxis}
-        onChange={(e) => store.setYAxis(e.target.value as YAxis)}
-        style={{
-          background: COLOR.bg.surface,
-          border: `1px solid ${COLOR.border.default}`,
-          color: COLOR.text.secondary,
-          fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
-          width: '100%',
-          padding: '5px 8px',
-          outline: 'none',
-        }}
-      >
-        {Y_AXIS_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-
       {/* CLASS FILTER */}
-      <div style={SECTION_TITLE}>CLASS FILTER</div>
+      <div style={SECTION_TITLE_FIRST}>CLASS FILTER</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
         {CLASS_OPTIONS.map((opt) => {
-          const isActive = opt.value === 'All'
+          const isAll = opt.value === 'All';
+          const isActive = isAll
             ? store.classFilter.length === 0
             : store.classFilter.includes(opt.value as TEClass);
+          const classColor = !isAll ? CLASS_COLORS[opt.value] : undefined;
           return (
             <button
               key={opt.value}
               onClick={() => {
-                if (opt.value === 'All') {
+                if (isAll) {
                   store.setAllClasses();
                 } else {
                   store.toggleClassFilter(opt.value as TEClass);
                 }
               }}
-              style={isActive ? PILL_ACTIVE : PILL}
+              style={{
+                ...(isActive ? PILL_ACTIVE : PILL),
+                ...(isActive && classColor ? {
+                  borderColor: classColor,
+                  color: classColor,
+                  background: `${classColor}20`,
+                } : {}),
+              }}
             >
+              {!isAll && (
+                <span style={{
+                  display: 'inline-block',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: classColor,
+                  marginRight: 4,
+                  verticalAlign: 'middle',
+                  opacity: isActive ? 1 : 0.5,
+                }} />
+              )}
               {opt.label}
             </button>
           );
@@ -209,31 +160,6 @@ export function LensPanel() {
           );
         })}
       </div>
-
-      {/* AWAKENING GRADIENT */}
-      <div style={SECTION_TITLE}>AWAKENING GRADIENT</div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 8, color: COLOR.text.faint, fontFamily: FONT_FAMILY }}>DEEPLY SILENT</span>
-        <span style={{ fontSize: 8, color: COLOR.accent.rose, fontFamily: FONT_FAMILY }}>EXPOSED</span>
-      </div>
-      <div style={{
-        height: 4,
-        borderRadius: 2,
-        background: 'linear-gradient(to right, #555, #F0A500, #F43F5E)',
-        opacity: 0.6,
-        marginBottom: 6,
-      }} />
-      <input
-        type="range"
-        min={0}
-        max={100}
-        value={store.awakeningThreshold}
-        onChange={(e) => store.setAwakeningThreshold(Number(e.target.value))}
-        style={{
-          width: '100%',
-          accentColor: COLOR.accent.teal,
-        }}
-      />
     </div>
   );
 }

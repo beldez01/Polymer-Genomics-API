@@ -5,10 +5,6 @@ export type TEClass = 'LINE' | 'SINE' | 'LTR' | 'DNA' | 'SVA' | 'Other';
 
 export type SilencingPrimary = 'methylation' | 'h3k9me3' | 'h3k27me3' | 'mixed' | 'none';
 
-export type Lens = 'material' | 'evolution' | 'silencing' | 'reactivation' | 'probe' | 'disease';
-
-export type YAxis = 'cpg_density' | 'gc_content' | 'stacking_dg37' | 'wrapping_energy' | 'ndr_score';
-
 export type ReactivationContext = 'aging' | 'dnmti' | 'tet2_lof' | 'setdb1_lof';
 
 export type EvidenceLevel = 'STRONG' | 'MODERATE' | 'PREDICTED' | 'UNKNOWN';
@@ -87,26 +83,7 @@ export interface TEFamilyDetail extends TEFamily {
   references: TEFamilyReference[];
 }
 
-// Y-axis display config
-export const Y_AXIS_OPTIONS: { value: YAxis; label: string }[] = [
-  { value: 'cpg_density', label: 'CpG Density (obs/exp)' },
-  { value: 'gc_content', label: 'GC Content (%)' },
-  { value: 'stacking_dg37', label: 'Stacking Energy (kcal/mol)' },
-  { value: 'wrapping_energy', label: 'Wrapping Energy' },
-  { value: 'ndr_score', label: 'NDR Score' },
-];
-
-// Lens display config
-export const LENS_OPTIONS: { value: Lens; label: string; icon: string; mvp: boolean }[] = [
-  { value: 'material', label: 'Material Lens', icon: 'M', mvp: true },
-  { value: 'evolution', label: 'Evolution Lens', icon: 'E', mvp: true },
-  { value: 'silencing', label: 'Silencing Lens', icon: 'S', mvp: true },
-  { value: 'reactivation', label: 'Reactivation Lens', icon: 'R', mvp: true },
-  { value: 'probe', label: 'Probe Lens', icon: 'P', mvp: false },
-  { value: 'disease', label: 'Disease Lens', icon: 'D', mvp: false },
-];
-
-// Silencing color map (unified across lens + inspector)
+// Silencing color map (unified across inspector)
 export const SILENCING_COLORS: Record<SilencingPrimary, string> = {
   methylation: '#4ECDC4',
   h3k9me3: '#F0A500',
