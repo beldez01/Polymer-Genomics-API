@@ -115,7 +115,8 @@ def read_clinvar_vcf(vcf_path: str | Path) -> list[dict]:
 
             # Filter for pathogenic
             clnsig = info.get("CLNSIG", "")
-            if "athogenic" not in clnsig:  # catches Pathogenic, Likely_pathogenic
+            # Must start with Pathogenic or Likely_pathogenic (not Conflicting_classifications_of_pathogenicity)
+            if not (clnsig.startswith("Pathogenic") or clnsig.startswith("Likely_pathogenic")):
                 skipped_sig += 1
                 continue
 
