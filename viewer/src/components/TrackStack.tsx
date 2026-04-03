@@ -1,7 +1,7 @@
 'use client';
 
 import type { ViewportData } from '@/lib/genomeFetcher';
-import type { LayerResolved } from '@/lib/api';
+import type { GRanges, LayerResolved, BiophysicsComputeResponse } from '@/lib/api';
 import { SequenceTrack } from './tracks/SequenceTrack';
 import { GeneTrack } from './tracks/GeneTrack';
 import { CodonFrameTrack } from './tracks/CodonFrameTrack';
@@ -15,6 +15,9 @@ import { HistoneTrack } from './tracks/HistoneTrack';
 import { GwasTrack } from './tracks/GwasTrack';
 import { RepeatTrack } from './tracks/RepeatTrack';
 import { DNAShapeTrack } from './tracks/DNAShapeTrack';
+import { StabilityTrack } from './tracks/StabilityTrack';
+import { StructureTrack } from './tracks/StructureTrack';
+import { MotifTrack } from './tracks/MotifTrack';
 import { NonBDnaTrack } from './tracks/NonBDnaTrack';
 import { HervTrack } from './tracks/HervTrack';
 import { BreakpointTrack } from './tracks/BreakpointTrack';
@@ -39,6 +42,10 @@ export interface TrackStackProps {
   error: string | null;
   showCodons?: boolean;
   showGC?: boolean;
+  showStability?: boolean;
+  showStructure?: boolean;
+  showMotifs?: boolean;
+  biophysicsData?: BiophysicsComputeResponse;
   visibleCellTypes?: string[];
   enabledMotifs?: string[];
 }
@@ -161,6 +168,10 @@ export function TrackStack({
   error,
   showCodons,
   showGC = true,
+  showStability = false,
+  showStructure = false,
+  showMotifs = false,
+  biophysicsData,
   visibleCellTypes,
   enabledMotifs,
 }: TrackStackProps) {
@@ -198,7 +209,7 @@ export function TrackStack({
   const hasEpigenetic = !!(data?.layers?.methylation_atlas || data?.layers?.histone_peaks_encode_v1);
   const hasVariation = !!(data?.layers?.gwas_catalog_ebi_v1);
   const hasStructure = !!(data?.layers?.repeatmasker_v1 || data?.layers?.herv_loci_v1 || data?.layers?.nonb_dna || data?.layers?.breakpoints || data?.layers?.fragility || data?.layers?.tad_domain || data?.layers?.hic_compartment || data?.layers?.insulation_score);
-  const hasBiophysics = !!(data?.layers?.sequence_biophysics_l0 || showGC);
+  const hasBiophysics = !!(data?.layers?.sequence_biophysics_l0 || showGC || showStability || showStructure || showMotifs);
 
   return (
     <div className="relative h-full overflow-y-auto" style={{ backgroundColor: COLOR.bg.primary }}>
@@ -341,6 +352,48 @@ export function TrackStack({
         {showGC && (
           <TrackRow label="GC%" evidenceClass={ec('sequence_biophysics_l0')}>
             <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+          </TrackRow>
+        )}
+
+        {showStability && (
+          <TrackRow label="Stability" evidenceClass="D">
+            <StabilityTrack
+              data={biophysicsData ? {
+                class: 'GRanges' as const,
+                seqnames: biophysicsData.data.seqnames,
+                n: biophysicsData.data.n_steps,
+                ranges: { ...biophysicsData.data.ranges, width: biophysicsData.data.ranges.start.map((s, i) => biophysicsData.data.ranges.end[i] - s + 1) },
+                strand: biophysicsData.data.strand,
+                mcols: biophysicsData.data.mcols,
+              } satisfies GRanges : data?.layers?.sequence_biophysics_l0}
+              viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80}
+            />
+          </TrackRow>
+        )}
+
+        {showStructure && (
+          <TrackRow label="Structure" evidenceClass="D">
+            <StructureTrack
+              data={biophysicsData ? {
+                class: 'GRanges' as const,
+                seqnames: biophysicsData.data.seqnames,
+                n: biophysicsData.data.n_steps,
+                ranges: { ...biophysicsData.data.ranges, width: biophysicsData.data.ranges.start.map((s, i) => biophysicsData.data.ranges.end[i] - s + 1) },
+                strand: biophysicsData.data.strand,
+                mcols: biophysicsData.data.mcols,
+              } satisfies GRanges : data?.layers?.sequence_biophysics_l0}
+              viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60}
+            />
+          </TrackRow>
+        )}
+
+        {showMotifs && biophysicsData?.data?.motifs && (
+          <TrackRow label="Motifs" evidenceClass="D">
+            <MotifTrack
+              motifs={biophysicsData.data.motifs}
+              regionStart={viewStart}
+              viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40}
+            />
           </TrackRow>
         )}
 

@@ -647,6 +647,36 @@ export async function fetchClockProbeSearch(probeId: string): Promise<ClockProbe
   return fetchJSON(`${API_BASE}/v1/reference/clock-probes?probe_id=${encodeURIComponent(probeId)}`);
 }
 
+// ── Biophysics compute endpoint ─────────────────────────────────────────────
+
+export interface BiophysicsComputeResponse {
+  status: string;
+  data: {
+    seqnames: string[];
+    ranges: { start: number[]; end: number[] };
+    strand: string[];
+    mcols: Record<string, (number | string)[]>;
+    summaries: Record<string, Record<string, number>>;
+    n_steps: number;
+    sequence_length: number;
+    motifs?: {
+      g_quadruplex: Array<{ start: number; end: number; sequence: string; g_run_lengths: number[] }>;
+      z_dna_prone: Array<{ start: number; end: number; length: number; mean_z_penalty: number }>;
+      homopolymer_runs: Array<{ type: string; start: number; end: number; length: number }>;
+      inverted_repeats: Array<{ start: number; end: number; stem_length: number; loop_length: number; stem_5prime: string }>;
+    };
+  };
+}
+
+export async function fetchBiophysicsCompute(
+  build: string,
+  region: string,
+  properties: string = 'all',
+): Promise<BiophysicsComputeResponse> {
+  const params = new URLSearchParams({ properties });
+  return fetchJSON(`${API_BASE}/v1/biophysics/${build}/${region}?${params}`);
+}
+
 // ─── Transposome ────────────────────────────────────────────────────
 import type { TEFamily, TEFamilyDetail } from './transposome-types';
 

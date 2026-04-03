@@ -19,6 +19,9 @@ export interface ViewportState {
   // Gene track options
   showCodons: boolean;
   showGC: boolean;
+  showStability: boolean;
+  showStructure: boolean;
+  showMotifs: boolean;
 
   // Methylation atlas cell type visibility
   visibleCellTypes: string[];
@@ -38,6 +41,9 @@ export interface ViewportState {
   setLayers: (layers: string[]) => void;
   toggleCodons: () => void;
   toggleGC: () => void;
+  toggleStability: () => void;
+  toggleStructure: () => void;
+  toggleMotifs: () => void;
   toggleCellType: (cellType: string) => void;
   toggleMotif: (motifName: string) => void;
   toggleAllProbes: () => void;
@@ -67,6 +73,9 @@ export const useViewport = create<ViewportState>((set, get) => ({
   activeLayers: ['gencode_v44', 'cpg_sites'],
   showCodons: false,
   showGC: true,
+  showStability: false,
+  showStructure: false,
+  showMotifs: false,
   visibleCellTypes: ['Gran', 'Mono', 'NK', 'Bcell', 'CD4T', 'CD8T'],
   enabledMotifs: [],
 
@@ -138,6 +147,9 @@ export const useViewport = create<ViewportState>((set, get) => ({
 
   toggleCodons: () => set((state) => ({ showCodons: !state.showCodons })),
   toggleGC: () => set((state) => ({ showGC: !state.showGC })),
+  toggleStability: () => set((state) => ({ showStability: !state.showStability })),
+  toggleStructure: () => set((state) => ({ showStructure: !state.showStructure })),
+  toggleMotifs: () => set((state) => ({ showMotifs: !state.showMotifs })),
 
   toggleMotif: (motifName) =>
     set((state) => ({
