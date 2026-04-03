@@ -115,7 +115,7 @@ async def main(builds: list[str] | None = None) -> None:
     ))
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    phylop_bw = os.environ.get("ZOONOMIA_PHYLOP_BW", str(data_dir / "hg38.phyloP241way.bw"))
+    phylop_bw = os.environ.get("ZOONOMIA_PHYLOP_BW", str(data_dir / "hg38.cactus241way.phyloP.bw"))
     phastcons_bw = os.environ.get("ZOONOMIA_PHASTCONS_BW", str(data_dir / "hg38.phastCons241way.bw"))
 
     # Check for BigWig files (phastCons is optional — not available as single BigWig from UCSC)
