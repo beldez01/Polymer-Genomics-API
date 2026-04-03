@@ -30,6 +30,7 @@ from polymer_genomics.queries.regulatory import (
     region_regulatory_query, _convert_regulatory,
     region_chromatin_state_query, _convert_chromatin_state,
     region_histone_peaks_query, _convert_histone_peaks,
+    region_enhancer_gene_query, _convert_enhancer_gene,
 )
 from polymer_genomics.queries.genome3d import (
     region_hic_compartment_query, _convert_hic_compartment,
@@ -38,6 +39,21 @@ from polymer_genomics.queries.genome3d import (
 )
 from polymer_genomics.queries.evolution import (
     region_ultraconserved_query, _convert_ultraconserved,
+    region_accelerated_query, _convert_accelerated,
+    region_archaic_introgression_query, _convert_archaic_introgression,
+    region_selection_sweep_query, _convert_selection_sweep,
+    region_te_exaptation_query, _convert_te_exaptation,
+    region_archaic_methylation_query, _convert_archaic_methylation,
+)
+from polymer_genomics.queries.nuclear import (
+    region_lad_query, _convert_lad,
+    region_nad_query, _convert_nad,
+    region_dmv_query, _convert_dmv,
+    region_super_enhancer_query, _convert_super_enhancer,
+)
+from polymer_genomics.queries.qtl import (
+    region_eqtl_query, _convert_eqtl,
+    region_meqtl_query, _convert_meqtl,
 )
 from polymer_genomics.queries.variation import (
     region_clinvar_query, _convert_clinvar,
@@ -176,6 +192,54 @@ TRACK_REGISTRY: dict[str, dict] = {
     "clinvar": {
         "query_fn": region_clinvar_query,
         "convert_fn": _convert_clinvar,
+    },
+    "accelerated_region": {
+        "query_fn": region_accelerated_query,
+        "convert_fn": _convert_accelerated,
+    },
+    "archaic_introgression": {
+        "query_fn": region_archaic_introgression_query,
+        "convert_fn": _convert_archaic_introgression,
+    },
+    "selection_sweep": {
+        "query_fn": region_selection_sweep_query,
+        "convert_fn": _convert_selection_sweep,
+    },
+    "te_exaptation": {
+        "query_fn": region_te_exaptation_query,
+        "convert_fn": _convert_te_exaptation,
+    },
+    "archaic_methylation": {
+        "query_fn": region_archaic_methylation_query,
+        "convert_fn": _convert_archaic_methylation,
+    },
+    "lad": {
+        "query_fn": region_lad_query,
+        "convert_fn": _convert_lad,
+    },
+    "nad": {
+        "query_fn": region_nad_query,
+        "convert_fn": _convert_nad,
+    },
+    "dmv": {
+        "query_fn": region_dmv_query,
+        "convert_fn": _convert_dmv,
+    },
+    "super_enhancer": {
+        "query_fn": region_super_enhancer_query,
+        "convert_fn": _convert_super_enhancer,
+    },
+    "eqtl": {
+        "query_fn": region_eqtl_query,
+        "convert_fn": _convert_eqtl,
+    },
+    "meqtl": {
+        "query_fn": region_meqtl_query,
+        "convert_fn": _convert_meqtl,
+    },
+    "enhancer_gene": {
+        "query_fn": region_enhancer_gene_query,
+        "convert_fn": _convert_enhancer_gene,
     },
 }
 

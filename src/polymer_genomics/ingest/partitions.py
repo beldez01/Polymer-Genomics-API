@@ -15,7 +15,7 @@ import asyncpg
 ALLOWED_SCHEMAS = frozenset({
     "cpg", "gene", "probe", "methylation", "ref", "registry", "storage",
     "bioenergetics", "conservation", "expression", "regulatory", "annotation", "proteomics",
-    "biophysics", "hla", "evolution", "variation",
+    "biophysics", "hla", "evolution", "variation", "nuclear", "qtl",
 })
 ALLOWED_TABLES = frozenset({
     "features",
@@ -66,6 +66,19 @@ ALLOWED_TABLES = frozenset({
     # Phase 10: Rosetta Stone expansion
     "ultraconserved_elements",
     "clinvar_variants",
+    # Phase 10: Rosetta Stone Tiers 10-11
+    "accelerated_regions",
+    "archaic_segments",
+    "selection_sweeps",
+    "te_exaptation",
+    "archaic_methylation",
+    "lads",
+    "nads",
+    "dmvs",
+    "super_enhancers",
+    "eqtls",
+    "meqtls",
+    "enhancer_gene_links",
 })
 ALLOWED_BUILDS = frozenset({"hg37", "hg38"})
 

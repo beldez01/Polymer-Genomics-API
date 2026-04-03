@@ -1,4 +1,4 @@
-"""Regulatory elements: cCREs, chromatin state, and histone marks queries."""
+"""Regulatory elements: cCREs, chromatin state, histone marks, enhancer-gene links."""
 from polymer_genomics.queries._common import db_to_api
 
 
@@ -139,6 +139,55 @@ def _convert_histone_peaks(rows: list, chr_name: str) -> dict:
             "mark": marks, "cell_type": cell_types,
             "signal_value": signal_values, "p_value": p_values,
             "q_value": q_values, "peak_offset": peak_offsets,
+        },
+        "n": len(rows),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Enhancer-gene links (ABC model, Nasser et al. 2021)
+# ---------------------------------------------------------------------------
+
+
+def region_enhancer_gene_query() -> str:
+    """ABC model enhancer-gene predictions (Nasser et al. 2021)."""
+    return """
+        SELECT e.start_pos, e.end_pos,
+               e.target_gene, e.target_gene_tss, e.cell_type,
+               e.abc_score, e.distance, e.class
+        FROM regulatory.enhancer_gene_links e
+        WHERE e.build = $1::genome_build
+          AND e.chr_id = $2
+          AND e.coord && int4range($3, $4)
+          AND e.layer_id = $5
+        ORDER BY e.start_pos
+        LIMIT $6
+    """
+
+
+def _convert_enhancer_gene(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    genes, tss_list, cells, scores, dists, classes = [], [], [], [], [], []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        genes.append(r["target_gene"])
+        tss_list.append(r["target_gene_tss"])
+        cells.append(r["cell_type"])
+        scores.append(r["abc_score"])
+        dists.append(r["distance"])
+        classes.append(r["class"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "target_gene": genes, "target_gene_tss": tss_list,
+            "cell_type": cells, "abc_score": scores,
+            "distance": dists, "element_class": classes,
         },
         "n": len(rows),
     }
