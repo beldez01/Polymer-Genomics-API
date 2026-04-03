@@ -36,8 +36,8 @@ from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_up
 BATCH_SIZE = 50_000
 BIN_SIZE = 1000
 
-PHYLOP_URL = "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP241way/hg38.phyloP241way.bw"
-PHASTCONS_URL = "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons241way/hg38.phastCons241way.bw"
+PHYLOP_URL = "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/cactus241way/cactus241way.phyloP.bw"
+PHASTCONS_URL = ""  # Not available as single BigWig from UCSC for 241-way
 
 _CHR_SIZES: dict[str, int] = {
     "chr1": 248956422, "chr2": 242193529, "chr3": 198295559,
@@ -118,16 +118,15 @@ async def main(builds: list[str] | None = None) -> None:
     phylop_bw = os.environ.get("ZOONOMIA_PHYLOP_BW", str(data_dir / "hg38.phyloP241way.bw"))
     phastcons_bw = os.environ.get("ZOONOMIA_PHASTCONS_BW", str(data_dir / "hg38.phastCons241way.bw"))
 
-    # Check for BigWig files
-    for label, path, url in [
-        ("phyloP 241-way", phylop_bw, PHYLOP_URL),
-        ("phastCons 241-way", phastcons_bw, PHASTCONS_URL),
-    ]:
-        if not Path(path).is_file():
-            print(f"  {label} BigWig not found at {path}")
-            print(f"  Download (~8-12 GB): {url}")
-            print(f"  Set ZOONOMIA_PHYLOP_BW / ZOONOMIA_PHASTCONS_BW env vars")
-            return
+    # Check for BigWig files (phastCons is optional — not available as single BigWig from UCSC)
+    if not Path(phylop_bw).is_file():
+        print(f"  phyloP 241-way BigWig not found at {phylop_bw}")
+        print(f"  Download (~9 GB): {PHYLOP_URL}")
+        print(f"  Set ZOONOMIA_PHYLOP_BW env var")
+        return
+    has_phastcons = Path(phastcons_bw).is_file()
+    if not has_phastcons:
+        print(f"  phastCons 241-way BigWig not found (optional, proceeding with phyloP only)")
 
     tool = _find_bigwig_tool()
     print(f"  bigWigAverageOverBed: {tool}")
@@ -164,12 +163,16 @@ async def main(builds: list[str] | None = None) -> None:
                 phylop_data = _parse_mean_output(phylop_out)
                 print(f"  phyloP: {len(phylop_data):,} windows")
 
-                # phastCons
-                phastcons_out = os.path.join(tmpdir, "phastcons241.tab")
-                print(f"  Computing phastCons 241-way means...")
-                _run_bigwig_average(phastcons_bw, windows_bed, phastcons_out, tool)
-                phastcons_data = _parse_mean_output(phastcons_out)
-                print(f"  phastCons: {len(phastcons_data):,} windows")
+                # phastCons (optional)
+                phastcons_data: dict[str, float | None] = {}
+                if has_phastcons:
+                    phastcons_out = os.path.join(tmpdir, "phastcons241.tab")
+                    print(f"  Computing phastCons 241-way means...")
+                    _run_bigwig_average(phastcons_bw, windows_bed, phastcons_out, tool)
+                    phastcons_data = _parse_mean_output(phastcons_out)
+                    print(f"  phastCons: {len(phastcons_data):,} windows")
+                else:
+                    print(f"  Skipping phastCons (not available)")
 
             # Create staging table
             await conn.execute("""
