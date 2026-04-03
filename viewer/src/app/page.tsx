@@ -43,7 +43,7 @@ const TIER_ANALYZE: Module[] = [
     name: 'Evaluate',
     desc: 'Physics linter for any DNA sequence. Thermodynamic profile, CpG islands, structural flags, batch mode.',
     href: '/evaluate',
-    accent: '#10b981',
+    accent: COLOR.layer.gene_costs_v1,
   },
   {
     name: 'Methylation',
@@ -67,7 +67,7 @@ const TIER_ANALYZE: Module[] = [
     name: 'HLA',
     desc: 'Allele biophysics for 6 transplant loci. Non-coding divergence, expression mismatch scoring.',
     href: '/hla',
-    accent: '#3b82f6',
+    accent: COLOR.layer.gencode_v44,
   },
 ];
 
@@ -108,7 +108,7 @@ function Divider() {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{
+    <h2 style={{
       color: COLOR.text.faint,
       fontSize: TYPE.xs.fontSize,
       fontFamily: FONT_FAMILY,
@@ -116,9 +116,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       letterSpacing: '0.12em',
       textTransform: 'uppercase',
       marginBottom: SPACE[4],
+      marginTop: 0,
     }}>
       {children}
-    </div>
+    </h2>
   );
 }
 
