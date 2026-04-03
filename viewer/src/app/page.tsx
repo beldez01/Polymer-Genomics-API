@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE } from '@/config/theme';
+import { useIsMobile } from '@/hooks/useBreakpoint';
 import {
   MCP_COMPUTE_TOOL_COUNT,
   MCP_REFERENCE_TOOL_COUNT,
@@ -22,37 +23,37 @@ interface Module {
   accent: string;
 }
 
-const TIER_1: Module[] = [
+const TIER_BROWSE: Module[] = [
   {
     name: 'Genome Viewer',
-    desc: 'Browse any locus with CpG, probe, isochore, and biophysics layers. hg38 + hg37.',
+    desc: 'Browse any locus with biophysics layers — stacking energy, curvature, CpG density, isochores. hg38 + hg37.',
     href: VIEWER_HREF,
     accent: COLOR.accent.teal,
   },
   {
     name: 'Atlas',
-    desc: 'Karyotype navigator with 63,000 GENCODE v44 transcripts. Gene profiles, expression, pathways.',
+    desc: '63,000 GENCODE v44 transcripts. Gene profiles with expression, pathways, constraint, biosynthetic cost.',
     href: '/atlas',
     accent: COLOR.layer.gencode_v44,
   },
 ];
 
-const TIER_2: Module[] = [
-  {
-    name: 'Methylation',
-    desc: 'DMP volcano/manhattan, TE/ERV family scoring, reactivation risk, Retro-Age clock. Auto-detects DMP results or beta values.',
-    href: '/dmp',
-    accent: COLOR.accent.rose,
-  },
+const TIER_ANALYZE: Module[] = [
   {
     name: 'Evaluate',
-    desc: 'Biophysics linter for DNA sequences. CpG islands, thermodynamics, structural flags.',
+    desc: 'Physics linter for any DNA sequence. Thermodynamic profile, CpG islands, structural flags, batch mode.',
     href: '/evaluate',
     accent: '#10b981',
   },
   {
+    name: 'Methylation',
+    desc: 'DMP volcano and manhattan plots, TE/ERV family scoring, reactivation risk, Retro-Age clock.',
+    href: '/dmp',
+    accent: COLOR.accent.rose,
+  },
+  {
     name: 'Epigenetic Clocks',
-    desc: '6 clock systems. Probe anatomy, cross-clock comparison, apply coefficients.',
+    desc: '6 clock systems. Probe anatomy, cross-clock comparison, coefficient application.',
     href: '/clocks',
     accent: COLOR.accent.amber,
   },
@@ -64,13 +65,13 @@ const TIER_2: Module[] = [
   },
   {
     name: 'HLA',
-    desc: 'Allele biophysics for 6 transplant loci. Non-coding divergence, expression mismatch, match scoring.',
+    desc: 'Allele biophysics for 6 transplant loci. Non-coding divergence, expression mismatch scoring.',
     href: '/hla',
     accent: '#3b82f6',
   },
 ];
 
-const TIER_3: Module[] = [
+const TIER_BUILD: Module[] = [
   {
     name: 'API / MCP',
     desc: `${MCP_TOOL_COUNT} tools (${MCP_REFERENCE_TOOL_COUNT} reference + ${MCP_COMPUTE_TOOL_COUNT} compute). REST endpoints and Model Context Protocol for AI agents.`,
@@ -85,41 +86,21 @@ const TIER_3: Module[] = [
   },
 ];
 
-/* ── Components ── */
+/* ── Shared styles ── */
 
-function GhostButton({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        padding: `${SPACE[2]}px ${SPACE[6]}px`,
-        backgroundColor: 'transparent',
-        color: COLOR.text.secondary,
-        border: `1px solid ${COLOR.border.strong}`,
-        fontWeight: WEIGHT.medium,
-        fontSize: TYPE.base.fontSize,
-        fontFamily: FONT_FAMILY,
-        textDecoration: 'none',
-        transition: 'border-color 0.15s, color 0.15s',
-        display: 'inline-block',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = COLOR.accent.teal;
-        e.currentTarget.style.color = COLOR.accent.teal;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = COLOR.border.strong;
-        e.currentTarget.style.color = COLOR.text.secondary;
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
+const PROSE: React.CSSProperties = {
+  color: COLOR.text.tertiary,
+  fontSize: TYPE.base.fontSize,
+  fontFamily: FONT_FAMILY,
+  lineHeight: 1.8,
+  marginBottom: SPACE[6],
+};
+
+/* ── Components ── */
 
 function Divider() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: `${SPACE[8]}px 0` }}>
+    <div style={{ display: 'flex', justifyContent: 'center', padding: `${SPACE[10]}px 0` }}>
       <div style={{ width: 120, height: 1, backgroundColor: COLOR.border.subtle }} />
     </div>
   );
@@ -141,49 +122,34 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ModuleEntry({ mod, large }: { mod: Module; large?: boolean }) {
+function FeatureCard({ mod }: { mod: Module }) {
   return (
     <Link
       href={mod.href}
       style={{
         textDecoration: 'none',
-        cursor: 'pointer',
-        borderLeft: '3px solid transparent',
-        paddingLeft: SPACE[3],
-        paddingTop: SPACE[2],
-        paddingBottom: SPACE[2],
-        transition: 'border-color 0.15s',
         display: 'block',
+        borderTop: `2px solid ${mod.accent}`,
+        padding: `${SPACE[4]}px 0`,
+        transition: 'opacity 0.15s',
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderLeftColor = mod.accent;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderLeftColor = 'transparent';
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], marginBottom: 4 }}>
-        <div style={{
-          width: large ? 10 : 8,
-          height: large ? 10 : 8,
-          backgroundColor: mod.accent,
-          flexShrink: 0,
-        }} />
-        <span style={{
-          color: COLOR.text.primary,
-          fontSize: large ? TYPE.md.fontSize : TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-        }}>
-          {mod.name}
-        </span>
+      <div style={{
+        color: COLOR.text.primary,
+        fontSize: TYPE.base.fontSize,
+        fontFamily: FONT_FAMILY,
+        fontWeight: WEIGHT.medium,
+        marginBottom: SPACE[1],
+      }}>
+        {mod.name}
       </div>
       <div style={{
-        color: COLOR.text.tertiary,
+        color: COLOR.text.muted,
         fontSize: TYPE.sm.fontSize,
         fontFamily: FONT_FAMILY,
         lineHeight: 1.6,
-        paddingLeft: large ? 22 : 20,
       }}>
         {mod.desc}
       </div>
@@ -194,132 +160,250 @@ function ModuleEntry({ mod, large }: { mod: Module; large?: boolean }) {
 /* ── Page ── */
 
 export default function Home() {
+  const isMobile = useIsMobile();
   const stats = usePlatformStats();
-  const STATS = [
-    { value: stats.cpg, label: 'CpG' },
-    { value: stats.probes, label: 'probes' },
-    { value: stats.transcripts, label: 'transcripts' },
-    { value: stats.mcpTools, label: 'MCP tools' },
-  ];
 
   return (
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
       <BrandBar />
 
-      {/* ─── Hero (compact) ─── */}
-      <section
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: `${SPACE[24]}px ${SPACE[6]}px ${SPACE[10]}px`,
-        }}
-      >
-        <h1 style={{
-          fontSize: TYPE['2xl'].fontSize,
-          fontWeight: WEIGHT.bold,
-          letterSpacing: '0.12em',
-          color: COLOR.accent.teal,
-          fontFamily: FONT_FAMILY,
-          marginBottom: SPACE[6],
-          textAlign: 'center',
-        }}>
-          POLYMER GENOMICS
-        </h1>
-
-        <p style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          lineHeight: TYPE.base.lineHeight,
-          textAlign: 'center',
-          marginBottom: SPACE[2],
-        }}>
-          DNA as a physical material
-        </p>
-        <p style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          lineHeight: TYPE.base.lineHeight,
-          textAlign: 'center',
-          marginBottom: SPACE[6],
-        }}>
-          Computed, served, composable &mdash; base-pair resolution
-        </p>
-
-        {/* Stats row */}
-        <div style={{
-          display: 'flex',
-          gap: SPACE[6],
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          marginBottom: SPACE[10],
-        }}>
-          {STATS.map((s, i) => (
-            <span key={s.label} style={{
-              color: COLOR.text.muted,
-              fontSize: TYPE.sm.fontSize,
-              fontFamily: FONT_FAMILY,
-            }}>
-              {i > 0 && <span style={{ color: COLOR.border.strong, marginRight: SPACE[6] }}>&middot;</span>}
-              <span style={{ color: COLOR.text.secondary, fontWeight: WEIGHT.medium }}>{s.value}</span>
-              {' '}{s.label}
-            </span>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', gap: SPACE[6], flexWrap: 'wrap', justifyContent: 'center' }}>
-          <GhostButton href={VIEWER_HREF}>
-            Open Viewer
-          </GhostButton>
-          <GhostButton href="/atlas">
-            Atlas
-          </GhostButton>
-          <GhostButton href="/docs">
-            API Docs
-          </GhostButton>
-        </div>
-      </section>
-
-      {/* ─── Module Directory ─── */}
       <div style={{
         maxWidth: 640,
         margin: '0 auto',
         padding: `0 ${SPACE[6]}px`,
       }}>
+
+        {/* ─── Hero ─── */}
+        <section style={{ padding: `${SPACE[24]}px 0 ${SPACE[10]}px` }}>
+          <h1 style={{
+            fontSize: TYPE['2xl'].fontSize,
+            fontWeight: WEIGHT.bold,
+            letterSpacing: '0.12em',
+            color: COLOR.accent.teal,
+            fontFamily: FONT_FAMILY,
+            marginBottom: SPACE[8],
+          }}>
+            POLYMER GENOMICS
+          </h1>
+
+          <p style={{
+            color: COLOR.text.secondary,
+            fontSize: TYPE.md.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.7,
+          }}>
+            The central dogma describes how DNA encodes proteins. It is silent about the
+            rest&nbsp;&mdash; the 98.5% of the genome whose physical properties determine which
+            genes are read, when, and in what cell. This site computes that other channel.
+          </p>
+        </section>
+
+        {/* ─── Manifesto ─── */}
+        <section style={{ paddingBottom: SPACE[8] }}>
+          <p style={PROSE}>
+            DNA is not a tape. It is a heteropolymer&nbsp;&mdash; a chain of monomers
+            with position-dependent physical-chemical properties. Every base pair has a
+            stacking energy, a melting temperature, an intrinsic curvature, a flexibility.
+            An AT-rich region and a GC-rich region are, in the language of polymer physics,
+            different materials.
+          </p>
+
+          <p style={PROSE}>
+            This makes two information channels on one molecule. The <em>symbolic
+            channel</em> maps codons to amino acids&nbsp;&mdash; the genetic code, described
+            completely by the central dogma, operating on ~1.5% of the genome. The <em>material
+            channel</em> maps sequence to a continuous energy surface&nbsp;&mdash; self-executing,
+            requiring no decoder, operating on 100% of the genome. The central dogma is
+            silent about this channel.
+          </p>
+
+          <p style={PROSE}>
+            The material channel is physically prior. Naked DNA in a test tube already has
+            its energy surface&nbsp;&mdash; no ribosome, no polymerase, no cell required. It
+            predates the genetic code by billions of years. And it determines, through the
+            Boltzmann distribution, which regions of the genome the symbolic channel can
+            access. This site computes and serves that energy surface, genome-wide, for the
+            first time.
+          </p>
+        </section>
+
+        {/* ─── Two Channels ─── */}
+        <section style={{
+          display: 'flex',
+          gap: SPACE[6],
+          flexDirection: isMobile ? 'column' : 'row',
+          paddingBottom: SPACE[6],
+        }}>
+          {/* Symbolic — muted */}
+          <div style={{
+            flex: 1,
+            borderTop: `2px solid ${COLOR.border.strong}`,
+            paddingTop: SPACE[4],
+          }}>
+            <div style={{
+              color: COLOR.text.muted,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.1em',
+              marginBottom: SPACE[3],
+            }}>
+              &sigma; &mdash; THE SYMBOLIC CHANNEL
+            </div>
+            {['Codons \u2192 amino acids', '~1.5% of the genome', 'Decoder-dependent (ribosome)', 'Described by the central dogma'].map((line) => (
+              <div key={line} style={{
+                color: COLOR.text.faint,
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                lineHeight: 1.9,
+              }}>
+                {line}
+              </div>
+            ))}
+          </div>
+
+          {/* Material — prominent */}
+          <div style={{
+            flex: 1,
+            borderTop: `2px solid ${COLOR.accent.teal}`,
+            paddingTop: SPACE[4],
+          }}>
+            <div style={{
+              color: COLOR.accent.teal,
+              fontSize: TYPE.xs.fontSize,
+              fontFamily: FONT_FAMILY,
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.1em',
+              marginBottom: SPACE[3],
+            }}>
+              &Lambda; &mdash; THE MATERIAL CHANNEL
+            </div>
+            {['Sequence \u2192 energy surface', '100% of the genome', 'Self-executing (physics)', 'Computed here'].map((line) => (
+              <div key={line} style={{
+                color: COLOR.text.secondary,
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+                lineHeight: 1.9,
+              }}>
+                {line}
+              </div>
+            ))}
+          </div>
+        </section>
+
         <Divider />
 
-        {/* Tier 1: Explore */}
-        <SectionLabel>Explore</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
-          {TIER_1.map((mod) => (
-            <ModuleEntry key={mod.name} mod={mod} large />
+        {/* ─── Bridge + Stats ─── */}
+        <section style={{ paddingBottom: SPACE[4] }}>
+          <p style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.base.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.8,
+            marginBottom: SPACE[6],
+          }}>
+            The first genome-wide database of material-channel properties. Every tool
+            below is a way to interact with the energy surface.
+          </p>
+
+          <div style={{
+            display: 'flex',
+            gap: SPACE[6],
+            flexWrap: 'wrap',
+            marginBottom: SPACE[4],
+          }}>
+            {[
+              { value: '41', label: 'layers' },
+              { value: stats.cpg, label: 'CpG sites' },
+              { value: stats.probes, label: 'probes' },
+              { value: stats.transcripts, label: 'transcripts' },
+              { value: stats.mcpTools, label: 'MCP tools' },
+            ].map((s, i) => (
+              <span key={s.label} style={{
+                color: COLOR.text.muted,
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY,
+              }}>
+                {i > 0 && <span style={{ color: COLOR.border.strong, marginRight: SPACE[6] }}>&middot;</span>}
+                <span style={{ color: COLOR.text.secondary, fontWeight: WEIGHT.medium }}>{s.value}</span>
+                {' '}{s.label}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <Divider />
+
+        {/* ─── Feature Cards: Browse ─── */}
+        <SectionLabel>Browse</SectionLabel>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: SPACE[6],
+          marginBottom: SPACE[2],
+        }}>
+          {TIER_BROWSE.map((mod) => (
+            <FeatureCard key={mod.name} mod={mod} />
           ))}
         </div>
 
         <Divider />
 
-        {/* Tier 2: Analyze */}
+        {/* ─── Feature Cards: Analyze ─── */}
         <SectionLabel>Analyze</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
-          {TIER_2.map((mod) => (
-            <ModuleEntry key={mod.name} mod={mod} />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: SPACE[6],
+          marginBottom: SPACE[2],
+        }}>
+          {TIER_ANALYZE.map((mod) => (
+            <FeatureCard key={mod.name} mod={mod} />
           ))}
         </div>
 
         <Divider />
 
-        {/* Tier 3: Build */}
+        {/* ─── Feature Cards: Build ─── */}
         <SectionLabel>Build</SectionLabel>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
-          {TIER_3.map((mod) => (
-            <ModuleEntry key={mod.name} mod={mod} />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+          gap: SPACE[6],
+          marginBottom: SPACE[2],
+        }}>
+          {TIER_BUILD.map((mod) => (
+            <FeatureCard key={mod.name} mod={mod} />
           ))}
         </div>
 
         <Divider />
+
+        {/* ─── Living Platform ─── */}
+        <section style={{ paddingBottom: SPACE[16] }}>
+          <p style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.base.fontSize,
+            fontFamily: FONT_FAMILY,
+            lineHeight: 1.8,
+            marginBottom: SPACE[6],
+          }}>
+            This platform is under active construction and internal analysis. New layers,
+            correlations, and tools are being added continuously. We aspire to
+            concatenate&nbsp;&mdash; to bring as many lines of genomic evidence as possible
+            under a unified physical framework. If you see a connection we have missed, or a
+            question we should be asking, we welcome it.
+          </p>
+
+          <p style={{
+            color: COLOR.text.faint,
+            fontSize: TYPE.sm.fontSize,
+            fontFamily: FONT_FAMILY,
+            fontStyle: 'italic',
+          }}>
+            A full elaboration of the theoretical framework is in preparation.
+          </p>
+        </section>
       </div>
 
       <Footer />
