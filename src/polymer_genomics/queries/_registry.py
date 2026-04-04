@@ -73,6 +73,10 @@ from polymer_genomics.queries.annotation import (
     region_breakpoints_query, _convert_breakpoints,
     region_fragility_query, _convert_fragility,
 )
+from polymer_genomics.queries.recombination import (
+    region_onco_events_query, _convert_onco_events,
+    region_dmc1_hotspots_query, _convert_dmc1_hotspots,
+)
 
 TRACK_REGISTRY: dict[str, dict] = {
     "cpg": {
@@ -259,6 +263,15 @@ TRACK_REGISTRY: dict[str, dict] = {
     "tcga_methylation": {
         "query_fn": region_tcga_methylation_query,
         "convert_fn": _convert_tcga_methylation,
+    },
+    # Recombination (Palsson 2025 + Pratto 2014)
+    "onco_events": {
+        "query_fn": region_onco_events_query,
+        "convert_fn": _convert_onco_events,
+    },
+    "dmc1_hotspots": {
+        "query_fn": region_dmc1_hotspots_query,
+        "convert_fn": _convert_dmc1_hotspots,
     },
 }
 

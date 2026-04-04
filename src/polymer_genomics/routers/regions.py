@@ -71,6 +71,8 @@ _POS_COL: dict[str, str] = {
     "nonb_dna": "n.start_pos",
     "breakpoint": "b.start_pos",
     "fragility": "f.start_pos",
+    "onco_events": "o.start_pos",
+    "dmc1_hotspots": "d.start_pos",
     "cpg_island": "i.start_pos",
     "hic_compartment": "h.start_pos",
     "insulation_score": "s.start_pos",

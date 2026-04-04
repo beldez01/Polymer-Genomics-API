@@ -198,6 +198,31 @@ class TestHLA:
         assert r.status_code == 200
 
 
+class TestRecombination:
+    def test_recombination_endpoint(self):
+        r = _get("/v1/recombination/hg38/chr1:1000000-5000000")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "complete"
+        data = body["data"]
+        assert "onco_events" in data
+        assert "dmc1_hotspots" in data
+        assert "recombination_rates" in data
+        assert data["recombination_rates"]["n"] > 0
+
+    def test_recombination_parent_filter(self):
+        r = _get("/v1/recombination/hg38/chr1:1000000-10000000?parent_type=M")
+        assert r.status_code == 200
+        body = r.json()
+        events = body["data"]["onco_events"]
+        for pt in events["mcols"].get("parent_type", []):
+            assert pt == "M"
+
+    def test_region_onco_events(self):
+        r = _get("/v1/regions/hg38/chr1:1000000-5000000?layers=onco_events_v1")
+        assert r.status_code == 200
+
+
 class TestReference:
     def test_clock_probes(self):
         r = _get("/v1/reference/clock-probes?clock=horvath_2013")

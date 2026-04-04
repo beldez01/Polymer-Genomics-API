@@ -2200,6 +2200,51 @@ async def te_platform_coverage(
     }
 
 
+@mcp.tool()
+async def query_recombination_hotspots(
+    build: str,
+    region: str,
+    parent_type: str | None = None,
+) -> dict:
+    """Query the recombination landscape for a genomic region.
+
+    Returns three data layers in one call:
+    - **onco_events**: Individual observed non-crossover events (Palsson 2025, 28,660 events)
+    - **dmc1_hotspots**: Meiotic DSB hotspot peaks (Pratto 2014, 61,458 peaks, ~1kb resolution)
+    - **recombination_rates**: CO, NCO, DSB rates at 1kb windows (Palsson 2025 + Halldorsson 2019)
+
+    Use this when investigating meiotic recombination, hotspot biology, CO vs NCO divergence,
+    PRDM9 binding regions, or gBGC signatures. Pairs well with query_region(layers='biophysics')
+    for biophysics-recombination correlation analysis.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        region: Genomic region in format 'chr6:20000000-30000000' (1-based closed).
+        parent_type: Optional filter for oNCO events: 'M' (maternal) or 'P' (paternal).
+    """
+    params = {}
+    if parent_type:
+        params["parent_type"] = parent_type
+    data = await _get(f"/v1/recombination/{build}/{region}", params, build=build)
+    # Build summary
+    summary = ""
+    try:
+        d = data.get("data", {})
+        n_onco = d.get("onco_events", {}).get("n", 0)
+        n_dmc1 = d.get("dmc1_hotspots", {}).get("n", 0)
+        n_rates = d.get("recombination_rates", {}).get("n", 0)
+        parts = [f"{n_onco} oNCO events", f"{n_dmc1} DMC1 hotspots", f"{n_rates} rate bins"]
+        summary = f"{region}: {', '.join(parts)}."
+        if n_rates > 0:
+            rates = d["recombination_rates"]["mcols"]
+            co_vals = [v for v in rates.get("co_rate_cmmb", []) if v is not None]
+            if co_vals:
+                summary += f" Mean CO={sum(co_vals)/len(co_vals):.2f} cM/Mb."
+    except Exception:
+        pass
+    return _with_summary(data, summary)
+
+
 def _register_compute_tools() -> None:
     """Register compute tools if engine is available."""
     try:
