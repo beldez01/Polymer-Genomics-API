@@ -194,6 +194,25 @@ _COUNT_TABLES = {
     "tad_domain": "regulatory.tad_domains",
     "hic_compartment": "regulatory.hic_compartment",
     "insulation_score": "regulatory.insulation_score",
+    # ── Rosetta Stone Tier 9+ layers ───────────────────────────────
+    "clinvar": "variation.clinvar_variants",
+    "eqtl": "qtl.eqtls",
+    "meqtl": "qtl.meqtls",
+    "lad": "nuclear.lads",
+    "nad": "nuclear.nads",
+    "dmv": "nuclear.dmvs",
+    "super_enhancer": "nuclear.super_enhancers",
+    "enhancer_gene": "regulatory.enhancer_gene_links",
+    "ultraconserved": "evolution.ultraconserved_elements",
+    "archaic_methylation": "evolution.archaic_methylation",
+    "protein_turnover": "bioenergetics.protein_turnover",
+    "protein_properties": "bioenergetics.protein_properties",
+    "protein_evolution": "conservation.protein_evolution",
+    "structural_variant": "variation.structural_variants",
+    "tcga_methylation": "methylation.tcga_pan_cancer",
+    "selection_sweep": "evolution.selection_sweeps",
+    "accelerated_region": "evolution.accelerated_regions",
+    "te_exaptation": "evolution.te_exaptation",
 }
 
 
