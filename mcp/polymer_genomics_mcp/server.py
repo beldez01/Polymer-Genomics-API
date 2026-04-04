@@ -84,6 +84,8 @@ mcp = FastMCP(
         "- Batch evaluate → batch_evaluate (up to 100 sequences independently, batch summary)\n"
         "- Region profile → region_profile (everything about a region, all layers, significance flags)\n"
         "- Query recipes → query_recipe (prebuilt cross-layer queries: silencing, non-B DNA, fragility, TAD boundaries)\n"
+        "- **Recombination landscape → query_recombination_hotspots (oNCO events + DMC1 hotspots + CO/NCO/DSB rates in one call)**\n"
+        "- Recombination events in region → query_region with layers='onco_events_v1,dmc1_hotspots_v1'\n"
         "- Platform stats → platform_summary (total layers, rows, builds, evidence classes)\n\n"
         "WORKFLOW PATTERNS:\n"
         "- Evaluate a construct: evaluate_design → review flags\n"

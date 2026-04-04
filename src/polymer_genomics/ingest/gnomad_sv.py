@@ -227,7 +227,7 @@ async def register_layer(conn: asyncpg.Connection, build: str) -> str:
              source, license_class, storage_type, is_active, is_default)
            VALUES ($1, $2, $3, 'structural_variant', $4,
                    'gnomAD v4.1 Structural Variants (Collins et al. 2020 Nature 581:444)',
-                   'odc_odbl', 'postgres', true, true)
+                   'odc_odbl_1_0', 'postgres', true, true)
            RETURNING id""",
         layer_key, version, f"gnomAD v4.1 Structural Variants ({build})", build,
     )
