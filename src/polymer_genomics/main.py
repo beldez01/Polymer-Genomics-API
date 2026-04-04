@@ -1,8 +1,13 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
+import asyncpg
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("polymer_genomics")
 
 from polymer_genomics import __version__
 from polymer_genomics.db import close_pool, get_pool, init_pool
@@ -105,6 +110,41 @@ app.include_router(recipes_router)
 app.include_router(transposome_router)
 app.include_router(design_router)
 app.include_router(hla_router)
+
+
+@app.exception_handler(asyncpg.QueryCanceledError)
+async def query_timeout_handler(request: Request, exc: asyncpg.QueryCanceledError):
+    """Handle database query timeouts with a structured response."""
+    logger.warning("Query timeout on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=504,
+        content={
+            "error": {
+                "code": "QUERY_TIMEOUT",
+                "message": "Database query timed out. Try a smaller region or more specific query.",
+                "path": request.url.path,
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and return structured JSON.
+
+    Prevents bare 500 HTML errors that confuse AI agents.
+    """
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": f"Internal server error: {type(exc).__name__}",
+                "path": request.url.path,
+            }
+        },
+    )
 
 
 @app.get("/ping")

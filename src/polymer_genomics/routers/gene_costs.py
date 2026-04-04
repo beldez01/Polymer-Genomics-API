@@ -150,8 +150,8 @@ async def get_gene_cost(build: str, symbol: str):
     # Build expression array sorted by EWGC descending
     tissue_pairs = []
     for tissue in _TISSUES:
-        tpm_val = row[f"tpm_{tissue}"]
-        ewgc_val = row[f"ewgc_{tissue}"]
+        tpm_val = row.get(f"tpm_{tissue}")
+        ewgc_val = row.get(f"ewgc_{tissue}")
         tissue_pairs.append({
             "tissue": tissue,
             "tpm": float(tpm_val) if tpm_val is not None else None,
