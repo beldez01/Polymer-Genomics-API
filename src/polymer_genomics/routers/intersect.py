@@ -132,6 +132,82 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {"cell_type", "insulation_score", "resolution_bp"},
     },
+    # ── Rosetta Stone Tier 9+ layers ───────────────────────────────
+    "clinvar": {
+        "table": "variation.clinvar_variants",
+        "id_col": "layer_id",
+        "fields": {"clinical_significance", "review_status", "molecular_consequence", "origin"},
+    },
+    "eqtl": {
+        "table": "qtl.eqtls",
+        "id_col": "layer_id",
+        "fields": {"tissue", "effect_size", "p_value", "q_value", "tss_distance"},
+    },
+    "meqtl": {
+        "table": "qtl.meqtls",
+        "id_col": "layer_id",
+        "fields": {"beta", "se", "p_value", "allele_freq", "cis_trans", "distance"},
+    },
+    "lad": {
+        "table": "nuclear.lads",
+        "id_col": "layer_id",
+        "fields": {"lad_type", "cell_type", "damid_score"},
+    },
+    "nad": {
+        "table": "nuclear.nads",
+        "id_col": "layer_id",
+        "fields": {"cell_type", "enrichment_score"},
+    },
+    "dmv": {
+        "table": "nuclear.dmvs",
+        "id_col": "layer_id",
+        "fields": {"length_kb", "mean_methylation", "nearest_gene", "developmental_tf"},
+    },
+    "super_enhancer": {
+        "table": "nuclear.super_enhancers",
+        "id_col": "layer_id",
+        "fields": {"cell_type", "se_rank", "constituent_count", "h3k27ac_signal", "target_gene"},
+    },
+    "enhancer_gene": {
+        "table": "regulatory.enhancer_gene_links",
+        "id_col": "layer_id",
+        "fields": {"target_gene", "cell_type", "abc_score", "distance", "class"},
+    },
+    "ultraconserved": {
+        "table": "evolution.ultraconserved_elements",
+        "id_col": "layer_id",
+        "fields": {"uce_name", "length_bp", "category"},
+    },
+    "archaic_methylation": {
+        "table": "evolution.archaic_methylation",
+        "id_col": "layer_id",
+        "fields": {"species", "methylation_level", "confidence", "direction_vs_modern"},
+    },
+    "structural_variant": {
+        "table": "variation.structural_variants",
+        "id_col": "layer_id",
+        "fields": {"sv_type", "sv_length", "allele_freq", "source"},
+    },
+    "tcga_methylation": {
+        "table": "methylation.tcga_pan_cancer",
+        "id_col": "layer_id",
+        "fields": {"cancer_type", "mean_beta", "delta_beta", "n_samples"},
+    },
+    "selection_sweep": {
+        "table": "evolution.selection_sweeps",
+        "id_col": "layer_id",
+        "fields": {"sweep_type", "score", "population"},
+    },
+    "accelerated_region": {
+        "table": "evolution.accelerated_regions",
+        "id_col": "layer_id",
+        "fields": {"har_name", "length_bp", "acceleration_score"},
+    },
+    "te_exaptation": {
+        "table": "evolution.te_exaptation",
+        "id_col": "layer_id",
+        "fields": {"repeat_class", "repeat_family", "exaptation_type"},
+    },
 }
 
 
