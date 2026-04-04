@@ -191,3 +191,57 @@ def _convert_enhancer_gene(rows: list, chr_name: str) -> dict:
         },
         "n": len(rows),
     }
+
+
+# ---------------------------------------------------------------------------
+# TFBS peaks (ENCODE TF ChIP-seq)
+# ---------------------------------------------------------------------------
+
+
+def region_tfbs_query() -> str:
+    """ENCODE transcription factor binding site peaks."""
+    return """
+        SELECT tp.start_pos, tp.end_pos,
+               tp.tf_name, tp.cell_type,
+               tp.signal_value, tp.p_value, tp.q_value,
+               tp.peak_offset, tp.experiment_id
+        FROM regulatory.tfbs_peaks tp
+        WHERE tp.build = $1::genome_build
+          AND tp.chr_id = $2
+          AND tp.coord && int4range($3, $4)
+          AND tp.layer_id = $5
+        ORDER BY tp.start_pos
+        LIMIT $6
+    """
+
+
+def _convert_tfbs(rows: list, chr_name: str) -> dict:
+    starts, ends, widths = [], [], []
+    tf_names, cell_types = [], []
+    signal_values, p_values, q_values, peak_offsets = [], [], [], []
+    experiment_ids = []
+    for r in rows:
+        api = db_to_api(r["start_pos"], r["end_pos"])
+        starts.append(api["start"])
+        ends.append(api["end"])
+        widths.append(api["width"])
+        tf_names.append(r["tf_name"])
+        cell_types.append(r["cell_type"])
+        signal_values.append(r["signal_value"])
+        p_values.append(r["p_value"])
+        q_values.append(r["q_value"])
+        peak_offsets.append(r["peak_offset"])
+        experiment_ids.append(r["experiment_id"])
+    return {
+        "class": "GRanges",
+        "seqnames": [chr_name] * len(rows),
+        "ranges": {"start": starts, "end": ends, "width": widths},
+        "strand": ["*"] * len(rows),
+        "mcols": {
+            "tf_name": tf_names, "cell_type": cell_types,
+            "signal_value": signal_values, "p_value": p_values,
+            "q_value": q_values, "peak_offset": peak_offsets,
+            "experiment_id": experiment_ids,
+        },
+        "n": len(rows),
+    }

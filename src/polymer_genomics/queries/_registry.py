@@ -31,6 +31,7 @@ from polymer_genomics.queries.regulatory import (
     region_chromatin_state_query, _convert_chromatin_state,
     region_histone_peaks_query, _convert_histone_peaks,
     region_enhancer_gene_query, _convert_enhancer_gene,
+    region_tfbs_query, _convert_tfbs,
 )
 from polymer_genomics.queries.genome3d import (
     region_hic_compartment_query, _convert_hic_compartment,
@@ -57,6 +58,12 @@ from polymer_genomics.queries.qtl import (
 )
 from polymer_genomics.queries.variation import (
     region_clinvar_query, _convert_clinvar,
+)
+from polymer_genomics.queries.structural_variation import (
+    region_structural_variant_query, _convert_structural_variant,
+)
+from polymer_genomics.queries.tcga import (
+    region_tcga_methylation_query, _convert_tcga_methylation,
 )
 from polymer_genomics.queries.annotation import (
     region_gwas_query, _convert_gwas,
@@ -240,6 +247,18 @@ TRACK_REGISTRY: dict[str, dict] = {
     "enhancer_gene": {
         "query_fn": region_enhancer_gene_query,
         "convert_fn": _convert_enhancer_gene,
+    },
+    "tfbs": {
+        "query_fn": region_tfbs_query,
+        "convert_fn": _convert_tfbs,
+    },
+    "structural_variant": {
+        "query_fn": region_structural_variant_query,
+        "convert_fn": _convert_structural_variant,
+    },
+    "tcga_methylation": {
+        "query_fn": region_tcga_methylation_query,
+        "convert_fn": _convert_tcga_methylation,
     },
 }
 

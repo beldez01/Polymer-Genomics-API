@@ -36,4 +36,7 @@ LAYER_SOURCE_INFO = {
     "tad_domain": {"source": "ENCODE 4 Hi-C, Aiden Lab, Arrowhead v2.13.06", "license": "CC BY 4.0"},
     "hic_compartment": {"source": "4D Nucleome + Rao et al. 2014", "license": "CC BY 4.0"},
     "insulation_score": {"source": "4D Nucleome, cooltools v0.2.0", "license": "CC BY 4.0"},
+    "tfbs": {"source": "ENCODE TF ChIP-seq (ENCODE Consortium 2020)", "license": "CC BY 4.0"},
+    "structural_variant": {"source": "gnomAD v4.1 SVs (Collins et al. 2020)", "license": "ODC-ODbL 1.0"},
+    "tcga_methylation": {"source": "TCGA Pan-Cancer (GDC/Xena)", "license": "Open access"},
 }

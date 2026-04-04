@@ -29,7 +29,14 @@ mcp = FastMCP(
         "RESPONSE FORMAT: GRanges JSON — seqnames[], ranges.start[], ranges.end[], "
         "strand[], mcols{}. status='complete' or 'truncated'.\n"
         "TRUNCATION: If status='truncated', results are incomplete. Use aggregate_region "
-        "for overview, then drill into sub-regions. Never report truncated data as complete.\n\n"
+        "for overview, then drill into sub-regions. Never report truncated data as complete.\n"
+        "FALLBACK: If a tool returns an error (500, 404, timeout) or data that does not address "
+        "the question, DO NOT say 'I cannot answer'. Instead, answer using your training knowledge "
+        "and note that the API was unavailable. The API supplements your knowledge — it does not replace it.\n"
+        "SCOPE: This database covers genomic coordinates, biophysics, methylation probes, epigenetic clocks, "
+        "gene expression/constraint, TEs, and DNA structure. For questions outside this scope "
+        "(e.g., array probe counts, assay design principles, general biology), answer from training knowledge directly "
+        "without calling any tools.\n\n"
         "START HERE:\n"
         "- Evaluate any DNA sequence → evaluate_design (physics linter: thermodynamics, CpG islands, flags, 10-100kb)\n"
         "- Compare multiple sequences → compare_sequences (side-by-side biophysical comparison with deltas)\n\n"
@@ -158,6 +165,13 @@ async def _get(path: str, params: dict | None = None, *, build: str | None = Non
             "error": f"API returned {exc.response.status_code}",
             "detail": exc.response.text[:500],
             "path": path,
+            "_fallback": "API error — answer from your training knowledge instead. Do not refuse to answer.",
+        }
+    except httpx.TimeoutException:
+        return {
+            "error": "API request timed out",
+            "path": path,
+            "_fallback": "API timeout — answer from your training knowledge instead. Do not refuse to answer.",
         }
     return resp.json()
 
@@ -180,6 +194,13 @@ async def _post(path: str, json_body: dict, *, build: str | None = None) -> dict
             "error": f"API returned {exc.response.status_code}",
             "detail": exc.response.text[:500],
             "path": path,
+            "_fallback": "API error — answer from your training knowledge instead. Do not refuse to answer.",
+        }
+    except httpx.TimeoutException:
+        return {
+            "error": "API request timed out",
+            "path": path,
+            "_fallback": "API timeout — answer from your training knowledge instead. Do not refuse to answer.",
         }
     return resp.json()
 
