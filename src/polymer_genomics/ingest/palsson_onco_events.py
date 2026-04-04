@@ -128,8 +128,8 @@ async def main() -> None:
                     ('onco_events_v1', '1.0', 'Palsson 2025 oNCO Events',
                      'recombination', 'hg38',
                      'Palsson et al. 2025 Nature 639:700-707',
-                     'cc_by_4', 'postgres',
-                     'M', 'peripheral', true, false)
+                     'cc_by_4_0', 'postgres',
+                     'M', 'intrinsic', true, false)
             """)
             print("  Registered layer: onco_events_v1")
 

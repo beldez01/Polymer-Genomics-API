@@ -118,15 +118,17 @@ async def main(builds: list[str] | None = None) -> None:
 
             await check_base_rows(conn, build)
 
-            # Idempotency
-            sample = await conn.fetchval(
-                "SELECT co_rate_cmmb FROM biophysics.sequence_properties "
-                "WHERE build = $1::genome_build AND co_rate_cmmb IS NOT NULL LIMIT 1",
+            # Idempotency — check if FULLY loaded (>2M rows with data)
+            n_existing = await conn.fetchval(
+                "SELECT count(*) FROM biophysics.sequence_properties "
+                "WHERE build = $1::genome_build AND co_rate_cmmb IS NOT NULL",
                 build,
             )
-            if sample is not None:
-                print("  Palsson recombination data already present. Skipping.")
+            if n_existing is not None and n_existing > 2_000_000:
+                print(f"  Palsson recombination data already present ({n_existing:,} rows). Skipping.")
                 continue
+            elif n_existing and n_existing > 0:
+                print(f"  Partial data found ({n_existing:,} rows). Re-ingesting...")
 
             # Parse both maps
             print("\nParsing maternal map...")
@@ -205,23 +207,29 @@ async def main(builds: list[str] | None = None) -> None:
 
             print(f"  Staged {total:,} rows")
 
-            # UPDATE
-            print("  Updating biophysics.sequence_properties...")
-            result = await conn.execute("""
-                UPDATE biophysics.sequence_properties bp
-                SET co_rate_cmmb = s.co_rate_cmmb,
-                    nco_rate     = s.nco_rate,
-                    dsb_rate     = s.dsb_rate,
-                    mat_co_rate  = s.mat_co_rate,
-                    mat_nco_rate = s.mat_nco_rate,
-                    pat_co_rate  = s.pat_co_rate,
-                    pat_nco_rate = s.pat_nco_rate
-                FROM _palsson_staging s
-                WHERE bp.build = $1::genome_build
-                  AND bp.chr_id = s.chr_id
-                  AND bp.start_pos = s.start_pos
-            """, build)
-            print(f"  Result: {result}")
+            # UPDATE in chromosome batches (avoids fly proxy timeout on large UPDATE)
+            print("  Updating biophysics.sequence_properties (per-chromosome)...")
+            total_updated = 0
+            for chr_name, chr_id in sorted(CHR_NAME_TO_ID.items(), key=lambda x: x[1]):
+                result = await conn.execute("""
+                    UPDATE biophysics.sequence_properties bp
+                    SET co_rate_cmmb = s.co_rate_cmmb,
+                        nco_rate     = s.nco_rate,
+                        dsb_rate     = s.dsb_rate,
+                        mat_co_rate  = s.mat_co_rate,
+                        mat_nco_rate = s.mat_nco_rate,
+                        pat_co_rate  = s.pat_co_rate,
+                        pat_nco_rate = s.pat_nco_rate
+                    FROM _palsson_staging s
+                    WHERE bp.build = $1::genome_build
+                      AND bp.chr_id = s.chr_id
+                      AND bp.start_pos = s.start_pos
+                      AND s.chr_id = $2
+                """, build, chr_id)
+                n = int(result.split()[-1]) if result else 0
+                total_updated += n
+                print(f"    {chr_name}: {n:,} rows")
+            print(f"  Total updated: {total_updated:,}")
 
             # Also populate recomb_rate_cmmb if empty
             result2 = await conn.execute("""

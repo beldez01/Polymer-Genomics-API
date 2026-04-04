@@ -114,8 +114,8 @@ async def main() -> None:
                     ('dmc1_hotspots_v1', '1.0', 'Pratto 2014 DMC1 DSB Hotspots',
                      'recombination', 'hg38',
                      'Pratto et al. 2014 Science 346:1256442 (GEO: GSE59836, liftOver hg19→hg38)',
-                     'public', 'postgres',
-                     'M', 'peripheral', true, false)
+                     'open_access', 'postgres',
+                     'M', 'intrinsic', true, false)
             """)
             print("  Registered layer: dmc1_hotspots_v1")
 
