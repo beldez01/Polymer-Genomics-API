@@ -90,7 +90,7 @@ INTERSECT_TABLES: dict[str, dict] = {
         "fields": {"ccre_type", "zscore_dnase", "zscore_h3k4me3", "zscore_h3k27ac", "zscore_ctcf"},
     },
     "chromatin_state": {
-        "table": "regulatory.chromatin_states",
+        "table": "regulatory.chromatin_state",
         "id_col": "layer_id",
         "fields": {"state_number", "state_name"},
     },
@@ -207,6 +207,11 @@ INTERSECT_TABLES: dict[str, dict] = {
         "table": "evolution.te_exaptation",
         "id_col": "layer_id",
         "fields": {"repeat_class", "repeat_family", "exaptation_type"},
+    },
+    "tfbs": {
+        "table": "regulatory.tfbs_peaks",
+        "id_col": "layer_id",
+        "fields": {"tf_name", "cell_type", "signal_value", "p_value"},
     },
 }
 

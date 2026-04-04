@@ -181,7 +181,7 @@ _COUNT_TABLES = {
     "protein_abundance": "gene.protein_abundance",
     "protein_atlas": "gene.protein_atlas",
     "constraint": "gene.constraint",
-    "chromatin_state": "regulatory.chromatin_states",
+    "chromatin_state": "regulatory.chromatin_state",
     "repeat": "annotation.repeats",
     "herv": "annotation.herv_loci",
     "biophysics": "biophysics.sequence_properties",
@@ -213,6 +213,7 @@ _COUNT_TABLES = {
     "selection_sweep": "evolution.selection_sweeps",
     "accelerated_region": "evolution.accelerated_regions",
     "te_exaptation": "evolution.te_exaptation",
+    "tfbs": "regulatory.tfbs_peaks",
 }
 
 
