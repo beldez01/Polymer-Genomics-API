@@ -89,6 +89,155 @@ def _aggregation_query(layer_type: str) -> str:
             GROUP BY bin_start
             ORDER BY bin_start
         """
+    elif layer_type == "biophysics":
+        return """
+            SELECT floor(b.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   avg(b.gc_content) AS mean_gc,
+                   avg(b.stacking_dg37) AS mean_dg37,
+                   avg(b.melting_temp) AS mean_tm,
+                   avg(b.curvature) AS mean_curvature
+            FROM biophysics.sequence_properties b
+            WHERE b.build = $1::genome_build
+              AND b.chr_id = $2
+              AND b.coord && int4range($3, $4)
+              AND b.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "conservation":
+        return """
+            SELECT floor(c.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   avg(c.phylop_mean) AS mean_phylop,
+                   avg(c.phastcons_mean) AS mean_phastcons
+            FROM conservation.scores c
+            WHERE c.build = $1::genome_build
+              AND c.chr_id = $2
+              AND c.coord && int4range($3, $4)
+              AND c.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "repeat":
+        return """
+            SELECT floor(r.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM annotation.repeats r
+            WHERE r.build = $1::genome_build
+              AND r.chr_id = $2
+              AND r.coord && int4range($3, $4)
+              AND r.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "regulatory":
+        return """
+            SELECT floor(c.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM regulatory.ccre c
+            WHERE c.build = $1::genome_build
+              AND c.chr_id = $2
+              AND c.coord && int4range($3, $4)
+              AND c.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "nonb_dna":
+        return """
+            SELECT floor(n.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   avg(n.total_nonb_density) AS mean_nonb_density,
+                   avg(n.g4_density) AS mean_g4_density
+            FROM fragility.nonb_dna n
+            WHERE n.build = $1::genome_build
+              AND n.chr_id = $2
+              AND n.coord && int4range($3, $4)
+              AND n.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "clinvar":
+        return """
+            SELECT floor(v.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM variation.clinvar_variants v
+            WHERE v.build = $1::genome_build
+              AND v.chr_id = $2
+              AND v.coord && int4range($3, $4)
+              AND v.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "eqtl":
+        return """
+            SELECT floor(e.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM qtl.eqtls e
+            WHERE e.build = $1::genome_build
+              AND e.chr_id = $2
+              AND e.coord && int4range($3, $4)
+              AND e.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "meqtl":
+        return """
+            SELECT floor(m.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM qtl.meqtls m
+            WHERE m.build = $1::genome_build
+              AND m.chr_id = $2
+              AND m.coord && int4range($3, $4)
+              AND m.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "chromatin_state":
+        return """
+            SELECT floor(cs.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM regulatory.chromatin_state cs
+            WHERE cs.build = $1::genome_build
+              AND cs.chr_id = $2
+              AND cs.coord && int4range($3, $4)
+              AND cs.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "lad":
+        return """
+            SELECT floor(l.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM nuclear.lads l
+            WHERE l.build = $1::genome_build
+              AND l.chr_id = $2
+              AND l.coord && int4range($3, $4)
+              AND l.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "super_enhancer":
+        return """
+            SELECT floor(se.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density,
+                   avg(se.h3k27ac_signal) AS mean_h3k27ac
+            FROM nuclear.super_enhancers se
+            WHERE se.build = $1::genome_build
+              AND se.chr_id = $2
+              AND se.coord && int4range($3, $4)
+              AND se.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
     return None
 
 
