@@ -404,6 +404,154 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "insulation_score": "avg(insulation_score)",
         },
     },
+    # ── Rosetta Stone Tier 9+ layers ───────────────────────────────
+    "clinvar": {
+        "table": "variation.clinvar_variants",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "eqtl": {
+        "table": "qtl.eqtls",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+            "mean_effect_size": "avg(effect_size)",
+        },
+    },
+    "meqtl": {
+        "table": "qtl.meqtls",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+            "mean_beta": "avg(beta)",
+        },
+    },
+    "lad": {
+        "table": "nuclear.lads",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "nad": {
+        "table": "nuclear.nads",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "dmv": {
+        "table": "nuclear.dmvs",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "super_enhancer": {
+        "table": "nuclear.super_enhancers",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+            "mean_h3k27ac": "avg(h3k27ac_signal)",
+        },
+    },
+    "enhancer_gene": {
+        "table": "regulatory.enhancer_gene_links",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+            "mean_abc_score": "avg(abc_score)",
+        },
+    },
+    "ultraconserved": {
+        "table": "evolution.ultraconserved_elements",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "archaic_methylation": {
+        "table": "evolution.archaic_methylation",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "methylation_level": "avg(methylation_level)",
+        },
+    },
+    "structural_variant": {
+        "table": "variation.structural_variants",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "tcga_methylation": {
+        "table": "methylation.tcga_pan_cancer",
+        "pos_col": "start_pos",
+        "mode": "continuous",
+        "fields": {
+            "mean_beta": "avg(mean_beta)",
+            "mean_delta_beta": "avg(delta_beta)",
+        },
+    },
+    "selection_sweep": {
+        "table": "evolution.selection_sweeps",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "accelerated_region": {
+        "table": "evolution.accelerated_regions",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "te_exaptation": {
+        "table": "evolution.te_exaptation",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
+    "tfbs": {
+        "table": "regulatory.tfbs_peaks",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
 }
 
 # ---------------------------------------------------------------------------
