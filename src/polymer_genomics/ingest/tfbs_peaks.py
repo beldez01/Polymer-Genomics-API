@@ -158,7 +158,7 @@ async def register_layer(
         VALUES
             ($1, $2, $3, 'tfbs', $4,
              'ENCODE TF ChIP-seq (ENCODE Consortium 2020 Nature 583:699)',
-             'cc_by_4', 'postgres', true, true)
+             'cc_by_4_0', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,
