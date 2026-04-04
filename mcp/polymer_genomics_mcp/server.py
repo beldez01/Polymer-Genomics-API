@@ -1723,6 +1723,269 @@ async def transposome_family(
     return await _get(f"/v1/transposome/family/{family_id}")
 
 
+# ── HLA Allele Biophysics ──────────────────────────────────────────────
+
+
+@mcp.tool()
+async def lookup_hla_loci() -> dict:
+    """List HLA loci with allele counts and mean biophysics.
+
+    Returns the 6 transplant-relevant loci (HLA-A, -B, -C, -DRB1, -DQB1, -DPB1)
+    with total allele counts, genomic allele counts, and mean biophysical
+    properties for both coding and non-coding regions.
+    """
+    return await _get("/v1/hla/loci")
+
+
+@mcp.tool()
+async def lookup_hla_alleles(
+    locus: str,
+    allele_group: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict:
+    """Browse HLA alleles for a locus with biophysics summaries.
+
+    Args:
+        locus: HLA locus (e.g., 'HLA-A', 'A', 'HLA-DRB1').
+        allele_group: Filter by 1st field (e.g., '02' for A*02 alleles).
+        limit: Max results per page (default 50).
+        offset: Pagination offset.
+    """
+    params = {"limit": str(limit), "offset": str(offset)}
+    if allele_group:
+        params["allele_group"] = allele_group
+    return await _get(f"/v1/hla/alleles/{locus}", params)
+
+
+@mcp.tool()
+async def lookup_hla_allele(
+    allele_name: str,
+) -> dict:
+    """Get full biophysics for a specific HLA allele.
+
+    Returns complete biophysical profile including coding and non-coding
+    region properties for one allele.
+
+    Args:
+        allele_name: Full allele name (e.g., 'A*01:01:01:01', 'B*07:02:01').
+    """
+    return await _get(f"/v1/hla/allele/{allele_name}")
+
+
+@mcp.tool()
+async def lookup_hla_distributions(
+    locus: str,
+) -> dict:
+    """Get biophysical distribution statistics for an HLA locus.
+
+    Returns histogram bins, percentiles, and summary stats for all
+    biophysical metrics across all genomic alleles at the locus.
+
+    Args:
+        locus: HLA locus (e.g., 'HLA-A', 'A').
+    """
+    return await _get(f"/v1/hla/distributions/{locus}")
+
+
+@mcp.tool()
+async def compare_hla_alleles(
+    alleles: list[str],
+    focus: str = "noncoding",
+) -> dict:
+    """Compare biophysical properties of 2-10 HLA alleles.
+
+    Returns per-allele biophysics plus pairwise delta tables. First allele
+    is the reference for delta computation.
+
+    Args:
+        alleles: 2-10 allele names (e.g., ['A*01:01:01:01', 'A*02:01:01:01']).
+        focus: Delta focus: 'noncoding' (default), 'full', or 'coding'.
+    """
+    return await _post("/v1/hla/compare", {"alleles": alleles, "focus": focus})
+
+
+@mcp.tool()
+async def hla_match_score(
+    donor: dict[str, dict],
+    recipient: dict[str, dict],
+) -> dict:
+    """Compute biophysical mismatch score for donor-recipient HLA matching.
+
+    Beyond protein-level matching, computes non-coding biophysical divergence
+    that may correlate with expression mismatch (Bettens et al. 2022).
+
+    Args:
+        donor: Donor genotype as {locus: {allele_1: str, allele_2: str}}.
+        recipient: Recipient genotype, same format.
+    """
+    return await _post("/v1/hla/match-score", {"donor": donor, "recipient": recipient})
+
+
+@mcp.tool()
+async def hla_noncoding_divergence(
+    locus: str,
+    allele_group: str,
+    protein: str,
+) -> dict:
+    """Analyze non-coding divergence among protein-identical HLA alleles.
+
+    Given a locus + protein (e.g., HLA-A*02:01), finds all alleles encoding
+    the same protein and ranks by non-coding biophysical divergence.
+
+    Args:
+        locus: HLA locus (e.g., 'HLA-A').
+        allele_group: 1st field (e.g., '02').
+        protein: 2nd field (e.g., '01').
+    """
+    return await _post("/v1/hla/noncoding-divergence", {
+        "locus": locus, "allele_group": allele_group, "protein": protein,
+    })
+
+
+@mcp.tool()
+async def hla_expression_correlation(
+    locus: str | None = None,
+    focus: str = "noncoding",
+) -> dict:
+    """Correlate HLA biophysical properties with expression class.
+
+    Groups alleles by IMGT expression suffix and computes Cohen's d
+    effect sizes for normal vs each aberrant class.
+
+    Args:
+        locus: Filter by locus (e.g., 'A'). None for all loci.
+        focus: Metric set: 'noncoding' (default), 'full', or 'both'.
+    """
+    params = {"focus": focus}
+    if locus:
+        params["locus"] = locus
+    return await _get("/v1/hla/expression-correlation", params)
+
+
+@mcp.tool()
+async def hla_expression_within_protein(
+    locus: str | None = None,
+    min_alleles: int = 3,
+) -> dict:
+    """Test whether non-coding biophysics predict expression within protein-identical alleles.
+
+    The strongest test: among alleles encoding the SAME protein, do those with
+    expression suffixes have different non-coding biophysics?
+
+    Args:
+        locus: Filter by locus. None for all.
+        min_alleles: Minimum alleles per protein group (default 3).
+    """
+    params = {"min_alleles": str(min_alleles)}
+    if locus:
+        params["locus"] = locus
+    return await _get("/v1/hla/expression-within-protein", params)
+
+
+# ── Additional Coverage Tools ──────────────────────────────────────────
+
+
+@mcp.tool()
+async def lookup_transposome_probe_mapping(
+    platform: str = "epic_v2",
+    build: str = "hg38",
+) -> dict:
+    """Get full probe-to-TE family mapping for a platform.
+
+    Returns all probes that overlap transposable elements, grouped by
+    TE family, with divergence and evolutionary age data.
+
+    Args:
+        platform: Array platform ('epic_v2', 'epic_v1', '450k').
+        build: Genome build ('hg38' or 'hg37').
+    """
+    return await _get("/v1/transposome/probe-te-mapping", {"platform": platform, "build": build}, build=build)
+
+
+@mcp.tool()
+async def lookup_transposome_reference_methylation() -> dict:
+    """Get reference methylation ranges per TE family.
+
+    Returns curated reference beta ranges, primary silencing mechanism,
+    and reactivation score for each TE family.
+    """
+    return await _get("/v1/transposome/reference-methylation")
+
+
+@mcp.tool()
+async def compare_constructs(
+    constructs: list[dict],
+    salt_mm: float = 150.0,
+    analysis: str = "full",
+) -> dict:
+    """Compare biophysical properties of 2-10 synthetic DNA constructs.
+
+    Each construct has parts [{name, sequence, role}]. Returns per-construct
+    evaluation plus delta comparison table.
+
+    Args:
+        constructs: List of 2-10 construct dicts, each with 'name' and 'parts' keys.
+        salt_mm: Salt concentration in mM (default 150).
+        analysis: Analysis depth ('full' or 'summary').
+    """
+    return await _post("/v1/design/construct/compare", {
+        "constructs": constructs, "salt_mm": salt_mm, "analysis": analysis,
+    })
+
+
+@mcp.tool()
+async def lookup_layer_license(
+    layer_key: str,
+) -> dict:
+    """Get license, citation, and source info for a data layer.
+
+    Args:
+        layer_key: Layer identifier (e.g., 'probe_epic_v2', 'cpg_sites_hg38').
+    """
+    return await _get(f"/v1/layers/{layer_key}/license")
+
+
+@mcp.tool()
+async def platform_feature_counts(
+    build: str = "hg38",
+) -> dict:
+    """Get authoritative feature counts for the platform.
+
+    Returns total protein-coding genes, CpG sites, probes, and other
+    feature counts for the specified genome build.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+    """
+    return await _get(f"/v1/layers/summary/{build}", build=build)
+
+
+@mcp.tool()
+async def get_tile(
+    build: str,
+    chr_name: str,
+    resolution: str,
+    tile_index: int,
+    layers: str | None = None,
+) -> dict:
+    """Get pre-tiled data for genome browser visualization.
+
+    Returns GRanges data for a specific tile at a given resolution.
+
+    Args:
+        build: Genome build ('hg38' or 'hg37').
+        chr_name: Chromosome name (e.g., 'chr17').
+        resolution: Tile resolution ('1k', '10k', '100k', '1M').
+        tile_index: Zero-based tile index within the chromosome.
+        layers: Comma-separated layer types to include.
+    """
+    params = {}
+    if layers:
+        params["layers"] = layers
+    return await _get(f"/v1/tiles/{build}/{chr_name}/tile/{resolution}/{tile_index}", params, build=build)
+
+
 # ── TE Methylation Analysis ──────────────────────────────────────────────
 
 
