@@ -354,8 +354,12 @@ async def aggregate_region(
                         "bin_start": int(r["bin_start"]) + 1,
                         "bin_end": int(r["bin_start"]) + resolution,
                         "count": r["count"],
-                        "density": r["density"],
                     }
+                    # Include all extra columns from the SQL result
+                    for key in r.keys():
+                        if key not in ("bin_start", "count"):
+                            val = r[key]
+                            bin_entry[key] = float(val) if val is not None else None
                     if has_gc:
                         bin_entry["avg_gc"] = float(r["avg_gc"]) if r["avg_gc"] is not None else None
                 bins.append(bin_entry)
