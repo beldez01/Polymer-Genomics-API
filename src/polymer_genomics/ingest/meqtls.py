@@ -101,68 +101,78 @@ def _liftover_positions(records: list[dict], chain_path: str) -> list[dict]:
 
 def read_meqtls(assoc_file: str | Path, snp_file: str | Path, chain_path: str) -> list[dict]:
     """Parse GoDMC associations, filter cis + significant, deduplicate, liftOver."""
-    print("  Loading SNP positions...", flush=True)
-    snp_pos = _parse_snp_positions(snp_file)
-    print(f"  {len(snp_pos):,} SNP positions loaded", flush=True)
-
+    # SNP names in GoDMC are "chr10:103123526:SNP" — position embedded, no lookup needed
     print("  Parsing associations...", flush=True)
-    # Group by CpG, keep lead (min pval)
     lead_per_cpg: dict[str, dict] = {}
     skipped_cis = 0
     skipped_pval = 0
     skipped_pos = 0
+    total_read = 0
 
     opener = gzip.open if str(assoc_file).endswith(".gz") else open
-    with opener(assoc_file, "rt") as f:
+    with opener(assoc_file, "rt", errors="replace") as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            # Filter cis only
-            if row.get("cistrans", "").upper() != "TRUE":
-                skipped_cis += 1
-                continue
+        try:
+            for row in reader:
+                total_read += 1
+                if total_read % 2_000_000 == 0:
+                    print(f"    ...{total_read:,} rows read, {len(lead_per_cpg):,} lead CpGs", flush=True)
 
-            # Filter significance
-            try:
-                pval = float(row["pval"])
-            except (ValueError, KeyError):
-                continue
-            if pval >= P_THRESHOLD:
-                skipped_pval += 1
-                continue
+                # Filter cis only
+                if row.get("cistrans", "").upper() != "TRUE":
+                    skipped_cis += 1
+                    continue
 
-            snp_name = row.get("snp", "")
-            cpg = row.get("cpg", "")
-            if not snp_name or not cpg:
-                continue
+                # Filter significance
+                try:
+                    pval = float(row["pval"])
+                except (ValueError, KeyError):
+                    continue
+                if pval >= P_THRESHOLD:
+                    skipped_pval += 1
+                    continue
 
-            # Get position
-            if snp_name not in snp_pos:
-                skipped_pos += 1
-                continue
-            chrom, pos = snp_pos[snp_name]
+                snp_name = row.get("snp", "")
+                cpg = row.get("cpg", "")
+                if not snp_name or not cpg:
+                    continue
 
-            try:
-                beta = float(row.get("beta_a1", row.get("beta", "0")))
-                se = float(row.get("se", "0"))
-                freq = float(row.get("freq_a1", "0")) if row.get("freq_a1") else None
-            except ValueError:
-                beta, se, freq = 0.0, 0.0, None
+                # Parse position from SNP name: "chr10:103123526:SNP"
+                parts = snp_name.split(":")
+                if len(parts) < 2:
+                    skipped_pos += 1
+                    continue
+                chrom = parts[0] if parts[0].startswith("chr") else f"chr{parts[0]}"
+                try:
+                    pos = int(parts[1])
+                except ValueError:
+                    skipped_pos += 1
+                    continue
 
-            # Keep lead per CpG (min pval)
-            if cpg not in lead_per_cpg or pval < lead_per_cpg[cpg]["pval"]:
-                lead_per_cpg[cpg] = {
-                    "chrom": chrom,
-                    "pos": pos,
-                    "snp_rsid": snp_name,
-                    "cpg_probe_id": cpg,
-                    "beta": beta,
-                    "se": se,
-                    "p_value": pval,
-                    "allele_freq": freq,
-                    "cis_trans": "cis",
-                    "distance": None,  # compute after liftOver if needed
-                    "pval": pval,
-                }
+                try:
+                    beta = float(row.get("beta_a1", row.get("beta", "0")))
+                    se = float(row.get("se", "0"))
+                    freq = float(row.get("freq_a1", "0")) if row.get("freq_a1") else None
+                except ValueError:
+                    beta, se, freq = 0.0, 0.0, None
+
+                # Keep lead per CpG (min pval)
+                if cpg not in lead_per_cpg or pval < lead_per_cpg[cpg]["pval"]:
+                    lead_per_cpg[cpg] = {
+                        "chrom": chrom,
+                        "pos": pos,
+                        "snp_rsid": snp_name,
+                        "cpg_probe_id": cpg,
+                        "beta": beta,
+                        "se": se,
+                        "p_value": pval,
+                        "allele_freq": freq,
+                        "cis_trans": "cis",
+                        "distance": None,
+                        "pval": pval,
+                    }
+        except (EOFError, gzip.BadGzipFile):
+            print(f"  WARNING: Truncated gzip at row {total_read:,} — processed available data")
 
     records = list(lead_per_cpg.values())
     print(f"  {len(records):,} lead cis-meQTLs (p < {P_THRESHOLD})", flush=True)
