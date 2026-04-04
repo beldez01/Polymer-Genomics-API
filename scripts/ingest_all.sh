@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────
-# Polymer Genomics — Full Ingestion Pipeline (53 modules, 9 tiers)
+# Polymer Genomics — Full Ingestion Pipeline (56 modules, 9 tiers)
 # ──────────────────────────────────────────────────────────────────
 #
 # Runs the complete data ingestion pipeline in dependency order.
@@ -156,7 +156,7 @@ echo -e "${BOLD}${BLUE}"
 echo "  ╔═══════════════════════════════════════════════════════════╗"
 echo "  ║                                                           ║"
 echo "  ║            P O L Y M E R   G E N O M I C S               ║"
-echo "  ║           Data Ingestion Pipeline  (53 modules)           ║"
+echo "  ║           Data Ingestion Pipeline  (56 modules)           ║"
 echo "  ║                                                           ║"
 echo "  ║  Build:  ${BUILD}                                            ║"
 echo -e "  ║  Mode:   $(if $DRY_RUN; then echo 'DRY RUN '; else echo 'LIVE    '; fi)                                         ║"
@@ -317,7 +317,7 @@ run_step 21 3 "breakpoints"              "5-10 min" \
 # TIER 4: Annotation layers  (Steps 22-28)
 # Independent of Tier 2/3. Require Tier 0 (chromosomes).
 # ════════════════════════════════════════════════════════════════════
-tier_header 4 "Annotation layers" "22-28"
+tier_header 4 "Annotation layers" "22-30"
 
 run_step 22 4 "repeats"         "10-30 min" \
     "uv run python -m polymer_genomics.ingest.repeats --build ${BUILD}"
@@ -340,104 +340,113 @@ run_step 27 4 "gwas_catalog"    "5-10 min" \
 run_step 28 4 "herv_loci"       "5-10 min" \
     "uv run python -m polymer_genomics.ingest.herv_loci --build ${BUILD}"
 
+run_step 29 4 "tfbs_peaks"      "30-90 min" \
+    "uv run python -m polymer_genomics.ingest.tfbs_peaks --build ${BUILD}"
+
+run_step 30 4 "gnomad_sv"       "10-30 min" \
+    "uv run python -m polymer_genomics.ingest.gnomad_sv --build ${BUILD}"
+
 # ════════════════════════════════════════════════════════════════════
-# TIER 5: Gene-level data  (Steps 29-39)
+# TIER 5: Gene-level data  (Steps 31-41)
 # Require Tier 1 (genes table).
 # ════════════════════════════════════════════════════════════════════
-tier_header 5 "Gene-level data" "29-39"
+tier_header 5 "Gene-level data" "31-41"
 
-run_step 29 5 "expression"          "5-15 min" \
+run_step 31 5 "expression"          "5-15 min" \
     "uv run python -m polymer_genomics.ingest.expression --build ${BUILD}"
 
-run_step 30 5 "gene_costs"          "2-5 min" \
+run_step 32 5 "gene_costs"          "2-5 min" \
     "uv run python -m polymer_genomics.ingest.gene_costs --build ${BUILD}"
 
-run_step 31 5 "gene_constraint"     "2-5 min" \
+run_step 33 5 "gene_constraint"     "2-5 min" \
     "uv run python -m polymer_genomics.ingest.gene_constraint --build ${BUILD}"
 
-run_step 32 5 "protein_evolution"   "2-5 min" \
+run_step 34 5 "protein_evolution"   "2-5 min" \
     "uv run python -m polymer_genomics.ingest.protein_evolution --build ${BUILD}"
 
-run_step 33 5 "protein_abundance"   "2-5 min" \
+run_step 35 5 "protein_abundance"   "2-5 min" \
     "uv run python -m polymer_genomics.ingest.protein_abundance --build ${BUILD}"
 
-run_step 34 5 "protein_properties"  "2-5 min" \
+run_step 36 5 "protein_properties"  "2-5 min" \
     "uv run python -m polymer_genomics.ingest.protein_properties --build ${BUILD}"
 
-run_step 35 5 "protein_turnover"    "2-5 min" \
+run_step 37 5 "protein_turnover"    "2-5 min" \
     "uv run python -m polymer_genomics.ingest.protein_turnover --build ${BUILD}"
 
-run_step 36 5 "protein_atlas"       "5-10 min" \
+run_step 38 5 "protein_atlas"       "5-10 min" \
     "uv run python -m polymer_genomics.ingest.protein_atlas --build ${BUILD}"
 
-run_step 37 5 "gene_pathways"       "5-10 min" \
+run_step 39 5 "gene_pathways"       "5-10 min" \
     "uv run python -m polymer_genomics.ingest.gene_pathways --build ${BUILD}"
 
-run_step 38 5 "gene_sets"           "2-5 min" \
+run_step 40 5 "gene_sets"           "2-5 min" \
     "uv run python -m polymer_genomics.ingest.gene_sets --build ${BUILD}"
 
-run_step 39 5 "gene_aliases"        "2-5 min" \
+run_step 41 5 "gene_aliases"        "2-5 min" \
     "uv run python -m polymer_genomics.ingest.gene_aliases --build ${BUILD}"
 
 # ════════════════════════════════════════════════════════════════════
-# TIER 6: Cross-references  (Steps 40-42)
+# TIER 6: Cross-references  (Steps 42-45)
 # Require Tiers 1 + 4 + 5 (genes, repeats, gene-level data).
 # ════════════════════════════════════════════════════════════════════
-tier_header 6 "Cross-references" "40-42"
+tier_header 6 "Cross-references" "42-45"
 
-run_step 40 6 "probe_repeat_xref"  "5-15 min" \
+run_step 42 6 "probe_repeat_xref"  "5-15 min" \
     "uv run python -m polymer_genomics.ingest.probe_repeat_xref --build ${BUILD}"
 
-run_step 41 6 "metabolic_burden"    "5-10 min" \
+run_step 43 6 "metabolic_burden"    "5-10 min" \
     "uv run python -m polymer_genomics.ingest.metabolic_burden --build ${BUILD}"
 
-run_step 42 6 "gene_profiles"       "5-15 min" \
+run_step 44 6 "gene_profiles"       "5-15 min" \
     "uv run python -m polymer_genomics.ingest.gene_profiles --build ${BUILD}"
 
+run_step 45 6 "tcga_pan_cancer"     "30-60 min" \
+    "uv run python -m polymer_genomics.ingest.tcga_pan_cancer --build ${BUILD}"
+
 # ════════════════════════════════════════════════════════════════════
-# TIER 7: Correlation engine layers  (Steps 43-49)
+# TIER 7: Correlation engine layers  (Steps 46-52)
 # Require Tier 2 (biophysics base rows) for spatial joins.
 # ════════════════════════════════════════════════════════════════════
-tier_header 7 "Correlation engine layers" "43-49"
+tier_header 7 "Correlation engine layers" "46-52"
 
-run_step 43 7 "tad_domains"             "10-30 min" \
+run_step 46 7 "tad_domains"             "10-30 min" \
     "uv run python -m polymer_genomics.ingest.tad_domains --build ${BUILD}"
 
-run_step 44 7 "hic_compartment"          "10-30 min" \
+run_step 47 7 "hic_compartment"          "10-30 min" \
     "uv run python -m polymer_genomics.ingest.hic_compartment --build ${BUILD}"
 
-run_step 45 7 "insulation_score"         "10-30 min" \
+run_step 48 7 "insulation_score"         "10-30 min" \
     "uv run python -m polymer_genomics.ingest.insulation_score --build ${BUILD}"
 
-run_step 46 7 "tf_binding_signal"        "10-30 min" \
+run_step 49 7 "tf_binding_signal"        "10-30 min" \
     "uv run python -m polymer_genomics.ingest.tf_binding_signal --build ${BUILD}"
 
-run_step 47 7 "wgbs_hematopoietic"       "15-45 min" \
+run_step 50 7 "wgbs_hematopoietic"       "15-45 min" \
     "uv run python -m polymer_genomics.ingest.wgbs_hematopoietic --build ${BUILD}"
 
-run_step 48 7 "accessibility_signal"     "10-30 min" \
+run_step 51 7 "accessibility_signal"     "10-30 min" \
     "uv run python -m polymer_genomics.ingest.accessibility_signal --build ${BUILD}"
 
-run_step 49 7 "mutation_density"         "10-30 min" \
+run_step 52 7 "mutation_density"         "10-30 min" \
     "uv run python -m polymer_genomics.ingest.mutation_density --build ${BUILD}"
 
 # ════════════════════════════════════════════════════════════════════
-# TIER 8: Reference tables  (Steps 50-53)
+# TIER 8: Reference tables  (Steps 53-56)
 # Standalone lookup tables. No genomic coordinate dependencies.
 # Note: reference_constants and sbs_spectrum do not take --build.
 # ════════════════════════════════════════════════════════════════════
-tier_header 8 "Reference tables" "50-53"
+tier_header 8 "Reference tables" "53-56"
 
-run_step 50 8 "epigenetic_clocks"     "2-5 min" \
+run_step 53 8 "epigenetic_clocks"     "2-5 min" \
     "uv run python -m polymer_genomics.ingest.epigenetic_clocks --build ${BUILD}"
 
-run_step 51 8 "reference_constants"   "< 30s" \
+run_step 54 8 "reference_constants"   "< 30s" \
     "uv run python -m polymer_genomics.ingest.reference_constants"
 
-run_step 52 8 "sbs_spectrum"          "< 30s" \
+run_step 55 8 "sbs_spectrum"          "< 30s" \
     "uv run python -m polymer_genomics.ingest.sbs_spectrum"
 
-run_step 53 8 "methylation"           "15-45 min" \
+run_step 56 8 "methylation"           "15-45 min" \
     "uv run python -m polymer_genomics.ingest.methylation --build ${BUILD}"
 
 # ════════════════════════════════════════════════════════════════════
@@ -529,7 +538,7 @@ echo -e "${BOLD}${GREEN}"
 echo "  ╔═══════════════════════════════════════════════════════════╗"
 echo "  ║                                                           ║"
 echo "  ║            INGESTION COMPLETE                             ║"
-echo "  ║            53 modules across 9 tiers                      ║"
+echo "  ║            56 modules across 9 tiers                      ║"
 echo "  ║                                                           ║"
 echo "  ║  Next steps:                                              ║"
 echo "  ║  1. Start the API:                                        ║"
