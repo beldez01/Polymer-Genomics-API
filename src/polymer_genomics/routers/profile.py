@@ -102,12 +102,15 @@ async def region_profile(
             layer_type = lr["layer_type"]
 
             # Count features in region
-            count = await conn.fetchval(
-                _count_sql_for_type(layer_type),
-                build, chr_id, internal["start"], internal["end"], lr["id"],
-            )
-
-            if count is None:
+            count_sql = _count_sql_for_type(layer_type)
+            if count_sql is not None:
+                count = await conn.fetchval(
+                    count_sql,
+                    build, chr_id, internal["start"], internal["end"], lr["id"],
+                )
+                if count is None:
+                    count = 0
+            else:
                 count = 0
 
             entry = {
@@ -173,21 +176,21 @@ _COUNT_TABLES = {
     "gene_model": "gene.features",
     "probe": "probe.coordinates",
     "isochore": "ref.isochores",
-    "methylation": "meth.reference",
+    "methylation": "ref.methylation_reference",
     "conservation": "conservation.scores",
     "regulatory": "regulatory.ccre",
-    "expression": "gene.expression",
-    "gene_cost": "gene.costs",
-    "protein_abundance": "gene.protein_abundance",
-    "protein_atlas": "gene.protein_atlas",
-    "constraint": "gene.constraint",
+    "expression": "expression.gene_tpm",
+    "gene_cost": "bioenergetics.gene_costs",
+    "protein_abundance": "bioenergetics.protein_abundance",
+    "protein_atlas": "proteomics.tissue_expression",
+    "constraint": "conservation.gene_constraint",
     "chromatin_state": "regulatory.chromatin_state",
     "repeat": "annotation.repeats",
     "herv": "annotation.herv_loci",
     "biophysics": "biophysics.sequence_properties",
     "sequence_biophysics": "biophysics.sequence_properties",
     "histone_mark": "regulatory.histone_peaks",
-    "gwas": "annotation.gwas_hits",
+    "gwas": "annotation.gwas_associations",
     "nonb_dna": "fragility.nonb_dna",
     "breakpoint": "fragility.breakpoints",
     "fragility": "fragility.composite_score",
@@ -220,14 +223,12 @@ _COUNT_TABLES = {
 _ALLOWED_PROFILE_TABLES = frozenset(_COUNT_TABLES.values())
 
 
-def _count_sql_for_type(layer_type: str) -> str:
-    """Return a count SQL query for a given layer type."""
+def _count_sql_for_type(layer_type: str) -> str | None:
+    """Return a count SQL query for a given layer type, or None if unsupported."""
     table = _COUNT_TABLES.get(layer_type)
     if table is None:
         logger.warning("Unknown layer_type '%s' in region_profile — returning 0 count", layer_type)
-        return (
-            "SELECT 0"
-        )
+        return None
     table = safe_table(table, _ALLOWED_PROFILE_TABLES)
     return (
         f"SELECT count(*) FROM {table} "

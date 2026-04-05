@@ -68,9 +68,16 @@ For each MCP tool, confirm the API endpoint it calls actually exists.
 
 Hit the live API at `https://api.polymerbio.org` to verify each endpoint is reachable.
 
+### API Key
+
+The live API requires authentication. Retrieve the key before running tests:
+```bash
+KEY=$(fly ssh console -a polymer-genomics-api -C 'printenv POLYMER_API_KEY' 2>&1 | tail -1)
+```
+
 ### Test Queries
 
-Use these representative test queries. Run each with `curl -s -o /dev/null -w "%{http_code} %{time_total}s" URL`:
+Use these representative test queries. Run each with `curl -s -o /dev/null -w "%{http_code} %{time_total}s" -H "X-API-Key: $KEY" URL` (except `/ping` which needs no auth):
 
 **Gene endpoints** (prefix `/v1/genes`):
 ```bash
@@ -94,7 +101,7 @@ curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.or
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/aggregation/hg38/chr17:7668402-7687550"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/stats/hg38/chr17:7668402-7687550"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/profile/hg38/chr17:7668402-7687550"
-curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/correlate/hg38/chr17:7668402-7687550?layer_a=biophysics&layer_b=conservation&stat=pearson_r"
+curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/correlate/hg38/chr17:7668402-7687550?layer_a=sequence_biophysics_l0&layer_b=phylop_phastcons_100way&stat=pearson_r&field_a=gc_content&field_b=phylop_mean"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/sequence/hg38/chr17:7668402-7668500"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/cpg-profile/hg38/cg00000029"
 ```
@@ -106,7 +113,7 @@ curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.or
 
 **Search & layers:**
 ```bash
-curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/search?q=BRCA"
+curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/search?q=BRCA&build=hg38"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/layers"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/layers/summary/hg38"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/stats/summary"

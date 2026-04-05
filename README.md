@@ -2,7 +2,7 @@
 
 **The first production database of genome-wide DNA biophysical properties.**
 
-Polymer Genomics is an integrated genomic reference database that treats DNA as a physical polymer — not just an information-carrying sequence. It provides genome-wide thermodynamic stability, groove geometry, form propensity, curvature, and mechanical properties alongside 41 curated annotation layers, all queryable through a unified REST API designed for AI agents, bioinformaticians, and discovery scientists.
+Polymer Genomics is an integrated genomic reference database that treats DNA as a physical polymer — not just an information-carrying sequence. It provides genome-wide thermodynamic stability, groove geometry, form propensity, curvature, and mechanical properties alongside 48 curated annotation layers, all queryable through a unified REST API designed for AI agents, bioinformaticians, and discovery scientists.
 
 Live at [polymerbio.org](https://polymerbio.org) · API at [api.polymerbio.org](https://api.polymerbio.org/docs)
 
@@ -100,7 +100,7 @@ Every response carries epistemic metadata so AI agents never confuse measured da
 
 All endpoints return 1-based closed coordinates in a uniform response envelope with provenance, version metadata, and timing.
 
-## Data Layers (41 on hg38)
+## Data Layers (48 on hg38)
 
 ### Unique to Polymer Genomics
 - **Sequence Biophysics L0** — 64 columns: stacking ΔG₃₇, melting temp, curvature, groove geometry, form propensity, periodicity, DNAshape, methylation perturbation field, Green's function mechanical connectivity
@@ -126,6 +126,12 @@ All endpoints return 1-based closed coordinates in a uniform response envelope w
 - **Pathways** — Reactome, MSigDB Hallmark
 - **HERV** — Telescope proviral loci
 - **Breakpoints** — COSMIC structural variant breakpoints
+- **HLA** — 22,259 alleles across 6 loci with expression correlation
+- **ClinVar** — Pathogenic/likely pathogenic variants
+- **TFBS** — ENCODE transcription factor binding site peaks
+- **gnomAD SV** — Structural variant sites
+- **TADs** — Topologically associating domains (108 cell types)
+- **Recombination** — Crossover and non-crossover hotspots
 
 ## Viewer
 
@@ -138,9 +144,9 @@ Interactive genome browser at [polymerbio.org](https://polymerbio.org). Canvas-b
 - `/developers` — API documentation and quickstart
 - `/data-sources` — per-layer citations and licenses
 
-## MCP Server (44 tools)
+## MCP Server (70 tools)
 
-AI agent integration via Model Context Protocol. 34 reference tools + 10 compute tools for methylation analysis (IDAT → normalize → limma → visualize).
+AI agent integration via Model Context Protocol. Reference tools + compute tools for methylation analysis (IDAT → normalize → limma → visualize), HLA analysis, recombination queries, and more.
 
 ```bash
 cd mcp && uv run server.py
@@ -154,11 +160,11 @@ Tools include: `evaluate_design`, `compare_sequences`, `batch_evaluate`, `region
 pip install polymer-genomics
 ```
 
-Published on PyPI as [`polymer-genomics`](https://pypi.org/project/polymer-genomics/) (v0.2.0). MIT license. Full client surface covering all API endpoints.
+Published on PyPI as [`polymer-genomics`](https://pypi.org/project/polymer-genomics/) (v0.3.0). MIT license. Full client surface covering all API endpoints.
 
 ## Architecture
 
-FastAPI + PostgreSQL 16 + asyncpg backend. Next.js 15 + React 19 frontend with canvas-based track rendering. Deployed on Fly.io (API, iad region) and Vercel (viewer). 14 GB database, sub-100ms query latency.
+FastAPI + PostgreSQL 16 + asyncpg backend. Next.js 16 + React 19 frontend with canvas-based track rendering. Deployed on Fly.io (API, iad region) and Vercel (viewer). Sub-100ms query latency.
 
 ## Development
 

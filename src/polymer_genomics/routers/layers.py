@@ -1,3 +1,5 @@
+import time as _time
+
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.constants import VALID_BUILDS
@@ -6,6 +8,10 @@ from polymer_genomics.envelope import build_meta_envelope
 from polymer_genomics.layer_licenses import LAYER_SOURCE_INFO
 
 router = APIRouter(prefix="/v1/layers", tags=["layers"])
+
+# Simple TTL cache for layer_summary (changes only on ingestion)
+_summary_cache: dict[str, tuple[float, dict]] = {}
+_SUMMARY_TTL = 3600  # 1 hour
 
 
 @router.get("")
@@ -94,12 +100,19 @@ async def layer_summary(build: str):
 
     Returns authoritative feature counts from the database, including
     protein-coding gene count (filtered from gene.features).
+    Cached for 1 hour (counts change only on ingestion).
     """
     if build not in VALID_BUILDS:
         raise HTTPException(
             400,
             {"error": {"code": "BUILD_MISMATCH", "message": f"Invalid build: {build}"}},
         )
+
+    # Check cache
+    now = _time.monotonic()
+    cached = _summary_cache.get(build)
+    if cached and (now - cached[0]) < _SUMMARY_TTL:
+        return cached[1]
 
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -148,13 +161,16 @@ async def layer_summary(build: str):
                 # gene_type column doesn't exist yet — that's fine
                 pass
 
-    return build_meta_envelope({
+    result = build_meta_envelope({
         "build": build,
         "layer_counts": counts,
         "gene_features": gene_counts,
         "protein_coding_genes": protein_coding_count,
         "total_genes": gene_counts.get("gene"),
     })
+
+    _summary_cache[build] = (now, result)
+    return result
 
 
 @router.get("/{layer_key}")

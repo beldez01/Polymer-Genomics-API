@@ -6,7 +6,7 @@ Live at polymerbio.org · API at api.polymerbio.org · SDK: `pip install polymer
 
 ## What This Is
 
-A curated, multi-layer genomic reference database (41 layers, hg38/hg37) that provides:
+A curated, multi-layer genomic reference database (48 layers, hg38/hg37) that provides:
 - **Material-channel DNA properties** genome-wide (stacking ΔG₃₇, Tm, curvature, groove geometry, form propensity — 64 biophysics columns at 1 kb resolution)
 - **Cross-layer correlation and intersection** in a single query (no other genomic database offers this)
 - **Physics linter** for evaluating synthetic constructs (13 flag types, batch mode, comparison mode)
@@ -29,23 +29,23 @@ A curated, multi-layer genomic reference database (41 layers, hg38/hg37) that pr
 - Fly app name: `polymer-genomics-api` (region: iad)
 - CORS origins: polymerbio.org, polymer-genomics.vercel.app, localhost:3000
 
-## Database Capacity (as of 2026-03-17)
+## Database Capacity (as of 2026-04-05)
 
-- **Volume**: 20 GB, 14 GB used (70%), expandable via `fly volumes extend`
+- **Volume**: 20 GB, expandable via `fly volumes extend`
 - **Compute**: shared-cpu-2x / 1 GB RAM — RAM is the binding constraint
 - **Scale-up**: volume grows instantly (no downtime); CPU/RAM via `fly machine update --vm-size`
 
 ## Project Structure
 
 - `src/` — FastAPI application (`polymer_genomics/`)
-- `viewer/` — Next.js 15 + React 19 frontend (deployed to Vercel)
-- `mcp/` — MCP server (44 tools: 34 reference + 10 compute)
-- `sdk/python/` — Python SDK (PyPI: `polymer-genomics` v0.2.0)
+- `viewer/` — Next.js 16 + React 19 frontend (deployed to Vercel)
+- `mcp/` — MCP server (70 tools)
+- `sdk/python/` — Python SDK (PyPI: `polymer-genomics` v0.3.0)
 - `engine/` — R-based methylation compute engine
 - `docker/` — Local dev Postgres init scripts
 - `data/` — Reference data
 - `scripts/` — Ingestion and admin scripts
-- `docs/paper/` — NAR Database Issue manuscript draft
+- `internal/` — Private docs, research, plans, experiments (gitignored)
 - `fly.toml` — Fly.io deployment config (source of truth)
 
 ## Key Design Decisions
@@ -57,7 +57,7 @@ A curated, multi-layer genomic reference database (41 layers, hg38/hg37) that pr
 
 ## Strategic Context
 
-- **NAR Database Issue paper** in progress (`docs/paper/nar_database_issue_2026.md`) — target July 2026
+- **NAR Database Issue paper** in progress (`internal/paper/nar_database_issue_2026.md`) — target July 2026
 - **"First entry in an empty category"** — no other database provides material-channel DNA properties genome-wide
 - **Python SDK live on PyPI** — unblocks developer outreach to FutureHouse, Asimov, Ginkgo, etc.
 - **Physics linter as product** — the computation is the IP (legal clearance confirmed)
