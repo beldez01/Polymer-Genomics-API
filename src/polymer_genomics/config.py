@@ -8,15 +8,14 @@ class Settings(BaseSettings):
     postgres_db: str = "polymer_genomics"
     postgres_user: str = "api_reader"
     postgres_password: str = Field(
-        default="api_reader_dev",
         validation_alias="POSTGRES_USER_PASSWORD",
     )
 
     s3_endpoint: str = "http://localhost:9000"  # Set to "" for real AWS (uses default endpoint)
     s3_public_endpoint: str | None = None  # Public URL for presigned URLs (falls back to s3_endpoint)
     s3_bucket: str = "polymer-genomics-api"
-    s3_access_key: str = "minioadmin"
-    s3_secret_key: str = "minioadmin"
+    s3_access_key: str = Field()
+    s3_secret_key: str = Field()
     s3_region: str = "us-east-1"
 
     max_region_length: int = 10_000_000

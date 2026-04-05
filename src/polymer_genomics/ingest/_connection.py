@@ -12,14 +12,15 @@ import asyncpg
 
 logger = logging.getLogger(__name__)
 
-# Default credentials (local development only)
+# Default credentials — passwords intentionally blank to fail-closed.
+# Set POSTGRES_PASSWORD / POSTGRES_USER_PASSWORD env vars explicitly.
 _ADMIN_DEFAULTS = {
     "user": "admin",
-    "password": "dev_password",
+    "password": "",
 }
 _WRITER_DEFAULTS = {
     "user": "ingest_writer",
-    "password": "ingest_writer_dev",
+    "password": "",
 }
 
 

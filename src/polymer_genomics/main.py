@@ -75,9 +75,12 @@ app.add_middleware(
 
 
 @app.middleware("http")
-async def add_robots_header(request: Request, call_next):
+async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
     return response
 
 
@@ -157,8 +160,8 @@ async def ping():
 
 @app.get("/health")
 async def health():
-    """Detailed health check — requires auth (exposes DB status)."""
+    """Health check — requires auth. Returns status and version only."""
     pool = await get_pool()
     async with pool.acquire() as conn:
-        count = await conn.fetchval("SELECT count(*) FROM ref.chromosomes")
-    return {"status": "ok", "version": __version__, "db": "ok", "chromosome_count": count}
+        await conn.fetchval("SELECT 1")
+    return {"status": "ok", "version": __version__}

@@ -8,6 +8,8 @@ __pycache__/
 node_modules/
 .next/
 .env
+.env.local
+.env*.local
 *.db
 .DS_Store
 

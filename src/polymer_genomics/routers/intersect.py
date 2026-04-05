@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from polymer_genomics import __version__
-from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_identifier, safe_table
 from polymer_genomics.envelope import DATA_VERSION
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool
@@ -215,6 +215,9 @@ INTERSECT_TABLES: dict[str, dict] = {
     },
 }
 
+# Pre-computed allow-set of all table names for safe_table validation.
+_ALLOWED_TABLES = frozenset(t["table"] for t in INTERSECT_TABLES.values())
+
 
 def _build_subquery(
     filt: IntersectFilter,
@@ -239,7 +242,7 @@ def _build_subquery(
             }},
         )
 
-    table = table_info["table"]
+    table = safe_table(table_info["table"], _ALLOWED_TABLES)
     idx = param_idx
 
     # Base: region overlap
@@ -268,13 +271,15 @@ def _build_subquery(
                        f"Available: {sorted(table_info['fields'])}",
         }})
 
+    safe_field = safe_identifier(filt.field, table_info["fields"])
+
     if filt.op == "between":
         if not isinstance(filt.value, list) or len(filt.value) != 2:
             raise HTTPException(400, {"error": {
                 "code": "INVALID_VALUE",
                 "message": "'between' op requires value as [low, high] array.",
             }})
-        sql = f"{base} AND {filt.field} BETWEEN ${idx} AND ${idx+1}"
+        sql = f"{base} AND {safe_field} BETWEEN ${idx} AND ${idx+1}"
         params.extend([filt.value[0], filt.value[1]])
         idx += 2
         return sql, params, idx
@@ -286,7 +291,7 @@ def _build_subquery(
             "message": f"Unknown operator: '{filt.op}'. Allowed: {sorted(_ALLOWED_OPS)}",
         }})
 
-    sql = f"{base} AND {filt.field} {sql_op} ${idx}"
+    sql = f"{base} AND {safe_field} {sql_op} ${idx}"
     params.append(filt.value)
     idx += 1
     return sql, params, idx
@@ -353,7 +358,7 @@ async def intersect_layers(req: IntersectRequest):
                 table_info = INTERSECT_TABLES.get(layer_key)
                 if table_info is None:
                     continue
-                table = table_info["table"]
+                table = safe_table(table_info["table"], _ALLOWED_TABLES)
                 # Fetch all data for these positions
                 ann_rows = await conn.fetch(
                     f"SELECT * FROM {table} "

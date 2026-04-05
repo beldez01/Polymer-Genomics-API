@@ -9,12 +9,15 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.config import settings
-from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_table
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.correlation import CORRELATION_REGISTRY
 from polymer_genomics.db import get_pool
 
 router = APIRouter(prefix="/v1/stats", tags=["stats"])
+
+# Pre-computed allow-set of all table names from the correlation registry.
+_ALLOWED_STATS_TABLES = frozenset(r["table"] for r in CORRELATION_REGISTRY.values())
 
 
 def _build_stats_sql(
@@ -261,8 +264,9 @@ async def region_stats(
                 if not field_exprs:
                     continue
 
+            validated_table = safe_table(reg["table"], _ALLOWED_STATS_TABLES)
             sql, field_names = _build_stats_sql(
-                reg["table"], reg["pos_col"], reg["mode"], field_exprs
+                validated_table, reg["pos_col"], reg["mode"], field_exprs
             )
 
             row = await conn.fetchrow(

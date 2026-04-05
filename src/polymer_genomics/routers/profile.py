@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 from polymer_genomics import __version__
 from polymer_genomics.config import settings
-from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_table
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import DATA_VERSION
@@ -217,6 +217,9 @@ _COUNT_TABLES = {
 }
 
 
+_ALLOWED_PROFILE_TABLES = frozenset(_COUNT_TABLES.values())
+
+
 def _count_sql_for_type(layer_type: str) -> str:
     """Return a count SQL query for a given layer type."""
     table = _COUNT_TABLES.get(layer_type)
@@ -225,6 +228,7 @@ def _count_sql_for_type(layer_type: str) -> str:
         return (
             "SELECT 0"
         )
+    table = safe_table(table, _ALLOWED_PROFILE_TABLES)
     return (
         f"SELECT count(*) FROM {table} "
         f"WHERE build = $1::genome_build AND chr_id = $2 "
