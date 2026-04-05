@@ -213,6 +213,107 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {"tf_name", "cell_type", "signal_value", "p_value"},
     },
+    # ── Layers added by audit gap closure ─────────────────────────
+    "gene_model": {
+        "table": "gene.features",
+        "id_col": "layer_id",
+        "fields": {"feature_type", "gene_name", "gene_type", "strand"},
+    },
+    "probe": {
+        "table": "probe.coordinates",
+        "id_col": "layer_id",
+        "fields": {"probe_id", "platform"},
+    },
+    "isochore": {
+        "table": "ref.isochores",
+        "id_col": "layer_id",
+        "fields": {"gc_content", "isochore_class"},
+    },
+    "methylation": {
+        "table": "ref.methylation_reference",
+        "id_col": "layer_id",
+        "fields": {"gran", "mono", "nk", "bcell", "cd4t", "cd8t"},
+    },
+    "gene_cost": {
+        "table": "bioenergetics.gene_costs",
+        "id_col": "layer_id",
+        "fields": {"ecpa_b20", "c_protein", "cai", "mean_tpm"},
+    },
+    "expression": {
+        "table": "expression.gene_tpm",
+        "id_col": "layer_id",
+        "fields": {"median_tpm", "max_tpm", "n_tissues_detected"},
+    },
+    "constraint": {
+        "table": "conservation.gene_constraint",
+        "id_col": "layer_id",
+        "fields": {"pli", "loeuf", "mis_z", "syn_z"},
+    },
+    "protein_abundance": {
+        "table": "bioenergetics.protein_abundance",
+        "id_col": "layer_id",
+        "fields": {"abundance_ppm"},
+    },
+    "protein_turnover": {
+        "table": "bioenergetics.protein_turnover",
+        "id_col": "layer_id",
+        "fields": {"half_life_hours", "k_degradation"},
+    },
+    "protein_properties": {
+        "table": "bioenergetics.protein_properties",
+        "id_col": "layer_id",
+        "fields": {"pi", "instability_index", "aliphatic_index", "gravy"},
+    },
+    "protein_evolution": {
+        "table": "conservation.protein_evolution",
+        "id_col": "layer_id",
+        "fields": {"dn", "ds", "omega"},
+    },
+    "protein_atlas": {
+        "table": "proteomics.tissue_expression",
+        "id_col": "layer_id",
+        "fields": {"tissue", "level", "reliability"},
+    },
+    "histone_mark": {
+        "table": "regulatory.histone_peaks",
+        "id_col": "layer_id",
+        "fields": {"mark_type", "cell_type", "signal_value", "p_value"},
+    },
+    "gwas": {
+        "table": "annotation.gwas_associations",
+        "id_col": "layer_id",
+        "fields": {"trait", "p_value", "odds_ratio", "risk_allele"},
+    },
+    "fragility": {
+        "table": "fragility.composite_score",
+        "id_col": "layer_id",
+        "fields": {"fragility_score", "nonb_component", "curvature_component"},
+    },
+    "archaic_introgression": {
+        "table": "evolution.archaic_segments",
+        "id_col": "layer_id",
+        "fields": {"source_species", "population", "posterior_prob"},
+    },
+    "tf_binding": {
+        "table": "regulatory.tf_binding_signal",
+        "id_col": "layer_id",
+        "fields": {"ctcf_gm12878", "sp1_gm12878", "polr2a_gm12878", "ezh2_gm12878", "ctcf_k562"},
+    },
+    "wgbs": {
+        "table": "methylation.wgbs_1kb",
+        "id_col": "layer_id",
+        "fields": {"hsc", "cmp", "gmp", "monocyte", "neutrophil", "mean_beta", "beta_variance"},
+    },
+    "accessibility": {
+        "table": "regulatory.accessibility_signal",
+        "id_col": "layer_id",
+        "fields": {"dnase_gm12878", "dnase_k562", "atac_hsc", "atac_monocyte"},
+    },
+    "mutation_density": {
+        "table": "annotation.mutation_density",
+        "id_col": "layer_id",
+        "fields": {"pan_cancer_rate", "snv_rate", "indel_rate", "liver_rate", "lung_rate", "skin_rate", "blood_rate"},
+    },
 }
 
 # Pre-computed allow-set of all table names for safe_table validation.

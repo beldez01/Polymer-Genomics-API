@@ -217,6 +217,13 @@ _COUNT_TABLES = {
     "accelerated_region": "evolution.accelerated_regions",
     "te_exaptation": "evolution.te_exaptation",
     "tfbs": "regulatory.tfbs_peaks",
+    # ── Audit gap closure ─────────────────────────────────────────
+    "cpg_island": "cpg.islands",
+    "archaic_introgression": "evolution.archaic_segments",
+    "tf_binding": "regulatory.tf_binding_signal",
+    "wgbs": "methylation.wgbs_1kb",
+    "accessibility": "regulatory.accessibility_signal",
+    "mutation_density": "annotation.mutation_density",
 }
 
 
