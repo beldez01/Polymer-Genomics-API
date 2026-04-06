@@ -142,10 +142,10 @@ export default function MethodologyPage() {
               </tr>
             </thead>
             <tbody>
-              <tr><td style={tdStyle}>Rise</td><td style={{...tdStyle, fontWeight: WEIGHT.semibold}}>87%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}>GC constrains weakly; order determines</td></tr>
-              <tr><td style={tdStyle}>Minor groove width</td><td style={{...tdStyle, fontWeight: WEIGHT.semibold}}>84%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
-              <tr><td style={tdStyle}>Twist</td><td style={{...tdStyle, fontWeight: WEIGHT.semibold}}>83%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
-              <tr><td style={tdStyle}>Roll</td><td style={{...tdStyle, fontWeight: WEIGHT.semibold}}>81%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
+              <tr><td style={tdStyle}>Rise</td><td style={{...tdStyle, fontWeight: WEIGHT.bold}}>87%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}>GC constrains weakly; order determines</td></tr>
+              <tr><td style={tdStyle}>Minor groove width</td><td style={{...tdStyle, fontWeight: WEIGHT.bold}}>84%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
+              <tr><td style={tdStyle}>Twist</td><td style={{...tdStyle, fontWeight: WEIGHT.bold}}>83%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
+              <tr><td style={tdStyle}>Roll</td><td style={{...tdStyle, fontWeight: WEIGHT.bold}}>81%</td><td style={tdStyle}>Arrangement</td><td style={tdStyle}></td></tr>
               <tr><td style={tdStyle}>Stacking ΔS</td><td style={tdStyle}>64%</td><td style={tdStyle}>Mixed</td><td style={tdStyle}>Substantial from both composition and arrangement</td></tr>
               <tr><td style={tdStyle}>Stacking ΔH</td><td style={tdStyle}>55%</td><td style={tdStyle}>Mixed</td><td style={tdStyle}></td></tr>
               <tr><td style={tdStyle}>Deformability</td><td style={tdStyle}>44%</td><td style={tdStyle}>Mixed</td><td style={tdStyle}>Genome actively exploits this range</td></tr>
