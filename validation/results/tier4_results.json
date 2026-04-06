@@ -19,8 +19,8 @@
     },
     {
       "name": "4.2a A-tract curvature > random",
-      "passed": false,
-      "detail": "A-tract=2.209, random=2.720"
+      "passed": true,
+      "detail": "A-tract=0.510, random=0.445"
     },
     {
       "name": "4.2b A-tract more stable than random mix (AT-rich \u2192 less stable, but A-tracts cluster)",
@@ -29,8 +29,8 @@
     },
     {
       "name": "4.3 Heterogeneous curvature < A-tract",
-      "passed": false,
-      "detail": "hetero=2.602 < a_tract=2.209"
+      "passed": true,
+      "detail": "hetero=0.116 < a_tract=0.510"
     },
     {
       "name": "4.4a CG alternation Z-propensity",
@@ -60,7 +60,7 @@
     {
       "name": "4.7a Alpha-satellite high curvature",
       "passed": true,
-      "detail": "alpha=3.034 vs hetero=2.602"
+      "detail": "alpha=0.628 vs hetero=0.116"
     },
     {
       "name": "4.7b Alpha-satellite AT-rich",
@@ -99,8 +99,8 @@
     }
   ],
   "summary": {
-    "passed": 16,
-    "failed": 3,
+    "passed": 18,
+    "failed": 1,
     "total": 19
   }
 }

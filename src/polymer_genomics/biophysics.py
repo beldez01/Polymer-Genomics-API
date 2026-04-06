@@ -412,43 +412,61 @@ def compute_contextual(sequence: str, window: int = 10) -> dict:
 
 
 def compute_curvature(sequence: str, window: int = 21) -> dict:
-    """Compute local DNA angular variability from roll and tilt.
+    """Compute local DNA curvature via trajectory integration (wedge model).
 
-    Value = sqrt(mean(roll²) + mean(tilt²)) over a sliding window.
-    Window default = 21bp (two helical turns).
+    Uses the Trifonov/Bolshoy wedge model: at each dinucleotide step, the
+    roll and tilt define a local deflection whose *direction* rotates with
+    cumulative twist along the helix. Curvature over a window is the magnitude
+    of the vector sum of these deflections, divided by window length.
 
-    IMPORTANT LIMITATION (validated 2026-04-06, Tier 4.2):
-    This formula measures the RMS angular *variance* at each step, NOT
-    coherent macroscopic bending. It fails the gold-standard A-tract test:
-    phased A₅ tracts produce the largest known intrinsic DNA curvature, but
-    this formula gives them LOWER scores than random heterogeneous sequence
-    because A-tracts have small, uniform roll/tilt while mixed sequences have
-    large, varied roll/tilt.
+    This correctly handles phased bending: A-tracts every ~10bp produce large
+    coherent curvature because their small, consistent deflections add in
+    phase. Random sequences produce small curvature (random walk cancellation).
 
-    To predict actual macroscopic bending, a phased wedge model (e.g.,
-    Bolshoy/Trifonov 1991) or trajectory integration is needed. This metric
-    is better described as "angular variability" or "step heterogeneity."
+    Window default = 21bp (two helical turns, standard for curvature analysis).
+
+    References:
+        Trifonov & Sussman 1980 PNAS 77:3816
+        Bolshoy et al. 1991 PNAS 88:2312
+        Olson et al. 2001 J Mol Biol 313:229
     """
     seq = sequence.upper()
     n = len(seq) - 1
     if n < 1:
         return {"per_step": [], "summary": {"n_steps": 0}}
 
+    DEG2RAD = math.pi / 180.0
+
     roll_vals = np.zeros(n)
     tilt_vals = np.zeros(n)
+    twist_vals = np.zeros(n)
     valid = np.zeros(n, dtype=bool)
 
     for i in range(n):
-        dinuc = seq[i:i+2]
+        dinuc = seq[i:i + 2]
         s = _OLSON_STRUCTURAL.get(dinuc)
         if s:
             roll_vals[i] = s["roll"]
             tilt_vals[i] = s["tilt"]
+            twist_vals[i] = s["twist"]
             valid[i] = True
 
-    # Windowed curvature via cumulative sums of squared components
-    cs_roll2 = np.insert(np.cumsum(roll_vals ** 2), 0, 0)
-    cs_tilt2 = np.insert(np.cumsum(tilt_vals ** 2), 0, 0)
+    # Cumulative twist angle (radians) — defines the direction of each step's
+    # bend contribution in the global frame
+    cum_twist = np.cumsum(twist_vals) * DEG2RAD
+
+    # Each step contributes a deflection vector in the plane perpendicular
+    # to the helix axis. The direction rotates with cumulative twist.
+    # deflection_x = roll * cos(cum_twist) - tilt * sin(cum_twist)
+    # deflection_y = roll * sin(cum_twist) + tilt * cos(cum_twist)
+    roll_rad = roll_vals * DEG2RAD
+    tilt_rad = tilt_vals * DEG2RAD
+    dx = roll_rad * np.cos(cum_twist) - tilt_rad * np.sin(cum_twist)
+    dy = roll_rad * np.sin(cum_twist) + tilt_rad * np.cos(cum_twist)
+
+    # Windowed curvature = |vector sum of deflections| / window_length
+    cs_dx = np.insert(np.cumsum(dx), 0, 0.0)
+    cs_dy = np.insert(np.cumsum(dy), 0, 0.0)
 
     curvatures = np.zeros(n)
     half = window // 2
@@ -457,17 +475,20 @@ def compute_curvature(sequence: str, window: int = 21) -> dict:
         hi = min(n, i + half + 1)
         w = hi - lo
         if w > 0:
-            mean_roll2 = (cs_roll2[hi] - cs_roll2[lo]) / w
-            mean_tilt2 = (cs_tilt2[hi] - cs_tilt2[lo]) / w
-            curvatures[i] = float(np.sqrt(mean_roll2 + mean_tilt2))
+            sum_dx = cs_dx[hi] - cs_dx[lo]
+            sum_dy = cs_dy[hi] - cs_dy[lo]
+            curvatures[i] = math.sqrt(sum_dx ** 2 + sum_dy ** 2) / w
+
+    # Convert back to degrees/step for interpretability
+    curvatures_deg = curvatures / DEG2RAD
 
     per_step = []
     for i in range(n):
-        dinuc = seq[i:i+2]
+        dinuc = seq[i:i + 2]
         entry: dict = {
             "position": i,
             "dinucleotide": dinuc,
-            "curvature": round(curvatures[i], 3),
+            "curvature": round(float(curvatures_deg[i]), 3),
         }
         if valid[i]:
             entry["roll"] = round(float(roll_vals[i]), 2)
@@ -477,8 +498,8 @@ def compute_curvature(sequence: str, window: int = 21) -> dict:
     summary = {
         "n_steps": n,
         "window": window,
-        "mean_curvature": round(float(np.mean(curvatures)), 3),
-        "max_curvature": round(float(np.max(curvatures)), 3),
+        "mean_curvature": round(float(np.mean(curvatures_deg)), 3),
+        "max_curvature": round(float(np.max(curvatures_deg)), 3),
     }
     return {"per_step": per_step, "summary": summary}
 
