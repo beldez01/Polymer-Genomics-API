@@ -1249,6 +1249,58 @@ async def lookup_clock_probes(
 
 
 @mcp.tool()
+async def clock_physics(
+    clock: str,
+    build: str = "hg38",
+    top_n: int | None = None,
+) -> dict:
+    """Get the biophysical profile of every probe in an epigenetic clock.
+
+    Returns per-probe: coefficient, coordinates, gene, CpG context, and
+    the full biophysical properties (stacking energy, curvature, methylation
+    sensitivity, deformability, etc.) of the 1kb window containing the probe.
+    Also returns aggregate statistics across the entire clock including
+    coefficient-weighted biophysical means.
+
+    Use this to understand WHY specific CpGs are in aging clocks —
+    what is physically special about these sites?
+
+    Args:
+        clock: Clock name (horvath_2013, hannum_2013, phenoage_2018,
+               grimage_2019, dunedinpace_2022, retro_age_v2, retro_age_450k).
+        build: Genome build (hg38 or hg37). Default: hg38.
+        top_n: Return only the top N probes by |coefficient|.
+    """
+    params: dict = {}
+    if top_n:
+        params["top_n"] = top_n
+    return await _get(f"/v1/clock-physics/{build}/{clock}", params)
+
+
+@mcp.tool()
+async def compare_clock_physics(
+    clock_a: str,
+    clock_b: str,
+    build: str = "hg38",
+) -> dict:
+    """Compare the biophysical profiles of two epigenetic clocks.
+
+    Returns: shared vs unique probes, biophysical summary stats for each
+    clock, and deltas showing how the clocks differ in DNA physical
+    properties (stacking energy, methylation sensitivity, etc.).
+
+    Use this to discover whether different clocks target biophysically
+    distinct regions of the genome.
+
+    Args:
+        clock_a: First clock name (e.g. 'horvath_2013').
+        clock_b: Second clock name (e.g. 'phenoage_2018').
+        build: Genome build (hg38 or hg37). Default: hg38.
+    """
+    return await _get(f"/v1/clock-physics/{build}/compare/{clock_a}/{clock_b}", {})
+
+
+@mcp.tool()
 async def lookup_probe_repeat_overlap(
     probe_id: str | None = None,
     platform: str | None = None,
