@@ -55,7 +55,8 @@ const DATA_SOURCES: SourceCategory[] = [
   {
     category: 'Constraint & Variation',
     sources: [
-      { name: 'gnomAD', version: 'v4.1', license: 'ODC-ODbL 1.0', citation: 'Chen et al., Nature 2024', url: 'https://gnomad.broadinstitute.org' },
+      { name: 'gnomAD Constraint', version: 'v4.1', license: 'ODC-ODbL 1.0', citation: 'Chen et al., Nature 2024', url: 'https://gnomad.broadinstitute.org' },
+      { name: 'gnomAD Structural Variants', version: 'v4.1', license: 'ODC-ODbL 1.0', citation: 'Collins et al., Nature 2020', url: 'https://gnomad.broadinstitute.org' },
       { name: 'ClinVar', version: '2024-09', license: 'Public Domain', citation: 'Landrum et al., Nucleic Acids Res 2020', url: 'https://www.ncbi.nlm.nih.gov/clinvar/' },
     ],
   },
@@ -69,9 +70,22 @@ const DATA_SOURCES: SourceCategory[] = [
   {
     category: 'Chromatin & Epigenomics',
     sources: [
-      { name: 'ENCODE', version: 'v3', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2012', url: 'https://www.encodeproject.org' },
-      { name: 'Roadmap Epigenomics', version: '2015', license: 'Public Domain (NIH)', citation: 'Roadmap Consortium, Nature 2015', url: 'https://egg2.wustl.edu/roadmap/' },
+      { name: 'ENCODE cCREs', version: 'v4', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2012', url: 'https://www.encodeproject.org' },
+      { name: 'ENCODE Histone Peaks', version: 'v3', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2012', url: 'https://www.encodeproject.org' },
+      { name: 'ENCODE TF Binding Sites', version: 'v3', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2020', url: 'https://www.encodeproject.org' },
+      { name: 'ENCODE Accessibility Signal', version: 'v3', license: 'CC BY 4.0', citation: 'ENCODE Consortium, Nature 2020', url: 'https://www.encodeproject.org' },
       { name: 'ChromHMM 15-state Model', version: '2012', license: 'Public Domain (NIH)', citation: 'Ernst & Kellis, Nat Methods 2012', url: 'https://compbio.mit.edu/ChromHMM/' },
+      { name: 'Roadmap Epigenomics', version: '2015', license: 'Public Domain (NIH)', citation: 'Roadmap Consortium, Nature 2015', url: 'https://egg2.wustl.edu/roadmap/' },
+    ],
+  },
+  {
+    category: '3D Genome',
+    sources: [
+      { name: 'ENCODE TAD Domains', version: 'Arrowhead', license: 'CC BY 4.0', citation: 'Rao et al., Cell 2014', url: 'https://www.encodeproject.org' },
+      { name: 'Hi-C A/B Compartments', version: 'v1', license: 'CC BY 4.0', citation: 'Lieberman-Aiden et al., Science 2009', url: 'https://www.encodeproject.org' },
+      { name: 'Insulation Score', version: 'v1', license: 'CC BY 4.0', citation: 'Crane et al., Nature 2015', url: 'https://www.encodeproject.org' },
+      { name: 'LADs', version: 'Meuleman 2013', license: 'Published literature', citation: 'Meuleman et al., Genome Res 2013', url: 'https://doi.org/10.1101/gr.141028.112' },
+      { name: 'NADs', version: 'v1', license: 'Published literature', citation: 'Nemeth et al., PLoS Genet 2010', url: 'https://doi.org/10.1371/journal.pgen.1000889' },
     ],
   },
   {
@@ -104,12 +118,18 @@ const DATA_SOURCES: SourceCategory[] = [
       { name: 'PhyloP 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Pollard et al., Genome Res 2010', url: 'https://genome.ucsc.edu' },
       { name: 'PhastCons 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Siepel et al., Genome Res 2005', url: 'https://genome.ucsc.edu' },
       { name: 'Ensembl Compara', version: 'v112', license: 'Apache 2.0', citation: 'Herrero et al., Database 2016', url: 'https://www.ensembl.org/info/genome/compara/' },
+      { name: 'Ultraconserved Elements', version: 'Bejerano 2004', license: 'Published literature', citation: 'Bejerano et al., Science 2004', url: 'https://doi.org/10.1126/science.1098119' },
+      { name: 'Human Accelerated Regions', version: 'v1', license: 'Published literature', citation: 'Pollard et al., Nature 2006', url: 'https://doi.org/10.1038/nature05113' },
+      { name: 'Archaic Introgression', version: 'Vernot 2016', license: 'Published literature', citation: 'Vernot et al., Science 2016', url: 'https://doi.org/10.1126/science.aad9416' },
+      { name: 'Selection Sweeps', version: 'v1', license: 'Published literature', citation: 'Sabeti et al., Nature 2007', url: 'https://doi.org/10.1038/nature06250' },
     ],
   },
   {
-    category: 'Repeat Elements',
+    category: 'Repeat Elements & Transposons',
     sources: [
       { name: 'RepeatMasker', version: 'v4.1.5', license: 'Free for non-commercial use via UCSC; Open Source', citation: 'Smit, Hubley & Green, RepeatMasker Open-4.0', url: 'https://www.repeatmasker.org' },
+      { name: 'Telescope HERV Loci', version: 'v2', license: 'MIT', citation: 'Bendall et al., PLoS Comput Biol 2019', url: 'https://doi.org/10.1371/journal.pcbi.1006453' },
+      { name: 'TE Exaptation Catalog', version: 'v1', license: 'CC BY 4.0', citation: 'Chuong et al., Nat Rev Genet 2017', url: 'https://doi.org/10.1038/nrg.2016.139' },
     ],
   },
   {
@@ -122,6 +142,8 @@ const DATA_SOURCES: SourceCategory[] = [
     category: 'Cell-Type Methylation',
     sources: [
       { name: 'FlowSorted.Blood.EPIC', version: '2018', license: 'Artistic License 2.0', citation: 'Salas et al., Genome Biol 2018', url: 'https://bioconductor.org/packages/FlowSorted.Blood.EPIC/' },
+      { name: 'WGBS Hematopoietic', version: 'BLUEPRINT', license: 'CC BY 4.0', citation: 'Stunnenberg et al., Cell 2016', url: 'https://doi.org/10.1016/j.cell.2016.10.026' },
+      { name: 'Archaic Methylation', version: 'v1', license: 'Published literature', citation: 'Gokhman et al., Science 2014', url: 'https://doi.org/10.1126/science.1250368' },
     ],
   },
   {
@@ -129,6 +151,48 @@ const DATA_SOURCES: SourceCategory[] = [
     sources: [
       { name: 'UniProt', version: '2024_05', license: 'CC BY 4.0', citation: 'UniProt Consortium, Nucleic Acids Res 2023', url: 'https://www.uniprot.org' },
       { name: 'Protein Half-Lives', version: '2018', license: 'Published literature', citation: 'Mathieson et al., Nat Commun 2018', url: 'https://doi.org/10.1038/s41467-018-03106-1' },
+    ],
+  },
+  {
+    category: 'QTLs',
+    sources: [
+      { name: 'GTEx eQTLs', version: 'v8', license: 'dbGaP (summary statistics: open access)', citation: 'GTEx Consortium, Science 2020', url: 'https://gtexportal.org' },
+      { name: 'GoDMC meQTLs', version: 'v1', license: 'Published literature', citation: 'Min et al., Nat Genet 2021', url: 'https://doi.org/10.1038/s41588-021-00969-x' },
+    ],
+  },
+  {
+    category: 'Regulatory Elements',
+    sources: [
+      { name: 'ABC Enhancer-Gene Links', version: 'v1', license: 'CC BY 4.0', citation: 'Fulco et al., Nat Genet 2019', url: 'https://doi.org/10.1038/s41588-019-0538-0' },
+      { name: 'dbSUPER Super-Enhancers', version: 'v1', license: 'Published literature', citation: 'Khan & Zhang, Nucleic Acids Res 2016', url: 'https://doi.org/10.1093/nar/gkv1002' },
+      { name: 'DNA Methylation Valleys', version: 'v1', license: 'Published literature', citation: 'Jeong et al., Genome Res 2014', url: 'https://doi.org/10.1101/gr.169219.113' },
+    ],
+  },
+  {
+    category: 'Recombination',
+    sources: [
+      { name: 'Crossover Hotspots', version: 'Palsson 2025', license: 'Published literature', citation: 'Palsson et al., Science 2025', url: 'https://doi.org/10.1126/science.adq0700' },
+      { name: 'DMC1 Meiotic Hotspots', version: 'Pratto 2014', license: 'Published literature', citation: 'Pratto et al., Science 2014', url: 'https://doi.org/10.1126/science.1256442' },
+    ],
+  },
+  {
+    category: 'Structural DNA & Fragility',
+    sources: [
+      { name: 'Non-B DNA Structures', version: 'v1', license: 'MIT', citation: 'Polymer Genomics — G4, Z-DNA, cruciform, triplex, R-loop predictions', url: 'https://polymerbio.org' },
+      { name: 'Fragility Composite Score', version: 'v1', license: 'MIT', citation: 'Polymer Genomics — integrated from non-B, stacking, curvature', url: 'https://polymerbio.org' },
+      { name: 'COSMIC Breakpoints', version: 'v99', license: 'Free for non-commercial use', citation: 'Forbes et al., Nucleic Acids Res 2017', url: 'https://cancer.sanger.ac.uk/cosmic' },
+    ],
+  },
+  {
+    category: 'HLA',
+    sources: [
+      { name: 'IPD-IMGT/HLA Database', version: '3.55', license: 'CC BY 4.0', citation: 'Robinson et al., Nucleic Acids Res 2020', url: 'https://www.ebi.ac.uk/ipd/imgt/hla/' },
+    ],
+  },
+  {
+    category: 'Mutation Density',
+    sources: [
+      { name: 'PCAWG Mutation Rates', version: 'v1', license: 'CC BY 4.0', citation: 'ICGC/TCGA Pan-Cancer Analysis of Whole Genomes Consortium, Nature 2020', url: 'https://dcc.icgc.org/pcawg' },
     ],
   },
   {
@@ -149,10 +213,14 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'Illumina 450K Manifest': 'probe_450k',
   'UCSC CpG Islands': 'cpg_islands',
   'GTEx': 'gtex_v10',
-  'gnomAD': 'gene_constraint_v1',
+  'gnomAD Constraint': 'gene_constraint_v1',
+  'gnomAD Structural Variants': 'gnomad_sv_v4',
+  'ClinVar': 'clinvar_v1',
   'Reactome': 'reactome_pathways_v1',
   'MSigDB Hallmark': 'msigdb_hallmark_v1',
   'RepeatMasker': 'repeatmasker_v1',
+  'Telescope HERV Loci': 'herv_loci_v1',
+  'TE Exaptation Catalog': 'te_exaptation_encode_v1',
   'Horvath Clock': 'clock_horvath',
   'Hannum Clock': 'clock_hannum',
   'PhenoAge': 'clock_phenoage',
@@ -161,11 +229,31 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'COSMIC SBS Signatures': 'sbs_mutation_thermo_v1',
   'PhyloP 100-way': 'phylop_phastcons_100way',
   'PhastCons 100-way': 'phylop_phastcons_100way',
+  'Ultraconserved Elements': 'ultraconserved_v1',
   'EBI GWAS Catalog': 'gwas_catalog_ebi_v1',
   'Human Protein Atlas': 'protein_atlas_v1',
   'PaxDb': 'protein_abundance_v1',
-  'ENCODE': 'encode_ccre_v4',
+  'ENCODE cCREs': 'encode_ccre_v4',
+  'ENCODE Histone Peaks': 'histone_peaks_encode_v1',
+  'ENCODE TF Binding Sites': 'encode_tfbs_v1',
+  'ENCODE Accessibility Signal': 'accessibility_signal',
   'ChromHMM 15-state Model': 'chromhmm_15state_v1',
+  'ENCODE TAD Domains': 'tad_domain',
+  'Hi-C A/B Compartments': 'hic_compartment',
+  'Insulation Score': 'insulation_score',
+  'LADs': 'lads_meuleman_v1',
+  'ABC Enhancer-Gene Links': 'abc_enhancer_gene_v1',
+  'dbSUPER Super-Enhancers': 'super_enhancers_dbsuper_v1',
+  'GTEx eQTLs': 'gtex_eqtl_v8',
+  'GoDMC meQTLs': 'godmc_meqtl_v1',
+  'Non-B DNA Structures': 'nonb_dna',
+  'Fragility Composite Score': 'fragility_composite',
+  'COSMIC Breakpoints': 'breakpoints',
+  'Crossover Hotspots': 'onco_events_v1',
+  'DMC1 Meiotic Hotspots': 'dmc1_hotspots_v1',
+  'WGBS Hematopoietic': 'wgbs_hematopoietic',
+  'IPD-IMGT/HLA Database': 'hla_allele_features',
+  'PCAWG Mutation Rates': 'mutation_density_pcawg',
   'Polymer Evolution Layer 0': 'sequence_biophysics_l0',
 };
 

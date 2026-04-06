@@ -5,7 +5,7 @@ export interface PlatformStats {
   mcpTools: string;
 }
 
-export const MCP_REFERENCE_TOOL_COUNT = 34;
+export const MCP_REFERENCE_TOOL_COUNT = 60;
 export const MCP_COMPUTE_TOOL_COUNT = 10;
 export const MCP_TOOL_COUNT = MCP_REFERENCE_TOOL_COUNT + MCP_COMPUTE_TOOL_COUNT;
 

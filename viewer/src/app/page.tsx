@@ -196,7 +196,7 @@ export default function Home() {
   const wideLayout = !isTablet;
 
   const STATS = [
-    { value: '41', label: 'layers' },
+    { value: '50', label: 'layers' },
     { value: stats.cpg, label: 'CpG sites' },
     { value: stats.probes, label: 'probes' },
     { value: stats.transcripts, label: 'transcripts' },
