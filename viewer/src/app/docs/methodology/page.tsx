@@ -21,7 +21,7 @@ const h2Style = {
 
 const h3Style = {
   fontSize: TYPE.base,
-  fontWeight: WEIGHT.semibold,
+  fontWeight: WEIGHT.medium,
   fontFamily: FONT_FAMILY,
   color: COLOR.text.primary,
   marginBottom: SPACE[2],
@@ -51,7 +51,7 @@ const thStyle: React.CSSProperties = {
   padding: '6px 10px',
   borderBottom: `2px solid ${COLOR.border.subtle}`,
   color: COLOR.text.faint,
-  fontWeight: WEIGHT.semibold,
+  fontWeight: WEIGHT.medium,
   fontSize: TYPE.xs,
 };
 
