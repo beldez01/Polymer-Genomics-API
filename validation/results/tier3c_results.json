@@ -1,0 +1,187 @@
+{
+  "tier": "3C",
+  "name": "Nucleosome Multi-Resolution",
+  "tests": [
+    {
+      "name": "3C periodicity_power resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0139, 1000bp=0.0098, improves=True"
+    },
+    {
+      "name": "3C curvature resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0483, 1000bp=0.1932, improves=False"
+    },
+    {
+      "name": "3C mean_dg37 resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0566, 1000bp=0.1945, improves=False"
+    },
+    {
+      "name": "3C std_dg37 resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0013, 1000bp=0.0345, improves=False"
+    },
+    {
+      "name": "3C mean_deformability resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0189, 1000bp=0.0030, improves=True"
+    },
+    {
+      "name": "3C mean_roll resolution gradient",
+      "passed": true,
+      "detail": "|partial_r| at 147bp=0.0808, 1000bp=0.2857, improves=False"
+    }
+  ],
+  "resolution_results": {
+    "147": {
+      "window": 147,
+      "n": 19177,
+      "r_gc_mnase": 0.3777,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.3687,
+          "partial_r": 0.0566
+        },
+        "std_dg37": {
+          "r_raw": 0.1464,
+          "partial_r": 0.0013
+        },
+        "mean_roll": {
+          "r_raw": 0.2311,
+          "partial_r": 0.0808
+        },
+        "mean_twist": {
+          "r_raw": -0.287,
+          "partial_r": -0.0479
+        },
+        "mean_deformability": {
+          "r_raw": 0.3751,
+          "partial_r": 0.0189
+        },
+        "curvature": {
+          "r_raw": 0.2911,
+          "partial_r": 0.0483
+        },
+        "periodicity_power": {
+          "r_raw": -0.0299,
+          "partial_r": -0.0139
+        }
+      }
+    },
+    "200": {
+      "window": 200,
+      "n": 19197,
+      "r_gc_mnase": 0.4058,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.3942,
+          "partial_r": 0.0863
+        },
+        "std_dg37": {
+          "r_raw": 0.153,
+          "partial_r": -0.0113
+        },
+        "mean_roll": {
+          "r_raw": 0.2836,
+          "partial_r": 0.1248
+        },
+        "mean_twist": {
+          "r_raw": -0.3416,
+          "partial_r": -0.0912
+        },
+        "mean_deformability": {
+          "r_raw": 0.4,
+          "partial_r": -0.0053
+        },
+        "curvature": {
+          "r_raw": 0.329,
+          "partial_r": 0.0693
+        },
+        "periodicity_power": {
+          "r_raw": -0.0358,
+          "partial_r": -0.0194
+        }
+      }
+    },
+    "500": {
+      "window": 500,
+      "n": 19159,
+      "r_gc_mnase": 0.4705,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.4569,
+          "partial_r": 0.1415
+        },
+        "std_dg37": {
+          "r_raw": 0.1967,
+          "partial_r": -0.0213
+        },
+        "mean_roll": {
+          "r_raw": 0.3803,
+          "partial_r": 0.1882
+        },
+        "mean_twist": {
+          "r_raw": -0.4329,
+          "partial_r": -0.136
+        },
+        "mean_deformability": {
+          "r_raw": 0.4695,
+          "partial_r": 0.0245
+        },
+        "curvature": {
+          "r_raw": 0.4291,
+          "partial_r": 0.1227
+        },
+        "periodicity_power": {
+          "r_raw": -0.0249,
+          "partial_r": -0.0125
+        }
+      }
+    },
+    "1000": {
+      "window": 1000,
+      "n": 19202,
+      "r_gc_mnase": 0.4979,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.4835,
+          "partial_r": 0.1945
+        },
+        "std_dg37": {
+          "r_raw": 0.215,
+          "partial_r": -0.0345
+        },
+        "mean_roll": {
+          "r_raw": 0.4754,
+          "partial_r": 0.2857
+        },
+        "mean_twist": {
+          "r_raw": -0.5104,
+          "partial_r": -0.2119
+        },
+        "mean_deformability": {
+          "r_raw": 0.4951,
+          "partial_r": -0.003
+        },
+        "curvature": {
+          "r_raw": 0.5006,
+          "partial_r": 0.1932
+        },
+        "periodicity_power": {
+          "r_raw": -0.0296,
+          "partial_r": -0.0098
+        }
+      }
+    }
+  },
+  "summary": {
+    "resolutions_tested": [
+      147,
+      200,
+      500,
+      1000
+    ],
+    "n_per_resolution": 20000
+  }
+}
