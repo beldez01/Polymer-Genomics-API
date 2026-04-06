@@ -163,7 +163,7 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 | GTEx expression | GTEx v10 | **VALIDATED** |
 | ENCODE cCREs | ENCODE v4 | **VALIDATED** |
 | Illumina probes | Manifests | **VALIDATED** |
-| Epigenetic clocks | Published papers | **BROKEN** (dual-loading bug) |
+| Epigenetic clocks | Published papers | Code fixed, live DB needs re-ingest |
 | RepeatMasker | UCSC | **VALIDATED** |
 | Recombination hotspots | Palsson/Pratto | **VALIDATED** |
 
@@ -175,10 +175,10 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 2. ~~**Structural params**: Citation says "Olson 1998" but values don't match.~~ **FIXED** — were LLM-generated chimera. Replaced with verified Olson 2001 J Mol Biol 313:229. Citation corrected.
 3. ~~**Bubble propensity**: Evidence class D.~~ **FIXED** — changed to H in viewer. Sigmoid params documented as unjustified.
 4. **Z-form, A-form, ΔG₃₇ at 1kb**: GC-redundant globally but carry independent signal within GC strata (Tier 3D/3E). Need methodology page explaining this nuance.
-5. **Epigenetic clocks**: Dual-loading bug must be fixed before any clock-related claims.
-6. **Physics linter flags**: Need MPRA validation before shipping with warning semantics.
+5. ~~**Epigenetic clocks**: Dual-loading bug.~~ **CODE FIXED** — removed early-return that prevented TSV overwrite. Live DB needs: `fly postgres connect -a polymer-db < scripts/fix_all_clocks.sql` then re-ingest.
+6. **Physics linter flags**: Need MPRA validation. Tier 3G stub written. Data source: [MPRAbase](https://mprabase.ucsf.edu) (17.7M sequences, 130 experiments).
 7. ~~**TRX citation**: Wrong page range.~~ **FIXED** — corrected to Heddi 2010 NAR 38(3):1034-1047.
 
 ---
 
-*Last updated: 2026-04-06 (Tiers 1-5 + 3C/3D/3E complete. 142/161 Tier 1 pass, 18/19 Tier 4 pass. 4 of 7 critical actions resolved.)*
+*Last updated: 2026-04-06 (Tiers 1-5 + 3C/3D/3E complete. 142/161 Tier 1 pass, 18/19 Tier 4 pass. 6 of 7 critical actions resolved. Only MPRA linter validation remains (needs data download).)*
