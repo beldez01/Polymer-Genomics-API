@@ -356,7 +356,7 @@ export function TrackStack({
         )}
 
         {showStability && (
-          <TrackRow label="Stability" evidenceClass="D">
+          <TrackRow label="Stability" evidenceClass="H">
             <StabilityTrack
               data={biophysicsData ? {
                 class: 'GRanges' as const,
@@ -372,7 +372,7 @@ export function TrackStack({
         )}
 
         {showStructure && (
-          <TrackRow label="Structure" evidenceClass="D">
+          <TrackRow label="Structure" evidenceClass="H">
             <StructureTrack
               data={biophysicsData ? {
                 class: 'GRanges' as const,

@@ -252,24 +252,33 @@ def compute_groove_profile(seq: str) -> dict:
     return {"per_step": steps, "summary": summary}
 
 
-# Olson et al. 1998 structural parameters (degrees / Angstrom)
+# Olson WK et al. 2001 J Mol Biol 313:229-257
+# "A Standard Reference Frame for the Description of Nucleic Acid Base-pair
+# Geometry." Table 2: Mean base-pair step parameters from protein–DNA crystal
+# structures (degrees / Angstrom).
+#
+# NOTE (2026-04-06): Prior values were a chimeric LLM-generated composite
+# (twist from Kabsch/Trifonov 1982, other params partially from Olson 1998
+# PNAS with sign errors). Replaced with standard reference frame values.
+# These values should be verified against the physical paper — Table 2,
+# column "Protein–DNA", rows for each of the 10 unique dinucleotide steps.
 _OLSON_STRUCTURAL = {
-    "AA": {"roll": -0.7, "tilt": -0.2, "twist": 35.6, "rise": 3.27, "slide": -0.06, "shift": 0.00},
-    "AC": {"roll":  1.0, "tilt":  1.0, "twist": 34.0, "rise": 3.38, "slide":  0.22, "shift":  0.13},
-    "AG": {"roll":  5.3, "tilt": -0.3, "twist": 34.4, "rise": 3.29, "slide":  0.30, "shift": -0.01},
-    "AT": {"roll":  2.6, "tilt":  0.0, "twist": 31.5, "rise": 3.39, "slide": -0.22, "shift":  0.00},
-    "CA": {"roll":  4.2, "tilt":  0.7, "twist": 34.5, "rise": 3.26, "slide":  0.34, "shift":  0.18},
-    "CC": {"roll":  2.4, "tilt": -1.0, "twist": 32.9, "rise": 3.38, "slide":  0.47, "shift":  0.15},
-    "CG": {"roll":  3.5, "tilt":  0.0, "twist": 29.8, "rise": 3.32, "slide":  0.19, "shift":  0.00},
-    "CT": {"roll":  5.3, "tilt":  0.3, "twist": 34.4, "rise": 3.29, "slide":  0.30, "shift": -0.01},
-    "GA": {"roll":  1.3, "tilt":  1.5, "twist": 36.9, "rise": 3.38, "slide":  0.09, "shift":  0.12},
-    "GC": {"roll":  0.7, "tilt":  0.0, "twist": 40.0, "rise": 3.38, "slide":  0.57, "shift":  0.00},
-    "GG": {"roll":  2.4, "tilt":  1.0, "twist": 32.9, "rise": 3.38, "slide":  0.47, "shift":  0.15},
-    "GT": {"roll":  1.0, "tilt": -1.0, "twist": 34.0, "rise": 3.38, "slide":  0.22, "shift":  0.13},
-    "TA": {"roll":  3.3, "tilt":  0.0, "twist": 36.0, "rise": 3.38, "slide":  0.20, "shift":  0.00},
-    "TC": {"roll":  1.3, "tilt": -1.5, "twist": 36.9, "rise": 3.38, "slide":  0.09, "shift":  0.12},
-    "TG": {"roll":  4.2, "tilt": -0.7, "twist": 34.5, "rise": 3.26, "slide":  0.34, "shift":  0.18},
-    "TT": {"roll": -0.7, "tilt":  0.2, "twist": 35.6, "rise": 3.27, "slide": -0.06, "shift":  0.00},
+    "AA": {"roll":  0.7, "tilt": -1.0, "twist": 35.6, "rise": 3.33, "slide": -0.08, "shift": 0.00},
+    "AC": {"roll":  4.8, "tilt":  0.1, "twist": 34.4, "rise": 3.38, "slide": -0.06, "shift": 0.43},
+    "AG": {"roll":  2.5, "tilt": -0.1, "twist": 27.7, "rise": 3.38, "slide":  0.27, "shift":-0.04},
+    "AT": {"roll": -2.4, "tilt":  0.0, "twist": 31.5, "rise": 3.34, "slide": -0.55, "shift": 0.00},
+    "CA": {"roll":  6.5, "tilt":  0.5, "twist": 34.5, "rise": 3.35, "slide":  0.49, "shift": 0.46},
+    "CC": {"roll":  1.6, "tilt": -0.1, "twist": 33.7, "rise": 3.38, "slide":  0.17, "shift": 0.10},
+    "CG": {"roll":  3.5, "tilt":  0.0, "twist": 29.8, "rise": 3.42, "slide":  0.26, "shift": 0.00},
+    "CT": {"roll":  2.5, "tilt":  0.1, "twist": 27.7, "rise": 3.38, "slide":  0.27, "shift": 0.04},
+    "GA": {"roll":  0.7, "tilt":  0.7, "twist": 36.9, "rise": 3.38, "slide": -0.01, "shift":-0.03},
+    "GC": {"roll": -6.2, "tilt":  0.0, "twist": 40.0, "rise": 3.36, "slide": -0.46, "shift": 0.00},
+    "GG": {"roll":  1.6, "tilt":  0.1, "twist": 33.7, "rise": 3.38, "slide":  0.17, "shift":-0.10},
+    "GT": {"roll":  4.8, "tilt": -0.1, "twist": 34.4, "rise": 3.38, "slide": -0.06, "shift":-0.43},
+    "TA": {"roll":  1.4, "tilt":  0.0, "twist": 36.0, "rise": 3.37, "slide":  0.19, "shift": 0.00},
+    "TC": {"roll":  0.7, "tilt": -0.7, "twist": 36.9, "rise": 3.38, "slide": -0.01, "shift": 0.03},
+    "TG": {"roll":  6.5, "tilt": -0.5, "twist": 34.5, "rise": 3.35, "slide":  0.49, "shift":-0.46},
+    "TT": {"roll":  0.7, "tilt":  1.0, "twist": 35.6, "rise": 3.33, "slide": -0.08, "shift": 0.00},
 }
 
 # Heddi et al. 2010 TRX flexibility scale (% BII conformer population)
@@ -367,9 +376,13 @@ def compute_contextual(sequence: str, window: int = 10) -> dict:
     # Positive = weaker than context (vulnerability), negative = stronger (anchor)
     context_dev = dg_values - local_dg
 
-    # Bubble propensity: sigmoid of how much local ΔG exceeds stability threshold
-    # Centered at -1.2 kcal/mol/step (typical genome average)
-    # More positive (less negative) ΔG = more bubble-prone
+    # Bubble propensity: sigmoid of how much local ΔG exceeds stability threshold.
+    # ASSUMPTION (evidence class H — unjustified, 2026-04-06):
+    #   Center = -1.2 kcal/mol/step and gain = 4.0 are NOT from any published
+    #   calibration. They were chosen as heuristic values. The center approximates
+    #   the genome-wide mean ΔG, and the gain controls steepness. These have NOT
+    #   been validated against experimental denaturation data (e.g., permanganate-seq).
+    #   Until calibrated, treat this as a relative ranking, not a probability.
     bubble_prop = 1.0 / (1.0 + np.exp(-4.0 * (local_dg + 1.2)))
 
     # Build per-step output
@@ -399,10 +412,22 @@ def compute_contextual(sequence: str, window: int = 10) -> dict:
 
 
 def compute_curvature(sequence: str, window: int = 21) -> dict:
-    """Compute local DNA curvature from accumulated roll and tilt.
+    """Compute local DNA angular variability from roll and tilt.
 
-    Curvature = sqrt(mean(roll²) + mean(tilt²)) over a sliding window.
-    Window default = 21bp (two helical turns, standard for curvature analysis).
+    Value = sqrt(mean(roll²) + mean(tilt²)) over a sliding window.
+    Window default = 21bp (two helical turns).
+
+    IMPORTANT LIMITATION (validated 2026-04-06, Tier 4.2):
+    This formula measures the RMS angular *variance* at each step, NOT
+    coherent macroscopic bending. It fails the gold-standard A-tract test:
+    phased A₅ tracts produce the largest known intrinsic DNA curvature, but
+    this formula gives them LOWER scores than random heterogeneous sequence
+    because A-tracts have small, uniform roll/tilt while mixed sequences have
+    large, varied roll/tilt.
+
+    To predict actual macroscopic bending, a phased wedge model (e.g.,
+    Bolshoy/Trifonov 1991) or trajectory integration is needed. This metric
+    is better described as "angular variability" or "step heterogeneity."
     """
     seq = sequence.upper()
     n = len(seq) - 1

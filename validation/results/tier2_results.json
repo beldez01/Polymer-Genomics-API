@@ -1,0 +1,55 @@
+{
+  "tier": "2",
+  "name": "Pipeline Consistency",
+  "tests": [
+    {
+      "name": "2.1 GC deterministic (1000 regions)",
+      "passed": true,
+      "detail": "max diff=0.0, failures=0"
+    },
+    {
+      "name": "2.2 \u0394G deterministic (500 regions)",
+      "passed": true,
+      "detail": "max diff=0.0"
+    },
+    {
+      "name": "2.3 GC in [0,1]",
+      "passed": true,
+      "detail": "range [0.2270, 0.7630]"
+    },
+    {
+      "name": "2.4a N-skip in thermodynamics",
+      "passed": true,
+      "detail": "steps=6 (expected 6 valid out of 11 total)"
+    },
+    {
+      "name": "2.4b Pure-N returns empty",
+      "passed": true,
+      "detail": "steps=0"
+    },
+    {
+      "name": "2.5 Boundary regions computable",
+      "passed": true,
+      "detail": "25 OK, 0 failed"
+    },
+    {
+      "name": "2.6 Synthetic seq deterministic",
+      "passed": true,
+      "detail": "\u0394G\u2081=-1406.9200, \u0394G\u2082=-1406.9200"
+    },
+    {
+      "name": "2.7a Genome mean GC \u2248 0.41",
+      "passed": "True",
+      "detail": "mean GC=0.4185 (expected ~0.41)"
+    },
+    {
+      "name": "2.7b GC has isochore variation",
+      "passed": "True",
+      "detail": "std GC=0.0749"
+    }
+  ],
+  "summary": {
+    "passed": 9,
+    "failed": 0
+  }
+}

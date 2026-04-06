@@ -1,0 +1,362 @@
+{
+  "tier": "5",
+  "name": "Dimensional Independence",
+  "tests": [
+    {
+      "name": "PCs for 50% variance",
+      "n_pcs": 1
+    },
+    {
+      "name": "PCs for 75% variance",
+      "n_pcs": 3
+    },
+    {
+      "name": "PCs for 90% variance",
+      "n_pcs": 5
+    },
+    {
+      "name": "PCs for 95% variance",
+      "n_pcs": 5
+    },
+    {
+      "name": "PCs for 99% variance",
+      "n_pcs": 8
+    }
+  ],
+  "gc_correlations": {
+    "mean_dg37": -0.9967,
+    "mean_dh": -0.9551,
+    "mean_ds": -0.3189,
+    "std_dg37": 0.4538,
+    "mean_roll": 0.9025,
+    "mean_tilt": 0.0038,
+    "mean_twist": -0.386,
+    "mean_rise": 0.746,
+    "mean_slide": 0.9925,
+    "mean_deformability": 0.994,
+    "mean_a_form": 0.9976,
+    "mean_z_form": -0.9998,
+    "mean_curvature": 0.8428,
+    "cpg_obs_exp": 0.3687,
+    "cpg_density": 0.6841,
+    "dinuc_entropy": 0.4171
+  },
+  "strong_partial_correlations": [
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_ds",
+      "r": 0.9919
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_dh",
+      "r": 0.9076
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_ds",
+      "r": 0.8475
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "mean_curvature",
+      "r": 0.8434
+    },
+    {
+      "prop1": "cpg_obs_exp",
+      "prop2": "cpg_density",
+      "r": 0.8159
+    },
+    {
+      "prop1": "mean_twist",
+      "prop2": "mean_rise",
+      "r": -0.7964
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_roll",
+      "r": 0.7472
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "cpg_density",
+      "r": -0.7228
+    },
+    {
+      "prop1": "mean_curvature",
+      "prop2": "cpg_density",
+      "r": -0.7125
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_a_form",
+      "r": 0.6947
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "cpg_density",
+      "r": -0.6944
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "cpg_obs_exp",
+      "r": -0.6343
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_curvature",
+      "r": 0.6318
+    },
+    {
+      "prop1": "mean_slide",
+      "prop2": "cpg_density",
+      "r": -0.6295
+    },
+    {
+      "prop1": "mean_twist",
+      "prop2": "mean_deformability",
+      "r": -0.6045
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "cpg_obs_exp",
+      "r": -0.6028
+    },
+    {
+      "prop1": "mean_z_form",
+      "prop2": "cpg_density",
+      "r": 0.6006
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "mean_z_form",
+      "r": -0.5981
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_roll",
+      "r": 0.5888
+    },
+    {
+      "prop1": "mean_z_form",
+      "prop2": "mean_curvature",
+      "r": -0.5786
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "mean_slide",
+      "r": 0.5776
+    },
+    {
+      "prop1": "mean_slide",
+      "prop2": "cpg_obs_exp",
+      "r": -0.5706
+    },
+    {
+      "prop1": "mean_slide",
+      "prop2": "mean_curvature",
+      "r": 0.57
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "cpg_density",
+      "r": -0.567
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "cpg_density",
+      "r": -0.5507
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_rise",
+      "r": 0.5501
+    },
+    {
+      "prop1": "mean_curvature",
+      "prop2": "cpg_obs_exp",
+      "r": -0.5499
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_a_form",
+      "r": 0.5339
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "mean_roll",
+      "r": 0.5203
+    },
+    {
+      "prop1": "mean_a_form",
+      "prop2": "mean_curvature",
+      "r": 0.5066
+    },
+    {
+      "prop1": "std_dg37",
+      "prop2": "dinuc_entropy",
+      "r": 0.4825
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_curvature",
+      "r": 0.4785
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "mean_a_form",
+      "r": 0.4672
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "cpg_obs_exp",
+      "r": -0.4485
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_rise",
+      "r": 0.4471
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "mean_a_form",
+      "r": 0.4471
+    },
+    {
+      "prop1": "mean_twist",
+      "prop2": "mean_curvature",
+      "r": 0.4392
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "cpg_obs_exp",
+      "r": -0.4388
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "mean_curvature",
+      "r": 0.4238
+    },
+    {
+      "prop1": "mean_roll",
+      "prop2": "mean_rise",
+      "r": 0.4221
+    },
+    {
+      "prop1": "mean_z_form",
+      "prop2": "cpg_obs_exp",
+      "r": 0.41
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "mean_rise",
+      "r": 0.386
+    },
+    {
+      "prop1": "mean_deformability",
+      "prop2": "mean_z_form",
+      "r": -0.3799
+    },
+    {
+      "prop1": "mean_slide",
+      "prop2": "mean_z_form",
+      "r": -0.3741
+    },
+    {
+      "prop1": "mean_twist",
+      "prop2": "dinuc_entropy",
+      "r": 0.3736
+    },
+    {
+      "prop1": "mean_ds",
+      "prop2": "mean_slide",
+      "r": 0.3543
+    },
+    {
+      "prop1": "mean_dh",
+      "prop2": "mean_slide",
+      "r": 0.3517
+    },
+    {
+      "prop1": "std_dg37",
+      "prop2": "cpg_obs_exp",
+      "r": 0.335
+    },
+    {
+      "prop1": "mean_rise",
+      "prop2": "mean_a_form",
+      "r": 0.3229
+    },
+    {
+      "prop1": "mean_dg37",
+      "prop2": "mean_slide",
+      "r": 0.3121
+    },
+    {
+      "prop1": "mean_deformability",
+      "prop2": "mean_a_form",
+      "r": -0.3081
+    },
+    {
+      "prop1": "mean_twist",
+      "prop2": "cpg_density",
+      "r": -0.3048
+    },
+    {
+      "prop1": "mean_deformability",
+      "prop2": "mean_curvature",
+      "r": -0.3033
+    }
+  ],
+  "verdicts": {
+    "mean_dg37": "GC-REDUNDANT",
+    "mean_dh": "PARTIALLY INDEPENDENT",
+    "mean_ds": "INDEPENDENT",
+    "std_dg37": "INDEPENDENT",
+    "mean_roll": "PARTIALLY INDEPENDENT",
+    "mean_tilt": "INDEPENDENT",
+    "mean_twist": "INDEPENDENT",
+    "mean_rise": "INDEPENDENT",
+    "mean_slide": "MOSTLY GC",
+    "mean_deformability": "MOSTLY GC",
+    "mean_a_form": "GC-REDUNDANT",
+    "mean_z_form": "GC-REDUNDANT",
+    "mean_curvature": "INDEPENDENT",
+    "cpg_obs_exp": "INDEPENDENT",
+    "cpg_density": "INDEPENDENT",
+    "dinuc_entropy": "INDEPENDENT"
+  },
+  "summary": {
+    "n_features": 17,
+    "n_regions": 10000,
+    "pcs_95_pct": 5,
+    "n_gc_redundant": 3,
+    "n_mostly_gc": 2,
+    "n_partially_independent": 2,
+    "n_independent": 9,
+    "explained_variance_ratios": [
+      0.61426,
+      0.12609,
+      0.09402,
+      0.06166,
+      0.05619,
+      0.01652,
+      0.01484,
+      0.00982,
+      0.00581,
+      0.00044
+    ],
+    "cumulative_variance": [
+      0.61426,
+      0.74035,
+      0.83437,
+      0.89603,
+      0.95222,
+      0.96874,
+      0.98359,
+      0.99341,
+      0.99922,
+      0.99966
+    ]
+  }
+}

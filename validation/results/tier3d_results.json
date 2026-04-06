@@ -1,0 +1,383 @@
+{
+  "tier": "3D",
+  "name": "DNase Accessibility GC-Controlled",
+  "tests": [
+    {
+      "name": "3D cpg_obs_exp independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0730, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D dinuc_entropy independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0625, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D std_dg37 independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0617, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D mean_z_form independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0572, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D mean_roll independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0563, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D mean_dg37 independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0537, verdict=WEAK INDEPENDENT"
+    },
+    {
+      "name": "3D mean_deformability independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0471, verdict=MARGINAL"
+    },
+    {
+      "name": "3D mean_rise independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0430, verdict=MARGINAL"
+    },
+    {
+      "name": "3D mean_twist independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0371, verdict=MARGINAL"
+    },
+    {
+      "name": "3D mean_a_form independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0308, verdict=MARGINAL"
+    },
+    {
+      "name": "3D mean_tilt independence",
+      "passed": true,
+      "detail": "mean |partial_r|=0.0227, verdict=MARGINAL"
+    }
+  ],
+  "summary": {
+    "n_regions": 50000,
+    "r_gc_dnase_global": 0.2817,
+    "average_partial_correlations": {
+      "mean_dg37": 0.0537,
+      "std_dg37": 0.0617,
+      "mean_roll": 0.0563,
+      "mean_tilt": 0.0227,
+      "mean_twist": 0.0371,
+      "mean_rise": 0.043,
+      "mean_deformability": 0.0471,
+      "mean_a_form": 0.0308,
+      "mean_z_form": 0.0572,
+      "cpg_obs_exp": 0.073,
+      "dinuc_entropy": 0.0625
+    },
+    "n_independent": 6,
+    "n_marginal": 5,
+    "n_no_signal": 0
+  },
+  "strata_results": {
+    "0.30-0.35": {
+      "n": 7555,
+      "r_gc_dnase_within": 0.0913,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.0976,
+          "partial_r": -0.0348
+        },
+        "std_dg37": {
+          "r_raw": 0.0107,
+          "partial_r": -0.0138
+        },
+        "mean_roll": {
+          "r_raw": 0.0068,
+          "partial_r": -0.0373
+        },
+        "mean_tilt": {
+          "r_raw": -0.0236,
+          "partial_r": -0.0253
+        },
+        "mean_twist": {
+          "r_raw": 0.0407,
+          "partial_r": 0.0365
+        },
+        "mean_rise": {
+          "r_raw": -0.0403,
+          "partial_r": -0.0487
+        },
+        "mean_deformability": {
+          "r_raw": 0.0582,
+          "partial_r": -0.0434
+        },
+        "mean_a_form": {
+          "r_raw": 0.0722,
+          "partial_r": -0.0476
+        },
+        "mean_z_form": {
+          "r_raw": -0.0894,
+          "partial_r": 0.0169
+        },
+        "cpg_obs_exp": {
+          "r_raw": 0.0067,
+          "partial_r": 0.002
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.0817,
+          "partial_r": 0.0371
+        }
+      }
+    },
+    "0.35-0.40": {
+      "n": 14699,
+      "r_gc_dnase_within": -0.0086,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": 0.0371,
+          "partial_r": 0.0832
+        },
+        "std_dg37": {
+          "r_raw": 0.1061,
+          "partial_r": 0.1073
+        },
+        "mean_roll": {
+          "r_raw": 0.0401,
+          "partial_r": 0.0481
+        },
+        "mean_tilt": {
+          "r_raw": -0.0404,
+          "partial_r": -0.0399
+        },
+        "mean_twist": {
+          "r_raw": -0.0472,
+          "partial_r": -0.0469
+        },
+        "mean_rise": {
+          "r_raw": 0.0757,
+          "partial_r": 0.0765
+        },
+        "mean_deformability": {
+          "r_raw": -0.0064,
+          "partial_r": 0.0017
+        },
+        "mean_a_form": {
+          "r_raw": -0.0214,
+          "partial_r": -0.0413
+        },
+        "mean_z_form": {
+          "r_raw": 0.0138,
+          "partial_r": 0.0584
+        },
+        "cpg_obs_exp": {
+          "r_raw": -0.084,
+          "partial_r": -0.0838
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.0797,
+          "partial_r": 0.0899
+        }
+      }
+    },
+    "0.40-0.45": {
+      "n": 12037,
+      "r_gc_dnase_within": 0.051,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.0423,
+          "partial_r": 0.0155
+        },
+        "std_dg37": {
+          "r_raw": 0.0083,
+          "partial_r": -0.0011
+        },
+        "mean_roll": {
+          "r_raw": 0.0353,
+          "partial_r": 0.0133
+        },
+        "mean_tilt": {
+          "r_raw": -0.0191,
+          "partial_r": -0.0178
+        },
+        "mean_twist": {
+          "r_raw": 0.0175,
+          "partial_r": 0.0205
+        },
+        "mean_rise": {
+          "r_raw": 0.0026,
+          "partial_r": -0.0109
+        },
+        "mean_deformability": {
+          "r_raw": 0.0221,
+          "partial_r": -0.0461
+        },
+        "mean_a_form": {
+          "r_raw": 0.0426,
+          "partial_r": -0.0166
+        },
+        "mean_z_form": {
+          "r_raw": -0.0498,
+          "partial_r": 0.0101
+        },
+        "cpg_obs_exp": {
+          "r_raw": -0.016,
+          "partial_r": -0.0181
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.0575,
+          "partial_r": 0.0458
+        }
+      }
+    },
+    "0.45-0.50": {
+      "n": 7599,
+      "r_gc_dnase_within": 0.0581,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.0633,
+          "partial_r": -0.0254
+        },
+        "std_dg37": {
+          "r_raw": 0.0304,
+          "partial_r": 0.0277
+        },
+        "mean_roll": {
+          "r_raw": -0.02,
+          "partial_r": -0.0472
+        },
+        "mean_tilt": {
+          "r_raw": 0.0016,
+          "partial_r": 0.0005
+        },
+        "mean_twist": {
+          "r_raw": -0.0147,
+          "partial_r": -0.0107
+        },
+        "mean_rise": {
+          "r_raw": 0.0156,
+          "partial_r": 0.0008
+        },
+        "mean_deformability": {
+          "r_raw": 0.0101,
+          "partial_r": -0.0866
+        },
+        "mean_a_form": {
+          "r_raw": 0.0489,
+          "partial_r": -0.0146
+        },
+        "mean_z_form": {
+          "r_raw": -0.0509,
+          "partial_r": 0.061
+        },
+        "cpg_obs_exp": {
+          "r_raw": 0.095,
+          "partial_r": 0.0909
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.0383,
+          "partial_r": 0.0373
+        }
+      }
+    },
+    "0.50-0.55": {
+      "n": 3639,
+      "r_gc_dnase_within": 0.0736,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.1057,
+          "partial_r": -0.0913
+        },
+        "std_dg37": {
+          "r_raw": 0.1337,
+          "partial_r": 0.1367
+        },
+        "mean_roll": {
+          "r_raw": -0.1178,
+          "partial_r": -0.159
+        },
+        "mean_tilt": {
+          "r_raw": -0.0112,
+          "partial_r": -0.0118
+        },
+        "mean_twist": {
+          "r_raw": -0.0708,
+          "partial_r": -0.0575
+        },
+        "mean_rise": {
+          "r_raw": 0.0678,
+          "partial_r": 0.0406
+        },
+        "mean_deformability": {
+          "r_raw": 0.0176,
+          "partial_r": -0.0989
+        },
+        "mean_a_form": {
+          "r_raw": 0.0554,
+          "partial_r": -0.0321
+        },
+        "mean_z_form": {
+          "r_raw": -0.0531,
+          "partial_r": 0.157
+        },
+        "cpg_obs_exp": {
+          "r_raw": 0.1903,
+          "partial_r": 0.1884
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.0597,
+          "partial_r": 0.0701
+        }
+      }
+    },
+    "0.55-0.60": {
+      "n": 1657,
+      "r_gc_dnase_within": 0.0653,
+      "properties": {
+        "mean_dg37": {
+          "r_raw": -0.1554,
+          "partial_r": -0.2015
+        },
+        "std_dg37": {
+          "r_raw": 0.3047,
+          "partial_r": 0.3064
+        },
+        "mean_roll": {
+          "r_raw": -0.319,
+          "partial_r": -0.3431
+        },
+        "mean_tilt": {
+          "r_raw": 0.0211,
+          "partial_r": 0.0198
+        },
+        "mean_twist": {
+          "r_raw": -0.1617,
+          "partial_r": -0.1511
+        },
+        "mean_rise": {
+          "r_raw": 0.1647,
+          "partial_r": 0.1518
+        },
+        "mean_deformability": {
+          "r_raw": -0.0346,
+          "partial_r": -0.1789
+        },
+        "mean_a_form": {
+          "r_raw": 0.0437,
+          "partial_r": -0.0363
+        },
+        "mean_z_form": {
+          "r_raw": -0.0126,
+          "partial_r": 0.3347
+        },
+        "cpg_obs_exp": {
+          "r_raw": 0.3673,
+          "partial_r": 0.3628
+        },
+        "dinuc_entropy": {
+          "r_raw": 0.1397,
+          "partial_r": 0.1557
+        }
+      }
+    }
+  }
+}

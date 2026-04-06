@@ -1,0 +1,106 @@
+{
+  "tier": "4",
+  "name": "Known-Answer Tests",
+  "tests": [
+    {
+      "name": "4.1a Telomere GC \u2248 0.50",
+      "passed": true,
+      "detail": "GC=0.500"
+    },
+    {
+      "name": "4.1b Telomere stability intermediate",
+      "passed": true,
+      "detail": "mean_dg=-1.334 kcal/mol (expected -1.8 to -1.0)"
+    },
+    {
+      "name": "4.1c Telomere contains G4 motifs",
+      "passed": true,
+      "detail": "Found 12 G4 motifs (expected >0 from TTAGGG repeats)"
+    },
+    {
+      "name": "4.2a A-tract curvature > random",
+      "passed": false,
+      "detail": "A-tract=2.209, random=2.720"
+    },
+    {
+      "name": "4.2b A-tract more stable than random mix (AT-rich \u2192 less stable, but A-tracts cluster)",
+      "passed": true,
+      "detail": "A-tract mean_dg=-1.428, random=-1.424"
+    },
+    {
+      "name": "4.3 Heterogeneous curvature < A-tract",
+      "passed": false,
+      "detail": "hetero=2.602 < a_tract=2.209"
+    },
+    {
+      "name": "4.4a CG alternation Z-propensity",
+      "passed": true,
+      "detail": "mean_z=2.424 (CG=0.66/GC=4.20 \u2192 alternating avg \u2248 2.43)"
+    },
+    {
+      "name": "4.4b CG alternation high A-form propensity",
+      "passed": true,
+      "detail": "mean_a=0.870 (CG=0.85, GC=0.89 \u2192 avg \u2248 0.87)"
+    },
+    {
+      "name": "4.5a AT alternation high Z-penalty",
+      "passed": true,
+      "detail": "AT_z=4.356 > CG_z=2.424"
+    },
+    {
+      "name": "4.5b AT alternation low A-form",
+      "passed": true,
+      "detail": "AT_a=0.380 < CG_a=0.870"
+    },
+    {
+      "name": "4.6 MYC NHE III1 G4 detected",
+      "passed": true,
+      "detail": "Found 1 G4 (expected: 1, PDB: 1XAV)"
+    },
+    {
+      "name": "4.7a Alpha-satellite high curvature",
+      "passed": true,
+      "detail": "alpha=3.034 vs hetero=2.602"
+    },
+    {
+      "name": "4.7b Alpha-satellite AT-rich",
+      "passed": true,
+      "detail": "GC=0.392 (centromeric DNA is AT-rich)"
+    },
+    {
+      "name": "4.8a TP53 promoter GC > 0.50",
+      "passed": false,
+      "detail": "GC=0.500"
+    },
+    {
+      "name": "4.8b TP53 promoter CpG obs/exp > 0.6",
+      "passed": true,
+      "detail": "CpG obs/exp=0.726"
+    },
+    {
+      "name": "4.9 Poly-GC most stable",
+      "passed": true,
+      "detail": "mean_dg=-2.198 (expected \u2248 -2.21)"
+    },
+    {
+      "name": "4.10a Poly-TA least stable",
+      "passed": true,
+      "detail": "mean_dg=-0.733 (expected \u2248 -0.73)"
+    },
+    {
+      "name": "4.10b GC more stable than TA",
+      "passed": true,
+      "detail": "GC=-2.198 < TA=-0.733"
+    },
+    {
+      "name": "4.11 Stability ranking matches SantaLucia",
+      "passed": true,
+      "detail": "Expected: ['GC', 'CG', 'GG', 'CA', 'GT', 'GA', 'CT', 'AA', 'AT', 'TA'], Got: ['GC', 'CG', 'GG', 'CA', 'GT', 'GA', 'CT', 'AA', 'AT', 'TA']"
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 3,
+    "total": 19
+  }
+}

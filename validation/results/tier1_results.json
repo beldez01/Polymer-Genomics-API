@@ -1,0 +1,819 @@
+{
+  "tier": "1",
+  "name": "Parameter Fidelity",
+  "tests": [
+    {
+      "name": "1.1 SantaLucia DNA/DNA AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA GT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA CT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.1 SantaLucia DNA/DNA GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA AU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA CU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA GU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA UA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA UC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA UG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.2 Xia RNA/RNA UU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA AU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA CU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA GU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA UA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA UC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA UG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.3 Sugimoto RNA/DNA UU",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural CT",
+      "passed": false,
+      "detail": "tilt: API=0.1 GT=-0.1"
+    },
+    {
+      "name": "1.4 Olson structural GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural GT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.4 Olson structural TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX AC",
+      "passed": false,
+      "detail": "API=4 GT=10"
+    },
+    {
+      "name": "1.5 Heddi TRX AG",
+      "passed": false,
+      "detail": "API=9 GT=10"
+    },
+    {
+      "name": "1.5 Heddi TRX AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX CT",
+      "passed": false,
+      "detail": "API=9 GT=10"
+    },
+    {
+      "name": "1.5 Heddi TRX GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX GC",
+      "passed": false,
+      "detail": "API=25 GT=10"
+    },
+    {
+      "name": "1.5 Heddi TRX GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX GT",
+      "passed": false,
+      "detail": "API=4 GT=10"
+    },
+    {
+      "name": "1.5 Heddi TRX TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.5 Heddi TRX TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 CT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 GT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.6 Tataurov \u03b5260 TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity CT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity GT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.7 Z-form propensity AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity GG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity CC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity GA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity CT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity GT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity CA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.8 A-form propensity TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.9 Groove geometry AT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.9 Groove geometry CG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.9 Groove geometry TA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.9 Groove geometry GC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.9 Groove geometry AA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.10 RC symmetry (100 seqs)",
+      "passed": true,
+      "detail": "max |\u0394\u0394G|=0.000000, failures=0"
+    },
+    {
+      "name": "1.11 Tm CGCATGCTAC... measured=44.2\u00b0C pred=59.7\u00b0C",
+      "passed": false,
+      "detail": "error=+15.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GCATGC... measured=36.0\u00b0C pred=41.6\u00b0C",
+      "passed": false,
+      "detail": "error=+5.6\u00b0C"
+    },
+    {
+      "name": "1.11 Tm CCAACTTGAT... measured=30.2\u00b0C pred=51.7\u00b0C",
+      "passed": false,
+      "detail": "error=+21.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm AGAAAGAGAGG... measured=34.0\u00b0C pred=55.8\u00b0C",
+      "passed": false,
+      "detail": "error=+21.8\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GACGACAAGC... measured=42.6\u00b0C pred=59.4\u00b0C",
+      "passed": false,
+      "detail": "error=+16.8\u00b0C"
+    },
+    {
+      "name": "1.11 Tm CTCGGATCCA... measured=42.0\u00b0C pred=59.3\u00b0C",
+      "passed": false,
+      "detail": "error=+17.3\u00b0C"
+    },
+    {
+      "name": "1.11 Tm ATGCTGATGC... measured=38.5\u00b0C pred=58.1\u00b0C",
+      "passed": false,
+      "detail": "error=+19.6\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GGCAGGCC... measured=54.0\u00b0C pred=65.9\u00b0C",
+      "passed": false,
+      "detail": "error=+11.9\u00b0C"
+    },
+    {
+      "name": "1.11 Tm AGCGCT... measured=40.0\u00b0C pred=48.5\u00b0C",
+      "passed": false,
+      "detail": "error=+8.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm CCATCGCTACC... measured=46.0\u00b0C pred=63.5\u00b0C",
+      "passed": false,
+      "detail": "error=+17.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm CGATCG... measured=42.0\u00b0C pred=38.5\u00b0C",
+      "passed": true,
+      "detail": "\u0394=-3.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm TAAATATA... measured=8.0\u00b0C pred=18.3\u00b0C",
+      "passed": false,
+      "detail": "error=+10.3\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GCGCGC... measured=56.0\u00b0C pred=59.5\u00b0C",
+      "passed": true,
+      "detail": "\u0394=+3.5\u00b0C"
+    },
+    {
+      "name": "1.11 Tm AATATAAT... measured=5.0\u00b0C pred=25.0\u00b0C",
+      "passed": false,
+      "detail": "error=+20.0\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GCGATCGC... measured=56.0\u00b0C pred=61.4\u00b0C",
+      "passed": false,
+      "detail": "error=+5.4\u00b0C"
+    },
+    {
+      "name": "1.11 Tm CAAAGAAAG... measured=20.0\u00b0C pred=41.6\u00b0C",
+      "passed": false,
+      "detail": "error=+21.6\u00b0C"
+    },
+    {
+      "name": "1.11 Tm TGAGCTTGA... measured=28.8\u00b0C pred=51.5\u00b0C",
+      "passed": false,
+      "detail": "error=+22.7\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GGACTCCTG... measured=38.0\u00b0C pred=53.7\u00b0C",
+      "passed": false,
+      "detail": "error=+15.7\u00b0C"
+    },
+    {
+      "name": "1.11 Tm ACGTACGT... measured=30.0\u00b0C pred=54.1\u00b0C",
+      "passed": false,
+      "detail": "error=+24.1\u00b0C"
+    },
+    {
+      "name": "1.11 Tm GCCAGTTAA... measured=27.0\u00b0C pred=49.0\u00b0C",
+      "passed": false,
+      "detail": "error=+22.0\u00b0C"
+    },
+    {
+      "name": "1.11 OVERALL Tm RMSE",
+      "passed": false,
+      "detail": "RMSE=16.67\u00b0C (target <5.0\u00b0C, ideal <2.0\u00b0C)"
+    },
+    {
+      "name": "1.12 Salt monotonicity GCGCGCGCGCGCGCG...",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.12 Salt monotonicity ATATATATATATATA...",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.12 Salt monotonicity ACGTACGTACGTACG...",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.12 Salt monotonicity CGATCGATCGATCGA...",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.12 Salt monotonicity TTTTTTTTTTTTTTT...",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.13 OVERALL \u0394G=\u0394H-T\u0394S consistency (48/48)",
+      "passed": true,
+      "detail": "max inconsistency=0.0155 kcal/mol"
+    },
+    {
+      "name": "1.14 RC pair AA/TT",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.14 RC pair CA/TG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.14 RC pair GT/AC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.14 RC pair CT/AG",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.14 RC pair GA/TC",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "1.14 RC pair GG/CC",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "summary": {
+    "passed": 136,
+    "failed": 25,
+    "total": 161,
+    "tm_rmse": 16.67,
+    "rc_symmetry_max_diff": 0.0,
+    "dg_consistency_max": 0.0155
+  }
+}

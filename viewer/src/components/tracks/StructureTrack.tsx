@@ -7,7 +7,7 @@ import { COLOR } from '@/config/theme';
 import { drawGridlines } from '@/lib/gridlines';
 
 const SIGNALS = [
-  { keys: ['curvature'], label: 'Curvature', color: '#F4A261' },
+  { keys: ['curvature'], label: 'Angular Var.', color: '#F4A261' },
   { keys: ['local_flexibility', 'deformability'], label: 'Flexibility', color: '#7B68EE' },
 ] as const;
 
