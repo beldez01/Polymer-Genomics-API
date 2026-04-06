@@ -9,7 +9,7 @@ const section = {
 };
 
 const h2Style = {
-  fontSize: TYPE.lg,
+  ...TYPE.lg,
   fontWeight: WEIGHT.bold,
   fontFamily: FONT_FAMILY,
   color: COLOR.text.primary,
@@ -20,7 +20,7 @@ const h2Style = {
 };
 
 const h3Style = {
-  fontSize: TYPE.base,
+  ...TYPE.base,
   fontWeight: WEIGHT.medium,
   fontFamily: FONT_FAMILY,
   color: COLOR.text.primary,
@@ -29,7 +29,7 @@ const h3Style = {
 };
 
 const pStyle = {
-  fontSize: TYPE.sm,
+  ...TYPE.sm,
   fontFamily: FONT_FAMILY,
   color: COLOR.text.secondary,
   lineHeight: 1.7,
@@ -38,7 +38,7 @@ const pStyle = {
 };
 
 const tableStyle: React.CSSProperties = {
-  fontSize: TYPE.xs,
+  ...TYPE.xs,
   fontFamily: FONT_FAMILY,
   borderCollapse: 'collapse' as const,
   width: '100%',
@@ -52,7 +52,7 @@ const thStyle: React.CSSProperties = {
   borderBottom: `2px solid ${COLOR.border.subtle}`,
   color: COLOR.text.faint,
   fontWeight: WEIGHT.medium,
-  fontSize: TYPE.xs,
+  ...TYPE.xs,
 };
 
 const tdStyle: React.CSSProperties = {
@@ -67,7 +67,7 @@ export default function MethodologyPage() {
       <BrandBar />
       <main style={{ flex: 1, maxWidth: 860, margin: '0 auto', padding: `${SPACE[6]}px ${SPACE[4]}px` }}>
 
-        <h1 style={{ fontSize: TYPE.xl, fontWeight: WEIGHT.bold, fontFamily: FONT_FAMILY, color: COLOR.text.primary, marginBottom: SPACE[2] }}>
+        <h1 style={{ ...TYPE.xl, fontWeight: WEIGHT.bold, fontFamily: FONT_FAMILY, color: COLOR.text.primary, marginBottom: SPACE[2] }}>
           Biophysics Methodology
         </h1>
         <p style={{ ...pStyle, color: COLOR.text.faint, marginBottom: SPACE[5] }}>
@@ -109,7 +109,7 @@ export default function MethodologyPage() {
               <tr><td style={tdStyle}>Curvature</td><td style={tdStyle}>Trifonov/Bolshoy 1991</td><td style={tdStyle}>Trajectory-integrated wedge model</td></tr>
             </tbody>
           </table>
-          <p style={{ ...pStyle, fontSize: TYPE.xs, color: COLOR.text.faint }}>
+          <p style={{ ...pStyle, ...TYPE.xs, color: COLOR.text.faint }}>
             All 48 nearest-neighbor thermodynamic parameters have been verified exact-match against
             the original publications (validated 2026-04-06, Tier 1).
           </p>
