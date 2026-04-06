@@ -1301,6 +1301,36 @@ async def compare_clock_physics(
 
 
 @mcp.tool()
+async def variant_physics(
+    variants: list[dict],
+    build: str = "hg38",
+    flank: int = 50,
+    cross_reference: bool = True,
+) -> dict:
+    """Compute biophysical consequences of genetic variants.
+
+    For each variant, returns delta stacking energy, delta curvature, delta Tm,
+    nucleosome disruption, non-B DNA motif creation/destruction, CpG site impact,
+    and cross-references with conservation, ClinVar, and regulatory elements.
+
+    Returns interpretable physical mechanisms -- not a black-box score.
+
+    Args:
+        variants: List of variant dicts, each with keys: chr, pos (1-based), ref, alt.
+                  Example: [{"chr": "chr17", "pos": 7675088, "ref": "G", "alt": "A"}]
+        build: Genome build (hg38 or hg37). Default: hg38.
+        flank: Flanking bp on each side of variant for context (default 50).
+        cross_reference: Include DB annotations (ClinVar, conservation, regulatory). Default: true.
+    """
+    return await _post("/v1/variant/physics", {
+        "build": build,
+        "variants": variants,
+        "flank": flank,
+        "cross_reference": cross_reference,
+    })
+
+
+@mcp.tool()
 async def lookup_probe_repeat_overlap(
     probe_id: str | None = None,
     platform: str | None = None,

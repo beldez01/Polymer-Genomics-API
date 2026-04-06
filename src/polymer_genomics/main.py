@@ -44,6 +44,7 @@ from polymer_genomics.routers.design import router as design_router
 from polymer_genomics.routers.hla import router as hla_router
 from polymer_genomics.routers.recombination import router as recombination_router
 from polymer_genomics.routers.clock_physics import router as clock_physics_router
+from polymer_genomics.routers.variant_physics_router import router as variant_physics_router
 
 
 @asynccontextmanager
@@ -117,6 +118,7 @@ app.include_router(design_router)
 app.include_router(hla_router)
 app.include_router(recombination_router)
 app.include_router(clock_physics_router)
+app.include_router(variant_physics_router)
 
 
 @app.exception_handler(asyncpg.QueryCanceledError)
