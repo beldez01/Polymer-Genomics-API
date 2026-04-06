@@ -281,7 +281,9 @@ _OLSON_STRUCTURAL = {
     "TT": {"roll":  0.7, "tilt":  1.0, "twist": 35.6, "rise": 3.33, "slide": -0.08, "shift": 0.00},
 }
 
-# Heddi et al. 2010 TRX flexibility scale (% BII conformer population)
+# Heddi B et al. 2010 NAR 38(3):1034-1047 "Intrinsic flexibility of B-DNA:
+# the experimental TRX scale." Table 1: STRX (half-sum of %BII for facing
+# phosphates). PMID: 19920127.
 _TRX_DEFORMABILITY = {
     "AA":  5, "AC":  4, "AG":  9, "AT":  0,
     "CA": 42, "CC": 42, "CG": 43, "CT":  9,

@@ -249,8 +249,8 @@
     },
     {
       "name": "1.4 Olson structural CT",
-      "passed": false,
-      "detail": "tilt: API=0.1 GT=-0.1"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.4 Olson structural GA",
@@ -299,13 +299,13 @@
     },
     {
       "name": "1.5 Heddi TRX AC",
-      "passed": false,
-      "detail": "API=4 GT=10"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.5 Heddi TRX AG",
-      "passed": false,
-      "detail": "API=9 GT=10"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.5 Heddi TRX AT",
@@ -329,8 +329,8 @@
     },
     {
       "name": "1.5 Heddi TRX CT",
-      "passed": false,
-      "detail": "API=9 GT=10"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.5 Heddi TRX GA",
@@ -339,8 +339,8 @@
     },
     {
       "name": "1.5 Heddi TRX GC",
-      "passed": false,
-      "detail": "API=25 GT=10"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.5 Heddi TRX GG",
@@ -349,8 +349,8 @@
     },
     {
       "name": "1.5 Heddi TRX GT",
-      "passed": false,
-      "detail": "API=4 GT=10"
+      "passed": true,
+      "detail": ""
     },
     {
       "name": "1.5 Heddi TRX TA",
@@ -809,8 +809,8 @@
     }
   ],
   "summary": {
-    "passed": 136,
-    "failed": 25,
+    "passed": 142,
+    "failed": 19,
     "total": 161,
     "tm_rmse": 16.67,
     "rc_symmetry_max_diff": 0.0,

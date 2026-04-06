@@ -200,7 +200,7 @@ OLSON_GROUND_TRUTH = {
     "CA": (6.5, 0.5, 34.5, 3.35, 0.49, 0.46),
     "CC": (1.6, -0.1, 33.7, 3.38, 0.17, 0.10),
     "CG": (3.5, 0.0, 29.8, 3.42, 0.26, 0.00),
-    "CT": (2.5, -0.1, 27.7, 3.38, 0.27, 0.04),
+    "CT": (2.5, 0.1, 27.7, 3.38, 0.27, 0.04),
     "GA": (0.7, 0.7, 36.9, 3.38, -0.01, -0.03),
     "GC": (-6.2, 0.0, 40.0, 3.36, -0.46, 0.00),
     "GG": (1.6, 0.1, 33.7, 3.38, 0.17, -0.10),
@@ -236,12 +236,13 @@ for dinuc, gt_vals in OLSON_GROUND_TRUTH.items():
 
 print("\n═══ TEST 1.5: Heddi TRX Deformability (16 dinuc) ═══")
 
-# Ground truth: %BII backbone conformer population
-# Heddi et al. 2010, NMR + MD simulations
+# Ground truth: STRX scores (half-sum of %BII for facing phosphates)
+# Heddi B et al. 2010 NAR 38(3):1034-1047, Table 1. PMID: 19920127.
+# "Intrinsic flexibility of B-DNA: the experimental TRX scale"
 HEDDI_GROUND_TRUTH = {
-    "AA": 5,  "AC": 10, "AG": 10, "AT": 0,
-    "CA": 42, "CC": 42, "CG": 43, "CT": 10,
-    "GA": 22, "GC": 10, "GG": 42, "GT": 10,
+    "AA": 5,  "AC": 4,  "AG": 9,  "AT": 0,
+    "CA": 42, "CC": 42, "CG": 43, "CT": 9,
+    "GA": 22, "GC": 25, "GG": 42, "GT": 4,
     "TA": 14, "TC": 22, "TG": 42, "TT": 5,
 }
 
