@@ -551,6 +551,10 @@ async def get_probe_repeat_overlap(
 # ── Validation ──────────────────────────────────────────────────────────────
 
 
+_validation_cache: dict[str, tuple[float, Any]] = {}
+_VALIDATION_TTL = 3600  # 1 hour — validation results change only on ingestion
+
+
 @router.get("/validation")
 async def get_validation_report(
     build: str = Query("hg38", description="Genome build"),
@@ -560,8 +564,16 @@ async def get_validation_report(
 
     Checks row counts, value ranges, and null fractions against per-layer
     specifications.  Returns a report with pass/fail for each check.
+    Full validation is cached for 1 hour (expensive: validates all layers).
     """
     from polymer_genomics.validation.runner import run_layer_validation, run_all_validations
+
+    # Cache full-build validations (not single-layer)
+    cache_key = f"{build}:{layer_key or '__all__'}"
+    now = time.monotonic()
+    cached = _validation_cache.get(cache_key)
+    if cached and (now - cached[0]) < _VALIDATION_TTL:
+        return cached[1]
 
     start_time = time.monotonic()
     pool = await get_pool()
@@ -591,7 +603,7 @@ async def get_validation_report(
             })
         report[lk] = layer_results
 
-    return _ref_envelope(
+    result = _ref_envelope(
         query={"build": build, "layer_key": layer_key},
         data={
             "report": report,
@@ -604,3 +616,6 @@ async def get_validation_report(
         db_time_ms=db_time,
         _start_time=start_time,
     )
+
+    _validation_cache[cache_key] = (now, result)
+    return result

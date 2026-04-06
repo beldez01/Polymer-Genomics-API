@@ -34,6 +34,25 @@ from typing import Any
 
 CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
     # ── Count mode ──────────────────────────────────────────────────
+    "cpg_island": {
+        "table": "cpg.islands",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+            "avg_gc": "avg(gc_content)",
+        },
+    },
+    "archaic_introgression": {
+        "table": "evolution.archaic_segments",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+    },
     "cpg": {
         "table": "cpg.sites",
         "pos_col": "pos",

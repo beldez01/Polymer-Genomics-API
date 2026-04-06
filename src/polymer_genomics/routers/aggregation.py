@@ -5,7 +5,7 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.config import settings
-from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_table
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
@@ -235,6 +235,23 @@ def _aggregation_query(layer_type: str) -> str:
               AND se.chr_id = $2
               AND se.coord && int4range($3, $4)
               AND se.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    # Generic count/density fallback for any layer in _COUNT_TABLES
+    from polymer_genomics.routers.profile import _COUNT_TABLES, _ALLOWED_PROFILE_TABLES
+    table = _COUNT_TABLES.get(layer_type)
+    if table is not None:
+        table = safe_table(table, _ALLOWED_PROFILE_TABLES)
+        return f"""
+            SELECT floor(t.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM {table} t
+            WHERE t.build = $1::genome_build
+              AND t.chr_id = $2
+              AND t.coord && int4range($3, $4)
+              AND t.layer_id = $5
             GROUP BY bin_start
             ORDER BY bin_start
         """

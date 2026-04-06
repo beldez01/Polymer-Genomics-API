@@ -77,6 +77,12 @@ from polymer_genomics.queries.recombination import (
     region_onco_events_query, _convert_onco_events,
     region_dmc1_hotspots_query, _convert_dmc1_hotspots,
 )
+from polymer_genomics.queries.signal import (
+    region_tf_binding_query, _convert_tf_binding,
+    region_wgbs_query, _convert_wgbs,
+    region_accessibility_query, _convert_accessibility,
+    region_mutation_density_query, _convert_mutation_density,
+)
 
 TRACK_REGISTRY: dict[str, dict] = {
     "cpg": {
@@ -272,6 +278,23 @@ TRACK_REGISTRY: dict[str, dict] = {
     "dmc1_hotspots": {
         "query_fn": region_dmc1_hotspots_query,
         "convert_fn": _convert_dmc1_hotspots,
+    },
+    # Signal layers (audit gap closure — were in DB + correlation only)
+    "tf_binding": {
+        "query_fn": region_tf_binding_query,
+        "convert_fn": _convert_tf_binding,
+    },
+    "wgbs": {
+        "query_fn": region_wgbs_query,
+        "convert_fn": _convert_wgbs,
+    },
+    "accessibility": {
+        "query_fn": region_accessibility_query,
+        "convert_fn": _convert_accessibility,
+    },
+    "mutation_density": {
+        "query_fn": region_mutation_density_query,
+        "convert_fn": _convert_mutation_density,
     },
 }
 

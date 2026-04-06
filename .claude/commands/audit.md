@@ -134,7 +134,7 @@ curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.or
 **Transposome endpoints:**
 ```bash
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/transposome/families"
-curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/transposome/family/L1HS"
+curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/transposome/family/LINE_L1"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/transposome/probe-te-mapping?platform=epic_v2&build=hg38"
 curl -s -o /dev/null -w "%{http_code} %{time_total}s" "https://api.polymerbio.org/v1/transposome/reference-methylation"
 ```
