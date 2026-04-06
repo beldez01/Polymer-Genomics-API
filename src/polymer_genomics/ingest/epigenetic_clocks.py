@@ -278,10 +278,13 @@ async def main(data_dir: str | None = None) -> None:
                 print(f"  Inserted {len(_CLOCK_METADATA)} clock metadata entries.")
 
             # --- Clock coefficients ---
+            # NOTE: No early-return check. Always upsert from TSV to fix the
+            # dual-loading bug where embedded representative probes were loaded
+            # first and then the early-return prevented TSV from overwriting.
+            # The ON CONFLICT DO UPDATE below ensures TSV values always win.
             coeff_count = await conn.fetchval("SELECT count(*) FROM ref.clock_coefficients")
             if coeff_count > 0:
-                print(f"  clock_coefficients already has {coeff_count} rows, skipping coefficients.")
-                return
+                print(f"  clock_coefficients has {coeff_count} rows — will upsert from TSV.")
 
             total_loaded = 0
             for clock_name, (embedded_probes, citation) in _ALL_CLOCKS_PROBES.items():
