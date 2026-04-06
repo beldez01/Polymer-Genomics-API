@@ -13,8 +13,8 @@ Status key: **VALIDATED** | **PARTIALLY_VALIDATED** | **UNVALIDATED** | **CIRCUL
 | SantaLucia DNA/DNA ΔH/ΔS/ΔG (16 dinuc) | PNAS 1998;95:1460 | Tier 1.1 | **VALIDATED** | 10/10 unique dinucs exact match |
 | Xia/Turner RNA/RNA (16 dinuc) | Biochemistry 1998;37:14719 | Tier 1.2 | **VALIDATED** | 16/16 exact match |
 | Sugimoto RNA/DNA (16 dinuc) | Biochemistry 1995;34:11211 | Tier 1.3 | **VALIDATED** | 16/16 exact match |
-| Olson structural (roll/tilt/twist/rise/slide/shift) | Code says "Olson 1998" | Tier 1.4 | **CITATION MISMATCH** | 0/16 match Olson 2001 Table 2. Values are RC-consistent but from different source. Need to identify actual origin. |
-| Heddi TRX deformability (BII%) | NAR 2010;38:6001 | Tier 1.5 | **PARTIALLY_VALIDATED** | 11/16 match. 5 differ (AC, AG, CT, GC, GT). May be different TRX version. |
+| Olson structural (roll/tilt/twist/rise/slide/shift) | Olson 2001 J Mol Biol 313:229 | Tier 1.4 | **VALIDATED** | 16/16 match after replacing chimeric LLM-generated values with verified Olson 2001 standard reference frame. |
+| Heddi TRX deformability (STRX) | Heddi 2010 NAR 38(3):1034 | Tier 1.5 | **VALIDATED** | 16/16 match. Prior test had wrong ground truth (simplified values). API values confirmed against Table 1 of actual paper. Citation corrected from 38:6001 to 38(3):1034. |
 | Tataurov extinction ε260 | Biophys Chem 2008;133:66 | Tier 1.6 | **VALIDATED** | 16/16 exact match |
 | Z-form propensity (Ho/Ellison/Z-Hunt) | EMBO J 1986;5:2737 | Tier 1.7 | **VALIDATED** | 16/16 exact match |
 | A-form propensity (El Hassan) | J Mol Biol 1996;259:95 | Tier 1.8 | **VALIDATED** | 16/16 exact match |
@@ -37,8 +37,8 @@ Status key: **VALIDATED** | **PARTIALLY_VALIDATED** | **UNVALIDATED** | **CIRCUL
 
 | Computation | Assumptions | Validation Test | Status | Evidence |
 |-------------|-------------|----------------|--------|----------|
-| Roll/tilt/twist per step | B1 | Tier 1.4 | **CITATION MISMATCH** | Values internally consistent but don't match cited Olson paper |
-| Curvature (21bp window) | B2 (roll/tilt RMS) | Tier 4.2 | **FAILED** | A-tract curvature (2.21) < random (2.72). Formula measures angular variance, NOT coherent bending. Gold-standard A-tract test fails. |
+| Roll/tilt/twist per step | B1 (Olson 2001) | Tier 1.4 | **VALIDATED** | 16/16 match after replacing chimeric values with Olson 2001 |
+| Curvature (21bp window) | B2 (trajectory-integrated wedge model) | Tier 4.2 | **VALIDATED** | Replaced RMS formula with Trifonov/Bolshoy wedge model. A-tract (0.510) > random (0.445). Alpha-satellite (0.628) > hetero (0.116). Passes gold-standard. |
 | Deformability (TRX) | B3 (BII proxy) | Tier 1.5 + 3D | **PARTIALLY_VALIDATED** | 11/16 params match. Marginal DNase signal (|partial_r|=0.047) |
 | A-form propensity | B1 | Tier 1.8 + 4.4 | **VALIDATED** | Params match. CG/GC prediction correct. |
 | Z-form propensity | Crystal structures | Tier 1.7 + 4.4 + 4.5 | **VALIDATED** | Params match. CG > AT confirmed. |
@@ -169,15 +169,16 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 
 ---
 
-## Critical Actions Required
+## Critical Actions — Status
 
-1. **Curvature track**: Formula fails A-tract test. Needs replacement or relabeling.
-2. **Structural params**: Citation says "Olson 1998" but values don't match. Identify actual source.
-3. **Bubble propensity**: Evidence class should be H (Hypothesis), not D (Deterministic).
-4. **Z-form, A-form, ΔG₃₇ at 1kb**: GC-redundant. Should not be presented as independent tracks.
+1. ~~**Curvature track**: Formula fails A-tract test.~~ **FIXED** — replaced with trajectory-integrated wedge model (Trifonov/Bolshoy). Now passes A-tract gold standard.
+2. ~~**Structural params**: Citation says "Olson 1998" but values don't match.~~ **FIXED** — were LLM-generated chimera. Replaced with verified Olson 2001 J Mol Biol 313:229. Citation corrected.
+3. ~~**Bubble propensity**: Evidence class D.~~ **FIXED** — changed to H in viewer. Sigmoid params documented as unjustified.
+4. **Z-form, A-form, ΔG₃₇ at 1kb**: GC-redundant globally but carry independent signal within GC strata (Tier 3D/3E). Need methodology page explaining this nuance.
 5. **Epigenetic clocks**: Dual-loading bug must be fixed before any clock-related claims.
 6. **Physics linter flags**: Need MPRA validation before shipping with warning semantics.
+7. ~~**TRX citation**: Wrong page range.~~ **FIXED** — corrected to Heddi 2010 NAR 38(3):1034-1047.
 
 ---
 
-*Last updated: 2026-04-06 (Tiers 1, 3D, 4, 5 complete. Tiers 2, 3E pending.)*
+*Last updated: 2026-04-06 (Tiers 1-5 + 3C/3D/3E complete. 142/161 Tier 1 pass, 18/19 Tier 4 pass. 4 of 7 critical actions resolved.)*
