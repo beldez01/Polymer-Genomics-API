@@ -44,6 +44,12 @@ class EvaluateRequest(BaseModel):
         le=5000.0,
         description="NaCl concentration in mM. 1000 = standard (SantaLucia), 150 = physiological.",
     )
+    oligo_nm: float = Field(
+        250.0,
+        ge=1.0,
+        le=100000.0,
+        description="Total strand concentration in nM for nearest-neighbor Tm (≤60 bp). Default 250 = standard PCR.",
+    )
     window_size: int = Field(
         100,
         ge=20,
@@ -71,6 +77,12 @@ class CompareRequest(BaseModel):
         le=5000.0,
         description="NaCl concentration in mM.",
     )
+    oligo_nm: float = Field(
+        250.0,
+        ge=1.0,
+        le=100000.0,
+        description="Total strand concentration in nM for nearest-neighbor Tm (≤60 bp).",
+    )
     window_size: int = Field(
         100,
         ge=20,
@@ -97,6 +109,12 @@ class BatchEvaluateRequest(BaseModel):
         ge=1.0,
         le=5000.0,
         description="NaCl concentration in mM.",
+    )
+    oligo_nm: float = Field(
+        250.0,
+        ge=1.0,
+        le=100000.0,
+        description="Total strand concentration in nM for nearest-neighbor Tm (≤60 bp).",
     )
     window_size: int = Field(
         100,
@@ -135,6 +153,7 @@ async def evaluate_design(body: EvaluateRequest):
             name=body.name,
             analysis=body.analysis,
             salt_mm=body.salt_mm,
+            oligo_nm=body.oligo_nm,
             window_size=body.window_size,
         )
     except ValueError as e:
@@ -175,6 +194,7 @@ async def compare_sequences(body: CompareRequest):
             name=name,
             analysis=body.analysis,
             salt_mm=body.salt_mm,
+            oligo_nm=body.oligo_nm,
             window_size=body.window_size,
         )
 
@@ -310,6 +330,7 @@ async def batch_evaluate(body: BatchEvaluateRequest):
             name=name,
             analysis=body.analysis,
             salt_mm=body.salt_mm,
+            oligo_nm=body.oligo_nm,
             window_size=body.window_size,
         )
 

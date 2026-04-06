@@ -26,6 +26,15 @@ from polymer_genomics.biophysics import (
 MAX_EVALUATE_LENGTH = 100_000  # 100 kb
 MIN_EVALUATE_LENGTH = 10
 
+# Tm: nearest-neighbor (two-state) vs empirical (long-DNA) cutoff
+_NN_TM_CUTOFF = 60  # bp; Primer3/IDT use ~60 bp as the two-state limit
+
+# SantaLucia 1998 Table 2: duplex initiation parameters
+# Applied once per terminus for Tm calculation only (not stacking profiles)
+_INIT_DH = {"GC": 0.1, "AT": 2.3}   # kcal/mol
+_INIT_DS = {"GC": -2.8, "AT": 4.1}  # cal/(mol·K)
+_R_CAL = 1.987  # gas constant, cal/(mol·K)
+
 # CpG island detection: Gardiner-Garden & Frommer 1987 criteria
 CGI_MIN_LENGTH = 200
 CGI_MIN_GC = 0.50
@@ -429,13 +438,83 @@ def _generate_flags(
     return flags
 
 
+# ── Tm Calculation ───────────────────────────────────────────────────────
+
+
+def _nn_melting_temp(
+    seq: str,
+    total_dh: float,
+    total_ds: float,
+    n_steps: int,
+    salt_mm: float,
+    oligo_nm: float,
+) -> float:
+    """SantaLucia 1998 nearest-neighbor Tm for oligonucleotides (two-state).
+
+    Adds initiation corrections to the NN sums from compute_thermodynamics(),
+    applies salt correction to ΔS, and computes two-state Tm.
+
+    Parameters
+    ----------
+    seq : str
+        Clean DNA sequence (no Ns).
+    total_dh, total_ds : float
+        Raw NN sums from compute_thermodynamics() (at 1 M NaCl).
+        Units: kcal/mol (ΔH) and cal/(mol·K) (ΔS).
+    n_steps : int
+        Number of valid dinucleotide steps.
+    salt_mm : float
+        Monovalent cation concentration in mM.
+    oligo_nm : float
+        Total strand concentration in nM.
+    """
+    dh = total_dh  # kcal/mol
+    ds = total_ds  # cal/(mol·K)
+
+    # Initiation corrections (SantaLucia 1998 Table 2)
+    for base in (seq[0], seq[-1]):
+        if base in ("G", "C"):
+            dh += _INIT_DH["GC"]
+            ds += _INIT_DS["GC"]
+        else:
+            dh += _INIT_DH["AT"]
+            ds += _INIT_DS["AT"]
+
+    # Salt correction: ΔS(salt) = ΔS(1M) + 0.368·(N-1)·ln[Na+]
+    na_m = salt_mm / 1000.0
+    ds_salt = ds + 0.368 * n_steps * math.log(na_m)
+
+    # Strand concentration: nM → M
+    ct = oligo_nm * 1e-9
+
+    # Two-state Tm: ΔH / (ΔS + R·ln(Ct/4)) − 273.15
+    # Convert ΔH to cal/mol for consistent units with ΔS
+    dh_cal = dh * 1000.0
+    denom = ds_salt + _R_CAL * math.log(ct / 4.0)
+    if denom >= 0:
+        # Degenerate case: entropy term non-negative → no cooperative melting
+        return 0.0
+    return dh_cal / denom - 273.15
+
+
+def _empirical_melting_temp(gc: float, length: int, salt_mm: float) -> float:
+    """Marmur-Doty/Schildkraut empirical Tm for long DNA (>60 bp).
+
+    Tm = 81.5 + 16.6·log10[Na+] + 41·GC − 600/N
+    """
+    na_m = salt_mm / 1000.0
+    return 81.5 + 16.6 * math.log10(na_m) + 41.0 * gc - 600.0 / length
+
+
 # ── Main Evaluation ──────────────────────────────────────────────────────
+
 
 def evaluate_sequence(
     seq: str,
     name: str = "unnamed",
     analysis: str = "full",
     salt_mm: float = 1000.0,
+    oligo_nm: float = 250.0,
     window_size: int = DEFAULT_WINDOW,
 ) -> dict:
     """Evaluate biophysical properties of an arbitrary DNA sequence.
@@ -450,6 +529,9 @@ def evaluate_sequence(
         "full", "thermodynamic", or "structural".
     salt_mm : float
         NaCl concentration in mM for thermodynamic calculations.
+    oligo_nm : float
+        Total strand concentration in nM for nearest-neighbor Tm (≤60 bp).
+        Default 250 nM (standard PCR primer conditions). Ignored for long DNA.
     window_size : int
         Window size in bp for windowed profiles.
 
@@ -507,9 +589,34 @@ def evaluate_sequence(
         dg_values = [s["delta_g_37"] for s in thermo_result["per_step"]]
         dg_per_window = _windowed_profile(dg_values, window_size)
 
-    # Tm estimate (simple formula for long DNA: Tm ≈ 81.5 + 16.6*log10[Na+] + 41*GC - 600/N)
-    na_m = salt_mm / 1000.0
-    tm_global = 81.5 + 16.6 * math.log10(na_m) + 41.0 * gc - 600.0 / length if length > 0 else 0.0
+    # ── Tm estimate ──────────────────────────────────────────────────
+    # ≤60 bp: SantaLucia 1998 nearest-neighbor (two-state, ±1-2°C)
+    # >60 bp: Marmur-Doty/Schildkraut empirical (long-DNA, ±5°C)
+    clean_len = len(clean_seq)
+    use_nn = (
+        clean_len <= _NN_TM_CUTOFF
+        and clean_len >= 2
+        and thermo_result is not None
+        and thermo_result["summary"].get("n_steps", 0) > 0
+    )
+
+    if use_nn:
+        ts = thermo_result["summary"]
+        tm_global = _nn_melting_temp(
+            clean_seq,
+            total_dh=ts["total_delta_h"],
+            total_ds=ts["total_delta_s"],
+            n_steps=ts["n_steps"],
+            salt_mm=salt_mm,
+            oligo_nm=oligo_nm,
+        )
+        tm_method = "nearest_neighbor"
+    elif length > 0:
+        tm_global = _empirical_melting_temp(gc, length, salt_mm)
+        tm_method = "empirical"
+    else:
+        tm_global = 0.0
+        tm_method = "empirical"
 
     # ── Build response ──────────────────────────────────────────────
 
@@ -526,6 +633,7 @@ def evaluate_sequence(
         "cpg_density": round(cpg_density, 5),
         "cpg_island_count": len(cpg_islands),
         "melting_temp_estimate_C": round(tm_global, 1),
+        "tm_method": tm_method,
     }
 
     if thermo_result and thermo_result["summary"].get("n_steps", 0) > 0:
@@ -559,7 +667,9 @@ def evaluate_sequence(
                 "max": round(max(dg_values), 2) if dg_values else 0,
             },
             "melting_temp_estimate_C": round(tm_global, 1),
+            "tm_method": tm_method,
             "salt_mm": salt_mm,
+            "oligo_nm": oligo_nm if tm_method == "nearest_neighbor" else None,
             "profile_windows": {
                 "window_size_bp": window_size,
                 "gc": gc_per_window,
