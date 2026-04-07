@@ -1467,8 +1467,8 @@ async def evaluate_design(
     - thermodynamics: stacking energy statistics + windowed profiles
     - extinction: UV absorbance at 260 nm (for concentration measurements)
     - structural: A/Z-form propensity, groove geometry
-    - flags: actionable warnings and info (CpG islands, homopolymers, repeats, instability)
-    - flag_counts: {"warning": N, "info": M}
+    - flags: biophysical feature annotations (CpG islands, homopolymers, repeats, structural motifs)
+    - flag_counts: {"warning": N, "feature": N, "info": M}
 
     Example output (truncated):
     {"summary": {"length_bp": 4521, "gc_content": 0.523, "cpg_island_count": 1,
@@ -1479,9 +1479,14 @@ async def evaluate_design(
        "message": "CpG island detected — susceptible to methylation-mediated silencing"}],
      "flag_counts": {"warning": 1, "info": 2}}
 
-    Flag codes: CPG_ISLAND (warning), LOW_STABILITY (info), HIGH_STABILITY (info),
-    HIGH_GC (info), LOW_GC (info), Z_FORM_PRONE (warning), HOMOPOLYMER (warning),
-    DINUC_REPEAT (warning).
+    Flag types: "feature" = biophysically distinctive (dual interpretation for constructs
+    vs genome), "warning" = extreme values (synthesis risk), "info" = compositional note.
+    Flag codes: CPG_ISLAND (feature), HOMOPOLYMER (feature), DIRECT_REPEAT (feature),
+    DINUC_REPEAT (feature), Z_FORM_PRONE (feature), INVERTED_REPEAT (feature),
+    LONG_HOMOPOLYMER (feature), EXTREME_GC_WINDOW (warning), SILENCING_RISK (warning),
+    LOW_STABILITY (info), HIGH_STABILITY (info), HIGH_GC (info), LOW_GC (info).
+    Validated: Tier 3G (106K K562 lentiMPRA, Agarwal 2025 Nature) — most flags
+    associate with HIGHER regulatory activity in genomic context.
 
     Does NOT use genomic coordinates — works on any arbitrary sequence.
     For genomic regions, use compute_region_biophysics instead.

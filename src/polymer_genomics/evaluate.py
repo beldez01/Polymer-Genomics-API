@@ -249,13 +249,14 @@ def _generate_flags(
     # CpG island flags
     for island in cpg_islands:
         flags.append({
-            "type": "warning",
+            "type": "feature",
             "code": "CPG_ISLAND",
             "region": f"{island['start']}-{island['end']}",
             "message": (
-                f"CpG island detected ({island['length_bp']} bp, GC={island['gc']:.0%}, "
-                f"O/E={island['obs_exp_cpg']:.2f}) — susceptible to methylation-mediated "
-                f"silencing in mammalian cells"
+                f"CpG island ({island['length_bp']} bp, GC={island['gc']:.0%}, "
+                f"O/E={island['obs_exp_cpg']:.2f}). In constructs: methylation-mediated "
+                f"silencing risk. In genome: marks active regulatory elements "
+                f"(OR=2.5 for regulatory activity, Tier 3G validation)"
             ),
         })
 
@@ -306,48 +307,54 @@ def _generate_flags(
     # Z-form propensity
     if form_summary.get("mean_z_form_propensity", 999) < _FLAG_Z_FORM_THRESHOLD:
         flags.append({
-            "type": "warning",
+            "type": "feature",
             "code": "Z_FORM_PRONE",
             "region": "global",
             "message": (
-                f"Low Z-form penalty (mean = {form_summary['mean_z_form_propensity']:.2f} kcal/mol) — "
-                f"sequence may adopt Z-DNA under torsional stress"
+                f"Z-DNA-prone (mean penalty = {form_summary['mean_z_form_propensity']:.2f} kcal/mol). "
+                f"May adopt Z-form under torsional stress. In genome: associated with "
+                f"replication timing (partial r=0.100, Tier 3E validation)"
             ),
         })
 
     # Homopolymer runs
     for run in _detect_homopolymers(seq):
         flags.append({
-            "type": "warning",
+            "type": "feature",
             "code": "HOMOPOLYMER",
             "region": f"{run['start']}-{run['end']}",
             "message": (
-                f"Homopolymer run: {run['base']}×{run['length']} — "
-                f"synthesis difficulty, polymerase slippage risk"
+                f"Homopolymer run: {run['base']}×{run['length']}. "
+                f"In constructs: synthesis difficulty, polymerase slippage risk. "
+                f"In genome: structural motif (A-tracts bend DNA)"
             ),
         })
 
     # Dinucleotide repeats
     for run in _detect_dinuc_repeats(seq):
         flags.append({
-            "type": "warning",
+            "type": "feature",
             "code": "DINUC_REPEAT",
             "region": f"{run['start']}-{run['end']}",
             "message": (
-                f"Dinucleotide repeat: ({run['motif']})×{run['repeats']} ({run['length']} bp) — "
-                f"replication instability, microsatellite expansion risk"
+                f"Dinucleotide repeat: ({run['motif']})×{run['repeats']} ({run['length']} bp). "
+                f"In constructs: microsatellite instability risk. "
+                f"In genome: enriched in active regulatory elements "
+                f"(d=+0.28, Tier 3G validation)"
             ),
         })
 
     # Long homopolymer runs (≥12 bp — more severe than standard ≥8 bp)
     for run in _detect_homopolymers(seq, min_length=_FLAG_LONG_HOMOPOLYMER_MIN):
         flags.append({
-            "type": "warning",
+            "type": "feature",
             "code": "LONG_HOMOPOLYMER",
             "region": f"{run['start']}-{run['end']}",
             "message": (
-                f"Long homopolymer run: {run['base']}×{run['length']} — "
-                f"severe synthesis difficulty, high polymerase slippage risk"
+                f"Long homopolymer run: {run['base']}×{run['length']}. "
+                f"In constructs: severe synthesis difficulty. "
+                f"In genome: associated with higher regulatory activity "
+                f"(d=+0.19, Tier 3G validation)"
             ),
         })
 
@@ -361,8 +368,9 @@ def _generate_flags(
                 "code": "EXTREME_GC_WINDOW",
                 "region": f"{start}-{end}",
                 "message": (
-                    f"Extreme high GC ({wgc:.0%}) — synthesis failure risk, "
-                    f"strong secondary structure"
+                    f"Extreme high GC ({wgc:.0%}). "
+                    f"In constructs: synthesis failure risk, strong secondary structure. "
+                    f"In genome: gene-dense, regulatory-active region"
                 ),
             })
         elif wgc < _FLAG_EXTREME_GC_LOW:
@@ -371,8 +379,9 @@ def _generate_flags(
                 "code": "EXTREME_GC_WINDOW",
                 "region": f"{start}-{end}",
                 "message": (
-                    f"Extreme low GC ({wgc:.0%}) — thermodynamically unstable, "
-                    f"poor primer binding"
+                    f"Extreme low GC ({wgc:.0%}). "
+                    f"In constructs: thermodynamically unstable, poor primer binding. "
+                    f"In genome: heterochromatic, AT-isochore region"
                 ),
             })
 
@@ -383,8 +392,9 @@ def _generate_flags(
             "code": "SILENCING_RISK",
             "region": "global",
             "message": (
-                f"Sequence contains {len(cpg_islands)} CpG islands — elevated risk of "
-                f"methylation-mediated silencing in mammalian cells"
+                f"Sequence contains {len(cpg_islands)} CpG islands. "
+                f"In constructs: elevated methylation-mediated silencing risk. "
+                f"In genome: marks broadly active regulatory domain"
             ),
         })
 
@@ -400,12 +410,15 @@ def _generate_flags(
             if kmer in seen_kmers:
                 if seen_kmers[kmer] != -1:  # first occurrence not yet reported
                     flags.append({
-                        "type": "warning",
+                        "type": "feature",
                         "code": "DIRECT_REPEAT",
                         "region": f"{seen_kmers[kmer]+1}-{seen_kmers[kmer]+k}",
                         "message": (
-                            f"Direct repeat (≥{k}bp) found at positions "
-                            f"{seen_kmers[kmer]+1} and {i+1}"
+                            f"Direct repeat (≥{k}bp) at positions "
+                            f"{seen_kmers[kmer]+1} and {i+1}. "
+                            f"In constructs: recombination/deletion risk. "
+                            f"In genome: enriched in active regulatory elements "
+                            f"(d=+0.33, Tier 3G validation)"
                         ),
                     })
                     seen_kmers[kmer] = -1  # mark as reported
@@ -424,12 +437,15 @@ def _generate_flags(
             rc = kmer.translate(_complement)[::-1]
             if rc in forward_kmers and rc not in inv_reported:
                 flags.append({
-                    "type": "warning",
+                    "type": "feature",
                     "code": "INVERTED_REPEAT",
                     "region": f"{forward_kmers[rc]+1}-{forward_kmers[rc]+k}",
                     "message": (
                         f"Inverted repeat (≥{k}bp) — potential hairpin between "
-                        f"positions {forward_kmers[rc]+1} and {i+1}"
+                        f"positions {forward_kmers[rc]+1} and {i+1}. "
+                        f"In constructs: secondary structure risk. "
+                        f"In genome: associated with slightly lower activity "
+                        f"(d=-0.07, Tier 3G validation)"
                     ),
                 })
                 inv_reported.add(rc)
@@ -721,7 +737,8 @@ def evaluate_sequence(
 
     result["flag_counts"] = {
         "total": len(result["flags"]),
-        "warnings": sum(1 for f in result["flags"] if f["type"] == "warning"),
+        "warning": sum(1 for f in result["flags"] if f["type"] == "warning"),
+        "feature": sum(1 for f in result["flags"] if f["type"] == "feature"),
         "info": sum(1 for f in result["flags"] if f["type"] == "info"),
     }
 

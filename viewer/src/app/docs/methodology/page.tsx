@@ -244,10 +244,14 @@ export default function MethodologyPage() {
             (periodicity, phased bending) are only meaningful below ~200 bp.
           </p>
           <p style={pStyle}>
-            <strong>Design tool:</strong> The physics linter (evaluate/design) flags potential
-            issues in synthetic constructs. Flag thresholds are heuristic and have not been
-            calibrated against construct performance data. Treat flags as suggestions, not
-            pass/fail criteria.
+            <strong>Physics linter:</strong> The evaluate/design endpoint detects biophysically
+            distinctive features (CpG islands, homopolymers, repeats, Z-form propensity).
+            These features have <strong>dual interpretations</strong>: in synthetic constructs, they
+            may indicate synthesis difficulty or instability; in genomic sequences, they mark
+            active regulatory elements. Validation against 106K K562 lentiMPRA elements (Agarwal
+            et al. 2025 Nature) showed that most flagged features associate with <em>higher</em> regulatory
+            activity (CpG island OR=2.5, direct repeat d=+0.33). Flags are annotations, not
+            pass/fail judgments.
           </p>
         </div>
 
