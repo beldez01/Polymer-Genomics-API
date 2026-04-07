@@ -48,6 +48,18 @@ A curated, multi-layer genomic reference database (48 layers, hg38/hg37) that pr
 - `internal/` — Private docs, research, plans, experiments (gitignored)
 - `fly.toml` — Fly.io deployment config (source of truth)
 
+## The GC–Arrangement Decomposition (Foundational — Read First)
+
+Every biophysical parameter in this platform exists on a spectrum from composition-determined to arrangement-determined. **Experiment 21** (LP proof) quantifies this exactly:
+
+- **Arrangement-dominated (60-87%)**: Rise, minor/major groove width, twist, roll, ΔS — these carry information that GC content cannot see. They are the strongest candidates for GC-independent biological signal. Confirmed by Exp 17 (recombination AUROC 0.827 without GC) and Exp 18 (deformability partial r = -0.345).
+- **Mixed (44-59%)**: Slide, ΔH, deformability — substantial contributions from both composition and arrangement.
+- **Composition-dominated (9-37%)**: ΔG₃₇ (31%), A-form (33%), Z-form (9%) — predominantly GC proxies. Raw correlations with biological outcomes will largely recapitulate GC. Z-form's 9% corridor is narrow but encodes purine-pyrimidine alternation exploited for replication timing (Exp 20: partial r = 0.100, rank #1).
+
+**Rule**: When interpreting biophysics–biology correlations, always check the parameter's arrangement capacity. Claims of "biophysics predicts X" using composition-dominated parameters (ΔG₃₇, Z-form, A-form) require GC-controlled analysis. Claims using arrangement-dominated parameters (roll, twist, rise, groove width) are inherently GC-independent.
+
+Reference: `COMPUTATIONAL_ASSUMPTIONS.md` § FOUNDATIONAL, `internal/InSilicoExperiments/exp21_gc_conditional_variance/`
+
 ## Key Design Decisions
 
 - **Anti-hallucination**: Every response includes `api_version`, `data_version`, evidence class, source, license, and content hash per layer. Structured flag codes (not free text) for machine parsing. `status: "truncated"` prevents agents from treating partial results as complete.
