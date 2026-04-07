@@ -293,7 +293,7 @@ _TRX_DEFORMABILITY = {
 
 
 def compute_structural(sequence: str) -> dict:
-    """Compute Olson 1998 structural parameters + TRX deformability per step."""
+    """Compute Olson 2001 structural parameters + TRX deformability per step."""
     seq = sequence.upper()
     if len(seq) < 2:
         return {"per_step": [], "summary": {"n_steps": 0}}

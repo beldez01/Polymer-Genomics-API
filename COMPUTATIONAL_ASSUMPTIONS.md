@@ -91,8 +91,8 @@ All nearest-neighbor biophysical parameters are functions of dinucleotide freque
 ## B. Structural Parameters
 
 ### B1. Crystal structure averages represent solution behavior
-- **Assumption:** Roll, tilt, twist, rise, slide, shift from Olson 1998 crystal survey represent the average conformation in solution.
-- **Justification:** Olson 1998 averaged across hundreds of crystal structures; broadly consistent with NMR and MD.
+- **Assumption:** Roll, tilt, twist, rise, slide, shift from Olson et al. 2001 (J Mol Biol 313:229) standard reference frame represent the average conformation in solution.
+- **Justification:** Olson 2001 averaged across hundreds of protein–DNA crystal structures; broadly consistent with NMR and MD. Parameters verified 2026-04-06 (Tier 1.4, 16/16 match).
 - **Domain:** B-form DNA. Does not apply to A-form, Z-form, or non-canonical structures.
 - **What breaks:** In regions that adopt non-B conformations, B-form structural parameters are incorrect.
 - **Status:** JUSTIFIED
