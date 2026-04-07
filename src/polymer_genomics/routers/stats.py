@@ -22,7 +22,8 @@ _ALLOWED_STATS_TABLES = frozenset(r["table"] for r in CORRELATION_REGISTRY.value
 
 
 def _build_stats_sql(
-    table: str, pos_col: str, mode: str, field_exprs: dict[str, str]
+    table: str, pos_col: str, mode: str, field_exprs: dict[str, str],
+    no_coord: bool = False,
 ) -> tuple[str, list[str]]:
     """Build SQL for summary statistics.
 
@@ -30,12 +31,14 @@ def _build_stats_sql(
     For continuous mode: percentile_cont aggregates.
     For count mode: count + density.
     """
+    range_clause = "AND start_pos < $4 AND end_pos > $3" if no_coord else "AND coord && int4range($3, $4)"
+    lid_clause = "AND ($5::uuid IS NOT NULL)" if no_coord else "AND layer_id = $5"
+    build_cast = "" if no_coord else "::genome_build"
+
     if mode == "continuous":
-        # Build per-field aggregation
         agg_parts = []
         field_names = []
         for fname, expr in field_exprs.items():
-            # Extract the raw column name from the avg(...) expression
             col = expr.replace("avg(", "").rstrip(")")
             agg_parts.append(
                 f"count({col}) AS {fname}__n,\n"
@@ -53,10 +56,10 @@ def _build_stats_sql(
         sql = (
             f"SELECT {select_clause}\n"
             f"FROM {table}\n"
-            f"WHERE build = $1::genome_build\n"
+            f"WHERE build = $1{build_cast}\n"
             f"  AND chr_id = $2\n"
-            f"  AND coord && int4range($3, $4)\n"
-            f"  AND layer_id = $5"
+            f"  {range_clause}\n"
+            f"  {lid_clause}"
         )
         return sql, field_names
 
@@ -64,10 +67,10 @@ def _build_stats_sql(
         sql = (
             f"SELECT count(*) AS n\n"
             f"FROM {table}\n"
-            f"WHERE build = $1::genome_build\n"
+            f"WHERE build = $1{build_cast}\n"
             f"  AND chr_id = $2\n"
-            f"  AND coord && int4range($3, $4)\n"
-            f"  AND layer_id = $5"
+            f"  {range_clause}\n"
+            f"  {lid_clause}"
         )
         return sql, ["count"]
 
@@ -267,7 +270,8 @@ async def region_stats(
 
             validated_table = safe_table(reg["table"], _ALLOWED_STATS_TABLES)
             sql, field_names = _build_stats_sql(
-                validated_table, reg["pos_col"], reg["mode"], field_exprs
+                validated_table, reg["pos_col"], reg["mode"], field_exprs,
+                no_coord=reg.get("no_coord", False),
             )
 
             async with sem:

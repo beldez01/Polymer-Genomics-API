@@ -597,6 +597,27 @@ CORRELATION_REGISTRY: dict[str, dict[str, Any]] = {
             "count": "count(*)",
         },
     },
+    # Recombination (no coord/layer_id — uses manual range check)
+    "onco_events": {
+        "table": "recombination.onco_events",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+        "no_coord": True,
+    },
+    "dmc1_hotspots": {
+        "table": "recombination.dmc1_hotspots",
+        "pos_col": "start_pos",
+        "mode": "count",
+        "fields": {
+            "density": "count(*)::float / $7",
+            "count": "count(*)",
+        },
+        "no_coord": True,
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -648,25 +669,31 @@ def build_correlation_sql(
     expr_a = reg_a["fields"][field_a]
     expr_b = reg_b["fields"][field_b]
 
+    range_a = "AND start_pos < $4 AND end_pos > $3" if reg_a.get("no_coord") else "AND coord && int4range($3, $4)"
+    lid_a = "" if reg_a.get("no_coord") else "AND layer_id = $5"
+    build_cast_a = "" if reg_a.get("no_coord") else "::genome_build"
     cte_a = (
         f"SELECT floor({reg_a['pos_col']} / $7) * $7 AS bin_start,\n"
         f"       {expr_a} AS value_a\n"
         f"FROM {reg_a['table']}\n"
-        f"WHERE build = $1::genome_build\n"
+        f"WHERE build = $1{build_cast_a}\n"
         f"  AND chr_id = $2\n"
-        f"  AND coord && int4range($3, $4)\n"
-        f"  AND layer_id = $5\n"
+        f"  {range_a}\n"
+        f"  {lid_a}\n"
         f"GROUP BY bin_start"
     )
 
+    range_b = "AND start_pos < $4 AND end_pos > $3" if reg_b.get("no_coord") else "AND coord && int4range($3, $4)"
+    lid_b = "" if reg_b.get("no_coord") else "AND layer_id = $6"
+    build_cast_b = "" if reg_b.get("no_coord") else "::genome_build"
     cte_b = (
         f"SELECT floor({reg_b['pos_col']} / $7) * $7 AS bin_start,\n"
         f"       {expr_b} AS value_b\n"
         f"FROM {reg_b['table']}\n"
-        f"WHERE build = $1::genome_build\n"
+        f"WHERE build = $1{build_cast_b}\n"
         f"  AND chr_id = $2\n"
-        f"  AND coord && int4range($3, $4)\n"
-        f"  AND layer_id = $6\n"
+        f"  {range_b}\n"
+        f"  {lid_b}\n"
         f"GROUP BY bin_start"
     )
 

@@ -314,6 +314,19 @@ INTERSECT_TABLES: dict[str, dict] = {
         "id_col": "layer_id",
         "fields": {"pan_cancer_rate", "snv_rate", "indel_rate", "liver_rate", "lung_rate", "skin_rate", "blood_rate"},
     },
+    # Recombination tables — no coord/layer_id columns
+    "onco_events": {
+        "table": "recombination.onco_events",
+        "id_col": None,
+        "fields": {"parent_type", "n_mpps", "n_gc_mpps"},
+        "no_coord": True,
+    },
+    "dmc1_hotspots": {
+        "table": "recombination.dmc1_hotspots",
+        "id_col": None,
+        "fields": {"mean_strength"},
+        "no_coord": True,
+    },
 }
 
 # Pre-computed allow-set of all table names for safe_table validation.
@@ -347,11 +360,18 @@ def _build_subquery(
     idx = param_idx
 
     # Base: region overlap
-    base = (
-        f"SELECT start_pos, end_pos FROM {table} "
-        f"WHERE build = ${idx}::genome_build AND chr_id = ${idx+1} "
-        f"AND coord && int4range(${idx+2}, ${idx+3})"
-    )
+    if table_info.get("no_coord"):
+        base = (
+            f"SELECT start_pos, end_pos FROM {table} "
+            f"WHERE build = ${idx} AND chr_id = ${idx+1} "
+            f"AND start_pos < ${idx+3} AND end_pos > ${idx+2}"
+        )
+    else:
+        base = (
+            f"SELECT start_pos, end_pos FROM {table} "
+            f"WHERE build = ${idx}::genome_build AND chr_id = ${idx+1} "
+            f"AND coord && int4range(${idx+2}, ${idx+3})"
+        )
     params = [build, chr_id, db_start, db_end]
     idx += 4
 

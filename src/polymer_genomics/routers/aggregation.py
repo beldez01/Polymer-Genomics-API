@@ -254,6 +254,35 @@ def _aggregation_query(layer_type: str) -> str:
             GROUP BY bin_start
             ORDER BY bin_start
         """
+    elif layer_type == "onco_events":
+        return """
+            SELECT floor(o.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density
+            FROM recombination.onco_events o
+            WHERE o.build = $1
+              AND o.chr_id = $2
+              AND o.start_pos < $4
+              AND o.end_pos > $3
+              AND ($5::uuid IS NOT NULL)
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
+    elif layer_type == "dmc1_hotspots":
+        return """
+            SELECT floor(d.start_pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density,
+                   avg(d.mean_strength) AS mean_strength
+            FROM recombination.dmc1_hotspots d
+            WHERE d.build = $1
+              AND d.chr_id = $2
+              AND d.start_pos < $4
+              AND d.end_pos > $3
+              AND ($5::uuid IS NOT NULL)
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
     # Generic count/density fallback for any layer in _COUNT_TABLES
     from polymer_genomics.routers.profile import _COUNT_TABLES, _ALLOWED_PROFILE_TABLES
     table = _COUNT_TABLES.get(layer_type)

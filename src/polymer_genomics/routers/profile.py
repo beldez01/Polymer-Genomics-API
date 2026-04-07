@@ -233,8 +233,23 @@ _COUNT_TABLES = {
 _ALLOWED_PROFILE_TABLES = frozenset(_COUNT_TABLES.values())
 
 
+# Recombination tables lack coord/layer_id — custom count SQL
+_RECOMB_COUNT_SQL = {
+    "onco_events": (
+        "SELECT count(*) FROM recombination.onco_events "
+        "WHERE build = $1 AND chr_id = $2 AND start_pos < $4 AND end_pos > $3 AND ($5::uuid IS NOT NULL)"
+    ),
+    "dmc1_hotspots": (
+        "SELECT count(*) FROM recombination.dmc1_hotspots "
+        "WHERE build = $1 AND chr_id = $2 AND start_pos < $4 AND end_pos > $3 AND ($5::uuid IS NOT NULL)"
+    ),
+}
+
+
 def _count_sql_for_type(layer_type: str) -> str | None:
     """Return a count SQL query for a given layer type, or None if unsupported."""
+    if layer_type in _RECOMB_COUNT_SQL:
+        return _RECOMB_COUNT_SQL[layer_type]
     table = _COUNT_TABLES.get(layer_type)
     if table is None:
         logger.warning("Unknown layer_type '%s' in region_profile — returning 0 count", layer_type)

@@ -1278,6 +1278,36 @@ async def clock_physics(
 
 
 @mcp.tool()
+async def list_clocks(build: str = "hg38") -> dict:
+    """List all available epigenetic clocks with metadata.
+
+    Returns clock names, probe counts, and descriptions for all clocks
+    that have been loaded into the database. Use the clock names as input
+    to the clock_physics and compare_clock_physics tools.
+
+    Args:
+        build: Genome build (hg38 or hg37). Default: hg38.
+    """
+    return await _get(f"/v1/clock-physics/{build}")
+
+
+@mcp.tool()
+async def get_layer_detail(layer_key: str) -> dict:
+    """Get detailed metadata for a single data layer.
+
+    Returns the full layer record including version, evidence class, tier,
+    validation status, row count, license class, and content hash.
+
+    Use list_layers first to discover available layer_keys, then this tool
+    to inspect a specific layer in detail.
+
+    Args:
+        layer_key: The layer identifier (e.g., 'gencode_v44', 'cpg_sites').
+    """
+    return await _get(f"/v1/layers/{layer_key}")
+
+
+@mcp.tool()
 async def compare_clock_physics(
     clock_a: str,
     clock_b: str,
