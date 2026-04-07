@@ -1,0 +1,124 @@
+{
+  "tier": "3G",
+  "name": "MPRA Linter Validation (K562)",
+  "tests": [
+    {
+      "name": "3G CPG_ISLAND",
+      "passed": true,
+      "detail": "d(GC-ctrl)=+0.3673, STRONG"
+    },
+    {
+      "name": "3G HOMOPOLYMER",
+      "passed": true,
+      "detail": "d(GC-ctrl)=+0.0896, WEAK"
+    },
+    {
+      "name": "3G DIRECT_REPEAT",
+      "passed": true,
+      "detail": "d(GC-ctrl)=+0.3291, STRONG"
+    },
+    {
+      "name": "3G LONG_HOMOPOLYMER",
+      "passed": true,
+      "detail": "d(GC-ctrl)=+0.1883, MODERATE"
+    },
+    {
+      "name": "3G INVERTED_REPEAT",
+      "passed": true,
+      "detail": "d(GC-ctrl)=-0.0690, WEAK"
+    },
+    {
+      "name": "3G DINUC_REPEAT",
+      "passed": true,
+      "detail": "d(GC-ctrl)=+0.2846, STRONG"
+    },
+    {
+      "name": "3G EXTREME_GC_WINDOW",
+      "passed": false,
+      "detail": "d(GC-ctrl)=+nan, NEGLIGIBLE"
+    },
+    {
+      "name": "3G flag_burden predicts activity",
+      "passed": "True",
+      "detail": "beta=+0.0100, t=14.18, R\u00b2=0.0551"
+    }
+  ],
+  "summary": {
+    "n_elements": 106068,
+    "n_forward": 106068,
+    "flag_prevalence": {
+      "CPG_ISLAND": 10830,
+      "HOMOPOLYMER": 5557,
+      "DIRECT_REPEAT": 3941,
+      "LONG_HOMOPOLYMER": 2100,
+      "INVERTED_REPEAT": 640,
+      "DINUC_REPEAT": 619,
+      "EXTREME_GC_WINDOW": 349
+    },
+    "flag_effects": {
+      "CPG_ISLAND": {
+        "n_flagged": 10830,
+        "d_global": 0.7226,
+        "d_gc_controlled": 0.3673,
+        "ci_lower": 0.3473,
+        "ci_upper": 0.3872,
+        "verdict": "STRONG"
+      },
+      "HOMOPOLYMER": {
+        "n_flagged": 5557,
+        "d_global": -0.0902,
+        "d_gc_controlled": 0.0896,
+        "ci_lower": 0.0626,
+        "ci_upper": 0.1166,
+        "verdict": "WEAK"
+      },
+      "DIRECT_REPEAT": {
+        "n_flagged": 3941,
+        "d_global": 0.2961,
+        "d_gc_controlled": 0.3291,
+        "ci_lower": 0.2972,
+        "ci_upper": 0.3609,
+        "verdict": "STRONG"
+      },
+      "LONG_HOMOPOLYMER": {
+        "n_flagged": 2100,
+        "d_global": 0.0322,
+        "d_gc_controlled": 0.1883,
+        "ci_lower": 0.1451,
+        "ci_upper": 0.2315,
+        "verdict": "MODERATE"
+      },
+      "INVERTED_REPEAT": {
+        "n_flagged": 640,
+        "d_global": -0.0391,
+        "d_gc_controlled": -0.069,
+        "ci_lower": -0.1467,
+        "ci_upper": 0.0087,
+        "verdict": "WEAK"
+      },
+      "DINUC_REPEAT": {
+        "n_flagged": 619,
+        "d_global": 0.2311,
+        "d_gc_controlled": 0.2846,
+        "ci_lower": 0.2055,
+        "ci_upper": 0.3636,
+        "verdict": "STRONG"
+      },
+      "EXTREME_GC_WINDOW": {
+        "n_flagged": 349,
+        "d_global": 0.737,
+        "d_gc_controlled": null,
+        "ci_lower": null,
+        "ci_upper": null,
+        "verdict": "NEGLIGIBLE"
+      }
+    },
+    "burden_beta": 0.01,
+    "burden_t": 14.18,
+    "model_r_squared": 0.0551,
+    "n_strong_moderate": 4,
+    "n_weak": 2,
+    "n_negligible": 1
+  },
+  "status": "COMPLETE"
+}
