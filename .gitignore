@@ -48,3 +48,7 @@ InSilicoExperiments/
 benchmark/
 viewer/.superpowers/
 data/downloads/
+
+# Sensitive documents — never commit to public repo
+PROVISIONAL_PATENT_DRAFT.md
+*.ownership-certificate.pdf

@@ -22,7 +22,23 @@ SOFTWARE.
 
 ---
 
-This license applies to the source code of Polymer Genomics. Data served by
-this platform is subject to the licenses of the original data providers. See
-https://polymerbio.org/data-sources for a complete list of data sources and
-their respective licenses.
+IMPORTANT: DATA LICENSING NOTICE
+
+This license applies to the source code, SDK, MCP server, and frontend
+application code of Polymer Genomics. It does NOT apply to the data served
+through the API.
+
+Data served by Polymer Genomics is aggregated from multiple public databases,
+each with its own license. Some data layers carry non-commercial use
+restrictions, copyleft obligations, or patent encumbrances. See DATA_LICENSE.md
+for the complete data licensing breakdown, including a commercial use
+classification for every data source.
+
+The compilation and arrangement of data within the Polymer Genomics database
+is a proprietary work of Polymer Genomics. Individual upstream data sources
+retain their original licenses.
+
+Per-layer license information is available programmatically at:
+  GET /v1/layers/{layer_key}/license
+
+And at: https://polymerbio.org/data-sources

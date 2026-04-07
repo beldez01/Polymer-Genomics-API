@@ -183,6 +183,8 @@ cd mcp && uv run server.py
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for the source code.
+MIT — see [LICENSE](LICENSE) for the source code (API, SDK, MCP, frontend).
 
-Data served by this platform is subject to the licenses of the original data providers. Per-layer license information is available programmatically at `/v1/layers/{layer_key}/license` and at [polymerbio.org/data-sources](https://polymerbio.org/data-sources).
+**The MIT license does not apply to data served through the API.** Data layers carry their own upstream licenses, including non-commercial restrictions, copyleft obligations, and patent encumbrances. See [DATA_LICENSE.md](DATA_LICENSE.md) for the complete commercial use classification.
+
+Per-layer license information is available programmatically at `/v1/layers/{layer_key}/license` and at [polymerbio.org/data-sources](https://polymerbio.org/data-sources).

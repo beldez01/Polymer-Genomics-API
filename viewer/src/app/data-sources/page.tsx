@@ -38,10 +38,10 @@ const DATA_SOURCES: SourceCategory[] = [
   {
     category: 'Methylation & CpG',
     sources: [
-      { name: 'Illumina EPIC v2 Manifest', version: 'v2.0', license: 'Illumina proprietary (free to use)', citation: 'Illumina Inc.', url: 'https://www.illumina.com' },
-      { name: 'Illumina EPIC v1 Manifest', version: 'v1.0', license: 'Illumina proprietary (free to use)', citation: 'Pidsley et al., Genome Biol 2016', url: 'https://www.illumina.com' },
-      { name: 'Illumina 450K Manifest', version: 'v1.2', license: 'Illumina proprietary (free to use)', citation: 'Bibikova et al., Genomics 2011', url: 'https://www.illumina.com' },
-      { name: 'UCSC CpG Islands', version: 'hg38', license: 'Free for non-commercial use', citation: 'Gardiner-Garden & Frommer 1987', url: 'https://genome.ucsc.edu' },
+      { name: 'Illumina EPIC v2 Manifest', version: 'v2.0', license: 'Coordinates only (factual data)', citation: 'Illumina Inc. Probe IDs and genomic coordinates via sesameData.', url: 'https://www.illumina.com' },
+      { name: 'Illumina EPIC v1 Manifest', version: 'v1.0', license: 'Coordinates only (factual data)', citation: 'Pidsley et al., Genome Biol 2016. Probe IDs and genomic coordinates via sesameData.', url: 'https://www.illumina.com' },
+      { name: 'Illumina 450K Manifest', version: 'v1.2', license: 'Coordinates only (factual data)', citation: 'Bibikova et al., Genomics 2011. Probe IDs and genomic coordinates via sesameData.', url: 'https://www.illumina.com' },
+      { name: 'CpG Islands', version: 'hg38', license: 'MIT (computed)', citation: 'Gardiner-Garden & Frommer 1987. Computed from reference FASTA.', url: 'https://doi.org/10.1016/0022-2836(87)90689-9' },
     ],
   },
   {
@@ -109,14 +109,14 @@ const DATA_SOURCES: SourceCategory[] = [
   {
     category: 'Mutations',
     sources: [
-      { name: 'COSMIC SBS Signatures', version: 'v3.4', license: 'Free for non-commercial use', citation: 'Alexandrov et al., Nature 2020', url: 'https://cancer.sanger.ac.uk/signatures/' },
+      { name: 'SBS Mutation Thermodynamics', version: 'v1.0', license: 'MIT (computed)', citation: 'SantaLucia, PNAS 1998. 96-channel trinucleotide stacking energy perturbations.', url: 'https://doi.org/10.1073/pnas.95.4.1460' },
     ],
   },
   {
     category: 'Conservation & Evolution',
     sources: [
-      { name: 'PhyloP 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Pollard et al., Genome Res 2010', url: 'https://genome.ucsc.edu' },
-      { name: 'PhastCons 100-way', version: '2024', license: 'Free for non-commercial use', citation: 'Siepel et al., Genome Res 2005', url: 'https://genome.ucsc.edu' },
+      { name: 'Zoonomia phyloP 447-way', version: '2023', license: 'Freely usable for any purpose', citation: 'Zoonomia Consortium, Science 2023; Cactus 447-way vertebrate alignment', url: 'https://zoonomiaproject.org' },
+      { name: 'phastCons 470-way', version: '2023', license: 'Freely usable for any purpose', citation: 'Siepel et al., Genome Res 2005; 470-way Cactus alignment', url: 'https://zoonomiaproject.org' },
       { name: 'Ensembl Compara', version: 'v112', license: 'Apache 2.0', citation: 'Herrero et al., Database 2016', url: 'https://www.ensembl.org/info/genome/compara/' },
       { name: 'Ultraconserved Elements', version: 'Bejerano 2004', license: 'Published literature', citation: 'Bejerano et al., Science 2004', url: 'https://doi.org/10.1126/science.1098119' },
       { name: 'Human Accelerated Regions', version: 'v1', license: 'Published literature', citation: 'Pollard et al., Nature 2006', url: 'https://doi.org/10.1038/nature05113' },
@@ -127,7 +127,7 @@ const DATA_SOURCES: SourceCategory[] = [
   {
     category: 'Repeat Elements & Transposons',
     sources: [
-      { name: 'RepeatMasker', version: 'v4.1.5', license: 'Free for non-commercial use via UCSC; Open Source', citation: 'Smit, Hubley & Green, RepeatMasker Open-4.0', url: 'https://www.repeatmasker.org' },
+      { name: 'RepeatMasker', version: 'v4.1.5', license: 'Open Source + Dfam CC0 (self-computed)', citation: 'Smit, Hubley & Green, RepeatMasker Open-4.0 + Dfam 3.x', url: 'https://www.repeatmasker.org' },
       { name: 'Telescope HERV Loci', version: 'v2', license: 'MIT', citation: 'Bendall et al., PLoS Comput Biol 2019', url: 'https://doi.org/10.1371/journal.pcbi.1006453' },
       { name: 'TE Exaptation Catalog', version: 'v1', license: 'CC BY 4.0', citation: 'Chuong et al., Nat Rev Genet 2017', url: 'https://doi.org/10.1038/nrg.2016.139' },
     ],
@@ -180,7 +180,7 @@ const DATA_SOURCES: SourceCategory[] = [
     sources: [
       { name: 'Non-B DNA Structures', version: 'v1', license: 'MIT', citation: 'Polymer Genomics — G4, Z-DNA, cruciform, triplex, R-loop predictions', url: 'https://polymerbio.org' },
       { name: 'Fragility Composite Score', version: 'v1', license: 'MIT', citation: 'Polymer Genomics — integrated from non-B, stacking, curvature', url: 'https://polymerbio.org' },
-      { name: 'COSMIC Breakpoints', version: 'v99', license: 'Free for non-commercial use', citation: 'Forbes et al., Nucleic Acids Res 2017', url: 'https://cancer.sanger.ac.uk/cosmic' },
+      { name: 'Recurrent Breakpoints', version: 'v1', license: 'Published literature', citation: 'HumCFS (Mrasek 2010) + Mitelman Database. Fragile sites and translocation breakpoints.', url: 'https://doi.org/10.1002/cyto.a.20838' },
     ],
   },
   {
@@ -211,7 +211,7 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'Illumina EPIC v2 Manifest': 'probe_epic_v2',
   'Illumina EPIC v1 Manifest': 'probe_epic_v1',
   'Illumina 450K Manifest': 'probe_450k',
-  'UCSC CpG Islands': 'cpg_islands',
+  'CpG Islands': 'cpg_islands',
   'GTEx': 'gtex_v10',
   'gnomAD Constraint': 'gene_constraint_v1',
   'gnomAD Structural Variants': 'gnomad_sv_v4',
@@ -226,9 +226,9 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'PhenoAge': 'clock_phenoage',
   'GrimAge': 'clock_grimage',
   'DunedinPACE': 'clock_dunedinpace',
-  'COSMIC SBS Signatures': 'sbs_mutation_thermo_v1',
-  'PhyloP 100-way': 'phylop_phastcons_100way',
-  'PhastCons 100-way': 'phylop_phastcons_100way',
+  'SBS Mutation Thermodynamics': 'sbs_mutation_thermo_v1',
+  'Zoonomia phyloP 447-way': 'phylop_phastcons_100way',
+  'phastCons 470-way': 'phylop_phastcons_100way',
   'Ultraconserved Elements': 'ultraconserved_v1',
   'EBI GWAS Catalog': 'gwas_catalog_ebi_v1',
   'Human Protein Atlas': 'protein_atlas_v1',
@@ -248,7 +248,7 @@ const LAYER_KEY_MAP: Record<string, string> = {
   'GoDMC meQTLs': 'godmc_meqtl_v1',
   'Non-B DNA Structures': 'nonb_dna',
   'Fragility Composite Score': 'fragility_composite',
-  'COSMIC Breakpoints': 'breakpoints',
+  'Recurrent Breakpoints': 'breakpoints',
   'Crossover Hotspots': 'onco_events_v1',
   'DMC1 Meiotic Hotspots': 'dmc1_hotspots_v1',
   'WGBS Hematopoietic': 'wgbs_hematopoietic',
@@ -357,10 +357,11 @@ export default function DataSourcesPage() {
             margin: 0,
             marginBottom: SPACE[3],
           }}>
-            <strong style={{ color: COLOR.text.primary }}>Non-commercial restrictions:</strong>{' '}
-            Data sourced from UCSC Genome Browser (including PhyloP, PhastCons, RepeatMasker, and CpG Islands)
-            carries a non-commercial use restriction. COSMIC SBS Signatures are also restricted to non-commercial use.
+            <strong style={{ color: COLOR.text.primary }}>Copyleft obligations:</strong>{' '}
             gnomAD data is licensed under ODC-ODbL 1.0, which requires derivative databases to remain open.
+            CpG islands, RepeatMasker annotations, and conservation scores are independently computed by
+            Polymer Genomics using open-source tools and public-domain reference data — no non-commercial
+            restrictions apply to these layers.
           </p>
           <p style={{
             color: COLOR.text.secondary,

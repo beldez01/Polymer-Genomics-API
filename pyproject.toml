@@ -2,6 +2,7 @@
 name = "polymer-genomics-api"
 version = "0.2.0"
 description = "Curated genomic reference database API"
+license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
@@ -50,6 +51,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 
 [dependency-groups]
 dev = [
+    "matplotlib>=3.10.8",
     "openapi-spec-validator>=0.8.1",
     "pyyaml>=6.0.3",
 ]

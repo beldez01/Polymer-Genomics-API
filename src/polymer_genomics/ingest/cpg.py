@@ -1,14 +1,24 @@
 """CpG site scanner and island ingestion into cpg.sites / cpg.islands.
 
-Scans a reference FASTA for all CG dinucleotides, downloads the UCSC CpG island
-track, classifies each CpG site by genomic context (island / shore / shelf / open
-sea), computes local GC content, and bulk-loads via the COPY protocol.
+Scans a reference FASTA for all CG dinucleotides, computes CpG islands de novo
+using the Gardiner-Garden & Frommer (1987) algorithm, classifies each CpG site
+by genomic context (island / shore / shelf / open sea), computes local GC
+content, and bulk-loads via the COPY protocol.
+
+The CpG island computation uses only the public-domain reference genome and the
+published algorithm — no UCSC data is downloaded. This makes all output freely
+licensable (MIT).
+
+Algorithm reference:
+    Gardiner-Garden M, Frommer M. CpG islands in vertebrate genomes.
+    J Mol Biol. 1987;196(2):261-282. doi:10.1016/0022-2836(87)90689-9
 
 Usage::
 
     uv run python -m polymer_genomics.ingest.cpg
     uv run python -m polymer_genomics.ingest.cpg --build hg38
     uv run python -m polymer_genomics.ingest.cpg --build hg37
+    uv run python -m polymer_genomics.ingest.cpg --validate-ucsc   # compare with UCSC
 """
 
 from __future__ import annotations
@@ -31,6 +41,16 @@ from polymer_genomics.ingest.partitions import ensure_partitions
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
+# ── CpG island algorithm parameters (Gardiner-Garden & Frommer 1987) ──────
+# These match the UCSC cpgIslandExt definition for concordance.
+CGI_MIN_LENGTH = 200      # Minimum island length (bp)
+CGI_MIN_GC = 0.50         # Minimum GC fraction
+CGI_MIN_OE = 0.60         # Minimum observed/expected CpG ratio
+CGI_WINDOW = 200          # Sliding window size (bp)
+CGI_STEP = 1              # Step size for sliding window
+CGI_MERGE_GAP = 100       # Merge islands within this distance (bp)
+
+# Legacy UCSC download URLs — kept only for --validate-ucsc mode.
 ISLAND_URLS: dict[str, str] = {
     "hg38": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/cpgIslandExt.txt.gz",
     "hg37": "https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/cpgIslandExt.txt.gz",
@@ -186,7 +206,225 @@ def compute_gc_content(sequence: str, pos: int, window: int = GC_WINDOW) -> floa
     return gc_count / len(subseq)
 
 
-# ── CpG island download and parsing ─────────────────────────────────────────
+# ── CpG island computation (Gardiner-Garden & Frommer 1987) ───────────────
+
+
+def _window_stats(seq: str, start: int, end: int) -> tuple[float, float]:
+    """Compute GC fraction and observed/expected CpG ratio for a window.
+
+    Parameters
+    ----------
+    seq
+        Full chromosome sequence (uppercase).
+    start, end
+        0-based half-open window coordinates.
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(gc_frac, obs_exp_cpg)``
+    """
+    window = seq[start:end]
+    length = len(window)
+    if length < 2:
+        return 0.0, 0.0
+
+    c_count = window.count("C")
+    g_count = window.count("G")
+    cg_count = window.count("CG")
+
+    gc_frac = (c_count + g_count) / length
+
+    # Obs/Exp = (CpG_count * length) / (C_count * G_count)
+    denom = c_count * g_count
+    if denom == 0:
+        obs_exp = 0.0
+    else:
+        obs_exp = (cg_count * length) / denom
+
+    return gc_frac, obs_exp
+
+
+def compute_cpg_islands_for_chr(
+    sequence: str,
+    chr_name: str,
+    *,
+    min_length: int = CGI_MIN_LENGTH,
+    min_gc: float = CGI_MIN_GC,
+    min_oe: float = CGI_MIN_OE,
+    window: int = CGI_WINDOW,
+    step: int = CGI_STEP,
+    merge_gap: int = CGI_MERGE_GAP,
+) -> list[tuple[int, int, str]]:
+    """Compute CpG islands for a chromosome using the Gardiner-Garden & Frommer
+    (1987) algorithm.
+
+    Slides a window across the sequence, identifies seed regions that pass
+    GC and O/E thresholds, extends them, merges nearby islands, and applies
+    a final length + quality filter.
+
+    All parameters match the UCSC cpgIslandExt defaults for concordance.
+
+    Parameters
+    ----------
+    sequence
+        Full chromosome sequence (uppercase).
+    chr_name
+        Chromosome name (for island naming).
+    min_length
+        Minimum island length in bp (default 200).
+    min_gc
+        Minimum GC fraction (default 0.50).
+    min_oe
+        Minimum observed/expected CpG ratio (default 0.60).
+    window
+        Sliding window size in bp (default 200).
+    step
+        Step size for initial scan (default 1).
+    merge_gap
+        Merge islands within this distance (default 100).
+
+    Returns
+    -------
+    list[tuple[int, int, str]]
+        List of ``(start, end, name)`` tuples (0-based half-open), sorted by
+        start position. Compatible with ``parse_cpg_islands`` output format.
+    """
+    seq_len = len(sequence)
+    if seq_len < window:
+        return []
+
+    # Phase 1: Identify seed windows that pass both thresholds.
+    # Use coarser step for speed on initial scan, then refine boundaries.
+    scan_step = max(1, step)
+    passing: list[tuple[int, int]] = []  # (start, end) of passing windows
+
+    pos = 0
+    while pos + window <= seq_len:
+        gc_frac, obs_exp = _window_stats(sequence, pos, pos + window)
+        if gc_frac >= min_gc and obs_exp >= min_oe:
+            passing.append((pos, pos + window))
+        pos += scan_step
+
+    if not passing:
+        return []
+
+    # Phase 2: Merge overlapping/adjacent passing windows into candidate regions.
+    merged: list[list[int]] = [[passing[0][0], passing[0][1]]]
+    for start, end in passing[1:]:
+        if start <= merged[-1][1]:
+            # Overlapping or contiguous — extend.
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+
+    # Phase 3: Merge candidates that are within merge_gap of each other.
+    final_merged: list[list[int]] = [merged[0]]
+    for region in merged[1:]:
+        if region[0] - final_merged[-1][1] <= merge_gap:
+            final_merged[-1][1] = max(final_merged[-1][1], region[1])
+        else:
+            final_merged.append(region)
+
+    # Phase 4: Final quality filter on merged regions.
+    islands: list[tuple[int, int, str]] = []
+    counter = 0
+    for start, end in final_merged:
+        length = end - start
+        if length < min_length:
+            continue
+
+        gc_frac, obs_exp = _window_stats(sequence, start, end)
+        if gc_frac >= min_gc and obs_exp >= min_oe:
+            counter += 1
+            name = f"CpG: {chr_name}:{start}-{end}"
+            islands.append((start, end, name))
+
+    return islands
+
+
+def compute_all_cpg_islands(
+    fasta_path: str | Path,
+) -> dict[str, list[tuple[int, int, str]]]:
+    """Compute CpG islands genome-wide from a reference FASTA.
+
+    Parameters
+    ----------
+    fasta_path
+        Path to the reference genome FASTA.
+
+    Returns
+    -------
+    dict[str, list[tuple[int, int, str]]]
+        Per-chromosome island lists, same format as ``parse_cpg_islands``.
+    """
+    islands_by_chr: dict[str, list[tuple[int, int, str]]] = {}
+
+    for chr_name in sorted(CHR_NAME_TO_ID, key=lambda c: CHR_NAME_TO_ID[c]):
+        print(f"    Computing CpG islands for {chr_name}...")
+        try:
+            sequence = read_fasta_sequence(fasta_path, chr_name)
+        except ValueError:
+            print(f"    Skipping {chr_name}: not in FASTA")
+            continue
+
+        chr_islands = compute_cpg_islands_for_chr(sequence, chr_name)
+        if chr_islands:
+            islands_by_chr[chr_name] = chr_islands
+        print(f"    {chr_name}: {len(chr_islands):,} islands found")
+
+        del sequence  # free memory
+
+    return islands_by_chr
+
+
+# ── UCSC validation (optional) ────────────────────────────────────────────
+
+
+def validate_against_ucsc(
+    computed: dict[str, list[tuple[int, int, str]]],
+    ucsc: dict[str, list[tuple[int, int, str]]],
+) -> dict[str, object]:
+    """Compare computed islands against UCSC reference for validation.
+
+    Returns a summary dict with concordance metrics.
+    """
+    total_computed = sum(len(v) for v in computed.values())
+    total_ucsc = sum(len(v) for v in ucsc.values())
+
+    # Count overlaps: a computed island "matches" if it overlaps any UCSC island
+    # by ≥50% reciprocal overlap.
+    matched = 0
+    for chr_name in computed:
+        if chr_name not in ucsc:
+            continue
+        ucsc_islands = ucsc[chr_name]
+        ucsc_starts = [s for s, _, _ in ucsc_islands]
+        ucsc_ends = [e for _, e, _ in ucsc_islands]
+
+        for c_start, c_end, _ in computed[chr_name]:
+            c_len = c_end - c_start
+            # Binary search for nearby UCSC islands.
+            idx = bisect_right(ucsc_starts, c_start) - 1
+            for i in range(max(0, idx - 1), min(len(ucsc_islands), idx + 3)):
+                u_start = ucsc_starts[i]
+                u_end = ucsc_ends[i]
+                overlap = max(0, min(c_end, u_end) - max(c_start, u_start))
+                u_len = u_end - u_start
+                if overlap >= 0.5 * c_len and overlap >= 0.5 * u_len:
+                    matched += 1
+                    break
+
+    return {
+        "computed_count": total_computed,
+        "ucsc_count": total_ucsc,
+        "matched": matched,
+        "precision": matched / total_computed if total_computed else 0,
+        "recall": matched / total_ucsc if total_ucsc else 0,
+    }
+
+
+# ── Legacy UCSC download (for validation only) ───────────────────────────
 
 
 def download_cpg_islands(build: str, dest_dir: Path | None = None) -> Path:
@@ -442,7 +680,7 @@ async def register_layer(
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, $4, $5,
-             'computed', 'non_commercial', 'postgres', true, true)
+             'computed_ggf1987', 'open_access', 'postgres', true, true)
         RETURNING id
         """,
         layer_key,
@@ -584,14 +822,12 @@ async def ingest_build(
     conn: asyncpg.Connection,
     build: str,
     fasta_path: str | Path,
+    islands_by_chr: dict[str, list[tuple[int, int, str]]],
 ) -> tuple[int, int]:
-    """Full ingestion pipeline for one genome build.
+    """Load pre-computed CpG islands and scan sites into the database.
 
-    Steps:
-    1. Register layers for islands and sites.
-    2. Download and parse CpG island track.
-    3. Ensure partitions exist for cpg.sites.
-    4. Scan FASTA chromosome-by-chromosome, classify contexts, load sites.
+    The DB connection is only used here (not during the long computation
+    phase), preventing connection timeouts on slow proxy links.
 
     Parameters
     ----------
@@ -601,6 +837,8 @@ async def ingest_build(
         Genome build (``hg38`` or ``hg37``).
     fasta_path
         Path to the reference FASTA file.
+    islands_by_chr
+        Pre-computed islands from ``compute_all_cpg_islands``.
 
     Returns
     -------
@@ -623,13 +861,7 @@ async def ingest_build(
         layer_type="cpg",
     )
 
-    # 2. Download and parse islands.
-    island_bed = download_cpg_islands(build)
-    islands_by_chr = parse_cpg_islands(island_bed)
-    total_islands_parsed = sum(len(v) for v in islands_by_chr.values())
-    print(f"  Parsed {total_islands_parsed:,} CpG islands across {len(islands_by_chr)} chromosomes")
-
-    # 3. Load islands into cpg.islands.
+    # 2. Load islands into cpg.islands.
     island_count = await ingest_islands(conn, build, island_layer_id, islands_by_chr)
 
     # 4. Ensure partitions exist for cpg.sites.
@@ -675,18 +907,21 @@ async def ingest_build(
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 
-async def main(builds: list[str] | None = None) -> None:
-    """Connect as admin and ingest CpG sites and islands.
+async def main(builds: list[str] | None = None, *, validate_ucsc: bool = False) -> None:
+    """Compute CpG islands from FASTA, then connect and ingest.
+
+    Island computation runs before DB connection is opened to prevent
+    connection timeouts during the long CPU-bound phase.
 
     Parameters
     ----------
     builds
         List of builds to ingest. Defaults to ``["hg38", "hg37"]``.
+    validate_ucsc
+        If True, download UCSC islands and compare for concordance.
     """
     if builds is None:
         builds = ["hg38", "hg37"]
-
-    conn = await get_ingest_connection(admin=True)
 
     fasta_env = {"hg38": "FASTA_HG38", "hg37": "FASTA_HG37"}
     fasta_defaults = {
@@ -694,20 +929,54 @@ async def main(builds: list[str] | None = None) -> None:
         "hg37": str(DATA_DIR / "hg37.fa"),
     }
 
+    # Phase 1: Compute islands from FASTA (CPU-bound, no DB needed).
+    precomputed: dict[str, tuple[str, dict[str, list[tuple[int, int, str]]]]] = {}
+    for build in builds:
+        fasta_path = os.environ.get(fasta_env[build], fasta_defaults[build])
+        if not Path(fasta_path).exists():
+            print(f"  ERROR: FASTA not found at {fasta_path}")
+            print(f"  Set {fasta_env[build]} environment variable to the correct path.")
+            continue
+
+        print(f"\n{'='*60}")
+        print(f"Computing CpG islands — {build} (no DB connection yet)")
+        print(f"{'='*60}")
+        print("  Computing CpG islands from reference FASTA (Gardiner-Garden & Frommer 1987)...")
+        islands_by_chr = compute_all_cpg_islands(fasta_path)
+        total_islands = sum(len(v) for v in islands_by_chr.values())
+        print(f"  Computed {total_islands:,} CpG islands across {len(islands_by_chr)} chromosomes")
+
+        if validate_ucsc:
+            print("\n  Validating against UCSC precomputed islands...")
+            ucsc_bed = download_cpg_islands(build)
+            ucsc_islands = parse_cpg_islands(ucsc_bed)
+            metrics = validate_against_ucsc(islands_by_chr, ucsc_islands)
+            print(f"  Validation: computed={metrics['computed_count']:,}, "
+                  f"UCSC={metrics['ucsc_count']:,}, matched={metrics['matched']:,}")
+            print(f"  Precision: {metrics['precision']:.3f}, Recall: {metrics['recall']:.3f}")
+
+        precomputed[build] = (fasta_path, islands_by_chr)
+
+    if not precomputed:
+        print("No builds to ingest.")
+        return
+
+    # Phase 2: Connect to DB and load (connection opened fresh).
+    print(f"\n{'='*60}")
+    print("Connecting to database for ingestion...")
+    print(f"{'='*60}")
+    conn = await get_ingest_connection(admin=True)
+
     try:
-        for build in builds:
+        for build, (fasta_path, islands_by_chr) in precomputed.items():
             print(f"\n{'='*60}")
-            print(f"Ingesting CpG sites + islands — {build}")
+            print(f"Loading CpG sites + islands — {build}")
             print(f"{'='*60}")
 
-            fasta_path = os.environ.get(fasta_env[build], fasta_defaults[build])
-            if not Path(fasta_path).exists():
-                print(f"  ERROR: FASTA not found at {fasta_path}")
-                print(f"  Set {fasta_env[build]} environment variable to the correct path.")
-                continue
-
             async with ingest_transaction(conn):
-                island_count, site_count = await ingest_build(conn, build, fasta_path)
+                island_count, site_count = await ingest_build(
+                    conn, build, fasta_path, islands_by_chr,
+                )
                 print(f"\n  Summary: {island_count:,} islands, {site_count:,} sites loaded")
 
         print("\nDone.")
@@ -726,10 +995,15 @@ def cli() -> None:
         default=None,
         help="Genome build to ingest (default: both hg38 and hg37)",
     )
+    parser.add_argument(
+        "--validate-ucsc",
+        action="store_true",
+        help="Download UCSC islands and print concordance metrics (non-commercial, validation only)",
+    )
     args = parser.parse_args()
 
     builds = [args.build] if args.build else None
-    asyncio.run(main(builds))
+    asyncio.run(main(builds, validate_ucsc=args.validate_ucsc))
 
 
 if __name__ == "__main__":

@@ -1,14 +1,23 @@
-"""Conservation score ingestion from UCSC PhyloP/PhastCons 100-way bigWig files.
+"""Conservation score ingestion from Zoonomia/Cactus 447-way phyloP and 470-way phastCons bigWig files.
 
 Generates 1kb-binned mean conservation scores using bigWigAverageOverBed,
 then bulk-loads into conservation.scores via the COPY protocol.
 
-Requires: bigWigAverageOverBed (UCSC tools) on PATH or at /tmp/bigWigAverageOverBed.
+Zoonomia 447-way phyloP scores are derived from the Cactus whole-genome alignment
+of 447 vertebrate species (Zoonomia Consortium, Science 2023). PhastCons scores
+use the 470-way alignment.
+
+Requires either:
+- bigWigAverageOverBed (UCSC tools) for local-file mode, OR
+- pyBigWig for streaming mode (--stream), which reads remote bigWig URLs
+  directly with zero local disk usage.
 
 Usage::
 
     uv run python -m polymer_genomics.ingest.conservation
     uv run python -m polymer_genomics.ingest.conservation --build hg38
+    uv run python -m polymer_genomics.ingest.conservation --download
+    uv run python -m polymer_genomics.ingest.conservation --stream   # no disk needed
 """
 
 from __future__ import annotations
@@ -17,8 +26,10 @@ import argparse
 import asyncio
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+from urllib.request import urlopen
 
 import asyncpg
 
@@ -26,7 +37,7 @@ from polymer_genomics.constants import CHR_NAME_TO_ID
 from polymer_genomics.ingest._connection import get_ingest_connection
 from polymer_genomics.ingest._transaction import ingest_transaction
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# -- Constants ----------------------------------------------------------------
 
 BATCH_SIZE = 50_000
 BIN_SIZE = 1000  # 1kb bins
@@ -51,8 +62,17 @@ COLUMNS: list[str] = [
     "phastcons_mean", "phastcons_max",
 ]
 
+# -- Download URLs ------------------------------------------------------------
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+PHYLOP_URL = (
+    "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phyloP447way/hg38.phyloP447way.bw"
+)
+PHASTCONS_URL = (
+    "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/phastCons470way/hg38.phastCons470way.bw"
+)
+
+
+# -- Helpers ------------------------------------------------------------------
 
 
 def _find_bigwig_tool() -> str:
@@ -112,12 +132,73 @@ def _parse_minmax_output(path: str) -> dict[str, tuple[float | None, float | Non
     return result
 
 
-# ── Layer registration ───────────────────────────────────────────────────────
+# -- Download -----------------------------------------------------------------
+
+
+def _download_file(url: str, dest: str | Path) -> None:
+    """Download a file from *url* to *dest* with progress reporting."""
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"  Downloading {url}")
+    print(f"         -> {dest}")
+
+    response = urlopen(url)  # noqa: S310
+    total = response.headers.get("Content-Length")
+    total = int(total) if total else None
+
+    downloaded = 0
+    chunk_size = 1024 * 1024  # 1 MB
+
+    with open(dest, "wb") as f:
+        while True:
+            chunk = response.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
+            downloaded += len(chunk)
+            if total:
+                pct = downloaded / total * 100
+                mb_done = downloaded / (1024 * 1024)
+                mb_total = total / (1024 * 1024)
+                sys.stdout.write(
+                    f"\r  Progress: {mb_done:,.1f} / {mb_total:,.1f} MB ({pct:.1f}%)"
+                )
+            else:
+                mb_done = downloaded / (1024 * 1024)
+                sys.stdout.write(f"\r  Downloaded: {mb_done:,.1f} MB")
+            sys.stdout.flush()
+
+    print()  # newline after progress
+    print(f"  Download complete: {downloaded / (1024 * 1024):,.1f} MB")
+
+
+def download_bigwigs(phylop_dest: str | Path, phastcons_dest: str | Path) -> None:
+    """Download Zoonomia phyloP 447-way and phastCons 470-way bigWig files.
+
+    - phyloP 447-way:   ~9.3 GB
+    - phastCons 470-way: ~4.7 GB
+    """
+    phylop_dest = Path(phylop_dest)
+    phastcons_dest = Path(phastcons_dest)
+
+    if phylop_dest.exists():
+        print(f"  PhyloP already exists at {phylop_dest} — skipping download")
+    else:
+        _download_file(PHYLOP_URL, phylop_dest)
+
+    if phastcons_dest.exists():
+        print(f"  PhastCons already exists at {phastcons_dest} — skipping download")
+    else:
+        _download_file(PHASTCONS_URL, phastcons_dest)
+
+
+# -- Layer registration -------------------------------------------------------
 
 
 async def register_layer(conn: asyncpg.Connection, build: str) -> str:
     """Register (or retrieve) the conservation layer."""
-    layer_key = "phylop_phastcons_100way"
+    layer_key = "conservation_zoonomia_447way"
     version = f"1.0.{build}"
 
     existing = await conn.fetchval(
@@ -135,16 +216,102 @@ async def register_layer(conn: asyncpg.Connection, build: str) -> str:
              source, license_class, storage_type, is_active, is_default)
         VALUES
             ($1, $2, $3, 'conservation', $4,
-             'UCSC 100-way vertebrate alignment (PhyloP + PhastCons)', 'non_commercial', 'postgres', true, true)
+             'Zoonomia/Cactus 447-way vertebrate alignment', 'open_access', 'postgres', true, true)
         RETURNING id
         """,
-        layer_key, version, f"PhyloP + PhastCons 100-way ({build})", build,
+        layer_key, version,
+        f"Conservation Scores \u2014 Zoonomia 447-way phyloP + 470-way phastCons ({build})",
+        build,
     )
     print(f"  Registered layer: {layer_key} v{version} -> {layer_id}")
     return layer_id
 
 
-# ── Ingestion ────────────────────────────────────────────────────────────────
+# -- Streaming ingestion (pyBigWig, no local files) --------------------------
+
+
+async def ingest_build_streaming(
+    conn: asyncpg.Connection,
+    build: str,
+    layer_id: str,
+    phylop_url: str,
+    phastcons_url: str,
+) -> int:
+    """Stream remote bigWig files per-chromosome via pyBigWig. Zero disk usage."""
+    import pyBigWig
+    import time
+
+    total_loaded = 0
+
+    for chrom, size in sorted(_CHR_SIZES.items(), key=lambda x: CHR_NAME_TO_ID.get(x[0], 99)):
+        chr_id = CHR_NAME_TO_ID.get(chrom)
+        if chr_id is None:
+            continue
+
+        n_bins = (size + BIN_SIZE - 1) // BIN_SIZE
+        t0 = time.time()
+        print(f"  {chrom} ({n_bins:,} bins)...", end="", flush=True)
+
+        # Open fresh handles per chromosome (avoids stale HTTP connections)
+        phylop_bw = pyBigWig.open(phylop_url)
+        phastcons_bw = pyBigWig.open(phastcons_url)
+
+        try:
+            phylop_means = phylop_bw.stats(chrom, 0, size, type="mean", nBins=n_bins)
+            phylop_maxes = phylop_bw.stats(chrom, 0, size, type="max", nBins=n_bins)
+            phastcons_means = phastcons_bw.stats(chrom, 0, size, type="mean", nBins=n_bins)
+            phastcons_maxes = phastcons_bw.stats(chrom, 0, size, type="max", nBins=n_bins)
+        finally:
+            phylop_bw.close()
+            phastcons_bw.close()
+
+        # Build rows and load in batches
+        batch: list[tuple] = []
+        chr_loaded = 0
+        for i in range(n_bins):
+            start = i * BIN_SIZE
+            end = min(start + BIN_SIZE, size)
+
+            p_mean = phylop_means[i] if phylop_means[i] is not None else None
+            p_max = phylop_maxes[i] if phylop_maxes[i] is not None else None
+            c_mean = phastcons_means[i] if phastcons_means[i] is not None else None
+            c_max = phastcons_maxes[i] if phastcons_maxes[i] is not None else None
+
+            batch.append((
+                layer_id, build,
+                chr_id, start, end,
+                p_mean, p_max,
+                c_mean, c_max,
+            ))
+
+            if len(batch) >= BATCH_SIZE:
+                await conn.copy_records_to_table(
+                    "scores",
+                    records=batch,
+                    columns=COLUMNS,
+                    schema_name="conservation",
+                )
+                chr_loaded += len(batch)
+                batch = []
+
+        if batch:
+            await conn.copy_records_to_table(
+                "scores",
+                records=batch,
+                columns=COLUMNS,
+                schema_name="conservation",
+            )
+            chr_loaded += len(batch)
+
+        total_loaded += chr_loaded
+        elapsed = time.time() - t0
+        print(f" {chr_loaded:,} rows, {elapsed:.1f}s")
+
+    print(f"  Total rows loaded: {total_loaded:,}")
+    return total_loaded
+
+
+# -- Ingestion (local files) --------------------------------------------------
 
 
 async def ingest_build(
@@ -231,26 +398,32 @@ async def ingest_build(
     return total_loaded
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+# -- Main ---------------------------------------------------------------------
 
 
-async def main(builds: list[str] | None = None) -> None:
-    """Connect and ingest conservation scores."""
+async def main(builds: list[str] | None = None, download: bool = False, stream: bool = False) -> None:
+    """Connect and ingest Zoonomia conservation scores."""
     if builds is None:
         builds = ["hg38"]
 
     phylop_bw = os.environ.get(
         "PHYLOP_BW",
-        "/Users/zbb2/Desktop/Research/data/conservation/hg38.phyloP100way.bw",
+        "data/hg38.phyloP447way.bw",
     )
     phastcons_bw = os.environ.get(
         "PHASTCONS_BW",
-        "/Users/zbb2/Desktop/Research/data/conservation/hg38.phastCons100way.bw",
+        "data/hg38.phastCons470way.bw",
     )
 
-    if not Path(phylop_bw).exists():
+    if download:
+        print("\n" + "=" * 60)
+        print("Downloading Zoonomia bigWig files")
+        print("=" * 60)
+        download_bigwigs(phylop_bw, phastcons_bw)
+
+    if not stream and not Path(phylop_bw).exists():
         print(f"ERROR: PhyloP bigWig not found at {phylop_bw}")
-        print("Set PHYLOP_BW environment variable to the correct path.")
+        print("Set PHYLOP_BW environment variable, run with --download, or use --stream.")
         return
 
     conn = await get_ingest_connection(admin=True)
@@ -258,7 +431,11 @@ async def main(builds: list[str] | None = None) -> None:
     try:
         for build in builds:
             print(f"\n{'='*60}")
-            print(f"Ingesting conservation scores - {build}")
+            if stream:
+                print(f"Streaming Zoonomia conservation scores - {build}")
+                print(f"  (remote bigWig via pyBigWig, zero disk usage)")
+            else:
+                print(f"Ingesting Zoonomia conservation scores - {build}")
             print(f"{'='*60}")
 
             layer_id = await register_layer(conn, build)
@@ -273,7 +450,12 @@ async def main(builds: list[str] | None = None) -> None:
                 continue
 
             async with ingest_transaction(conn):
-                total = await ingest_build(conn, build, layer_id, phylop_bw, phastcons_bw)
+                if stream:
+                    total = await ingest_build_streaming(
+                        conn, build, layer_id, PHYLOP_URL, PHASTCONS_URL,
+                    )
+                else:
+                    total = await ingest_build(conn, build, layer_id, phylop_bw, phastcons_bw)
                 print(f"\n  Conservation rows loaded: {total:,}")
 
         print("\nDone.")
@@ -284,15 +466,26 @@ async def main(builds: list[str] | None = None) -> None:
 def cli() -> None:
     """Command-line entry point."""
     parser = argparse.ArgumentParser(
-        description="Ingest PhyloP/PhastCons 100-way conservation scores",
+        description=(
+            "Ingest Zoonomia/Cactus 447-way phyloP + 470-way phastCons "
+            "conservation scores into conservation.scores"
+        ),
     )
     parser.add_argument(
         "--build", choices=["hg38", "hg37"], default=None,
         help="Genome build (default: hg38 only)",
     )
+    parser.add_argument(
+        "--download", action="store_true",
+        help="Download Zoonomia bigWig files (~14 GB total) before ingestion",
+    )
+    parser.add_argument(
+        "--stream", action="store_true",
+        help="Stream from remote bigWig URLs via pyBigWig (no local disk needed)",
+    )
     args = parser.parse_args()
     builds = [args.build] if args.build else None
-    asyncio.run(main(builds))
+    asyncio.run(main(builds, download=args.download, stream=args.stream))
 
 
 if __name__ == "__main__":

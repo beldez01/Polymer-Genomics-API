@@ -1,7 +1,7 @@
 """SBS Thermodynamic Spectrum ingestion.
 
-Computes the 96-channel COSMIC SBS trinucleotide mutation spectrum with
-nearest-neighbor stacking energy perturbation from SantaLucia 1998 parameters.
+Computes the 96-channel trinucleotide mutation spectrum with nearest-neighbor
+stacking energy perturbation from SantaLucia 1998 parameters.
 
 Each of the 96 channels represents a single-nucleotide substitution in its
 trinucleotide context (pyrimidine convention). For each channel, we compute:
@@ -35,7 +35,7 @@ _NN_DG: dict[str, float] = {
     "AC": -1.44, "AG": -1.28, "TC": -1.30, "CC": -1.84,
 }
 
-_CITATION = "SantaLucia 1998 PNAS 95:1460-1465; COSMIC SBS v3.4"
+_CITATION = "SantaLucia 1998 PNAS 95:1460-1465; SantaLucia & Hicks 2004 Annu Rev Biophys 33:415-440"
 
 # Pyrimidine convention: reference base is always C or T
 _MUTATION_TYPES = [

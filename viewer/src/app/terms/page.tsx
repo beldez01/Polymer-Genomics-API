@@ -95,10 +95,27 @@ export default function TermsPage() {
         <div style={sectionStyle}>
           <h2 style={headingStyle}>Intellectual Property</h2>
           <p style={bodyStyle}>
-            Polymer Genomics owns the platform, API design, computed tracks, and the compilation and arrangement of data
-            served through it. Upstream data sources retain their original licenses as described on the{' '}
+            The Polymer Genomics source code (API server, SDK, MCP server, and frontend) is released under
+            the MIT License. The compilation and arrangement of data within the Polymer Genomics database,
+            including computed biophysical tracks, is a proprietary work of Polymer Genomics.
+          </p>
+          <p style={bodyStyle}>
+            Upstream data sources retain their original licenses as described on the{' '}
             <a href="/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
-            page. Your use of this platform does not grant you any intellectual property rights in the platform
+            page. Some data layers carry <strong style={{ color: COLOR.text.primary }}>non-commercial use
+            restrictions</strong> (including data sourced from UCSC Genome Browser and COSMIC).
+            Some layers are subject to <strong style={{ color: COLOR.text.primary }}>copyleft
+            obligations</strong> (gnomAD: ODC-ODbL 1.0; Human Protein Atlas: CC BY-SA 3.0).
+            Users are responsible for complying with all applicable upstream license terms.
+          </p>
+          <p style={bodyStyle}>
+            Certain epigenetic clock coefficients served through this platform may be covered by
+            patents (e.g., GrimAge: US Patent 10,706,957). Clock data is provided for informational
+            reference only. Computation of epigenetic age using these coefficients may require
+            separate licensing from the respective patent holders.
+          </p>
+          <p style={bodyStyle}>
+            Your use of this platform does not grant you any intellectual property rights in the platform
             or any content beyond the limited right to use the service as permitted by these terms.
           </p>
         </div>
@@ -132,8 +149,8 @@ export default function TermsPage() {
           <p style={bodyStyle}>
             If you believe that content on Polymer Genomics infringes your copyright, please submit a written
             notice to our designated agent at{' '}
-            <a href="mailto:polymergenomics@gmail.com" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
-              polymergenomics@gmail.com
+            <a href="mailto:hello@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
+              hello@polymerbio.org
             </a>{' '}
             containing: (1) identification of the copyrighted work claimed to be infringed, (2) identification of
             the allegedly infringing material, (3) your contact information, and (4) a statement made under penalty
@@ -156,8 +173,19 @@ export default function TermsPage() {
           <h2 style={headingStyle}>Data and Redistribution</h2>
           <p style={bodyStyle}>
             Polymer Genomics aggregates data from multiple public genomic databases, each with its own license.
-            Users may query and use results for research purposes. Bulk redistribution of data obtained from this
-            platform requires compliance with all upstream data licenses. See the{' '}
+            Users may query and use results for research purposes. Data layers are classified into licensing
+            tiers:
+          </p>
+          <ul style={{ ...bodyStyle, paddingLeft: SPACE[6], marginTop: 0 }}>
+            <li style={{ marginBottom: SPACE[2] }}><strong style={{ color: COLOR.text.primary }}>Unrestricted</strong>: Public Domain, CC0, CC BY 4.0, MIT, Apache 2.0 — commercial use permitted (attribution may be required)</li>
+            <li style={{ marginBottom: SPACE[2] }}><strong style={{ color: COLOR.text.primary }}>Copyleft</strong>: gnomAD (ODC-ODbL 1.0), Human Protein Atlas (CC BY-SA 3.0) — commercial use permitted but derivative databases/works must comply with share-alike obligations</li>
+            <li style={{ marginBottom: SPACE[2] }}><strong style={{ color: COLOR.text.primary }}>Non-commercial only</strong>: UCSC-sourced tracks (CpG Islands, PhyloP, PhastCons, RepeatMasker), COSMIC data — commercial use requires separate licensing from the original providers</li>
+          </ul>
+          <p style={bodyStyle}>
+            Per-layer license information is available programmatically at{' '}
+            <code style={{ color: COLOR.accent.teal, fontSize: TYPE.sm.fontSize }}>/v1/layers/&#123;key&#125;/license</code>.
+            Bulk redistribution of data obtained from this platform requires compliance with all upstream
+            data licenses. See the{' '}
             <a href="/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
             page for a complete list of sources and their license terms.
           </p>

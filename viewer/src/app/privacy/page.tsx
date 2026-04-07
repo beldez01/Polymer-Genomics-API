@@ -132,8 +132,9 @@ export default function PrivacyPage() {
           <h2 style={headingStyle}>Cross-Border Data Transfer</h2>
           <p style={bodyStyle}>
             Our servers are located in the United States (Virginia). If you access the service from the
-            EU/EEA/UK, your data is transferred to the US. We rely on Standard Contractual Clauses (SCCs)
-            as the legal mechanism for such transfers.
+            EU/EEA/UK, your data is transferred to the US. We process only minimal technical data
+            (IP addresses in server logs) under the legitimate interest basis. No individual-level
+            genomic or personal data is collected or transferred.
           </p>
         </div>
 
