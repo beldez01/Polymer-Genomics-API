@@ -23,6 +23,23 @@ from polymer_genomics.envelope import DATA_VERSION
 
 router = APIRouter(prefix="/v1/hla", tags=["hla"])
 
+# ── Cache ────────────────────────────────────────────────────────────────────
+
+_hla_cache: dict[str, tuple[float, Any]] = {}
+_HLA_CACHE_TTL = 3600  # 1 hour — HLA data only changes on ingestion
+
+
+def _cache_get(key: str) -> Any | None:
+    entry = _hla_cache.get(key)
+    if entry and (time.monotonic() - entry[0]) < _HLA_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _cache_set(key: str, value: Any) -> None:
+    _hla_cache[key] = (time.monotonic(), value)
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -111,6 +128,9 @@ async def list_hla_loci():
     Returns the 6 transplant-relevant loci (HLA-A, -B, -C, -DRB1, -DQB1, -DPB1)
     with total allele counts, genomic allele counts, and mean biophysical properties.
     """
+    cached = _cache_get("loci")
+    if cached is not None:
+        return cached
     start = time.monotonic()
     layer_id = await _get_hla_layer_id()
 
@@ -146,7 +166,7 @@ async def list_hla_loci():
             "mean_nc_stacking_dg37": round(r["mean_nc_dg37"], 4) if r["mean_nc_dg37"] else None,
         })
 
-    return {
+    result = {
         "status": "complete",
         "api_version": __version__,
         "data_version": DATA_VERSION,
@@ -154,6 +174,8 @@ async def list_hla_loci():
         "loci": loci,
         "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
     }
+    _cache_set("loci", result)
+    return result
 
 
 @router.get("/alleles/{locus}")
@@ -319,6 +341,10 @@ async def hla_distributions(locus: str):
     """
     start = time.monotonic()
     locus = _validate_locus(locus)
+    cache_key = f"dist:{locus}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     layer_id = await _get_hla_layer_id()
 
     cols = ", ".join(_DIST_METRICS)
@@ -341,7 +367,7 @@ async def hla_distributions(locus: str):
 
     metrics = {m: _compute_distribution(vals) for m, vals in metric_values.items()}
 
-    return {
+    result = {
         "status": "complete",
         "api_version": __version__,
         "data_version": DATA_VERSION,
@@ -350,6 +376,8 @@ async def hla_distributions(locus: str):
         "metrics": metrics,
         "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
     }
+    _cache_set(cache_key, result)
+    return result
 
 
 @router.get("/allele/{allele_name:path}")
@@ -827,6 +855,10 @@ async def expression_correlation(
     hypothesis: do material-channel properties of non-coding DNA predict
     expression phenotype?
     """
+    cache_key = f"expr_corr:{locus}:{focus}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     start = time.monotonic()
     layer_id = await _get_hla_layer_id()
 
@@ -959,7 +991,7 @@ async def expression_correlation(
                     })
         pooled_effects.sort(key=lambda x: x["abs_d"], reverse=True)
 
-    return {
+    result = {
         "status": "complete",
         "api_version": __version__,
         "data_version": DATA_VERSION,
@@ -972,6 +1004,8 @@ async def expression_correlation(
         "pooled_normal_vs_aberrant": pooled_effects,
         "timing": {"query_time_ms": round((time.monotonic() - start) * 1000, 1)},
     }
+    _cache_set(cache_key, result)
+    return result
 
 
 # ── Within-protein expression test ─────────────────────────────────────────
@@ -998,6 +1032,10 @@ async def expression_within_protein(
     2. Within each group, compute Cohen's d (normal vs suffix) per NC metric
     3. Aggregate across groups: mean d, direction consistency, top hits
     """
+    cache_key = f"within_protein:{locus}:{min_alleles}:{include_features}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
     start = time.monotonic()
     layer_id = await _get_hla_layer_id()
 
@@ -1231,4 +1269,5 @@ async def expression_within_protein(
     if feature_breakdown:
         result["feature_breakdown"] = feature_breakdown
 
+    _cache_set(cache_key, result)
     return result

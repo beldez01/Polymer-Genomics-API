@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import asyncpg
 
 from polymer_genomics.validation.framework import (
@@ -14,7 +16,7 @@ from polymer_genomics.validation.layer_specs import LAYER_VALIDATION_SPECS
 
 
 async def run_layer_validation(
-    conn,
+    pool,
     layer_key: str,
     build: str = "hg38",
 ) -> list[ValidationResult]:
@@ -26,104 +28,59 @@ async def run_layer_validation(
     results: list[ValidationResult] = []
     table = spec["table"]
 
-    # Check if the table exists before querying
-    table_exists = await conn.fetchval(
-        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema || '.' || table_name = $1)",
-        table,
-    )
-    if not table_exists:
-        return [ValidationResult(layer_key, "table_exists", False, f"Table {table} does not exist")]
-
-    # Check if build column exists (some tables use different partitioning)
-    has_build_col = await conn.fetchval(
-        """SELECT EXISTS (
-            SELECT 1 FROM information_schema.columns
-            WHERE table_schema || '.' || table_name = $1
-              AND column_name = 'build'
-        )""",
-        table,
-    )
-
-    try:
-        # Row count
-        if has_build_col:
-            count = await conn.fetchval(
-                f"SELECT count(*) FROM {table} WHERE build = $1::genome_build", build
+    async with pool.acquire() as conn:
+        # Use registry row_count instead of full count(*)
+        reg_row = await conn.fetchrow(
+            "SELECT row_count FROM registry.layers WHERE layer_key LIKE $1 AND is_active = true LIMIT 1",
+            f"%{layer_key}%",
+        )
+        count = reg_row["row_count"] if reg_row and reg_row["row_count"] else 0
+        if count == 0:
+            # Fallback: fast estimate from pg_stat
+            schema, tbl = table.split(".", 1)
+            est = await conn.fetchval(
+                "SELECT n_live_tup FROM pg_stat_user_tables WHERE schemaname = $1 AND relname = $2",
+                schema, tbl,
             )
-        else:
-            count = await conn.fetchval(f"SELECT count(*) FROM {table}")
+            count = est or 0
         results.append(validate_row_count(layer_key, count, spec["row_count_min"]))
 
-        # Value ranges (sample 10K rows)
-        for field, (vmin, vmax) in spec.get("value_ranges", {}).items():
-            # Check column exists
-            col_exists = await conn.fetchval(
-                """SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_schema || '.' || table_name = $1
-                      AND column_name = $2
-                )""",
-                table, field,
-            )
-            if not col_exists:
-                results.append(ValidationResult(
-                    f"{layer_key}.{field}", "column_exists", False,
-                    f"Column {field} does not exist in {table}",
-                ))
-                continue
+        try:
+            # Value ranges + null fraction in one pass per field
+            for field, (vmin, vmax) in spec.get("value_ranges", {}).items():
+                try:
+                    rows = await conn.fetch(
+                        f"SELECT {field} FROM {table} TABLESAMPLE SYSTEM (1) WHERE {field} IS NOT NULL LIMIT 10000",
+                    )
+                    values = [float(r[0]) for r in rows]
+                    results.append(validate_value_range(f"{layer_key}.{field}", values, vmin, vmax))
 
-            # Use TABLESAMPLE for large tables to avoid full-table ORDER BY random()
-            if has_build_col:
-                rows = await conn.fetch(
-                    f"SELECT {field} FROM {table} TABLESAMPLE SYSTEM (1) WHERE build = $1::genome_build AND {field} IS NOT NULL LIMIT 10000",
-                    build,
-                )
-            else:
-                rows = await conn.fetch(
-                    f"SELECT {field} FROM {table} TABLESAMPLE SYSTEM (1) WHERE {field} IS NOT NULL LIMIT 10000",
-                )
-            values = [float(r[0]) for r in rows]
-            results.append(validate_value_range(f"{layer_key}.{field}", values, vmin, vmax))
-
-        # Null fraction
-        for field in spec.get("value_ranges", {}):
-            col_exists = await conn.fetchval(
-                """SELECT EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_schema || '.' || table_name = $1
-                      AND column_name = $2
-                )""",
-                table, field,
-            )
-            if not col_exists:
-                continue  # already reported above
-
-            if has_build_col:
-                null_count = await conn.fetchval(
-                    f"SELECT count(*) FROM {table} WHERE build = $1::genome_build AND {field} IS NULL",
-                    build,
-                )
-            else:
-                null_count = await conn.fetchval(
-                    f"SELECT count(*) FROM {table} WHERE {field} IS NULL",
-                )
-            results.append(validate_null_fraction(
-                f"{layer_key}.{field}", null_count, count, spec.get("max_null_frac", 0.01),
-            ))
-
-    except asyncpg.UndefinedTableError as e:
-        results.append(ValidationResult(layer_key, "query", False, f"Table error: {e}"))
-    except asyncpg.UndefinedColumnError as e:
-        results.append(ValidationResult(layer_key, "query", False, f"Column error: {e}"))
-    except Exception as e:
-        results.append(ValidationResult(layer_key, "query", False, f"Unexpected error: {e}"))
+                    # Null fraction from sample estimate instead of full count
+                    sample = await conn.fetchrow(
+                        f"SELECT count(*) AS total, count({field}) AS non_null "
+                        f"FROM {table} TABLESAMPLE SYSTEM (1) LIMIT 50000",
+                    )
+                    if sample and sample["total"] > 0:
+                        null_count = sample["total"] - sample["non_null"]
+                        results.append(validate_null_fraction(
+                            f"{layer_key}.{field}", null_count, sample["total"],
+                            spec.get("max_null_frac", 0.01),
+                        ))
+                except (asyncpg.UndefinedColumnError, asyncpg.UndefinedTableError):
+                    results.append(ValidationResult(
+                        f"{layer_key}.{field}", "column_exists", False,
+                        f"Column {field} does not exist in {table}",
+                    ))
+        except Exception as e:
+            results.append(ValidationResult(layer_key, "query", False, f"Error: {e}"))
 
     return results
 
 
-async def run_all_validations(conn, build: str = "hg38") -> dict[str, list[ValidationResult]]:
-    """Run validations for all layers with specs."""
-    all_results: dict[str, list[ValidationResult]] = {}
-    for layer_key in LAYER_VALIDATION_SPECS:
-        all_results[layer_key] = await run_layer_validation(conn, layer_key, build)
-    return all_results
+async def run_all_validations(pool, build: str = "hg38") -> dict[str, list[ValidationResult]]:
+    """Run validations for all layers with specs (parallel)."""
+    async def _validate(key):
+        return key, await run_layer_validation(pool, key, build)
+
+    results = await asyncio.gather(*[_validate(k) for k in LAYER_VALIDATION_SPECS])
+    return {k: v for k, v in results}

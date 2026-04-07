@@ -125,14 +125,17 @@ async def layer_summary(build: str):
         )
         counts = {r["layer_key"]: r["row_count"] for r in layer_rows}
 
-        # Gene counts by feature_type from gene.features
+        # Gene counts by feature_type — use the new covering index
         gene_layer = await conn.fetchrow(
             """SELECT id FROM registry.active_layers
                WHERE layer_key = 'gencode_v44' AND genome_build = $1::genome_build""",
             build,
         )
         gene_counts = {}
+        protein_coding_count = None
         if gene_layer:
+            # Both queries use idx_gene_features_type_count (build, layer_id, feature_type, gene_type)
+            # This is an index-only scan — no table access needed
             ft_rows = await conn.fetch(
                 """SELECT feature_type::text AS ft, count(*) AS n
                    FROM gene.features
@@ -142,11 +145,6 @@ async def layer_summary(build: str):
                 gene_layer["id"],
             )
             gene_counts = {r["ft"]: r["n"] for r in ft_rows}
-
-        # Protein-coding gene count (requires gene_type column; falls back to
-        # total gene count if column doesn't exist yet)
-        protein_coding_count = None
-        if gene_layer:
             try:
                 pc_row = await conn.fetchrow(
                     """SELECT count(*) AS n
@@ -158,7 +156,6 @@ async def layer_summary(build: str):
                 )
                 protein_coding_count = pc_row["n"] if pc_row else None
             except Exception:
-                # gene_type column doesn't exist yet — that's fine
                 pass
 
     result = build_meta_envelope({
@@ -237,8 +234,9 @@ async def get_layer_license(layer_key: str):
     layer_type = row["layer_type"]
     source_info = LAYER_SOURCE_INFO.get(layer_type, {})
 
-    # ODbL compliance flag for gnomAD-derived data
-    is_odbl = "ODbL" in source_info.get("license", "")
+    commercial_use = source_info.get("commercial_use", True)
+    is_copyleft = source_info.get("copyleft", False)
+    patent_notice = source_info.get("patent_notice")
 
     return build_meta_envelope({
         "layer_key": row["layer_key"],
@@ -246,8 +244,11 @@ async def get_layer_license(layer_key: str):
         "source": source_info.get("source", row["source"] or "Unknown"),
         "license": source_info.get("license", "See polymerbio.org/data-sources"),
         "license_class": row["license_class"],
+        "commercial_use": commercial_use,
+        "copyleft": is_copyleft,
         "evidence_class": row["evidence_class"],
-        "odbl_share_alike": is_odbl,
+        **({"patent_notice": patent_notice} if patent_notice else {}),
+        **({"note": source_info["note"]} if "note" in source_info else {}),
         "citation_note": (
             "If you use this data in a publication, please cite the original source "
             "and Polymer Genomics (polymerbio.org)."

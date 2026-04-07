@@ -77,6 +77,10 @@ _POS_COL: dict[str, str] = {
     "hic_compartment": "h.start_pos",
     "insulation_score": "s.start_pos",
     "tad_domain": "t.start_pos",
+    "tf_binding": "start_pos",
+    "wgbs": "start_pos",
+    "accessibility": "start_pos",
+    "mutation_density": "start_pos",
 }
 
 

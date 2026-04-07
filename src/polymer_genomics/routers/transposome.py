@@ -384,15 +384,16 @@ _mapping_cache: dict[str, dict] = {}
 
 _PROBE_TE_MAPPING_SQL = """
 SELECT
-    probe_id,
     repeat_class,
-    repeat_family,
-    repeat_name,
+    COALESCE(repeat_family, repeat_class) AS repeat_family,
+    array_agg(probe_id ORDER BY probe_id) AS probe_ids,
     repeat_age::text AS repeat_age,
-    divergence_pct
+    round(avg(divergence_pct)::numeric, 2) AS avg_divergence_pct,
+    count(*) AS probe_count
 FROM probe.repeat_xref
 WHERE platform = $1 AND build = $2
-ORDER BY repeat_class, repeat_family, probe_id
+GROUP BY repeat_class, COALESCE(repeat_family, repeat_class), repeat_age
+ORDER BY repeat_class, repeat_family
 """
 
 
@@ -429,25 +430,25 @@ async def probe_te_mapping(
         rows = await conn.fetch(_PROBE_TE_MAPPING_SQL, db_platform, build)
         db_time = (time.monotonic() - db_start) * 1000
 
-    # Group by repeat_family (not repeat_name — too granular)
+    # Already grouped by SQL — build family dict directly
     families: dict[str, dict] = {}
+    total_probes = 0
     for r in rows:
-        rf = r["repeat_family"] or r["repeat_class"]
-        if rf not in families:
-            families[rf] = {
-                "class": r["repeat_class"],
-                "repeat_family": rf,
-                "probe_ids": [],
-                "divergence_pct": float(r["divergence_pct"]) if r["divergence_pct"] else None,
-                "repeat_age": r["repeat_age"],
-            }
-        families[rf]["probe_ids"].append(r["probe_id"])
+        rf = r["repeat_family"]
+        families[rf] = {
+            "class": r["repeat_class"],
+            "repeat_family": rf,
+            "probe_ids": list(r["probe_ids"]),
+            "divergence_pct": float(r["avg_divergence_pct"]) if r["avg_divergence_pct"] else None,
+            "repeat_age": r["repeat_age"],
+        }
+        total_probes += r["probe_count"]
 
     result = {
         "platform": platform,
         "build": build,
         "families": families,
-        "total_probes": len(rows),
+        "total_probes": total_probes,
         "n_families": len(families),
     }
 

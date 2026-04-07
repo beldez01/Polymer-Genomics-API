@@ -47,9 +47,23 @@ from polymer_genomics.routers.clock_physics import router as clock_physics_route
 from polymer_genomics.routers.variant_physics_router import router as variant_physics_router
 
 
+async def _warm_caches():
+    import asyncio, logging
+    log = logging.getLogger(__name__)
+    await asyncio.sleep(10)  # let health checks pass first
+    try:
+        from polymer_genomics.routers.hla import list_hla_loci
+        await list_hla_loci()
+        log.info("Warmed HLA loci cache")
+    except Exception:
+        pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
     await init_pool()
+    asyncio.create_task(_warm_caches())
     yield
     await close_pool()
 

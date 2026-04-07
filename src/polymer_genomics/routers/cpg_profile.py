@@ -5,6 +5,7 @@ combining site identity, gene context, regulatory annotations,
 conservation, sequence biophysics, and methylation biophysics model.
 """
 
+import asyncio
 import re
 import time
 
@@ -104,6 +105,23 @@ async def get_cpg_profile(build: str, query: str):
         pos_1based = pos_0based + 1
         layers_resolved = []
 
+        # ── Batch all layer IDs in one query ─────────────────────────
+        all_layers = await conn.fetch(
+            "SELECT id, layer_type, layer_key FROM registry.active_layers "
+            "WHERE genome_build = $1::genome_build",
+            build,
+        )
+        layer_map: dict[str, int] = {}
+        layer_key_map: dict[int, str] = {}
+        probe_layer_ids: list[int] = []
+        for lr in all_layers:
+            lt = lr["layer_type"]
+            if lt == "probe":
+                probe_layer_ids.append(lr["id"])
+            elif lt not in layer_map:
+                layer_map[lt] = lr["id"]
+            layer_key_map[lr["id"]] = lr["layer_key"]
+
         # ── Site Identity ─────────────────────────────────────────────
         site_data: dict = {
             "evidence_class": "direct_annotation",
@@ -118,19 +136,8 @@ async def get_cpg_profile(build: str, query: str):
             site_data["probe_id"] = probe_row["probe_id"]
             site_data["cpg_context"] = probe_row["cpg_context"]
             site_data["gene_symbol"] = probe_row["gene_symbol"]
+            site_data["platform"] = layer_key_map.get(probe_row["layer_id"])
 
-            # Look up platform from layer
-            layer_row = await conn.fetchrow(
-                "SELECT layer_key FROM registry.active_layers WHERE id = $1",
-                probe_row["layer_id"],
-            )
-            site_data["platform"] = layer_row["layer_key"] if layer_row else None
-
-            # Find other probes at this position
-            probe_layer_ids = [l["id"] for l in await conn.fetch(
-                "SELECT id FROM registry.active_layers WHERE layer_type = 'probe' AND genome_build = $1::genome_build",
-                build,
-            )]
             other_probes = await conn.fetch(
                 """SELECT probe_id, layer_id FROM probe.coordinates
                    WHERE build = $1::genome_build AND chr_id = $2 AND pos = $3 AND layer_id = ANY($4)""",
@@ -141,8 +148,7 @@ async def get_cpg_profile(build: str, query: str):
                 for p in other_probes
             ]
         else:
-            # Position lookup — check if it's a CpG site
-            cpg_layer_id = await _get_layer_id(conn, build, "cpg")
+            cpg_layer_id = layer_map.get("cpg")
             if cpg_layer_id:
                 cpg_row = await conn.fetchrow(
                     "SELECT context, gc_content FROM cpg.sites "
@@ -155,13 +161,7 @@ async def get_cpg_profile(build: str, query: str):
                 else:
                     site_data["cpg_context"] = None
 
-            # Check for probes at this position
-            probe_layer_ids_rows = await conn.fetch(
-                "SELECT id FROM registry.active_layers WHERE layer_type = 'probe' AND genome_build = $1::genome_build",
-                build,
-            )
-            if probe_layer_ids_rows:
-                probe_layer_ids = [l["id"] for l in probe_layer_ids_rows]
+            if probe_layer_ids:
                 probes_here = await conn.fetch(
                     """SELECT probe_id, cpg_context, gene_symbol FROM probe.coordinates
                        WHERE build = $1::genome_build AND chr_id = $2 AND pos = $3 AND layer_id = ANY($4)""",
@@ -174,192 +174,107 @@ async def get_cpg_profile(build: str, query: str):
                     if not site_data.get("gene_symbol"):
                         site_data["gene_symbol"] = probes_here[0]["gene_symbol"]
 
-        # ── Gene Context ──────────────────────────────────────────────
-        gene_layer_id = await _get_layer_id(conn, build, "gene_model")
-        if gene_layer_id:
-            # Find overlapping gene features
-            gene_rows = await conn.fetch(
-                """SELECT DISTINCT gene_symbol, strand, feature_type,
-                          start_pos, end_pos
-                   FROM gene.features
-                   WHERE build = $1::genome_build AND chr_id = $2
-                     AND coord && int4range($3, $4)
-                     AND layer_id = $5
-                   ORDER BY start_pos
-                   LIMIT 20""",
-                build, chr_id, pos_0based, pos_0based + 1, gene_layer_id,
-            )
-            if gene_rows:
-                # Pick the closest gene
-                best = gene_rows[0]
-                gene_context = _section(
-                    "direct_annotation", "gene", "present",
-                    gene_symbol=best["gene_symbol"],
-                    strand=best["strand"],
-                    feature_type=best["feature_type"],
-                    distance_to_gene=0,
+        # ── All remaining queries in parallel ─────────────────────────
+        bin_start = (pos_0based // 1000) * 1000
+        bin_end = bin_start + 1000
+
+        async def _fetch_gene_context():
+            gene_layer_id = layer_map.get("gene_model")
+            if not gene_layer_id:
+                return _section("direct_annotation", "gene", "unavailable_for_build")
+            async with pool.acquire() as c:
+                gene_rows = await c.fetch(
+                    """SELECT DISTINCT gene_symbol, strand, feature_type, start_pos, end_pos
+                       FROM gene.features
+                       WHERE build = $1::genome_build AND chr_id = $2
+                         AND coord && int4range($3, $4) AND layer_id = $5
+                       ORDER BY start_pos LIMIT 20""",
+                    build, chr_id, pos_0based, pos_0based + 1, gene_layer_id,
                 )
-            else:
-                # Find nearest gene within 100kb
-                nearest = await conn.fetchrow(
+                if gene_rows:
+                    best = gene_rows[0]
+                    return _section("direct_annotation", "gene", "present",
+                                    gene_symbol=best["gene_symbol"], strand=best["strand"],
+                                    feature_type=best["feature_type"], distance_to_gene=0)
+                nearest = await c.fetchrow(
                     """SELECT gene_symbol, strand, start_pos, end_pos,
                               LEAST(ABS(start_pos - $3), ABS(end_pos - $3)) AS dist
                        FROM gene.features
                        WHERE build = $1::genome_build AND chr_id = $2
-                         AND coord && int4range($3 - 100000, $4 + 100000)
-                         AND layer_id = $5
+                         AND coord && int4range($3 - 100000, $4 + 100000) AND layer_id = $5
                          AND feature_type = 'gene'
-                       ORDER BY dist
-                       LIMIT 1""",
+                       ORDER BY dist LIMIT 1""",
                     build, chr_id, pos_0based, pos_0based + 1, gene_layer_id,
                 )
                 if nearest:
-                    gene_context = _section(
-                        "contextual_proxy", "gene", "present",
-                        gene_symbol=nearest["gene_symbol"],
-                        strand=nearest["strand"],
-                        distance_to_gene=int(nearest["dist"]),
-                    )
-                else:
-                    gene_context = _section("direct_annotation", "gene", "no_overlap")
-        else:
-            gene_context = _section("direct_annotation", "gene", "unavailable_for_build")
+                    return _section("contextual_proxy", "gene", "present",
+                                    gene_symbol=nearest["gene_symbol"], strand=nearest["strand"],
+                                    distance_to_gene=int(nearest["dist"]))
+            return _section("direct_annotation", "gene", "no_overlap")
 
-        # ── Nearby Gene Priors ────────────────────────────────────────
-        gene_symbol = (
-            gene_context.get("gene_symbol")
-            or site_data.get("gene_symbol")
-        )
-        if gene_symbol:
-            constraint_layer_id = await _get_layer_id(conn, build, "constraint")
-            expr_layer_id = await _get_layer_id(conn, build, "expression")
-
-            priors: dict = {"evidence_class": "contextual_proxy", "scale": "gene", "status": "present"}
-
-            if constraint_layer_id:
-                cr = await conn.fetchrow(
-                    "SELECT pli, loeuf, mis_z, syn_z FROM conservation.gene_constraint "
-                    "WHERE build = $1::genome_build AND gene_symbol = $2 AND layer_id = $3",
-                    build, gene_symbol, constraint_layer_id,
-                )
-                if cr:
-                    priors["pli"] = float(cr["pli"]) if cr["pli"] is not None else None
-                    priors["loeuf"] = float(cr["loeuf"]) if cr["loeuf"] is not None else None
-                    priors["mis_z"] = float(cr["mis_z"]) if cr["mis_z"] is not None else None
-
-            if expr_layer_id:
-                er = await conn.fetchrow(
-                    "SELECT median_tpm, max_tpm, max_tissue FROM expression.gene_tpm "
-                    "WHERE build = $1::genome_build AND gene_symbol = $2 AND layer_id = $3",
-                    build, gene_symbol, expr_layer_id,
-                )
-                if er:
-                    priors["median_tpm"] = float(er["median_tpm"]) if er["median_tpm"] is not None else None
-                    priors["max_tpm"] = float(er["max_tpm"]) if er["max_tpm"] is not None else None
-                    priors["max_tissue"] = er["max_tissue"]
-
-            priors["rationale"] = f"Constraint and expression data for nearest gene {gene_symbol}. These are gene-level priors, not site-specific measurements."
-            nearby_gene_priors = priors
-        else:
-            nearby_gene_priors = _section("contextual_proxy", "gene", "no_overlap")
-
-        # ── Regulatory Context ────────────────────────────────────────
-        reg_layer_id = await _get_layer_id(conn, build, "regulatory")
-        chrom_layer_id = await _get_layer_id(conn, build, "chromatin_state")
-
-        if reg_layer_id or chrom_layer_id:
+        async def _fetch_regulatory():
+            reg_lid = layer_map.get("regulatory")
+            chrom_lid = layer_map.get("chromatin_state")
+            if not reg_lid and not chrom_lid:
+                return _section("direct_annotation", "regulatory_element", "unavailable_for_build")
             reg_data: dict = {"evidence_class": "direct_annotation", "scale": "regulatory_element", "status": "present"}
-            ccres = []
-            chromhmm = []
-
-            if reg_layer_id:
-                reg_rows = await conn.fetch(
-                    """SELECT accession, score, ccre_class, encode_label
-                       FROM regulatory.ccre
-                       WHERE build = $1::genome_build AND chr_id = $2
-                         AND coord && int4range($3, $4)
-                         AND layer_id = $5
-                       LIMIT 10""",
-                    build, chr_id, pos_0based, pos_0based + 1, reg_layer_id,
-                )
-                ccres = [
-                    {"accession": r["accession"], "ccre_class": r["ccre_class"],
-                     "score": int(r["score"]) if r["score"] is not None else None,
-                     "encode_label": r["encode_label"]}
-                    for r in reg_rows
-                ]
-
-            if chrom_layer_id:
-                chrom_rows = await conn.fetch(
-                    """SELECT state_name, epigenome_name
-                       FROM regulatory.chromatin_state
-                       WHERE build = $1::genome_build AND chr_id = $2
-                         AND coord && int4range($3, $4)
-                         AND layer_id = $5
-                       LIMIT 10""",
-                    build, chr_id, pos_0based, pos_0based + 1, chrom_layer_id,
-                )
-                chromhmm = [
-                    {"state_name": r["state_name"], "epigenome": r["epigenome_name"]}
-                    for r in chrom_rows
-                ]
-
+            ccres, chromhmm = [], []
+            async with pool.acquire() as c:
+                if reg_lid:
+                    reg_rows = await c.fetch(
+                        """SELECT accession, score, ccre_class, encode_label
+                           FROM regulatory.ccre WHERE build = $1::genome_build AND chr_id = $2
+                             AND coord && int4range($3, $4) AND layer_id = $5 LIMIT 10""",
+                        build, chr_id, pos_0based, pos_0based + 1, reg_lid)
+                    ccres = [{"accession": r["accession"], "ccre_class": r["ccre_class"],
+                              "score": int(r["score"]) if r["score"] is not None else None,
+                              "encode_label": r["encode_label"]} for r in reg_rows]
+                if chrom_lid:
+                    chrom_rows = await c.fetch(
+                        """SELECT state_name, epigenome_name FROM regulatory.chromatin_state
+                           WHERE build = $1::genome_build AND chr_id = $2
+                             AND coord && int4range($3, $4) AND layer_id = $5 LIMIT 10""",
+                        build, chr_id, pos_0based, pos_0based + 1, chrom_lid)
+                    chromhmm = [{"state_name": r["state_name"], "epigenome": r["epigenome_name"]} for r in chrom_rows]
             reg_data["ccres"] = ccres
             reg_data["chromhmm_states"] = chromhmm
             if not ccres and not chromhmm:
                 reg_data["status"] = "no_overlap"
-            regulatory_context = reg_data
-        else:
-            regulatory_context = _section("direct_annotation", "regulatory_element", "unavailable_for_build")
+            return reg_data
 
-        # ── Regional Conservation (1kb window) ────────────────────────
-        cons_layer_id = await _get_layer_id(conn, build, "conservation")
-        if cons_layer_id:
-            # 1kb bin containing this position
-            bin_start = (pos_0based // 1000) * 1000
-            bin_end = bin_start + 1000
-            cons_row = await conn.fetchrow(
-                """SELECT phylop_mean, phylop_max, phastcons_mean, phastcons_max
-                   FROM conservation.scores
-                   WHERE build = $1::genome_build AND chr_id = $2
-                     AND coord && int4range($3, $4)
-                     AND layer_id = $5
-                   LIMIT 1""",
-                build, chr_id, bin_start, bin_end, cons_layer_id,
-            )
+        async def _fetch_conservation():
+            cons_lid = layer_map.get("conservation")
+            if not cons_lid:
+                return _section("window_summary", "1kb_window", "unavailable_for_build")
+            async with pool.acquire() as c:
+                cons_row = await c.fetchrow(
+                    """SELECT phylop_mean, phylop_max, phastcons_mean, phastcons_max
+                       FROM conservation.scores WHERE build = $1::genome_build AND chr_id = $2
+                         AND coord && int4range($3, $4) AND layer_id = $5 LIMIT 1""",
+                    build, chr_id, bin_start, bin_end, cons_lid)
             if cons_row:
-                regional_conservation = _section(
-                    "window_summary", "1kb_window", "present",
+                return _section("window_summary", "1kb_window", "present",
                     phylop_mean=float(cons_row["phylop_mean"]) if cons_row["phylop_mean"] is not None else None,
                     phylop_max=float(cons_row["phylop_max"]) if cons_row["phylop_max"] is not None else None,
                     phastcons_mean=float(cons_row["phastcons_mean"]) if cons_row["phastcons_mean"] is not None else None,
                     phastcons_max=float(cons_row["phastcons_max"]) if cons_row["phastcons_max"] is not None else None,
-                    rationale="Conservation scores summarized over 1kb bin, not single-base resolution.",
-                )
-            else:
-                regional_conservation = _section("window_summary", "1kb_window", "no_data")
-        else:
-            regional_conservation = _section("window_summary", "1kb_window", "unavailable_for_build")
+                    rationale="Conservation scores summarized over 1kb bin, not single-base resolution.")
+            return _section("window_summary", "1kb_window", "no_data")
 
-        # ── Sequence Biophysics (1kb window) ──────────────────────────
-        biophys_layer_id = await _get_layer_id(conn, build, "biophysics")
-        if biophys_layer_id:
-            bin_start = (pos_0based // 1000) * 1000
-            bin_end = bin_start + 1000
-            bp_row = await conn.fetchrow(
-                """SELECT gc_content, stacking_dg37, melting_temp,
-                          curvature, groove_width, dipole_density, periodicity_power
-                   FROM biophysics.sequence_properties
-                   WHERE build = $1::genome_build AND chr_id = $2
-                     AND coord && int4range($3, $4)
-                     AND layer_id = $5
-                   LIMIT 1""",
-                build, chr_id, bin_start, bin_end, biophys_layer_id,
-            )
+        async def _fetch_biophysics():
+            bp_lid = layer_map.get("biophysics")
+            if not bp_lid:
+                return _section("window_summary", "1kb_window", "unavailable_for_build"), None
+            async with pool.acquire() as c:
+                bp_row = await c.fetchrow(
+                    """SELECT gc_content, stacking_dg37, melting_temp,
+                              curvature, groove_width, dipole_density, periodicity_power
+                       FROM biophysics.sequence_properties WHERE build = $1::genome_build AND chr_id = $2
+                         AND coord && int4range($3, $4) AND layer_id = $5 LIMIT 1""",
+                    build, chr_id, bin_start, bin_end, bp_lid)
             if bp_row:
                 gc_val = float(bp_row["gc_content"]) if bp_row["gc_content"] is not None else None
-                regional_biophysics = _section(
-                    "window_summary", "1kb_window", "present",
+                return _section("window_summary", "1kb_window", "present",
                     gc=gc_val,
                     stacking_dg37=float(bp_row["stacking_dg37"]) if bp_row["stacking_dg37"] is not None else None,
                     melting_temp=float(bp_row["melting_temp"]) if bp_row["melting_temp"] is not None else None,
@@ -367,14 +282,44 @@ async def get_cpg_profile(build: str, query: str):
                     groove_width=float(bp_row["groove_width"]) if bp_row["groove_width"] is not None else None,
                     dipole=float(bp_row["dipole_density"]) if bp_row["dipole_density"] is not None else None,
                     periodicity=float(bp_row["periodicity_power"]) if bp_row["periodicity_power"] is not None else None,
-                    rationale="Sequence biophysical properties from Polymer Evolution Layer 0, summarized over 1kb bin.",
-                )
-            else:
-                gc_val = None
-                regional_biophysics = _section("window_summary", "1kb_window", "no_data")
+                    rationale="Sequence biophysical properties from Polymer Evolution Layer 0, summarized over 1kb bin."), gc_val
+            return _section("window_summary", "1kb_window", "no_data"), None
+
+        # Phase 1: gene_context + regulatory + conservation + biophysics (all parallel)
+        gene_context, regulatory_context, regional_conservation, biophys_result = await asyncio.gather(
+            _fetch_gene_context(), _fetch_regulatory(), _fetch_conservation(), _fetch_biophysics(),
+        )
+        regional_biophysics, gc_val = biophys_result
+
+        # Phase 2: gene priors (needs gene_symbol from gene_context)
+        gene_symbol = gene_context.get("gene_symbol") or site_data.get("gene_symbol")
+        if gene_symbol:
+            priors: dict = {"evidence_class": "contextual_proxy", "scale": "gene", "status": "present"}
+            constraint_lid = layer_map.get("constraint")
+            expr_lid = layer_map.get("expression")
+            async with pool.acquire() as c:
+                if constraint_lid:
+                    cr = await c.fetchrow(
+                        "SELECT pli, loeuf, mis_z, syn_z FROM conservation.gene_constraint "
+                        "WHERE build = $1::genome_build AND gene_symbol = $2 AND layer_id = $3",
+                        build, gene_symbol, constraint_lid)
+                    if cr:
+                        priors["pli"] = float(cr["pli"]) if cr["pli"] is not None else None
+                        priors["loeuf"] = float(cr["loeuf"]) if cr["loeuf"] is not None else None
+                        priors["mis_z"] = float(cr["mis_z"]) if cr["mis_z"] is not None else None
+                if expr_lid:
+                    er = await c.fetchrow(
+                        "SELECT median_tpm, max_tpm, max_tissue FROM expression.gene_tpm "
+                        "WHERE build = $1::genome_build AND gene_symbol = $2 AND layer_id = $3",
+                        build, gene_symbol, expr_lid)
+                    if er:
+                        priors["median_tpm"] = float(er["median_tpm"]) if er["median_tpm"] is not None else None
+                        priors["max_tpm"] = float(er["max_tpm"]) if er["max_tpm"] is not None else None
+                        priors["max_tissue"] = er["max_tissue"]
+            priors["rationale"] = f"Constraint and expression data for nearest gene {gene_symbol}. These are gene-level priors, not site-specific measurements."
+            nearby_gene_priors = priors
         else:
-            gc_val = None
-            regional_biophysics = _section("window_summary", "1kb_window", "unavailable_for_build")
+            nearby_gene_priors = _section("contextual_proxy", "gene", "no_overlap")
 
         db_time = (time.monotonic() - db_start) * 1000
 

@@ -328,9 +328,9 @@ async def get_sbs_spectrum(
 ):
     """Return SBS thermodynamic spectrum.
 
-    96-channel COSMIC SBS trinucleotide mutation spectrum with nearest-neighbor
-    stacking energy perturbation (δΔG) computed from SantaLucia 1998 parameters.
-    Positive δΔG = destabilizing mutation.
+    96-channel trinucleotide mutation spectrum with nearest-neighbor stacking
+    energy perturbation (δΔG) computed from SantaLucia 1998 parameters.
+    Positive δΔG = destabilizing mutation. Polymer Genomics original computation.
     """
     start_time = time.monotonic()
     db_start = time.monotonic()
@@ -577,13 +577,12 @@ async def get_validation_report(
 
     start_time = time.monotonic()
     pool = await get_pool()
-    async with pool.acquire() as conn:
-        db_start = time.monotonic()
-        if layer_key:
-            results = {layer_key: await run_layer_validation(conn, layer_key, build)}
-        else:
-            results = await run_all_validations(conn, build)
-        db_time = (time.monotonic() - db_start) * 1000
+    db_start = time.monotonic()
+    if layer_key:
+        results = {layer_key: await run_layer_validation(pool, layer_key, build)}
+    else:
+        results = await run_all_validations(pool, build)
+    db_time = (time.monotonic() - db_start) * 1000
 
     report: dict = {}
     total_checks = 0

@@ -238,6 +238,22 @@ def _aggregation_query(layer_type: str) -> str:
             GROUP BY bin_start
             ORDER BY bin_start
         """
+    elif layer_type == "methylation":
+        return """
+            SELECT floor(m.pos / $6) * $6 AS bin_start,
+                   count(*) AS count,
+                   count(*)::float / $6 AS density,
+                   avg(m.gran) AS mean_gran,
+                   avg(m.mono) AS mean_mono,
+                   avg(m.bcell) AS mean_bcell
+            FROM ref.methylation_reference m
+            WHERE m.build = $1::genome_build
+              AND m.chr_id = $2
+              AND m.coord && int4range($3, $4)
+              AND m.layer_id = $5
+            GROUP BY bin_start
+            ORDER BY bin_start
+        """
     # Generic count/density fallback for any layer in _COUNT_TABLES
     from polymer_genomics.routers.profile import _COUNT_TABLES, _ALLOWED_PROFILE_TABLES
     table = _COUNT_TABLES.get(layer_type)

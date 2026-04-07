@@ -4,6 +4,7 @@ Returns summary statistics (mean, median, sd, min, max, percentiles) for
 data layers within a region — without returning individual rows.
 """
 
+import asyncio
 import time
 
 from fastapi import APIRouter, HTTPException, Query
@@ -249,43 +250,48 @@ async def region_stats(
         data = {}
         db_start = time.monotonic()
 
-        for lr in layer_rows:
+        sem = asyncio.Semaphore(8)
+
+        async def _fetch_stats(lr):
             layer_type = lr["layer_type"]
-            # sequence_biophysics shares the same table/fields as biophysics
             reg_key = "biophysics" if layer_type == "sequence_biophysics" else layer_type
             reg = CORRELATION_REGISTRY.get(reg_key)
             if not reg:
-                continue
+                return None
 
-            # Filter fields if requested
             field_exprs = reg["fields"]
             if field_set and reg["mode"] == "continuous":
                 field_exprs = {k: v for k, v in field_exprs.items() if k in field_set}
                 if not field_exprs:
-                    continue
+                    return None
 
             validated_table = safe_table(reg["table"], _ALLOWED_STATS_TABLES)
             sql, field_names = _build_stats_sql(
                 validated_table, reg["pos_col"], reg["mode"], field_exprs
             )
 
-            row = await conn.fetchrow(
-                sql, build, chr_id, internal["start"], internal["end"], lr["id"]
-            )
+            async with sem:
+                async with pool.acquire() as layer_conn:
+                    row = await layer_conn.fetchrow(
+                        sql, build, chr_id, internal["start"], internal["end"], lr["id"]
+                    )
 
             if row is None:
-                continue
+                return None
 
             if reg["mode"] == "continuous":
-                data[lr["layer_key"]] = _parse_continuous_row(
-                    row, field_names, region_length
-                )
+                return lr["layer_key"], _parse_continuous_row(row, field_names, region_length)
             else:
                 n = row["n"]
-                data[lr["layer_key"]] = {
+                return lr["layer_key"], {
                     "count": n,
                     "density": round(n / region_length, 6) if region_length > 0 else 0,
                 }
+
+        results = await asyncio.gather(*[_fetch_stats(lr) for lr in layer_rows])
+        for result in results:
+            if result is not None:
+                data[result[0]] = result[1]
 
         db_time = (time.monotonic() - db_start) * 1000
 

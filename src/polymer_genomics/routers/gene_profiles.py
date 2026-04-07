@@ -97,7 +97,7 @@ async def get_gene_profile(build: str, symbol: str):
             SELECT id, ensembl_gene_id, gene_symbol, chr_id, start_pos, end_pos,
                    strand, gene_length_bp, canonical_transcript, n_transcripts
             FROM profiles.gene_identity
-            WHERE build = $1::genome_build AND UPPER(gene_symbol) = UPPER($2)
+            WHERE build = $1::genome_build AND gene_symbol = UPPER($2)
             LIMIT 1
             """,
             build, symbol,
@@ -112,7 +112,7 @@ async def get_gene_profile(build: str, symbol: str):
                     SELECT id, ensembl_gene_id, gene_symbol, chr_id, start_pos, end_pos,
                            strand, gene_length_bp, canonical_transcript, n_transcripts
                     FROM profiles.gene_identity
-                    WHERE build = $1::genome_build AND UPPER(gene_symbol) = UPPER($2)
+                    WHERE build = $1::genome_build AND gene_symbol = UPPER($2)
                     LIMIT 1
                     """,
                     build, canonical,

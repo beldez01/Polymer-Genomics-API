@@ -5,6 +5,7 @@ summary with significance flags. This is the "tell me everything about this
 region" query that showcases the cross-layer correlation engine.
 """
 
+import asyncio
 import logging
 import time
 
@@ -97,26 +98,28 @@ async def region_profile(
         present_layers = []
         absent_layers = []
 
-        for lr in layer_rows:
-            layer_key = lr["layer_key"]
+        sem = asyncio.Semaphore(8)
+
+        async def _count_layer(lr):
             layer_type = lr["layer_type"]
-
-            # Count features in region
             count_sql = _count_sql_for_type(layer_type)
-            if count_sql is not None:
-                count = await conn.fetchval(
-                    count_sql,
-                    build, chr_id, internal["start"], internal["end"], lr["id"],
-                )
-                if count is None:
-                    count = 0
-            else:
-                count = 0
+            if count_sql is None:
+                return lr, 0
+            async with sem:
+                async with pool.acquire() as layer_conn:
+                    count = await layer_conn.fetchval(
+                        count_sql,
+                        build, chr_id, internal["start"], internal["end"], lr["id"],
+                    )
+            return lr, count if count is not None else 0
 
+        results = await asyncio.gather(*[_count_layer(lr) for lr in layer_rows])
+
+        for lr, count in results:
             entry = {
-                "layer_key": layer_key,
+                "layer_key": lr["layer_key"],
                 "name": lr["name"],
-                "layer_type": layer_type,
+                "layer_type": lr["layer_type"],
                 "evidence_class": lr["evidence_class"],
                 "tier": lr["tier"],
                 "feature_count": count,
