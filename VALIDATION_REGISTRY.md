@@ -61,7 +61,37 @@ Status key: **VALIDATED** | **PARTIALLY_VALIDATED** | **UNVALIDATED** | **CIRCUL
 | Homopolymer runs | Exact match | Trivially correct | **VALIDATED** | |
 | Inverted repeats | Exact match | Trivially correct | **VALIDATED** | |
 
-## 6. Dimensional Independence (Tier 5 — 2026-04-06)
+## 6. GC–Arrangement Decomposition (Exp 21 — 2026-04-06)
+
+**STATUS: VALIDATED — exact LP proof, no sampling error, no p-values**
+
+The Arrangement Envelope provides the theoretical foundation for interpreting all biophysical tracks. At each GC level, a linear program finds the exact min/max of each NN parameter over all valid dinucleotide frequency distributions. This is the mathematical bound on what composition determines vs. what arrangement determines.
+
+| Parameter | Arrangement Capacity (GC=0.41) | Empirical Confirmation |
+|-----------|-------------------------------|----------------------|
+| Rise | **87%** | — |
+| Minor Groove Width | **84%** | Exp 17: groove width sign-flips CO/NCO (partial r ±0.2) |
+| Twist | **83%** | — |
+| Roll | **81%** | Exp 18: curvature (from roll) partial r = 0.285 after GC control |
+| Stacking ΔS | **64%** | Tier 5: ΔS r(GC) = -0.319 (most GC-independent thermo param) |
+| Major Groove Width | **64%** | — |
+| Slide | **59%** | — |
+| Stacking ΔH | **55%** | Tier 5: ΔH r(GC) = -0.955 (intermediate) |
+| Deformability (TRX) | **44%** | Exp 18: partial r = -0.345 (strongest GC-independent signal) |
+| Extinction ε₂₆₀ | **37%** | — |
+| A-Form Propensity | **33%** | Tier 5: r(GC) = 0.998, Tier 3E: partial r = 0.095 |
+| Stacking ΔG₃₇ | **31%** | Exp 03: empirical GC-decomposition ratio = 32% (matches LP) |
+| Z-Form Propensity | **9%** | Tier 5: r(GC) = -0.9998, Tier 3E: partial r = 0.100 (rank #1) |
+
+**Cross-validation**: The LP-predicted arrangement capacity of ΔG₃₇ (31%) matches the empirical Exp 03 decomposition (32%) to within 1 percentage point. This confirms the LP is not merely theoretical — it predicts real experimental outcomes.
+
+**Key rule**: Parameters with arrangement capacity <35% should be treated as GC proxies in any GC-controlled analysis. Parameters with capacity >60% carry GC-independent structural information. See `COMPUTATIONAL_ASSUMPTIONS.md` § FOUNDATIONAL for full implications.
+
+**Reference**: `internal/InSilicoExperiments/exp21_gc_conditional_variance/`
+
+---
+
+## 7. Dimensional Independence (Tier 5 — 2026-04-06)
 
 **EFFECTIVE DIMENSIONALITY: 5 of 17 properties (for 95% variance)**
 
@@ -84,7 +114,7 @@ Status key: **VALIDATED** | **PARTIALLY_VALIDATED** | **UNVALIDATED** | **CIRCUL
 | mean_ds | -0.3189 | 0.898 | **INDEPENDENT** |
 | mean_tilt | 0.0038 | 1.000 | **INDEPENDENT** |
 
-## 7. DNase Accessibility — GC-Controlled (Tier 3D — 2026-04-06)
+## 8. DNase Accessibility — GC-Controlled (Tier 3D — 2026-04-06)
 
 **External data: ENCODE DNase-seq GM12878 (ENCFF915DFR), 50K random 1kb regions**
 **Global r(GC, log(DNase)) = 0.282**
@@ -107,7 +137,7 @@ Properties with independent signal after GC control (weighted mean |partial_r| a
 
 Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp partial_r = 0.36).
 
-## 8. Replication Timing — GC-Controlled (Tier 3E — 2026-04-06)
+## 9. Replication Timing — GC-Controlled (Tier 3E — 2026-04-06)
 
 **External data: Repli-seq hg38 1kb BED, 47K sampled regions**
 **Global r(GC, repli_timing) = 0.415**
@@ -128,13 +158,13 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 
 **Key insight:** Z-form propensity is globally GC-REDUNDANT (r=-0.9998 in Tier 5) yet shows the STRONGEST independent replication timing signal (0.100). The 0.02% of Z-form variance not captured by GC encodes purine-pyrimidine alternation patterns that predict replication timing. Similarly, A-form propensity (global r=0.998 with GC) has partial_r=0.095. **Global GC-redundancy ≠ biological redundancy within GC strata.**
 
-## 9. Known-Answer Tests (Tier 4 — 2026-04-06)
+## 10. Known-Answer Tests (Tier 4 — 2026-04-06)
 
 | Test | Result | Status |
 |------|--------|--------|
 | Telomere GC = 0.50 | PASS (0.500) | **VALIDATED** |
 | Telomere G4 detection | PASS (12 G4s) | **VALIDATED** |
-| A-tract bending | **FAIL** — curvature 2.21 < random 2.72 | **FAILED** |
+| A-tract bending | PASS — curvature 0.510 > random 0.445 (wedge model) | **VALIDATED** |
 | CG alternation Z-form | PASS (mean_z = 2.42) | **VALIDATED** |
 | AT alternation low Z | PASS (4.36 > 2.42) | **VALIDATED** |
 | MYC NHE III1 G4 | PASS (1 G4 detected) | **VALIDATED** |
@@ -144,7 +174,7 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 | TA min stability | PASS (-0.73 kcal/mol) | **VALIDATED** |
 | Stability ranking (10 dinuc) | PASS (exact match) | **VALIDATED** |
 
-## 9. Physics Linter (evaluate_design)
+## 11. Physics Linter (evaluate_design)
 
 | Claim | Validation Test | Status | Evidence |
 |-------|----------------|--------|----------|
@@ -154,7 +184,7 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 | HOMOPOLYMER flag | Tier 3G (MPRA) needed | **UNVALIDATED** | |
 | CPG_ISLAND flag | Literature | JUSTIFIED | Well-established biology |
 
-## 10. External Data Layers (non-biophysics)
+## 12. External Data Layers (non-biophysics)
 
 | Layer | Source | Status |
 |-------|--------|--------|
@@ -163,7 +193,7 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 | GTEx expression | GTEx v10 | **VALIDATED** |
 | ENCODE cCREs | ENCODE v4 | **VALIDATED** |
 | Illumina probes | Manifests | **VALIDATED** |
-| Epigenetic clocks | Published papers | Code fixed, live DB needs re-ingest |
+| Epigenetic clocks | Published papers | **VALIDATED** — code fixed, metadata corrected, counts verified (353/71/513/1030/173/1317/1378) |
 | RepeatMasker | UCSC | **VALIDATED** |
 | Recombination hotspots | Palsson/Pratto | **VALIDATED** |
 
@@ -174,11 +204,12 @@ Signal strengthens dramatically in GC-rich regions (GC 0.55-0.60: CpG obs/exp pa
 1. ~~**Curvature track**: Formula fails A-tract test.~~ **FIXED** — replaced with trajectory-integrated wedge model (Trifonov/Bolshoy). Now passes A-tract gold standard.
 2. ~~**Structural params**: Citation says "Olson 1998" but values don't match.~~ **FIXED** — were LLM-generated chimera. Replaced with verified Olson 2001 J Mol Biol 313:229. Citation corrected.
 3. ~~**Bubble propensity**: Evidence class D.~~ **FIXED** — changed to H in viewer. Sigmoid params documented as unjustified.
-4. **Z-form, A-form, ΔG₃₇ at 1kb**: GC-redundant globally but carry independent signal within GC strata (Tier 3D/3E). Need methodology page explaining this nuance.
-5. ~~**Epigenetic clocks**: Dual-loading bug.~~ **CODE FIXED** — removed early-return that prevented TSV overwrite. Live DB needs: `fly postgres connect -a polymer-db < scripts/fix_all_clocks.sql` then re-ingest.
+4. ~~**Z-form, A-form, ΔG₃₇ at 1kb**: GC-redundant, need methodology page.~~ **DONE** — Exp 21 provides exact decomposition. Methodology page deployed to polymerbio.org/docs/methodology with arrangement capacity table, validation results, evidence classes, and conditions/limitations.
+5. ~~**Epigenetic clocks**: Dual-loading bug.~~ **FIXED** — code fixed (removed early-return), live DB metadata corrected (n_probes matched to actual counts), PhenoAge PMID verified correct.
 6. **Physics linter flags**: Need MPRA validation. Tier 3G stub written. Data source: [MPRAbase](https://mprabase.ucsf.edu) (17.7M sequences, 130 experiments).
 7. ~~**TRX citation**: Wrong page range.~~ **FIXED** — corrected to Heddi 2010 NAR 38(3):1034-1047.
+8. ~~**BigWig recomputation**: Precomputed 1kb tracks used chimeric params.~~ **FIXED** — 2,911,262 windows recomputed from hg38 FASTA with corrected Olson 2001 + wedge curvature, ingested into live DB (2026-04-07).
 
 ---
 
-*Last updated: 2026-04-06 (Tiers 1-5 + 3C/3D/3E complete. 142/161 Tier 1 pass, 18/19 Tier 4 pass. 6 of 7 critical actions resolved. Only MPRA linter validation remains (needs data download).)*
+*Last updated: 2026-04-07. All tiers complete. 7 of 8 critical actions resolved. Only MPRA linter validation remains (needs MPRAbase data download).*
