@@ -205,7 +205,7 @@ export default function DevelopersPage() {
             30-SECOND QUICKSTART
           </p>
           <pre style={CODE_BLOCK}>
-{`pip install polymer-genomics==0.2.0
+{`pip install polymer-genomics
 
 from polymer_genomics import PolymerClient
 
@@ -217,7 +217,7 @@ print(report["summary"]["gc_content"])  # 0.529`}
           </pre>
         </div>
 
-        {/* API Key */}
+        {/* Access */}
         <div style={{
           backgroundColor: COLOR.bg.surface,
           border: `1px solid ${COLOR.border.subtle}`,
@@ -228,12 +228,12 @@ print(report["summary"]["gc_content"])  # 0.529`}
           <div style={{
             fontSize: TYPE.sm.fontSize,
             fontWeight: WEIGHT.medium,
-            color: COLOR.accent.amber,
+            color: COLOR.accent.teal,
             fontFamily: FONT_FAMILY,
             letterSpacing: '0.06em',
             marginBottom: SPACE[2],
           }}>
-            API KEY
+            OPEN ACCESS
           </div>
           <p style={{
             color: COLOR.text.secondary,
@@ -242,13 +242,8 @@ print(report["summary"]["gc_content"])  # 0.529`}
             lineHeight: 1.7,
             margin: 0,
           }}>
-            The API requires a key for all data endpoints. During the research preview,
-            keys are issued manually. Email{' '}
-            <a href="mailto:hello@polymerbio.org" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>
-              hello@polymerbio.org
-            </a>
-            {' '}with your name and institution.
-            The browser at polymerbio.org uses a built-in key &mdash; no setup needed for interactive use.
+            No API key required. All endpoints are open during the research preview.
+            Base URL: <code style={{ color: COLOR.accent.teal }}>https://api.polymerbio.org</code>
           </p>
         </div>
 
@@ -277,7 +272,7 @@ print(report["summary"]["gc_content"])  # 0.529`}
             lineHeight: 1.8,
           }}>
             <div>API version: <code style={{ color: COLOR.accent.teal }}>0.2.0</code></div>
-            <div>SDK version: <code style={{ color: COLOR.accent.teal }}>polymer-genomics 0.2.0</code></div>
+            <div>SDK version: <code style={{ color: COLOR.accent.teal }}>polymer-genomics 0.3.0</code></div>
             <div>Max sequence length (evaluate): 100,000 bp</div>
             <div>Max region size (region query): 10 Mb</div>
             <div>Max batch probes: 10,000</div>
