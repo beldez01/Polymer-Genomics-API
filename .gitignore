@@ -52,3 +52,11 @@ data/downloads/
 # Sensitive documents — never commit to public repo
 PROVISIONAL_PATENT_DRAFT.md
 *.ownership-certificate.pdf
+
+# Internal docs — not for public repo
+CLAUDE.md
+COMPUTATIONAL_ASSUMPTIONS.md
+VALIDATION_REGISTRY.md
+.claude/
+docs/superpowers/
+viewer/docs/superpowers/
