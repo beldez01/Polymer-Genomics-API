@@ -10,7 +10,7 @@ Live at [polymerbio.org](https://polymerbio.org) · API at [api.polymerbio.org](
 
 Every major genomic database treats DNA as a symbolic sequence: genes, variants, regulatory elements, expression levels. None provide the material-channel properties — stacking free energy, persistence length, groove width, melting temperature — that determine how DNA *physically behaves*. And none let you correlate those properties with biological annotations in a single query.
 
-Polymer Genomics fills this gap. It is the first entry in an empty category.
+Polymer Genomics fills this gap.
 
 ## Quick Start
 
@@ -49,6 +49,16 @@ batch = client.batch_evaluate({"v1": seq1, "v2": seq2, "v3": seq3})
 
 ## Core Capabilities
 
+### Anti-Hallucination Design
+
+Every response carries epistemic metadata so AI agents never confuse measured data with predictions:
+
+- **Evidence classes** on every layer: Measured (M), Curated (K), Derived (D), Statistical (S), Hypothetical (H)
+- **Provenance** in every response: source database, license, content hash, validation status
+- **Structured flags** instead of free text — machines parse codes, not prose
+- **Truncation warnings** — `status: "truncated"` prevents agents from reporting incomplete data as complete
+- **Version metadata** — `api_version` and `data_version` in every envelope
+
 ### The Physics Linter
 
 Evaluate any DNA sequence (10–100,000 bp) against biophysical criteria. Returns thermodynamic stability, structural properties, CpG islands, and 13 actionable flag types — including direct/inverted repeats, extreme GC windows, Z-form propensity, and silencing risk. Designed for synthetic biology: evaluate before you synthesize.
@@ -65,16 +75,6 @@ The killer feature: correlate and intersect heterogeneous data layers in a singl
 - `POST /v1/query/intersect` — boolean AND across multiple layers with field-level filtering
 - `GET /v1/query/recipes` — prebuilt queries for common biological questions
 - `GET /v1/profile/{build}/{region}` — all layers at once with significance flags
-
-### Anti-Hallucination Design
-
-Every response carries epistemic metadata so AI agents never confuse measured data with predictions:
-
-- **Evidence classes** on every layer: Measured (M), Curated (K), Derived (D), Statistical (S), Hypothetical (H)
-- **Provenance** in every response: source database, license, content hash, validation status
-- **Structured flags** instead of free text — machines parse codes, not prose
-- **Truncation warnings** — `status: "truncated"` prevents agents from reporting incomplete data as complete
-- **Version metadata** — `api_version` and `data_version` in every envelope
 
 ## API Endpoints
 
