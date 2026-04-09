@@ -18,7 +18,6 @@ Output: scripts/recomputed_tracks/*.bw (7 files)
 from __future__ import annotations
 
 import math
-import os
 import sys
 import time
 from pathlib import Path

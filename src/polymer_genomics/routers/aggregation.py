@@ -4,7 +4,6 @@ import time
 
 from fastapi import APIRouter, HTTPException, Query
 
-from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_table
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool

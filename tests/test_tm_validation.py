@@ -11,14 +11,12 @@ Reference Tm values sourced from:
 """
 
 import math
-import pytest
 
 from polymer_genomics.biophysics import compute_thermodynamics
 from polymer_genomics.evaluate import (
     evaluate_sequence,
     _nn_melting_temp,
     _empirical_melting_temp,
-    _NN_TM_CUTOFF,
 )
 
 # ── Independent NN reference implementation (for cross-check) ────────────

@@ -15,7 +15,6 @@ from .compute import (
     call_r,
     cleanup_session,
     create_session,
-    list_sessions,
     r_available,
     session_dir,
 )

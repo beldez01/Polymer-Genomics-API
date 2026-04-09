@@ -73,7 +73,7 @@ def _read_polymer_tsv(tsv_path: str | Path) -> list[dict]:
     skipped = 0
 
     with open(tsv_path) as f:
-        header = f.readline()  # skip header
+        f.readline()  # skip header
         for line_num, line in enumerate(f, 2):
             line = line.rstrip("\n")
             if not line or line.startswith("#"):

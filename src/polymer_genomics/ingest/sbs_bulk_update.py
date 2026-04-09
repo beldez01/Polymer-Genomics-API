@@ -9,14 +9,11 @@ This is ~100x faster than per-row UPDATE over a network proxy.
 from __future__ import annotations
 
 import asyncio
-import io
-import struct
-import sys
 
 import asyncpg
 
 from polymer_genomics.ingest._connection import get_ingest_connection
-from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
+from polymer_genomics.ingest._transaction import check_base_rows
 from polymer_genomics.ingest.melting_domains import compute_all_tracks_numpy
 
 

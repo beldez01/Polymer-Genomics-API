@@ -15,7 +15,6 @@ from pydantic import BaseModel, Field
 from polymer_genomics.construct import (
     evaluate_construct,
     compare_constructs,
-    VALID_ROLES,
     MAX_PARTS,
 )
 

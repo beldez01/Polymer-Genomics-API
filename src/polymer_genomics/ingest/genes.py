@@ -16,7 +16,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import gzip
-import os
 import re
 import urllib.request
 from collections.abc import Iterator

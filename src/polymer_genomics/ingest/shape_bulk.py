@@ -7,7 +7,6 @@ Usage::
 """
 from __future__ import annotations
 import asyncio, os, sys
-import asyncpg
 import pyBigWig
 
 from polymer_genomics.ingest._connection import get_ingest_connection

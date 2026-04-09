@@ -72,7 +72,7 @@ def _bin_mutations(
 
     opener = gzip.open if filepath.endswith(".gz") else open
     with opener(filepath, "rt") as f:
-        header = next(f, None)  # skip header
+        next(f, None)  # skip header
         for line in f:
             parts = line.strip().split("\t")
             if len(parts) < 6:

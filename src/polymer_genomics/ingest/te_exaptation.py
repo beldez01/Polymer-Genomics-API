@@ -20,7 +20,6 @@ import asyncpg
 
 from polymer_genomics.constants import CHR_ID_TO_NAME
 from polymer_genomics.ingest._connection import get_ingest_connection
-from polymer_genomics.ingest._transaction import ingest_transaction
 
 # ── Constants ────────────────────────────────────────────────────────────────
 

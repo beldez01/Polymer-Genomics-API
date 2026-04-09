@@ -294,8 +294,6 @@ async def main() -> None:
         ensg_to_symbol = await build_ensg_to_symbol(conn)
 
         grand_total = 0
-        resolved_count = 0
-        unresolved_count = 0
 
         async with ingest_transaction(conn):
             for i, tissue_path in enumerate(tissue_files, 1):

@@ -1616,7 +1616,6 @@ async def evaluate_construct(
     try:
         s = data.get("summary", {})
         n_flags = s.get("n_assembly_warnings", 0)
-        n_info = s.get("n_assembly_flags", 0) - n_flags
         parts_desc = ", ".join(
             f"{p['name']} ({p['role']}, {p['length_bp']}bp)"
             for p in s.get("parts", [])
@@ -2219,7 +2218,7 @@ async def analyze_te_methylation(
 
     # Retro-Age computation (optional)
     retro_age_result = None
-    if chronological_age is not None or True:  # always compute if we can
+    if True:  # always compute retro-age
         try:
             clock_resp = await _get(
                 "/v1/reference/clock-probes", {"clock": "retro_age_v2"}

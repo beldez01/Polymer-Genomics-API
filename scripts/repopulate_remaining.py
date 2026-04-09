@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import math
 import sys
 import time
 from pathlib import Path

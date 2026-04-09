@@ -88,13 +88,6 @@ async def export_matrix(
     frag_cols = ", ".join(f"frag.{c}" for c in FRAGILITY_COLUMNS)
     nonb_cols = ", ".join(f"nonb.{c}" for c in NONB_COLUMNS)
 
-    # Get the layer_ids for biophysics
-    bp_layer_id = await conn.fetchval("""
-        SELECT id FROM registry.layers
-        WHERE layer_key = 'sequence_biophysics_l0' AND genome_build = $1
-        LIMIT 1
-    """, build)
-
     query = f"""
         SELECT
             bp.chr_id,

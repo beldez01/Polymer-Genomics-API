@@ -11,7 +11,7 @@ Verifies:
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 # These tests assume a running instance with gene_aliases data loaded.
 # For CI, use the test database fixture; for local dev, run against Docker.

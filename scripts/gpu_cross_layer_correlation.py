@@ -222,7 +222,6 @@ def compute_distance_correlation(X: np.ndarray, n_samples: int = 50_000) -> np.n
     X_sub = np.where(np.isnan(X_sub), col_means, X_sub)
 
     n_cols = X_sub.shape[1]
-    n = X_sub.shape[0]
     dCor = np.zeros((n_cols, n_cols))
 
     # Pre-compute centered distance matrices

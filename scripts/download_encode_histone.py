@@ -8,8 +8,6 @@ for each (mark, cell_type) combination, then downloads them.
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
 import urllib.request
 import urllib.parse

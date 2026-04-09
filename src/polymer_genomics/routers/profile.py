@@ -14,7 +14,6 @@ from fastapi import APIRouter, HTTPException, Query
 logger = logging.getLogger(__name__)
 
 from polymer_genomics import __version__
-from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS, safe_table
 from polymer_genomics.coordinates import api_to_db, parse_region
 from polymer_genomics.db import get_pool

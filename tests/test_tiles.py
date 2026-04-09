@@ -1,6 +1,5 @@
 """Tests for tile endpoints: pure tile math + integration tests."""
 
-import pytest
 
 
 # --- Pure tile math tests (no DB) ---

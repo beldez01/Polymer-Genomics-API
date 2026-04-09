@@ -7,7 +7,6 @@ Usage:
     POLYMER_API_KEY=... python scripts/validate_layers_manual.py
 """
 
-import json
 import os
 import sys
 

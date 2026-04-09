@@ -16,10 +16,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import csv
 from pathlib import Path
 
-import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
 from polymer_genomics.ingest._connection import get_ingest_connection

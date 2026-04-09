@@ -7,8 +7,6 @@ Usage:
     POLYMER_API_KEY=... python scripts/deep_validate.py
 """
 
-import json
-import math
 import os
 import sys
 

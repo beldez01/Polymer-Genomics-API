@@ -149,7 +149,7 @@ async def main(build: str = "hg38") -> None:
         print(f"Derived Density Tracks - {build}")
         print(f"{'='*60}")
 
-        count = await derive_densities(conn, build)
+        await derive_densities(conn, build)
         print(f"\n  Derived density computation complete")
         print("Done.")
     finally:

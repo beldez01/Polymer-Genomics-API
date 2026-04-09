@@ -503,7 +503,6 @@ async def update_melting_columns(
 if __name__ == "__main__":
     import argparse
     import asyncio
-    import asyncpg
 
     from polymer_genomics.ingest._connection import get_ingest_connection
     from polymer_genomics.ingest._transaction import check_base_rows

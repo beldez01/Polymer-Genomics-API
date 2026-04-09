@@ -24,7 +24,6 @@ from pathlib import Path
 
 import asyncpg
 
-from polymer_genomics.constants import CHR_NAME_TO_ID
 from polymer_genomics.ingest._connection import get_ingest_connection
 from polymer_genomics.ingest._transaction import ingest_transaction
 from polymer_genomics.ingest.gene_costs import resolve_gene_coordinates

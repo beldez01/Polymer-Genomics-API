@@ -11,7 +11,6 @@ Connects to local PostgreSQL (port 5432) and MinIO (port 9000).
 import asyncio
 import csv
 import hashlib
-import io
 import os
 import tempfile
 

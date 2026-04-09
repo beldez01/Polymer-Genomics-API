@@ -204,7 +204,6 @@ async def get_gene_profile(build: str, symbol: str):
 
     meta = None
     if metadata:
-        import json
         meta = {
             "version_tag": metadata["version_tag"],
             "n_genes": metadata["n_genes"],

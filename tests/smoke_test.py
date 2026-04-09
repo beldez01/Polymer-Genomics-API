@@ -13,7 +13,6 @@ import os
 import time
 
 import httpx
-import pytest
 
 API_BASE = os.environ.get("POLYMER_API_BASE", "https://api.polymerbio.org")
 API_KEY = os.environ.get(

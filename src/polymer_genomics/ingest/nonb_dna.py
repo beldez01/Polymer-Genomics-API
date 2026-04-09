@@ -18,10 +18,8 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import os
 import re
 
-import asyncpg
 
 from polymer_genomics.constants import CHR_NAME_TO_ID
 from polymer_genomics.ingest._connection import get_ingest_connection

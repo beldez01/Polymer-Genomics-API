@@ -12,7 +12,6 @@ import time
 from fastapi import APIRouter, HTTPException
 
 from polymer_genomics.constants import CHR_ID_TO_NAME, CHR_NAME_TO_ID, VALID_BUILDS
-from polymer_genomics.coordinates import api_to_db, db_to_api
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
 

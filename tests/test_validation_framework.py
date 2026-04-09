@@ -1,7 +1,6 @@
 """Unit tests for the validation framework."""
 
 from polymer_genomics.validation.framework import (
-    ValidationResult,
     validate_row_count,
     validate_value_range,
     validate_null_fraction,

@@ -1,7 +1,6 @@
 """Genome-wide dinucleotide index: uint8 arrays (0-15) for instant biophysics lookup."""
 
 import numpy as np
-from pathlib import Path
 
 DINUC_ORDER = [
     "AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT",

@@ -62,7 +62,6 @@ async def update_one_chr(chrom: str, chr_id: int, col_map: dict[str, str], data_
                                   command_timeout=300)
     try:
         cols = list(col_map.keys())
-        n_cols = len(cols)
 
         # Create temp staging table
         col_defs = ", ".join(f"{c} real" for c in cols)

@@ -11,7 +11,6 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 
 from polymer_genomics.biophysics import (
-    compute_all,
     compute_contextual,
     compute_curvature,
     compute_extinction,

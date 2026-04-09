@@ -13,8 +13,7 @@ import time
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from polymer_genomics.constants import CHR_ID_TO_NAME, CHR_NAME_TO_ID, VALID_BUILDS
-from polymer_genomics.coordinates import db_to_api
+from polymer_genomics.constants import CHR_NAME_TO_ID, VALID_BUILDS
 from polymer_genomics.db import get_pool
 from polymer_genomics.envelope import build_envelope
 from polymer_genomics.sequence import get_sequence

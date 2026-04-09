@@ -56,7 +56,6 @@ def _parse_snp_positions(snp_file: str | Path) -> dict[str, tuple[str, int]]:
                 pos = int(pos_str)
             except ValueError:
                 continue
-            rsid = row.get("rsid", name)
             positions[name] = (f"chr{chrom}" if not chrom.startswith("chr") else chrom, pos)
     return positions
 

@@ -4,7 +4,6 @@ from statistics import mean
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from polymer_genomics.config import settings
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
 from polymer_genomics.coordinates import db_to_api
 from polymer_genomics.db import get_pool
