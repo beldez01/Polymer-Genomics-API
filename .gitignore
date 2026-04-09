@@ -33,6 +33,7 @@ data/clocks/
 data/encode/
 data/gwas/
 .vercel
+.superpowers/
 
 # Large reference/experiment data
 data/tad/
