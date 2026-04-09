@@ -117,7 +117,6 @@ def read_subcellular_location(tsv_path: str | Path) -> list[dict]:
             if not ensg:
                 continue
             gene_name = raw.get("Gene name", "").strip()
-            reliability = raw.get("Reliability", "").strip()
             go_id = raw.get("GO id", "").strip() if raw.get("GO id") else None
 
             # Parse locations from each reliability tier

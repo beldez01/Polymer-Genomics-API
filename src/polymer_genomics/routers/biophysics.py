@@ -159,7 +159,6 @@ async def compute_region_biophysics(
     summaries = {k: v.get("summary", {}) for k, v in results.items()}
 
     compute_time = (time.monotonic() - seq_time) * 1000
-    total_time = (time.monotonic() - start_time) * 1000
 
     data = {
         "seqnames": seqnames,

@@ -961,27 +961,72 @@ async def main(builds: list[str] | None = None, *, validate_ucsc: bool = False) 
         print("No builds to ingest.")
         return
 
-    # Phase 2: Connect to DB and load (connection opened fresh).
-    print(f"\n{'='*60}")
-    print("Connecting to database for ingestion...")
-    print(f"{'='*60}")
-    conn = await get_ingest_connection(admin=True)
+    # Phase 2: Connect to DB and load.
+    # Uses fresh connections per operation to survive fly proxy timeouts.
+    for build, (fasta_path, islands_by_chr) in precomputed.items():
+        print(f"\n{'='*60}")
+        print(f"Loading CpG sites + islands — {build}")
+        print(f"{'='*60}")
 
-    try:
-        for build, (fasta_path, islands_by_chr) in precomputed.items():
-            print(f"\n{'='*60}")
-            print(f"Loading CpG sites + islands — {build}")
-            print(f"{'='*60}")
+        # 2a. Register layers + load islands (short operation).
+        conn = await get_ingest_connection(admin=True)
+        try:
+            island_layer_id = await register_layer(
+                conn, "cpg_islands", build,
+                name=f"CpG Islands ({build})", layer_type="cpg",
+            )
+            site_layer_id = await register_layer(
+                conn, "cpg_sites", build,
+                name=f"CpG Sites ({build})", layer_type="cpg",
+            )
+            island_count = await ingest_islands(conn, build, island_layer_id, islands_by_chr)
+            print(f"  Islands loaded: {island_count:,}")
 
-            async with ingest_transaction(conn):
-                island_count, site_count = await ingest_build(
-                    conn, build, fasta_path, islands_by_chr,
+            chr_ids = list(range(1, 26))
+            await ensure_partitions(conn, "cpg", "sites", build, chr_ids)
+        finally:
+            await conn.close()
+
+        # 2b. Load sites per-chromosome with fresh connections.
+        total_sites = 0
+        for chr_name in sorted(CHR_NAME_TO_ID, key=lambda c: CHR_NAME_TO_ID[c]):
+            chr_id = CHR_NAME_TO_ID[chr_name]
+            print(f"\n  Processing {chr_name} (chr_id={chr_id})...")
+
+            try:
+                sequence = read_fasta_sequence(fasta_path, chr_name)
+            except ValueError:
+                print(f"    Skipping {chr_name}: not found in FASTA")
+                continue
+
+            chr_islands = islands_by_chr.get(chr_name, [])
+
+            conn = await get_ingest_connection(admin=True)
+            try:
+                n = await ingest_sites_for_chr(
+                    conn, build, site_layer_id, chr_name, chr_id, sequence, chr_islands
                 )
-                print(f"\n  Summary: {island_count:,} islands, {site_count:,} sites loaded")
+                total_sites += n
+            finally:
+                await conn.close()
 
-        print("\nDone.")
-    finally:
-        await conn.close()
+            del sequence
+
+        # 2c. Update layer stats.
+        conn = await get_ingest_connection(admin=True)
+        try:
+            if island_count > 0:
+                island_hash = await compute_content_hash(conn, "cpg", "islands", str(island_layer_id))
+                await update_layer_stats(conn, str(island_layer_id), island_count, island_hash)
+            if total_sites > 0:
+                site_hash = await compute_content_hash(conn, "cpg", "sites", str(site_layer_id))
+                await update_layer_stats(conn, str(site_layer_id), total_sites, site_hash)
+        finally:
+            await conn.close()
+
+        print(f"\n  Summary: {island_count:,} islands, {total_sites:,} sites loaded")
+
+    print("\nDone.")
 
 
 def cli() -> None:

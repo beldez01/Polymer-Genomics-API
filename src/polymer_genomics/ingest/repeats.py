@@ -501,9 +501,8 @@ async def main(builds: list[str] | None = None, *, stream_dfam: bool = False) ->
                 print("  Skipping ingestion. Delete existing data first to re-ingest.")
                 continue
 
-            # 3. Ingest
-            async with ingest_transaction(conn):
-                total = await ingest_build(conn, build, layer_id, tsv_path)
+            # 3. Ingest (auto-commit per COPY batch, no wrapping transaction)
+            total = await ingest_build(conn, build, layer_id, tsv_path)
             print(f"\n  Total repeat element rows loaded: {total:,}")
 
         print("\nDone.")

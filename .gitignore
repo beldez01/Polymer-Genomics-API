@@ -61,3 +61,4 @@ VALIDATION_REGISTRY.md
 .claude/
 docs/superpowers/
 viewer/docs/superpowers/
+.venv-vcp/

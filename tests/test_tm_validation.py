@@ -238,8 +238,7 @@ class TestTmEdgeCases:
 
     def test_long_dna_empirical_range(self):
         """For long DNA the empirical formula should give Tm in the 65-95°C range at physiological salt."""
-        seq = "ATGCTAGCGATCGATCG" * 50  # 850 bp, ~52% GC
-        emp_tm = _empirical_melting_temp(0.52, 850, 150.0)
+        emp_tm = _empirical_melting_temp(0.52, 850, 150.0)  # 850 bp, ~52% GC
         assert 60.0 < emp_tm < 95.0, f"850bp 52%GC @ 150mM: Tm = {emp_tm:.1f}°C"
 
     def test_long_dna_gc_gradient(self):
