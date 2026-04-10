@@ -8,6 +8,7 @@ import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
 import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
 import { GeneSearch } from '@/components/atlas/GeneSearch';
 import { GeneProfile } from '@/components/atlas/GeneProfile';
+import { Toolkit } from '@/components/atlas/Toolkit';
 import { Footer } from '@/components/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
@@ -356,6 +357,7 @@ export default function AtlasPage() {
           <ErrorBoundary fallbackLabel="Karyotype Overview">
             <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
           </ErrorBoundary>
+          <Toolkit />
         </div>
       )}
 
