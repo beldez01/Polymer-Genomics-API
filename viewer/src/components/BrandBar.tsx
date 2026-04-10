@@ -81,13 +81,8 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Viewer</Link>
         <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Atlas</Link>
         <Link href="/claims" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Claims</Link>
-        <Link href="/evaluate" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Evaluate</Link>
-        <Link href="/clocks" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Clocks</Link>
-        <Link href="/transposome" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Transposome</Link>
-        <Link href="/dmp" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>DMP</Link>
-        <Link href="/hla" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>HLA</Link>
-<Link href="/docs"  style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'API' : 'API / MCP'}</Link>
-        {!isMobile && <Link href="/developers" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Dev</Link>}
+        <Link href="/newsroom" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Newsroom</Link>
+        <Link href="/docs" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'Dev' : 'Dev / API'}</Link>
       </div>
     </div>
   );
