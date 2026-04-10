@@ -80,6 +80,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         )}
         <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Viewer</Link>
         <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Atlas</Link>
+        <Link href="/claims" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Claims</Link>
         <Link href="/evaluate" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Evaluate</Link>
         <Link href="/clocks" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Clocks</Link>
         <Link href="/transposome" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Transposome</Link>
