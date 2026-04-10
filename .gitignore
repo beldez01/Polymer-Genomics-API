@@ -12,7 +12,16 @@ node_modules/
 .env*.local
 *.db
 .DS_Store
-internal/
+# Ignore internal/ by default, but expose pytorch_model/ (portfolio code)
+internal/*
+!internal/InSilico/
+internal/InSilico/*
+!internal/InSilico/exp26_hla_allele_diversity/
+internal/InSilico/exp26_hla_allele_diversity/*
+!internal/InSilico/exp26_hla_allele_diversity/pytorch_model/
+!internal/InSilico/exp26_hla_allele_diversity/pytorch_model/**
+# But do not track the runtime cache directory
+internal/InSilico/exp26_hla_allele_diversity/pytorch_model/cache/
 
 # Large data files
 data/*.gz
