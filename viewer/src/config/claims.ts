@@ -109,6 +109,8 @@ export interface Claim {
   domain: string;
   color: string;
   features: ClaimFeatures;
+  /** ISO date (YYYY-MM-DD) when the claim was posted to the feed */
+  posted_at: string;
   /** Pre-computed PCA projections (populated by scripts/compute_claim_projections.py) */
   projection_2d: [number, number];
   projection_3d: [number, number, number];
@@ -214,6 +216,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 2.17,                 // 147 bp
       n_instances_log: 6.66,           // ~4.6M TEs
     },
+    posted_at: '2026-01-10',
     projection_2d: [2.300, 0.744],
     projection_3d: [2.300, 0.744, 0.644],
   },
@@ -239,6 +242,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 3.0,                  // 1 kb
       n_instances_log: 6.48,           // ~3M genome-wide bins
     },
+    posted_at: '2026-01-28',
     projection_2d: [-1.109, -1.400],
     projection_3d: [-1.109, -1.400, -4.160],
   },
@@ -264,6 +268,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 2.65,                 // probe-level ~450 bp
       n_instances_log: 5.65,           // 450K probes
     },
+    posted_at: '2026-02-14',
     projection_2d: [-4.699, -2.536],
     projection_3d: [-4.699, -2.536, 1.844],
   },
@@ -289,6 +294,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 4.0,                  // gene-level ~10 kb
       n_instances_log: 4.30,           // ~20K genes
     },
+    posted_at: '2026-03-02',
     projection_2d: [0.555, -0.150],
     projection_3d: [0.555, -0.150, -1.720],
   },
@@ -314,6 +320,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 4.70,                 // HLA gene region ~50 kb
       n_instances_log: 2.00,           // ~100 alleles
     },
+    posted_at: '2026-03-10',
     projection_2d: [-0.154, -1.051],
     projection_3d: [-0.154, -1.051, 2.437],
   },
@@ -339,6 +346,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 3.0,                  // 1 kb hotspot
       n_instances_log: 4.95,           // 89K hotspots
     },
+    posted_at: '2026-03-18',
     projection_2d: [0.033, -0.654],
     projection_3d: [0.033, -0.654, 0.076],
   },
@@ -364,6 +372,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 4.0,                  // gene-level
       n_instances_log: 4.30,           // ~20K genes
     },
+    posted_at: '2026-03-25',
     projection_2d: [4.954, 0.580],
     projection_3d: [4.954, 0.580, 0.855],
   },
@@ -389,6 +398,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 4.0,                  // gene-level
       n_instances_log: 2.70,           // ~500 rapid-response genes
     },
+    posted_at: '2026-03-30',
     projection_2d: [-0.259, -0.793],
     projection_3d: [-0.259, -0.793, 0.033],
   },
@@ -414,6 +424,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 0.48,                 // 3-mer window
       n_instances_log: 1.81,           // 64 trimers
     },
+    posted_at: '2026-04-07',
     projection_2d: [-3.728, 5.039],
     projection_3d: [-3.728, 5.039, 0.054],
   },
@@ -439,6 +450,7 @@ export const CLAIMS: Claim[] = [
       scale_log: 3.0,                  // TE-level
       n_instances_log: 6.66,           // ~4.6M TEs
     },
+    posted_at: '2026-04-10',
     projection_2d: [2.107, 0.224],
     projection_3d: [2.107, 0.224, -0.063],
   },
