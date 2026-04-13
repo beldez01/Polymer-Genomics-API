@@ -31,8 +31,9 @@ async def run_layer_validation(
     async with pool.acquire() as conn:
         # Use registry row_count instead of full count(*)
         reg_row = await conn.fetchrow(
-            "SELECT row_count FROM registry.layers WHERE layer_key LIKE $1 AND is_active = true LIMIT 1",
-            f"%{layer_key}%",
+            "SELECT row_count FROM registry.layers "
+            "WHERE layer_key = $1 AND genome_build = $2 AND is_active = true LIMIT 1",
+            layer_key, build,
         )
         count = reg_row["row_count"] if reg_row and reg_row["row_count"] else 0
         if count == 0:
