@@ -1,8 +1,8 @@
 """Simple API key middleware for personal deployment.
 
-Checks for a valid API key in the ``X-API-Key`` header or ``api_key``
-query parameter.  When ``POLYMER_API_KEY`` is not set (local dev), all
-requests are allowed through.
+Checks for a valid API key in the ``X-API-Key`` header.  When
+``POLYMER_API_KEY`` is not set (local dev), all requests are allowed
+through.
 
 This is intentionally simple — a single static key for personal use.
 Replace with OAuth2 / JWT when you have real multi-user needs.
@@ -48,10 +48,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Check header first, then query param.
-        provided_key = request.headers.get("X-API-Key") or request.query_params.get(
-            "api_key"
-        )
+        # Header only — never accept keys in the query string (leaks to logs/URLs).
+        provided_key = request.headers.get("X-API-Key")
 
         if provided_key is None:
             return JSONResponse(
@@ -59,7 +57,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
                 content={
                     "error": {
                         "code": "MISSING_API_KEY",
-                        "message": "Missing API key. Provide via X-API-Key header or api_key query parameter.",
+                        "message": "Missing API key. Provide via X-API-Key header.",
                     }
                 },
             )
