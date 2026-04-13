@@ -1240,7 +1240,7 @@ polymer-genomics MCP server (local)
                 marginBottom: SPACE[6],
               }}>
                 <code style={{ fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY, color: COLOR.accent.teal }}>
-                  pip install polymer-genomics-mcp
+                  uvx polymer-genomics-mcp
                 </code>
               </div>
 
@@ -1268,10 +1268,8 @@ polymer-genomics MCP server (local)
               }}>{`{
   "mcpServers": {
     "polymer-genomics": {
-      "command": "polymer-genomics-mcp",
-      "env": {
-        "POLYMER_API_BASE": "https://api.polymerbio.org"
-      }
+      "command": "uvx",
+      "args": ["polymer-genomics-mcp"]
     }
   }
 }`}</pre>
