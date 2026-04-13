@@ -98,7 +98,7 @@ Evaluate any DNA sequence (10–100,000 bp) against biophysical criteria. Return
 | `GET /v1/layers/{key}/license` | Full provenance, license, citation for a layer |
 | `GET /v1/aggregation/{build}/{region}` | Binned density for large regions |
 
-All endpoints return 1-based closed coordinates in a uniform response envelope with provenance, version metadata, and timing.
+All endpoints return 1-based closed coordinates with provenance, version metadata, and timing. Data endpoints use a full envelope (`status`, `query`, `layers_resolved`, `data`, `timing`). Metadata and search endpoints use a lighter envelope (`api_version`, `data_version`, `data`, optional `timing`).
 
 ## Data Layers (48 on hg38)
 
@@ -170,7 +170,7 @@ FastAPI + PostgreSQL 16 + asyncpg backend. Next.js 16 + React 19 frontend with c
 
 ```bash
 # Backend
-docker compose up -d db
+docker compose -f docker/docker-compose.yml up -d
 uv sync
 uv run uvicorn polymer_genomics.main:app --reload
 

@@ -34,16 +34,16 @@ help: ## Show this help
 # ── Infrastructure ────────────────────────────────────────────────
 
 up: ## Start local dev stack (Postgres + MinIO)
-	docker compose up -d
+	docker compose -f docker/docker-compose.yml up -d
 	@echo ""
 	@echo "  Waiting for Postgres..."
 	@sleep 3
-	@docker compose exec -T postgres pg_isready -U admin -d polymer_genomics || \
+	@docker compose -f docker/docker-compose.yml exec -T postgres pg_isready -U admin -d polymer_genomics || \
 		(echo "  Postgres not ready yet, waiting 5 more seconds..." && sleep 5)
 	@echo "  ✓ Local stack running"
 
 down: ## Stop local dev stack
-	docker compose down
+	docker compose -f docker/docker-compose.yml down
 
 # ── Data Ingestion ────────────────────────────────────────────────
 

@@ -56,7 +56,7 @@ async def _warm_caches():
         await list_hla_loci()
         log.info("Warmed HLA loci cache")
     except Exception:
-        pass
+        log.warning("Failed to warm HLA loci cache", exc_info=True)
 
 
 @asynccontextmanager

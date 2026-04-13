@@ -1,3 +1,4 @@
+import logging
 import time as _time
 
 from fastapi import APIRouter, HTTPException, Query
@@ -156,7 +157,7 @@ async def layer_summary(build: str):
                 )
                 protein_coding_count = pc_row["n"] if pc_row else None
             except Exception:
-                pass
+                logging.getLogger(__name__).warning("Failed to count protein-coding genes", exc_info=True)
 
     result = build_meta_envelope({
         "build": build,
