@@ -1,13 +1,13 @@
 [project]
 name = "polymer-genomics-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "MCP server for the Polymer Genomics API — curated genomic reference data via Model Context Protocol"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [
     { name = "Polymer Genomics" },
 ]
-readme = "AGENT.md"
+readme = "README.md"
 keywords = ["mcp", "genomics", "bioinformatics", "methylation", "cpg"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -26,7 +26,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://polymerbio.org"
-Repository = "https://github.com/polymerbio/polymer-genomics-mcp"
+Repository = "https://github.com/beldez01/Polymer-Genomics-API"
 
 [build-system]
 requires = ["hatchling"]

@@ -1,7 +1,7 @@
 import time
 from statistics import mean
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from polymer_genomics.constants import CHR_ID_TO_NAME, VALID_BUILDS
@@ -273,12 +273,22 @@ async def probe_batch(build: str, body: ProbeBatchRequest):
 
 
 @router.post("/{build}/biophysics")
-async def probe_biophysics(build: str, body: ProbeBatchRequest):
+async def probe_biophysics(
+    build: str,
+    body: ProbeBatchRequest,
+    fields: str | None = Query(
+        None,
+        description="Comma-separated biophysics column names to return "
+        "(e.g. 'gc_content,stacking_dg37,meth_sensitivity'). "
+        "Omit for all 43 columns.",
+    ),
+):
     """Annotate probes with biophysical context from the 1kb window overlay.
 
     One API call from DMP list to biophysical annotation. For each probe,
-    returns its coordinates, gene, CpG context, and the full biophysical
-    profile of the 1kb genomic window containing it.
+    returns its coordinates, gene, CpG context, and biophysical properties
+    of the 1kb genomic window containing it. Use `fields` to select only
+    the columns you need — reduces response size up to 93%.
     """
     start_time = time.monotonic()
 
@@ -305,7 +315,25 @@ async def probe_biophysics(build: str, body: ProbeBatchRequest):
             },
         )
 
-    bp_select = ", ".join(f"b.{c}" for c in _BIOPHYSICS_COLS)
+    # Parse and validate field selection
+    field_set: set[str] | None = None
+    if fields:
+        field_set = {f.strip() for f in fields.split(",") if f.strip()}
+        invalid = field_set - set(_BIOPHYSICS_COLS)
+        if invalid:
+            raise HTTPException(
+                400,
+                {
+                    "error": {
+                        "code": "INVALID_FIELDS",
+                        "message": f"Unknown biophysics fields: {sorted(invalid)}",
+                        "valid_fields": list(_BIOPHYSICS_COLS),
+                    }
+                },
+            )
+
+    bp_cols = tuple(c for c in _BIOPHYSICS_COLS if not field_set or c in field_set)
+    bp_select = ", ".join(f"b.{c}" for c in bp_cols)
 
     pool = await get_pool()
     async with pool.acquire() as conn:
@@ -356,7 +384,8 @@ async def probe_biophysics(build: str, body: ProbeBatchRequest):
     # Build per-probe response
     probes_out = []
     resolved_ids = set()
-    collectors: dict[str, list[float]] = {c: [] for c in _SUMMARY_COLS}
+    summary_cols = tuple(c for c in _SUMMARY_COLS if c in bp_cols)
+    collectors: dict[str, list[float]] = {c: [] for c in summary_cols}
 
     for r in rows:
         resolved_ids.add(r["probe_id"])
@@ -368,7 +397,7 @@ async def probe_biophysics(build: str, body: ProbeBatchRequest):
         if r["win_start"] is not None:
             win_api = db_to_api(r["win_start"], r["win_end"])
             bp = {"window": f"{chr_name}:{win_api['start']}-{win_api['end']}"}
-            for col in _BIOPHYSICS_COLS:
+            for col in bp_cols:
                 val = r[col]
                 bp[col] = float(val) if val is not None else None
                 if col in collectors and val is not None:
@@ -393,7 +422,7 @@ async def probe_biophysics(build: str, body: ProbeBatchRequest):
         "n_with_biophysics": n_with_bp,
         "n_unresolved": len(unresolved),
     }
-    for col in _SUMMARY_COLS:
+    for col in summary_cols:
         vals = collectors[col]
         summary[f"mean_{col}"] = round(mean(vals), 4) if vals else None
 
@@ -411,7 +440,8 @@ async def probe_biophysics(build: str, body: ProbeBatchRequest):
 
     return build_envelope(
         status="complete",
-        query={"build": build, "n_probes": len(body.probe_ids)},
+        query={"build": build, "n_probes": len(body.probe_ids),
+               **({"fields_requested": sorted(field_set)} if field_set else {})},
         layers_resolved=layers_resolved,
         data={"probes": probes_out, "summary": summary},
         db_time_ms=round(db_time, 1),
