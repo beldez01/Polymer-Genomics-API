@@ -37,7 +37,7 @@ async def search(
             build,
         )
         if not layer:
-            return {"results": [], "total": 0}
+            return build_meta_envelope({"results": [], "total": 0})
 
         # Direct symbol matches — use LIKE (case-sensitive) for btree index
         direct_rows = await conn.fetch(

@@ -13,13 +13,14 @@ import os
 import time
 
 import httpx
+import pytest
 
 API_BASE = os.environ.get("POLYMER_API_BASE", "https://api.polymerbio.org")
 API_KEY = os.environ.get("POLYMER_API_KEY", "")
 if not API_KEY:
-    raise RuntimeError(
-        "POLYMER_API_KEY must be set to run smoke tests. "
-        "Export it before running: POLYMER_API_KEY=xxx uv run pytest tests/smoke_test.py"
+    pytest.skip(
+        "POLYMER_API_KEY not set — skipping smoke tests",
+        allow_module_level=True,
     )
 HEADERS = {"X-API-Key": API_KEY}
 

@@ -46,12 +46,21 @@ async def run_layer_validation(
             count = est or 0
         results.append(validate_row_count(layer_key, count, spec["row_count_min"]))
 
+        # Resolve layer_id for build-specific sampling
+        layer_row = await conn.fetchrow(
+            "SELECT id FROM registry.layers "
+            "WHERE layer_key = $1 AND genome_build = $2 AND is_active = true LIMIT 1",
+            layer_key, build,
+        )
+        layer_id = layer_row["id"] if layer_row else None
+
         try:
             # Value ranges + null fraction in one pass per field
             for field, (vmin, vmax) in spec.get("value_ranges", {}).items():
+                build_filter = f"WHERE build = '{build}'" if layer_id is None else f"WHERE build = '{build}' AND layer_id = '{layer_id}'"
                 try:
                     rows = await conn.fetch(
-                        f"SELECT {field} FROM {table} TABLESAMPLE SYSTEM (1) WHERE {field} IS NOT NULL LIMIT 10000",
+                        f"SELECT {field} FROM {table} TABLESAMPLE SYSTEM (1) {build_filter} AND {field} IS NOT NULL LIMIT 10000",
                     )
                     values = [float(r[0]) for r in rows]
                     results.append(validate_value_range(f"{layer_key}.{field}", values, vmin, vmax))
@@ -59,7 +68,7 @@ async def run_layer_validation(
                     # Null fraction from sample estimate instead of full count
                     sample = await conn.fetchrow(
                         f"SELECT count(*) AS total, count({field}) AS non_null "
-                        f"FROM {table} TABLESAMPLE SYSTEM (1) LIMIT 50000",
+                        f"FROM {table} TABLESAMPLE SYSTEM (1) {build_filter} LIMIT 50000",
                     )
                     if sample and sample["total"] > 0:
                         null_count = sample["total"] - sample["non_null"]
