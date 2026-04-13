@@ -15,10 +15,12 @@ import time
 import httpx
 
 API_BASE = os.environ.get("POLYMER_API_BASE", "https://api.polymerbio.org")
-API_KEY = os.environ.get(
-    "POLYMER_API_KEY",
-    "3dc626456f6438126220e23351744f3900693fcf05b1cac316791411be423520",
-)
+API_KEY = os.environ.get("POLYMER_API_KEY", "")
+if not API_KEY:
+    raise RuntimeError(
+        "POLYMER_API_KEY must be set to run smoke tests. "
+        "Export it before running: POLYMER_API_KEY=xxx uv run pytest tests/smoke_test.py"
+    )
 HEADERS = {"X-API-Key": API_KEY}
 
 # Latency thresholds (seconds)

@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     s3_endpoint: str = "http://localhost:9000"  # Set to "" for real AWS (uses default endpoint)
     s3_public_endpoint: str | None = None  # Public URL for presigned URLs (falls back to s3_endpoint)
     s3_bucket: str = "polymer-genomics-api"
-    s3_access_key: str = Field()
-    s3_secret_key: str = Field()
+    s3_access_key: str = Field(default="")
+    s3_secret_key: str = Field(default="")
     s3_region: str = "us-east-1"
 
     max_region_length: int = 10_000_000
