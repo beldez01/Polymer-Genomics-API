@@ -81,7 +81,7 @@ export default function NewsroomPage() {
           margin: 0,
           marginBottom: SPACE[4],
         }}>
-          Dispatches from the claim feed
+          Dispatches
         </h1>
 
         <p style={{
