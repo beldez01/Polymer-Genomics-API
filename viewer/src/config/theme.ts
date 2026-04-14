@@ -12,6 +12,11 @@
 
 export const FONT_FAMILY = "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace";
 
+// Sans-serif stack — for prose, landing page, anywhere long-form readability matters.
+// System stack: SF Pro on macOS, Segoe UI on Windows, falls back to Inter if available.
+export const FONT_FAMILY_SANS =
+  "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
 export const TYPE = {
   xs:  { fontSize: 10, lineHeight: 1.4, letterSpacing: '0.02em' },
   sm:  { fontSize: 11, lineHeight: 1.5, letterSpacing: '0.01em' },

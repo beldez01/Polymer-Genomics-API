@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
+import { COLOR, TYPE, FONT_FAMILY, FONT_FAMILY_SANS, WEIGHT, SPACE } from '@/config/theme';
 import { CLUSTER_COLORS, CLUSTER_LABELS, type Claim } from '@/config/claims';
 
 interface NewsroomEntryProps {
@@ -111,9 +111,9 @@ export function NewsroomEntry({ claim }: NewsroomEntryProps) {
       <h2 style={{
         color: COLOR.text.primary,
         fontSize: TYPE.xl.fontSize,
-        fontFamily: FONT_FAMILY,
-        fontWeight: WEIGHT.medium,
-        letterSpacing: '-0.015em',
+        fontFamily: FONT_FAMILY_SANS,
+        fontWeight: 600,
+        letterSpacing: '-0.02em',
         lineHeight: 1.2,
         margin: 0,
         marginBottom: SPACE[3],
@@ -141,11 +141,11 @@ export function NewsroomEntry({ claim }: NewsroomEntryProps) {
         borderLeft: `2px solid ${clusterColor}`,
         paddingLeft: SPACE[4],
         marginBottom: SPACE[5],
-        fontSize: TYPE.md.fontSize,
+        fontSize: 17,
         color: COLOR.text.secondary,
-        fontFamily: FONT_FAMILY,
-        lineHeight: 1.6,
-        letterSpacing: '0.005em',
+        fontFamily: FONT_FAMILY_SANS,
+        lineHeight: 1.55,
+        letterSpacing: '-0.005em',
       }}>
         {claim.assertion}
       </div>

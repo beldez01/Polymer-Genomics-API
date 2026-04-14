@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Polymer Genomics — Curated Genomic Reference Data',
+  title: 'Polymer Genomics — Genome-wide DNA biophysics',
   description:
-    'Interactive genome browser and REST API for curated genomic annotations. Query genes, CpG sites, methylation probes, and isochores at base-pair resolution.',
+    'The material channel of the genome — stacking energy, curvature, flexibility, groove geometry — computed at base-pair resolution across 50 genomic layers. REST API and MCP tools for AI agents.',
   metadataBase: new URL('https://polymerbio.org'),
   openGraph: {
-    title: 'Polymer Genomics',
+    title: 'Polymer Genomics — Genome-wide DNA biophysics',
     description:
-      'Curated genomic reference data at base-pair resolution. Interactive browser and REST API for genes, CpG sites, probes, and isochores.',
+      'Stacking energy, curvature, flexibility, groove geometry — computed at base-pair resolution across 50 genomic layers. Queryable by humans and by agents.',
     url: 'https://polymerbio.org',
     siteName: 'Polymer Genomics',
     type: 'website',
@@ -18,15 +18,15 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Polymer Genomics',
+        alt: 'Polymer Genomics — the material channel of the genome',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Polymer Genomics',
+    title: 'Polymer Genomics — Genome-wide DNA biophysics',
     description:
-      'Curated genomic reference data at base-pair resolution.',
+      'The material channel of the genome, computed at base-pair resolution across 50 layers.',
     images: ['/og-image.png'],
   },
   icons: {

@@ -2,7 +2,7 @@
 
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_SANS, TYPE, WEIGHT, SPACE } from '@/config/theme';
 
 const section = {
   marginBottom: SPACE[6],
@@ -29,10 +29,11 @@ const h3Style = {
 };
 
 const pStyle = {
-  ...TYPE.sm,
-  fontFamily: FONT_FAMILY,
+  fontSize: 15,
+  fontFamily: FONT_FAMILY_SANS,
   color: COLOR.text.secondary,
-  lineHeight: 1.7,
+  lineHeight: 1.6,
+  letterSpacing: 0,
   marginBottom: SPACE[3],
   maxWidth: 720,
 };

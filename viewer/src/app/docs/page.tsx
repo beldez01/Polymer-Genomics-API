@@ -6,7 +6,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { useIsMobile, useIsTablet } from '@/hooks/useBreakpoint';
 import { copyToClipboard } from '@/lib/clipboard';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_SANS, TYPE, WEIGHT, SPACE } from '@/config/theme';
 import {
   MCP_COMPUTE_TOOL_COUNT,
   MCP_REFERENCE_TOOL_COUNT,
@@ -890,7 +890,7 @@ export default function DocsPage() {
       </nav>)}
 
       {/* ─── Main Content ─── */}
-      <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
+      <div style={{ flex: 1, display: isMobile ? 'block' : 'flex', minWidth: 0 }}>
 
         {/* Left column — prose */}
         <div style={{
@@ -912,7 +912,7 @@ export default function DocsPage() {
 
           <p style={{
             fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
+            fontFamily: FONT_FAMILY_SANS,
             color: COLOR.text.tertiary,
             lineHeight: 1.7,
             marginBottom: SPACE[6],
@@ -990,7 +990,7 @@ export default function DocsPage() {
 
                   <p style={{
                     fontSize: TYPE.base.fontSize,
-                    fontFamily: FONT_FAMILY,
+                    fontFamily: FONT_FAMILY_SANS,
                     color: COLOR.text.tertiary,
                     lineHeight: 1.7,
                     marginBottom: SPACE[6],
@@ -1085,7 +1085,7 @@ export default function DocsPage() {
 
             <p style={{
               fontSize: TYPE.base.fontSize,
-              fontFamily: FONT_FAMILY,
+              fontFamily: FONT_FAMILY_SANS,
               color: COLOR.text.tertiary,
               lineHeight: 1.7,
               marginBottom: SPACE[4],
@@ -1145,7 +1145,7 @@ export default function DocsPage() {
                 </div>
                 <p style={{
                   fontSize: TYPE.sm.fontSize,
-                  fontFamily: FONT_FAMILY,
+                  fontFamily: FONT_FAMILY_SANS,
                   color: COLOR.text.tertiary,
                   lineHeight: 1.7,
                   marginBottom: SPACE[3],
@@ -1189,7 +1189,7 @@ export default function DocsPage() {
 
               <p style={{
                 fontSize: TYPE.base.fontSize,
-                fontFamily: FONT_FAMILY,
+                fontFamily: FONT_FAMILY_SANS,
                 color: COLOR.text.tertiary,
                 lineHeight: 1.7,
                 marginBottom: SPACE[4],
@@ -1308,7 +1308,7 @@ polymer-genomics MCP server (local)
               {/* R requirements */}
               <p style={{
                 fontSize: TYPE.base.fontSize,
-                fontFamily: FONT_FAMILY,
+                fontFamily: FONT_FAMILY_SANS,
                 color: COLOR.text.tertiary,
                 lineHeight: 1.7,
                 marginBottom: SPACE[2],
@@ -1333,7 +1333,7 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
 
               <p style={{
                 fontSize: TYPE.sm.fontSize,
-                fontFamily: FONT_FAMILY,
+                fontFamily: FONT_FAMILY_SANS,
                 color: COLOR.text.muted,
                 lineHeight: 1.7,
               }}>
@@ -1372,7 +1372,7 @@ install.packages(c('jsonlite','ggplot2','svglite','base64enc'))"`}</pre>
 
                 <p style={{
                   fontSize: TYPE.base.fontSize,
-                  fontFamily: FONT_FAMILY,
+                  fontFamily: FONT_FAMILY_SANS,
                   color: COLOR.text.tertiary,
                   lineHeight: 1.7,
                   marginBottom: SPACE[4],
@@ -1569,7 +1569,7 @@ volcano_plot / cluster_probes
               </div>
               <p style={{
                 fontSize: TYPE.sm.fontSize,
-                fontFamily: FONT_FAMILY,
+                fontFamily: FONT_FAMILY_SANS,
                 color: COLOR.text.muted,
                 lineHeight: 1.7,
               }}>

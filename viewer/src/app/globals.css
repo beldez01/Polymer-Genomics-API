@@ -20,6 +20,51 @@
   --accent-amber: #F0A500;
   --accent-violet: #8B5CF6;
   --accent-rose: #F43F5E;
+
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.prose-sans {
+  font-family: var(--font-sans);
+  text-wrap: pretty;
+}
+
+/* BrandBar mobile nav — horizontal scroll for overflowing buttons, no visible scrollbar */
+.brand-nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.brand-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Module row — hairline-divided, subtle hover indent */
+.module-row {
+  transition: padding-left 0.18s ease, background-color 0.18s ease;
+}
+.module-row:hover {
+  padding-left: 12px !important;
+  background-color: rgba(78, 205, 196, 0.025);
+}
+.module-row:hover .module-row-arrow {
+  color: var(--accent-teal);
+  transform: translateX(4px);
+}
+.module-row:hover .module-row-name {
+  color: var(--text-primary);
+}
+.module-row:hover .module-row-count {
+  color: var(--text-secondary);
+}
+.module-row-count {
+  transition: color 0.18s ease;
+}
+.module-row-arrow {
+  transition: color 0.18s ease, transform 0.18s ease;
+}
+.module-row-name {
+  transition: color 0.18s ease;
 }
 
 * {

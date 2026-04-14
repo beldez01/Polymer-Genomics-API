@@ -5,7 +5,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { NewsroomEntry } from '@/components/newsroom/NewsroomEntry';
 import { CLAIMS } from '@/config/claims';
-import { COLOR, TYPE, FONT_FAMILY, WEIGHT, SPACE } from '@/config/theme';
+import { COLOR, TYPE, FONT_FAMILY, FONT_FAMILY_SANS, WEIGHT, SPACE } from '@/config/theme';
 
 export default function NewsroomPage() {
   const sorted = useMemo(
@@ -86,10 +86,10 @@ export default function NewsroomPage() {
 
         <p style={{
           color: COLOR.text.tertiary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          letterSpacing: '0.01em',
-          lineHeight: 1.7,
+          fontSize: 16,
+          fontFamily: FONT_FAMILY_SANS,
+          letterSpacing: 0,
+          lineHeight: 1.6,
           margin: 0,
           maxWidth: 640,
         }}>

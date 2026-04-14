@@ -63,7 +63,20 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         </>
       )}
 
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isMobile ? SPACE[1] : SPACE[2] }}>
+      <div
+        className={isMobile ? 'brand-nav-scroll' : undefined}
+        style={{
+          marginLeft: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: isMobile ? SPACE[1] : SPACE[2],
+          ...(isMobile ? {
+            minWidth: 0,
+            overflowX: 'auto' as const,
+            WebkitOverflowScrolling: 'touch' as const,
+          } : {}),
+        }}
+      >
         {children}
         {isMobile && onToggleSidebar && (
           <button
@@ -72,17 +85,18 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
               ...COMPONENT.button.small as React.CSSProperties,
               padding: `${SPACE[1]}px ${SPACE[2]}px`,
               lineHeight: 1,
+              flexShrink: 0,
             }}
             aria-label="Toggle sidebar"
           >
             &#9776;
           </button>
         )}
-        <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Viewer</Link>
-        <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Atlas</Link>
-        <Link href="/claims" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Claims</Link>
-        <Link href="/newsroom" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>Newsroom</Link>
-        <Link href="/docs" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const}}>{isMobile ? 'Dev' : 'Dev / API'}</Link>
+        <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Viewer</Link>
+        <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Atlas</Link>
+        <Link href="/claims" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Claims</Link>
+        <Link href="/newsroom" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Newsroom</Link>
+        <Link href="/docs" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>{isMobile ? 'Dev' : 'Dev / API'}</Link>
       </div>
     </div>
   );
