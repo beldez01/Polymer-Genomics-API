@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
+import { CLAIMS, CLUSTER_COLORS, type Claim, type Outcome } from '@/config/claims';
 import { COLOR, TYPE, WEIGHT, FONT_FAMILY, FONT_FAMILY_SANS, SPACE } from '@/config/theme';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import {
@@ -117,6 +118,231 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       marginBottom: SPACE[6],
     }}>
       {children}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Latest Dispatches — claim feed surface between modules and thesis
+   ──────────────────────────────────────────────────────────────────────────── */
+
+function outcomeBadge(outcome: Outcome): { label: string; color: string } {
+  switch (outcome) {
+    case 'strong_positive':    return { label: 'STRONG POS', color: COLOR.accent.teal };
+    case 'positive':           return { label: 'POSITIVE',   color: COLOR.accent.teal };
+    case 'qualified_positive': return { label: 'QUALIFIED',  color: COLOR.accent.amber };
+    case 'negative':           return { label: 'NEGATIVE',   color: COLOR.accent.rose };
+    case 'fail':               return { label: 'FAIL',       color: COLOR.accent.rose };
+    default:                   return { label: String(outcome).toUpperCase(), color: COLOR.text.muted };
+  }
+}
+
+function formatDispatchDate(iso: string): string {
+  const d = new Date(iso + 'T12:00:00Z');
+  const month = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase();
+  const day = d.getUTCDate().toString().padStart(2, '0');
+  return `${month} ${day}`;
+}
+
+function DispatchRow({ claim, isMobile }: { claim: Claim; isMobile: boolean }) {
+  const badge = outcomeBadge(claim.outcome);
+  const dateLabel = formatDispatchDate(claim.posted_at);
+  const expLabel = `Exp ${claim.exp_number.toString().padStart(2, '0')}`;
+  const clusterColor = CLUSTER_COLORS[claim.cluster];
+
+  return (
+    <Link
+      href="/newsroom"
+      className="module-row"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '14px 1fr 20px' : '14px 140px 1fr auto 20px',
+        columnGap: SPACE[4],
+        rowGap: SPACE[1],
+        alignItems: 'baseline',
+        padding: `${SPACE[4]}px ${SPACE[1]}px`,
+        borderBottom: `1px solid ${COLOR.border.subtle}`,
+        textDecoration: 'none',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 8,
+          height: 8,
+          backgroundColor: clusterColor,
+          alignSelf: 'center',
+          justifySelf: 'center',
+        }}
+      />
+
+      {!isMobile && (
+        <span style={{
+          color: COLOR.text.muted,
+          fontFamily: FONT_FAMILY,
+          fontSize: 10,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+        }}>
+          {dateLabel} <span style={{ color: COLOR.border.strong }}>·</span> {expLabel}
+        </span>
+      )}
+
+      {isMobile ? (
+        <span style={{
+          gridColumn: '2 / 3',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: SPACE[1],
+        }}>
+          <span style={{
+            color: COLOR.text.muted,
+            fontFamily: FONT_FAMILY,
+            fontSize: 10,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+          }}>
+            {dateLabel} <span style={{ color: COLOR.border.strong }}>·</span> {expLabel}
+          </span>
+          <span
+            className="module-row-name"
+            style={{
+              color: COLOR.text.secondary,
+              fontFamily: FONT_FAMILY_SANS,
+              fontSize: 15,
+              fontWeight: 500,
+              letterSpacing: '-0.005em',
+              lineHeight: 1.35,
+            }}
+          >
+            {claim.title}
+          </span>
+          <span style={{
+            color: badge.color,
+            fontFamily: FONT_FAMILY,
+            fontSize: 9,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            fontWeight: WEIGHT.medium,
+          }}>
+            {badge.label}
+          </span>
+        </span>
+      ) : (
+        <>
+          <span
+            className="module-row-name"
+            style={{
+              color: COLOR.text.secondary,
+              fontFamily: FONT_FAMILY_SANS,
+              fontSize: 15,
+              fontWeight: 500,
+              letterSpacing: '-0.005em',
+              lineHeight: 1.4,
+            }}
+          >
+            {claim.title}
+          </span>
+          <span
+            className="module-row-count"
+            style={{
+              padding: '2px 8px',
+              border: `1px solid ${badge.color}55`,
+              color: badge.color,
+              fontFamily: FONT_FAMILY,
+              fontSize: 9,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              fontWeight: WEIGHT.medium,
+              whiteSpace: 'nowrap',
+              alignSelf: 'center',
+            }}
+          >
+            {badge.label}
+          </span>
+        </>
+      )}
+
+      <span
+        aria-hidden
+        className="module-row-arrow"
+        style={{
+          color: COLOR.text.faint,
+          fontFamily: FONT_FAMILY,
+          fontSize: 14,
+          justifySelf: 'end',
+          alignSelf: 'center',
+        }}
+      >
+        →
+      </span>
+    </Link>
+  );
+}
+
+function LatestDispatches({ isMobile }: { isMobile: boolean }) {
+  const latest = useMemo(() => {
+    return [...CLAIMS]
+      .sort((a, b) => b.posted_at.localeCompare(a.posted_at))
+      .slice(0, 3);
+  }, []);
+
+  if (latest.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: SPACE[12] }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: SPACE[3],
+        paddingBottom: SPACE[3],
+        marginBottom: SPACE[2],
+        borderBottom: `1px solid ${COLOR.border.default}`,
+      }}>
+        <span style={{
+          color: COLOR.text.faint,
+          fontFamily: FONT_FAMILY,
+          fontSize: 10,
+          letterSpacing: '0.14em',
+        }}>
+          04
+        </span>
+        <span style={{
+          color: COLOR.text.secondary,
+          fontFamily: FONT_FAMILY,
+          fontSize: 12,
+          fontWeight: WEIGHT.medium,
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+        }}>
+          Latest dispatches
+        </span>
+        <span style={{ flex: 1 }} />
+        <Link
+          href="/newsroom"
+          style={{
+            color: COLOR.text.tertiary,
+            fontFamily: FONT_FAMILY,
+            fontSize: 10,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.accent.teal; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.tertiary; }}
+        >
+          View all →
+        </Link>
+      </div>
+
+      {/* Rows */}
+      <div>
+        {latest.map((c) => <DispatchRow key={c.id} claim={c} isMobile={isMobile} />)}
+      </div>
     </div>
   );
 }
@@ -851,6 +1077,7 @@ export default function Home() {
         <ModuleGroup index="01" label="Browse"  modules={MODULES_BROWSE}  isMobile={isMobile} />
         <ModuleGroup index="02" label="Analyze" modules={MODULES_ANALYZE} isMobile={isMobile} />
         <ModuleGroup index="03" label="Build"   modules={MODULES_BUILD}   isMobile={isMobile} />
+        <LatestDispatches isMobile={isMobile} />
       </section>
 
       {/* ─────────────────────────────────────────────────────────────────
