@@ -26,15 +26,15 @@ from polymer_genomics.formal_claims.feature_extractor import (
 )
 from polymer_genomics.formal_claims.projection import project
 
-EXPECTED_N_CLAIMS = 30
+EXPECTED_N_CLAIMS = 47
 EXPECTED_TOPIC_COUNTS = {
-    "HLA experiment": 10,
-    "TE surveillance": 8,
-    "recombination hotspots": 6,
-    "dual_channel": 5,
+    "HLA experiment": 16,
+    "TE surveillance": 14,
+    "recombination hotspots": 9,
+    "dual_channel": 7,
     "RC": 1,
 }
-EXPECTED_DEPENDS_ON_EDGES = 7  # see CONTINUATION.md
+EXPECTED_DEPENDS_ON_EDGES = 12  # resolvable edges only — 2 edges pointing to legacy exp17_formal_claim (outside InSilico/) don't resolve
 
 
 @pytest.fixture(scope="module")

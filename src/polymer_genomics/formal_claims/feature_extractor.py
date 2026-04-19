@@ -310,13 +310,18 @@ INSILICO_ROOT: Path = Path(__file__).resolve().parents[3] / "internal" / "InSili
 
 
 def _walk_claims_dirs(root: Path) -> list[Path]:
-    """Recursively collect every `*.json` under any `claims/` subdir below `root`."""
+    """Recursively collect every `*.json` under any `claims/` subdir below `root`.
+
+    Excludes ``*.evaluation.json`` sibling files written by
+    :mod:`polymer_genomics.formal_claims.evaluate` — those are cached
+    evaluator outputs, not FormalClaim fixtures.
+    """
     out: list[Path] = []
     for sub in root.iterdir():
         if not sub.is_dir():
             continue
         for path in sub.rglob("claims/*.json"):
-            if path.is_file():
+            if path.is_file() and not path.name.endswith(".evaluation.json"):
                 out.append(path)
     return out
 

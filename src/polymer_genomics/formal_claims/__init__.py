@@ -6,6 +6,16 @@ Spec: internal/epistemic_os/13_FORMAL_CLAIM_IR.md §3 (v1.1).
 Fixtures: internal/epistemic_os/fixtures/*.json.
 """
 
+from polymer_genomics.formal_claims.evaluate import (
+    EVALUATOR_VERSION,
+    CmpEvaluation,
+    EvaluationResult,
+    MaterializationStatus,
+    StatDrift,
+    Verdict,
+    evaluate,
+    walk_fixtures,
+)
 from polymer_genomics.formal_claims.feature_extractor import (
     FEATURE_DIM,
     FEATURE_NAMES,
@@ -109,4 +119,13 @@ __all__ = [
     "load_all_formal_claims",
     "ProjectionResult",
     "project",
+    # Evaluation
+    "EVALUATOR_VERSION",
+    "CmpEvaluation",
+    "EvaluationResult",
+    "MaterializationStatus",
+    "StatDrift",
+    "Verdict",
+    "evaluate",
+    "walk_fixtures",
 ]
