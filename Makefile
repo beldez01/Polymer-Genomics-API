@@ -13,7 +13,7 @@
 #
 
 .PHONY: help up down ingest api viewer dev test lint check deploy \
-        seed genes cpg probes isochores health
+        seed genes cpg probes isochores health openapi projection
 
 # ── Defaults ──────────────────────────────────────────────────────
 
@@ -103,6 +103,11 @@ deploy: ## Deploy to Fly.io
 
 openapi: ## Export OpenAPI spec
 	uv run python scripts/export_openapi.py
+
+# ── Latent space projection ───────────────────────────────────────
+
+projection: ## Build FormalClaim 3D projection artifact + diagnostics
+	uv run python scripts/build_formal_claim_projection.py
 
 # ── Shortcuts ─────────────────────────────────────────────────────
 

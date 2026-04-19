@@ -17,6 +17,7 @@ dependencies = [
     "pyliftover>=0.4.1",
     "numpy>=1.26",
     "slowapi>=0.1.9",
+    "scikit-learn>=1.8.0",
 ]
 
 [project.optional-dependencies]
@@ -53,5 +54,6 @@ select = ["E", "F", "I", "N", "W", "UP"]
 dev = [
     "matplotlib>=3.10.8",
     "openapi-spec-validator>=0.8.1",
+    "pyliftover>=0.4.1",
     "pyyaml>=6.0.3",
 ]
