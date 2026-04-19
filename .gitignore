@@ -12,15 +12,7 @@ node_modules/
 .env*.local
 *.db
 .DS_Store
-# internal/ — private docs, research, plans, experiments (see CLAUDE.md).
-# Ignore all contents but not the directory itself so exceptions can be added.
-internal/**
-# Exception: the public /claims/formal viewer imports this deterministic PCA
-# artifact at build time. Contains structural metadata only (claim IDs,
-# topics, outcomes, 3D coords, depends_on edges) — no scientific numbers.
-!internal/InSilico/
-!internal/InSilico/projection/
-!internal/InSilico/projection/formal_claim_projection_v1.json
+internal/
 
 # Large data files
 data/*.gz

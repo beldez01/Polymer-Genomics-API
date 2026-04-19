@@ -172,12 +172,12 @@ def test_dropped_zero_variance_features_includes_outcome_fail(projection_result)
 
 
 def test_repo_artifact_is_byte_deterministic_after_make_projection():
-    """The committed artifact at internal/InSilico/projection/ should match a fresh build."""
+    """The committed artifact at viewer/src/data/ should match a fresh build."""
     import subprocess
 
     repo_root = Path(__file__).resolve().parents[1]
     artifact_path = (
-        repo_root / "internal" / "InSilico" / "projection" / "formal_claim_projection_v1.json"
+        repo_root / "viewer" / "src" / "data" / "formal_claim_projection_v1.json"
     )
     if not artifact_path.exists():
         pytest.skip("Artifact not yet built; run `make projection` first.")

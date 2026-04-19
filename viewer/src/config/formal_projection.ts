@@ -1,7 +1,10 @@
 /**
  * Typed re-export of the FormalClaim 3D projection artifact.
  *
- * Source of truth: /internal/InSilico/projection/formal_claim_projection_v1.json
+ * Source of truth: viewer/src/data/formal_claim_projection_v1.json
+ *                  (lives inside the Vercel Root Directory = `viewer/` so the
+ *                   build can import it; DIAGNOSTICS_v1.md is written to
+ *                   internal/InSilico/projection/ for human review only).
  * Built by:        /scripts/build_formal_claim_projection.py (`make projection`)
  *
  * Coords are pre-computed via PCA on a structural feature vector extracted
@@ -12,10 +15,7 @@
  */
 
 import type { Outcome } from './formal_claims';
-// JSON import — Next.js / TypeScript with resolveJsonModule=true treats this
-// as a typed module. The relative path crosses out of viewer/ into the repo
-// root; symlink-free import works because the JSON is committed to the repo.
-import projectionData from '../../../internal/InSilico/projection/formal_claim_projection_v1.json';
+import projectionData from '../data/formal_claim_projection_v1.json';
 
 export interface FormalProjectionClaim {
   id: string;

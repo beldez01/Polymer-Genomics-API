@@ -1,8 +1,8 @@
 """Build the FormalClaim 3D projection artifact + diagnostics report.
 
 Outputs (deterministic given fixed random_state=0):
-  internal/InSilico/projection/formal_claim_projection_v1.json
-  internal/InSilico/projection/DIAGNOSTICS_v1.md
+  viewer/src/data/formal_claim_projection_v1.json   (shipped to Vercel build)
+  internal/InSilico/projection/DIAGNOSTICS_v1.md    (internal-only review doc)
 
 Re-running this script must produce byte-identical files.
 
@@ -36,9 +36,14 @@ METHOD: str = "pca-3d-from-feature-vector"
 GENERATED_AT: str = "2026-04-18T00:00:00Z"
 
 REPO_ROOT: Path = Path(__file__).resolve().parents[1]
-OUT_DIR: Path = REPO_ROOT / "internal" / "InSilico" / "projection"
-ARTIFACT_PATH: Path = OUT_DIR / "formal_claim_projection_v1.json"
-DIAGNOSTICS_PATH: Path = OUT_DIR / "DIAGNOSTICS_v1.md"
+# The JSON artifact lives under viewer/src/data/ so the public /claims/formal
+# page can import it at build time (the Vercel project's Root Directory is
+# `viewer/`, which excludes anything under internal/). DIAGNOSTICS stays under
+# internal/ — it is for human review only, not shipped to production.
+ARTIFACT_DIR: Path = REPO_ROOT / "viewer" / "src" / "data"
+ARTIFACT_PATH: Path = ARTIFACT_DIR / "formal_claim_projection_v1.json"
+DIAGNOSTICS_DIR: Path = REPO_ROOT / "internal" / "InSilico" / "projection"
+DIAGNOSTICS_PATH: Path = DIAGNOSTICS_DIR / "DIAGNOSTICS_v1.md"
 
 # Deterministic float rounding for stable JSON serialization across reruns.
 COORD_DECIMALS: int = 6
@@ -277,7 +282,8 @@ def write_json_deterministic(path: Path, payload: dict) -> None:
 
 
 def main() -> int:
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    DIAGNOSTICS_DIR.mkdir(parents=True, exist_ok=True)
 
     claims, topics = load_all_formal_claims()
     if not claims:
