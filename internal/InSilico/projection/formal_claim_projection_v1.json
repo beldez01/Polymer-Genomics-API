@@ -1,0 +1,698 @@
+{
+  "claims": [
+    {
+      "depends_on": [],
+      "id": "class_ii_intron_divergence_extreme",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.484527,
+        -1.543087,
+        -2.888129
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "cost_expression_gradient_ecoli_bsubtilis",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.447328,
+        -2.735345,
+        0.960911
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [],
+      "id": "cost_expression_gradient_human",
+      "outcome": "positive",
+      "projection_3d": [
+        0.396989,
+        0.06489,
+        -1.331942
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [
+        "cost_expression_gradient_human"
+      ],
+      "id": "cost_expression_survives_full_confounder_control",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.063243,
+        -1.199481,
+        1.244559
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [
+        "cost_expression_gradient_human"
+      ],
+      "id": "dual_channel_selection_hypothesis",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -1.855739,
+        -0.250404,
+        0.777968
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [],
+      "id": "eqtl_positive_genes_stronger_biophysics_coupling",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.021457,
+        -0.885712,
+        -1.413829
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "histogram_modes_map_to_serological_groups",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.265182,
+        -0.930704,
+        -2.669707
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_a_cpg_density_vs_tpm",
+      "outcome": "positive",
+      "projection_3d": [
+        0.070658,
+        -0.818386,
+        -2.023604
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_a_dg37_vs_tpm",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.287373,
+        -0.250799,
+        -2.135543
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_a_erv_methylation_shadow_FALSIFIED",
+      "outcome": "negative",
+      "projection_3d": [
+        -2.04954,
+        2.480235,
+        0.784939
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [
+        "hla_a_dg37_vs_tpm",
+        "hla_a_cpg_density_vs_tpm"
+      ],
+      "id": "hla_a_expression_prediction_robust_across_premise_sets",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.907167,
+        -0.335195,
+        0.198857
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_a_ramsuran_pos224",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -0.208808,
+        -0.048566,
+        -0.940309
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_b_bulk_biophysics_null",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.937615,
+        0.713557,
+        -1.507087
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_b_crc_polymorphic_cpg_cluster",
+      "outcome": "positive",
+      "projection_3d": [
+        3.885646,
+        -3.182072,
+        3.998316
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_c_mir148a_canonical_absence",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -2.228297,
+        -1.98184,
+        -1.717702
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "hla_t_naive_promoter_methylation_bimodal",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.746748,
+        -2.567395,
+        -1.464288
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [
+        "cost_expression_gradient_human",
+        "cost_expression_gradient_ecoli_bsubtilis"
+      ],
+      "id": "human_ecoli_effect_ratio_consistent_with_ne_scaling",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -2.900491,
+        -0.422628,
+        0.623513
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [],
+      "id": "ltr_fraction_expression_negative_gc_independent",
+      "outcome": "positive",
+      "projection_3d": [
+        0.452039,
+        0.616374,
+        -0.529879
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "nc_fraction_of_hla_variation",
+      "outcome": "positive",
+      "projection_3d": [
+        -3.893414,
+        -1.088552,
+        2.085415
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "rc05_p1_elm_beats_elastic_net_age_FALSIFIED",
+      "outcome": "negative",
+      "projection_3d": [
+        -2.48402,
+        6.759128,
+        5.047805
+      ],
+      "topic": "RC"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a1_partial_correlations_109_signals",
+      "outcome": "strong_positive",
+      "projection_3d": [
+        -0.381239,
+        0.463753,
+        0.656647
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a2_co_vs_nco_signflip_curvature",
+      "outcome": "positive",
+      "projection_3d": [
+        1.312212,
+        -0.836302,
+        0.012698
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a2_co_vs_nco_signflip_groove_width",
+      "outcome": "positive",
+      "projection_3d": [
+        1.769624,
+        -1.055591,
+        -0.274458
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a2_co_vs_nco_signflip_wrapping_energy",
+      "outcome": "positive",
+      "projection_3d": [
+        1.769624,
+        -1.055591,
+        -0.274458
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [
+        "recomb_a3_gbgc_age_gradient_gc"
+      ],
+      "id": "recomb_a3_gbgc_age_gradient_deformability",
+      "outcome": "positive",
+      "projection_3d": [
+        3.115645,
+        -2.200738,
+        0.159209
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a3_gbgc_age_gradient_gc",
+      "outcome": "positive",
+      "projection_3d": [
+        0.447876,
+        -0.699615,
+        -0.546506
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "recomb_a4_translocation_overlap",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -0.586688,
+        0.767477,
+        -0.815706
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [
+        "exp17_formal_claim"
+      ],
+      "id": "recomb_a6_rf_top_feature_quantization_map",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.580591,
+        -2.266425,
+        1.987184
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [
+        "exp17_formal_claim"
+      ],
+      "id": "recomb_neg_isochore_rediscovery_falsified",
+      "outcome": "negative",
+      "projection_3d": [
+        -2.278429,
+        0.132118,
+        2.842581
+      ],
+      "topic": "recombination hotspots"
+    },
+    {
+      "depends_on": [],
+      "id": "sbs_thermodynamic_loudness_ranking",
+      "outcome": "positive",
+      "projection_3d": [
+        -3.085567,
+        -0.739851,
+        -0.073331
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [],
+      "id": "sine_fraction_expression_positive_gc_independent",
+      "outcome": "positive",
+      "projection_3d": [
+        0.452039,
+        0.616374,
+        -0.529879
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [
+        "hla_a_dg37_vs_tpm",
+        "hla_a_cpg_density_vs_tpm"
+      ],
+      "id": "stimulation_amplifies_biophysical_signal",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.657465,
+        1.289256,
+        -0.412061
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "te_cell_deconvolution_critique_withdrawn",
+      "outcome": "negative",
+      "projection_3d": [
+        -4.590353,
+        2.189196,
+        3.20558
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_corsiv_or_identity_mode",
+      "outcome": "positive",
+      "projection_3d": [
+        6.06349,
+        -1.398375,
+        2.470902
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_density_mutation_null_partial_gc",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.067358,
+        2.275896,
+        -0.511152
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_methylation_class_specific_at_boundary",
+      "outcome": "positive",
+      "projection_3d": [
+        0.833691,
+        -1.229765,
+        -1.129256
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_oncoexaptation_or_active_mode_gc_matched",
+      "outcome": "positive",
+      "projection_3d": [
+        4.020731,
+        -0.794175,
+        2.106236
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_resolution_gain_curvature_h3k9me3_147bp",
+      "outcome": "positive",
+      "projection_3d": [
+        2.154814,
+        3.447909,
+        -0.404313
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_retro_age_or_identity_mode",
+      "outcome": "positive",
+      "projection_3d": [
+        6.06349,
+        -1.398375,
+        2.470902
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_silencing_biophysics_overall_auroc",
+      "outcome": "strong_positive",
+      "projection_3d": [
+        0.918435,
+        4.44483,
+        -1.912765
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_silencing_h3k9me3_negative_control",
+      "outcome": "positive",
+      "projection_3d": [
+        0.849266,
+        3.192369,
+        -1.369092
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_silencing_top_feature_stacking_dg37",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.791338,
+        -2.190381,
+        1.747183
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "te_silencing_within_age_bivalent",
+      "outcome": "strong_positive",
+      "projection_3d": [
+        2.742154,
+        4.505233,
+        -1.828419
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [
+        "te_silencing_biophysics_overall_auroc",
+        "te_silencing_within_age_bivalent",
+        "te_silencing_h3k9me3_negative_control"
+      ],
+      "id": "te_surveillance_dichotomy_composition_vs_identity",
+      "outcome": "strong_positive",
+      "projection_3d": [
+        6.689127,
+        2.994748,
+        -1.342803
+      ],
+      "topic": "TE surveillance"
+    },
+    {
+      "depends_on": [],
+      "id": "titv_2to1_fixation_bias",
+      "outcome": "positive",
+      "projection_3d": [
+        -1.352743,
+        -0.619058,
+        0.733434
+      ],
+      "topic": "dual_channel"
+    },
+    {
+      "depends_on": [],
+      "id": "titv_balancing_selection_signature",
+      "outcome": "qualified_positive",
+      "projection_3d": [
+        -2.412338,
+        -1.290295,
+        -1.273255
+      ],
+      "topic": "HLA experiment"
+    },
+    {
+      "depends_on": [],
+      "id": "within_protein_biophysical_variance_invisible_to_matching",
+      "outcome": "positive",
+      "projection_3d": [
+        -0.442493,
+        -0.938642,
+        -2.795366
+      ],
+      "topic": "HLA experiment"
+    }
+  ],
+  "depends_on_distance": {
+    "mean_null": 4.640194,
+    "mean_observed": 3.575079,
+    "n_edges": 12,
+    "n_perm": 1000,
+    "p_value": 0.062
+  },
+  "dropped_zero_variance_features": [
+    "outcome::fail",
+    "evidence_class::M",
+    "evidence_class::R",
+    "evidence_class::H",
+    "evidence_class::L",
+    "provenance_state::remote_url",
+    "provenance_state::reference_genome",
+    "provenance_state::unknown",
+    "cv_scheme::stratified_k_fold",
+    "null_model::circular_shift",
+    "null_model::parametric"
+  ],
+  "explained_variance": [
+    0.164021,
+    0.115161,
+    0.087838
+  ],
+  "feature_dim_kept_after_zero_var_drop": 37,
+  "feature_dim_total": 48,
+  "feature_names": [
+    "outcome::strong_positive",
+    "outcome::positive",
+    "outcome::qualified_positive",
+    "outcome::negative",
+    "outcome::fail",
+    "topic::HLA experiment",
+    "topic::TE surveillance",
+    "topic::recombination hotspots",
+    "topic::dual_channel",
+    "topic::RC",
+    "op_count::filter",
+    "op_count::project",
+    "op_count::join",
+    "op_count::aggregate",
+    "op_count::cv_split",
+    "op_count::estimator",
+    "op_count::null_model",
+    "op_count::correct",
+    "inference::max_depth",
+    "inference::leaf_count",
+    "inference::root_conjuncts",
+    "evidence_class::M",
+    "evidence_class::R",
+    "evidence_class::D",
+    "evidence_class::S",
+    "evidence_class::K",
+    "evidence_class::H",
+    "evidence_class::L",
+    "provenance_state::fly_postgres",
+    "provenance_state::local_rds",
+    "provenance_state::remote_url",
+    "provenance_state::reference_genome",
+    "provenance_state::unknown",
+    "count::n_premises_log1p",
+    "count::n_operations_log1p",
+    "count::n_statistics_log1p",
+    "has::null_model",
+    "has::correct",
+    "has::composite_confidence",
+    "count::depends_on_log1p",
+    "cv_scheme::k_fold_by_chromosome",
+    "cv_scheme::k_fold_random",
+    "cv_scheme::leave_one_out",
+    "cv_scheme::stratified_k_fold",
+    "null_model::label_shuffle",
+    "null_model::circular_shift",
+    "null_model::parametric",
+    "null_model::block_bootstrap"
+  ],
+  "generated_at": "2026-04-18T00:00:00Z",
+  "method": "pca-3d-from-feature-vector",
+  "n_claims": 47,
+  "random_state": 0,
+  "schema_version": "v1",
+  "silhouette": {
+    "by_outcome": -0.06786,
+    "by_topic": -0.007411
+  },
+  "top_features_per_pc": [
+    [
+      [
+        "has::null_model",
+        0.313475
+      ],
+      [
+        "op_count::null_model",
+        0.309245
+      ],
+      [
+        "null_model::label_shuffle",
+        0.295911
+      ],
+      [
+        "has::composite_confidence",
+        0.291368
+      ],
+      [
+        "inference::leaf_count",
+        0.273818
+      ]
+    ],
+    [
+      [
+        "op_count::cv_split",
+        0.36547
+      ],
+      [
+        "cv_scheme::k_fold_by_chromosome",
+        0.300987
+      ],
+      [
+        "count::n_premises_log1p",
+        0.280186
+      ],
+      [
+        "op_count::aggregate",
+        -0.273551
+      ],
+      [
+        "op_count::join",
+        0.237741
+      ]
+    ],
+    [
+      [
+        "provenance_state::local_rds",
+        0.380608
+      ],
+      [
+        "provenance_state::fly_postgres",
+        -0.380608
+      ],
+      [
+        "outcome::negative",
+        0.278742
+      ],
+      [
+        "topic::RC",
+        0.229002
+      ],
+      [
+        "cv_scheme::k_fold_random",
+        0.229002
+      ]
+    ]
+  ]
+}
