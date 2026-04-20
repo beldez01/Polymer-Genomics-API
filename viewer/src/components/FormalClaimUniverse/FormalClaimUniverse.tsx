@@ -8,14 +8,14 @@
  *    structural feature vector) instead of v2 21-feature vector.
  *  - Color by outcome (5-color palette) instead of cluster.
  *  - Renders depends_on edges as faint undirected lines.
- *  - Click navigates to /dev/claim/<id> instead of opening an in-page detail panel.
+ *  - Click fires an onSelect callback; the host page renders the inline DAG
+ *    body (FormalClaimBody) below the canvas.
  */
 
 import { useRef, useState, Suspense } from 'react';
 import { Canvas, useFrame, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
-import { useRouter } from 'next/navigation';
 
 import {
   EDGES,
@@ -27,7 +27,9 @@ import { COLOR, FONT_FAMILY } from '@/config/theme';
 
 interface FormalClaimUniverseProps {
   hoveredId: string | null;
+  selectedId?: string | null;
   onHover: (claim: FormalProjectionClaim | null) => void;
+  onSelect?: (claim: FormalProjectionClaim) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -37,16 +39,18 @@ interface FormalClaimUniverseProps {
 interface NodeProps {
   claim: FormalProjectionClaim;
   hovered: boolean;
+  selected: boolean;
   onHover: (claim: FormalProjectionClaim | null) => void;
+  onSelect?: (claim: FormalProjectionClaim) => void;
 }
 
-function ClaimNode({ claim, hovered, onHover }: NodeProps) {
+function ClaimNode({ claim, hovered, selected, onHover, onSelect }: NodeProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [localHover, setLocalHover] = useState(false);
-  const router = useRouter();
 
   const color = OUTCOME_COLORS[claim.outcome];
-  const targetScale = hovered || localHover ? 1.35 : 1.0;
+  const active = hovered || localHover || selected;
+  const targetScale = selected ? 1.55 : hovered || localHover ? 1.35 : 1.0;
   const targetVec = useRef(new THREE.Vector3(1, 1, 1));
 
   useFrame(() => {
@@ -71,7 +75,7 @@ function ClaimNode({ claim, hovered, onHover }: NodeProps) {
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    router.push(`/dev/claim/${claim.id}`);
+    onSelect?.(claim);
   };
 
   return (
@@ -86,7 +90,7 @@ function ClaimNode({ claim, hovered, onHover }: NodeProps) {
         <meshStandardMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={localHover || hovered ? 0.45 : 0.18}
+          emissiveIntensity={active ? 0.55 : 0.18}
           metalness={0.25}
           roughness={0.45}
         />
@@ -221,7 +225,12 @@ function SceneRotator({ enabled }: { enabled: boolean }) {
 // Main canvas
 // ---------------------------------------------------------------------------
 
-export default function FormalClaimUniverse({ hoveredId, onHover }: FormalClaimUniverseProps) {
+export default function FormalClaimUniverse({
+  hoveredId,
+  selectedId,
+  onHover,
+  onSelect,
+}: FormalClaimUniverseProps) {
   const [userInteracting, setUserInteracting] = useState(false);
 
   return (
@@ -246,7 +255,9 @@ export default function FormalClaimUniverse({ hoveredId, onHover }: FormalClaimU
             key={claim.id}
             claim={claim}
             hovered={hoveredId === claim.id}
+            selected={selectedId === claim.id}
             onHover={onHover}
+            onSelect={onSelect}
           />
         ))}
 

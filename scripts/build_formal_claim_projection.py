@@ -64,24 +64,34 @@ def build_artifact(
     topics: dict[str, str],
     outcomes: dict[str, str],
     depends_on: dict[str, list[str]],
+    claims: dict | None = None,
 ) -> dict:
-    """Build the JSON envelope from a ProjectionResult."""
+    """Build the JSON envelope from a ProjectionResult.
+
+    If ``claims`` is provided, each claim entry also gets a ``fixture`` field
+    containing the full FormalClaim payload (pydantic-serialized). The viewer
+    uses this to render the per-claim DAG inline under the 3D canvas, since
+    the raw fixture files under ``internal/`` are not shipped to Vercel.
+    """
     claims_payload = []
     for i, cid in enumerate(result.ids):
         coords = result.coords_3d[i]
-        claims_payload.append(
-            {
-                "id": cid,
-                "topic": topics.get(cid, ""),
-                "outcome": outcomes.get(cid, ""),
-                "depends_on": list(depends_on.get(cid, [])),
-                "projection_3d": [
-                    _round(coords[0], COORD_DECIMALS),
-                    _round(coords[1], COORD_DECIMALS),
-                    _round(coords[2], COORD_DECIMALS),
-                ],
-            }
-        )
+        entry: dict = {
+            "id": cid,
+            "topic": topics.get(cid, ""),
+            "outcome": outcomes.get(cid, ""),
+            "depends_on": list(depends_on.get(cid, [])),
+            "projection_3d": [
+                _round(coords[0], COORD_DECIMALS),
+                _round(coords[1], COORD_DECIMALS),
+                _round(coords[2], COORD_DECIMALS),
+            ],
+        }
+        if claims is not None and cid in claims:
+            entry["fixture"] = claims[cid].model_dump(
+                mode="json", exclude_none=True, by_alias=True
+            )
+        claims_payload.append(entry)
 
     top_features_per_pc = [
         [[name, _round(loading, LOADING_DECIMALS)] for name, loading in feats]
@@ -303,7 +313,7 @@ def main() -> int:
         random_state=RANDOM_STATE,
     )
 
-    artifact = build_artifact(result, topics, outcomes, depends_on)
+    artifact = build_artifact(result, topics, outcomes, depends_on, claims=claims)
     write_json_deterministic(ARTIFACT_PATH, artifact)
 
     diagnostics = build_diagnostics(artifact, result, topics)

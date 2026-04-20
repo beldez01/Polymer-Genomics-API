@@ -17,22 +17,10 @@ interface FormalClaimViewProps {
   fixturePath: string;
 }
 
+/**
+ * Full-page wrapper with dev-mode ribbon. Used at /dev/claim/[id].
+ */
 export function FormalClaimView({ claim, fixturePath }: FormalClaimViewProps) {
-  const badge = outcomeBadge(claim.conclusion.outcome);
-  const [rawOpen, setRawOpen] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
-
-  async function copyDeepLink() {
-    if (typeof window === 'undefined') return;
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopyStatus('copied');
-      setTimeout(() => setCopyStatus('idle'), 1500);
-    } catch {
-      // Clipboard may be unavailable on http://; swallow silently.
-    }
-  }
-
   return (
     <main
       style={{
@@ -77,6 +65,41 @@ export function FormalClaimView({ claim, fixturePath }: FormalClaimViewProps) {
           </span>
         </div>
 
+        <FormalClaimBody claim={claim} />
+      </div>
+    </main>
+  );
+}
+
+/**
+ * Inline body: header + 5 panels + footer. No outer <main>, no dev ribbon.
+ * Used below the /claims 3D canvas when a claim is selected.
+ */
+export function FormalClaimBody({ claim }: { claim: FormalClaim }) {
+  const badge = outcomeBadge(claim.conclusion.outcome);
+  const [rawOpen, setRawOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+
+  async function copyDeepLink() {
+    if (typeof window === 'undefined') return;
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 1500);
+    } catch {
+      // Clipboard may be unavailable on http://; swallow silently.
+    }
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: SPACE[6],
+        color: COLOR.text.secondary,
+      }}
+    >
         {/* Header */}
         <header style={{ display: 'flex', flexDirection: 'column', gap: SPACE[3] }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
@@ -228,8 +251,7 @@ export function FormalClaimView({ claim, fixturePath }: FormalClaimViewProps) {
             ) : null}
           </div>
         </footer>
-      </div>
-    </main>
+    </div>
   );
 }
 

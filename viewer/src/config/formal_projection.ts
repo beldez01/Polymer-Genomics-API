@@ -14,7 +14,7 @@
  * a side-effect of bumping the artifact, not vice-versa.
  */
 
-import type { Outcome } from './formal_claims';
+import type { FormalClaim, Outcome } from './formal_claims';
 import projectionData from '../data/formal_claim_projection_v1.json';
 
 export interface FormalProjectionClaim {
@@ -24,6 +24,13 @@ export interface FormalProjectionClaim {
   depends_on: string[];
   /** [x, y, z] from PCA on a 48-dim feature vector. */
   projection_3d: [number, number, number];
+  /**
+   * Full FormalClaim payload (pydantic-serialized) — populated by
+   * scripts/build_formal_claim_projection.py so the /claims viewer can
+   * render the per-claim DAG inline without hitting an API. Optional for
+   * backward compatibility with older artifact versions.
+   */
+  fixture?: FormalClaim;
 }
 
 export interface FormalProjectionArtifact {
