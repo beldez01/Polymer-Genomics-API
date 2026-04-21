@@ -45,6 +45,10 @@ data/replication/
 data/insulation/
 data/imgt_hla/
 data/dinucleotide_index/
+data/cancer_breakpoints_chen2021/
+data/prdm9_catalog/
+data/segdups/
+data/cosmic_cgc/
 InSilicoExperiments/
 benchmark/
 viewer/.superpowers/
