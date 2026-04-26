@@ -24,21 +24,30 @@ from polymer_genomics.formal_claims.feature_extractor import (
     extract_features,
     load_all_formal_claims,
 )
+from polymer_genomics.formal_claims.nanopub import to_trig
 from polymer_genomics.formal_claims.projection import ProjectionResult, project
 from polymer_genomics.formal_claims.schema import (
     SCHEMA_VERSION,
+    SCHEMA_VERSIONS_SUPPORTED,
     Agg,
     AggregateOp,
     AndExpr,
     Audit,
     CmpExpr,
+    # v1.2 subject slot
+    Cohort,
+    CohortDefinition,
+    CohortSourceDataset,
     CompositeConfidence,
+    CompositeSubject,
     # Conclusion
     Conclusion,
     CorrectOp,
     CVScheme,
     CVSplitOp,
     DataDerivedConstant,
+    # v1.2 domain
+    Domain,
     EstimatorOp,
     EstimatorSpec,
     EvidenceClass,
@@ -48,6 +57,9 @@ from polymer_genomics.formal_claims.schema import (
     FilterOp,
     # Root
     FormalClaim,
+    GeneOrProtein,
+    GeneOrProteinIdentifiers,
+    GenomicRegion,
     InferenceExpression,
     # Inference
     InferenceRule,
@@ -55,26 +67,37 @@ from polymer_genomics.formal_claims.schema import (
     JoinOp,
     # Shared
     LayerRef,
+    LiteralSubject,
+    LiteralSubjectStructured,
     NotExpr,
     NullModelOp,
     NullModelSpec,
+    OntologyTerm,
     # Operations
     Operation,
     OrExpr,
     Outcome,
+    PathwayMembers,
+    PathwayRef,
+    PhenopacketRef,
+    PhenopacketRetrieval,
     # Premises
     Premise,
     ProjectOp,
     ProvenanceState,
+    S4ObjectRef,
     # Predicates
     SetExpression,
     # Statistics
     Statistic,
     StatRef,
+    SubjectRef,
+    VariantVRS,
 )
 
 __all__ = [
     "SCHEMA_VERSION",
+    "SCHEMA_VERSIONS_SUPPORTED",
     "LayerRef",
     "ProvenanceState",
     "EvidenceClass",
@@ -110,6 +133,25 @@ __all__ = [
     "ExternalAssumption",
     "Audit",
     "FormalClaim",
+    # v1.2 domain + subject slot
+    "Domain",
+    "SubjectRef",
+    "GenomicRegion",
+    "VariantVRS",
+    "S4ObjectRef",
+    "PhenopacketRef",
+    "PhenopacketRetrieval",
+    "OntologyTerm",
+    "GeneOrProtein",
+    "GeneOrProteinIdentifiers",
+    "PathwayRef",
+    "PathwayMembers",
+    "Cohort",
+    "CohortDefinition",
+    "CohortSourceDataset",
+    "LiteralSubject",
+    "LiteralSubjectStructured",
+    "CompositeSubject",
     # Projection
     "FEATURE_DIM",
     "FEATURE_NAMES",
@@ -128,4 +170,6 @@ __all__ = [
     "Verdict",
     "evaluate",
     "walk_fixtures",
+    # Nanopub interop
+    "to_trig",
 ]

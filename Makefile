@@ -104,10 +104,21 @@ deploy: ## Deploy to Fly.io
 openapi: ## Export OpenAPI spec
 	uv run python scripts/export_openapi.py
 
-# ── Latent space projection ───────────────────────────────────────
+# ── FormalClaim corpus ────────────────────────────────────────────
 
 projection: ## Build FormalClaim 3D projection artifact + diagnostics
 	uv run python scripts/build_formal_claim_projection.py
+
+corpus-evaluate: ## Re-evaluate every FormalClaim; writes .evaluation.json siblings
+	uv run python -m polymer_genomics.formal_claims.evaluate
+
+corpus-migrate: ## Migrate v1.1 FormalClaim fixtures to v1.2 (dry-run by default)
+	uv run python scripts/migrate_claims_v1_1_to_v1_2.py $(if $(APPLY),--apply,)
+
+corpus-migrate-composites: ## Hand-migrate the 4 v1.1→v1.2 composite synthesis claims
+	uv run python scripts/migrate_composites_v1_1_to_v1_2.py
+
+corpus-rebuild: corpus-evaluate projection ## Re-evaluate + rebuild 3D projection in one pass
 
 # ── Shortcuts ─────────────────────────────────────────────────────
 

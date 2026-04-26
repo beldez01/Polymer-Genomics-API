@@ -36,7 +36,7 @@ export function Footer() {
         {DOT}
         <Link href="/atlas" style={linkStyle}>Atlas</Link>
         {DOT}
-        <Link href="/claims" style={linkStyle}>Claims</Link>
+        <Link href="/portal/latent3d" style={linkStyle}>Claims</Link>
         {DOT}
         <Link href="/newsroom" style={linkStyle}>Newsroom</Link>
         {DOT}

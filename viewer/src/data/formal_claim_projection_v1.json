@@ -52,8 +52,12 @@
             "scale_note": "Per-locus aggregate claim. Per-region (UTR / intron 1 / intron 2 / …) decomposition exists in the paper's Table 8 but is a separate child fixture."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-19",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 26,
         "external_assumptions": [
           {
@@ -226,7 +230,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -355,6 +359,24 @@
             "value": 0.406
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'Class II HLA loci accumulate non-coding substitutions at 9.8–17.9× the coding ra'",
+          "id": "polymer:cohorts/migration/class_ii_intron_divergence_extreme",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/class_ii_intron_divergence_extreme",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Class II HLA loci accumulate non-coding substitutions at 9.8–17.9× the coding rate (DPB1 peak); DRB1 non-coding identity against reference is only 40.6%",
         "version": "1.0.0"
       },
@@ -410,8 +432,12 @@
             "scale_note": "Effect sizes are per-species quintile means, not per-gene correlations. The per-gene Spearman ρ is tabulated in AG2002 but not pinned here."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "citation": "Akashi & Gojobori, PNAS 99:3695-3700, 2002",
@@ -548,7 +574,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -611,6 +637,24 @@
             ]
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "akashi_gojobori_2002_table1"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "akashi_gojobori_2002_v1"
+            }
+          },
+          "display": "Migration cohort for 'Amino acid biosynthetic cost anti-correlates with expression in E. coli (Δ=0.60 '",
+          "id": "polymer:cohorts/migration/cost_expression_gradient_ecoli_bsubtilis",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/cost_expression_gradient_ecoli_bsubtilis",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Amino acid biosynthetic cost anti-correlates with expression in E. coli (Δ=0.60 ATP/residue, 2.5%) and B. subtilis (Δ=0.40, 1.8%) — the cross-species validation of the cost-expression gradient",
         "version": "1.0.0"
       },
@@ -667,8 +711,12 @@
             "scale_note": "Per-gene aggregation. The transcript-level analysis (per-isoform cost) and the codon-level analysis (per-codon usage frequency) live as sibling claim objects."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "citation": "Wang et al. PaxDb 2015; PaxDb v6.0 2023",
@@ -906,7 +954,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -933,6 +981,24 @@
             "value": -0.05
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "genes_gencode"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "gencode_v44"
+            }
+          },
+          "display": "Migration cohort for 'Mean amino acid biosynthetic cost anti-correlates with human protein abundance a'",
+          "id": "polymer:cohorts/migration/cost_expression_gradient_human",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/cost_expression_gradient_human",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Mean amino acid biosynthetic cost anti-correlates with human protein abundance after controlling for GC, length, disorder, conservation, secretion, and gene age",
         "version": "1.0.0"
       },
@@ -975,10 +1041,14 @@
             "scale_note": "Per-gene; restricted to genes with all six confounders measured. Genes with missing confounders are dropped — n is smaller than the bivariate analysis."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [
           "cost_expression_gradient_human"
         ],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "confidence": 0.7,
@@ -1112,7 +1182,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -1163,6 +1233,24 @@
             "value": "disorder"
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "gene_table_cost_abundance_six_confounders"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "mod02_2026_04_02"
+            }
+          },
+          "display": "Migration cohort for 'Cost-expression partial Spearman survives simultaneous control for GC, length, d'",
+          "id": "polymer:cohorts/migration/cost_expression_survives_full_confounder_control",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/cost_expression_survives_full_confounder_control",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Cost-expression partial Spearman survives simultaneous control for GC, length, disorder, conservation, secretion, and gene age (|partial r| > 0.03)",
         "version": "1.0.0"
       },
@@ -1214,10 +1302,14 @@
             "scale_note": "Genome-wide Ti/Tv comparison. Per-codon and per-position decompositions live as sibling claims; the cost-expression gradient (cost_expression_gradient_human) is the partner claim that this hypothesis depends on for its symbolic-channel motivation."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [
           "cost_expression_gradient_human"
         ],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "citation": "internal/InSilico/dual_channel/manuscript/paper2_dual_channel/R/mod01_reframe_claims.R",
@@ -1334,7 +1426,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -1360,6 +1452,24 @@
             "value": 3.4
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "human_fixed_substitutions_titv"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "ensembl_human_ancestral_v109"
+            }
+          },
+          "display": "Migration cohort for 'HYPOTHESIZED (post-MOD-1 reframe): symbolic-channel selection on codon identity '",
+          "id": "polymer:cohorts/migration/dual_channel_selection_hypothesis",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/dual_channel_selection_hypothesis",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HYPOTHESIZED (post-MOD-1 reframe): symbolic-channel selection on codon identity opposes material-channel perturbation on the same mutations",
         "version": "1.0.0"
       },
@@ -1428,8 +1538,12 @@
             "scale_note": "Primary fixture is body deformability, which shows the largest Δ|r|. Promoter deformability, curvature, and other tracks have smaller but directionally consistent Δ|r| values (reported in eqtl_gene_overlap.csv) and live as separate child fixtures."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-06",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -1604,7 +1718,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -1657,6 +1771,24 @@
             "value": 1.7e-259
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "gtex_v8_whole_blood_cis_eqtls"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "gtex_v8"
+            }
+          },
+          "display": "Migration cohort for 'Genes with known cis-eQTLs show stronger biophysics–expression coupling than gen'",
+          "id": "polymer:cohorts/migration/eqtl_positive_genes_stronger_biophysics_coupling",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/eqtl_positive_genes_stronger_biophysics_coupling",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Genes with known cis-eQTLs show stronger biophysics–expression coupling than genes without — body deformability partial |r| = 0.262 (eQTL+, n=16,692) vs 0.117 (eQTL−, n=820), Δ|r| = +0.145",
         "version": "1.0.0"
       },
@@ -1718,8 +1850,12 @@
             "scale_note": "Class I only. Class II DRB1/DQB1/DPB1 cluster architecture is deferred — distinct decomposition because the NC/coding fold is 10× different and the null-allele landscape is sparser."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-19",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 26,
         "external_assumptions": [
           {
@@ -1900,7 +2036,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -2008,6 +2144,24 @@
             "value": 3.4
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'Per-allele (coding, non-coding) substitution-count histograms at each Class I lo'",
+          "id": "polymer:cohorts/migration/histogram_modes_map_to_serological_groups",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/histogram_modes_map_to_serological_groups",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Per-allele (coding, non-coding) substitution-count histograms at each Class I locus partition into 6 GMM components — three recurring archetypes (near-reference core, tight multi-serogroup lineages, null-enriched heterogeneous) recapitulate known serogroup structure",
         "version": "1.0.0"
       },
@@ -2075,8 +2229,12 @@
             "scale_note": "Whole-allele scope; partner of hla_a_dg37_vs_tpm. Combined power increases when both signals align — encoded as the depends_on parent claim hla_a_expression_prediction_robust_across_premise_sets."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -2220,7 +2378,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -2248,6 +2406,24 @@
             "value": 0.59
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "bettens_2022_hla_rnaseq_tpm"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "bettens_2022_v1"
+            }
+          },
+          "display": "Migration cohort for 'HLA-A CpG density positively correlates with mRNA expression — opposite-signed c'",
+          "id": "polymer:cohorts/migration/hla_a_cpg_density_vs_tpm",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_a_cpg_density_vs_tpm",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HLA-A CpG density positively correlates with mRNA expression — opposite-signed companion of the dG37 anti-correlation",
         "version": "1.0.0"
       },
@@ -2316,8 +2492,12 @@
             "scale_note": "Whole-allele scope. The within-region decomposition (5'UTR / exon / intron / 3'UTR) is encoded as separate claims; this claim is the bulk-allele headline correlation."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -2506,7 +2686,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -2535,6 +2715,24 @@
             "value": 0.61
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'HLA-A whole-allele dG37 anti-correlates with mRNA expression across protein-dist'",
+          "id": "polymer:cohorts/migration/hla_a_dg37_vs_tpm",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_a_dg37_vs_tpm",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HLA-A whole-allele dG37 anti-correlates with mRNA expression across protein-distinct alleles",
         "version": "1.0.0"
       },
@@ -2598,8 +2796,12 @@
             "scale_note": "Falsifier is at the single-anchor / single-cell-type scale tested in Phase 5. Other ERV families and other cell types may yield different verdicts; this claim object retires the specific HLA-A x ERV3-16A3_I-int x monocyte mechanism only."
           }
         },
+        "context": {
+          "free_form": "migrated from v1.1 without domain-specific context"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "other",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -2773,7 +2975,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -2792,6 +2994,16 @@
             "value": 0.95
           }
         ],
+        "subject": {
+          "display": "FALSIFIED: HLA-A monocyte methylation does NOT track distance-to-nearest-ERV3-16A3_I-int beyond what a random reference point achieves",
+          "id": "literal:migration/1.0.0/24",
+          "kind": "literal",
+          "prose": "Migrated from v1.1 as a literal subject because the claim was marked withdrawn/falsified at migration time. Re-author with a typed subject when resuming.",
+          "structured": {
+            "migration_source": "v1.1",
+            "note": "literal wrap chosen due to withdrawn/falsified status"
+          }
+        },
         "title": "FALSIFIED: HLA-A monocyte methylation does NOT track distance-to-nearest-ERV3-16A3_I-int beyond what a random reference point achieves",
         "version": "1.0.0"
       },
@@ -2855,11 +3067,18 @@
             "scale_note": "Cross-run synthesis at the HLA-A level. Cross-locus replication (HLA-B, HLA-C) is queued as a sibling claim."
           }
         },
+        "context": {
+          "modalities": [
+            "genomic-coupling",
+            "expression"
+          ]
+        },
         "data_version": "polymer-db@2026-04-15",
         "depends_on": [
           "hla_a_dg37_vs_tpm",
           "hla_a_cpg_density_vs_tpm"
         ],
+        "domain": "multi_modal",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -3047,7 +3266,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -3099,6 +3318,34 @@
             "value": 0.002
           }
         ],
+        "subject": {
+          "display": "Cross-run synthesis: HLA-A expression-biophysics correlations replicate at |rho| ~0.7 across two premise sets (exp24 n=69 and exp26 n=19/HLA-A subset)",
+          "id": "composite:synthesis/LDER_COMPUTE_AT_CANONICALIZATION",
+          "kind": "composite",
+          "parts": [
+            {
+              "display": "Reference to claim 'hla_a_dg37_vs_tpm'",
+              "id": "literal:claim_ref/hla_a_dg37_vs_tpm",
+              "kind": "literal",
+              "prose": "Constituent claim hla_a_dg37_vs_tpm of the composite synthesis: HLA-A expression prediction is robust across two independent premise sets (ΔG37 + CpG density), supporting the joint coupling hypothesis.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "hla_a_dg37_vs_tpm"
+              }
+            },
+            {
+              "display": "Reference to claim 'hla_a_cpg_density_vs_tpm'",
+              "id": "literal:claim_ref/hla_a_cpg_density_vs_tpm",
+              "kind": "literal",
+              "prose": "Constituent claim hla_a_cpg_density_vs_tpm of the composite synthesis: HLA-A expression prediction is robust across two independent premise sets (ΔG37 + CpG density), supporting the joint coupling hypothesis.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "hla_a_cpg_density_vs_tpm"
+              }
+            }
+          ],
+          "relation": "co_occurrence"
+        },
         "title": "Cross-run synthesis: HLA-A expression-biophysics correlations replicate at |rho| ~0.7 across two premise sets (exp24 n=69 and exp26 n=19/HLA-A subset)",
         "version": "1.0.0"
       },
@@ -3156,8 +3403,12 @@
             "scale_note": "Single-position test at pos 145 in HLA-A. Generalization to other 5'UTR positions and to other loci is encoded as separate claims (see HLA-B claim sibling)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -3367,7 +3618,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -3421,6 +3672,24 @@
             "value": 0.13
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "bettens_2022_hla_rnaseq_tpm"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "bettens_2022_v1"
+            }
+          },
+          "display": "Migration cohort for 'Underpowered but direction-matched: HLA-A pos-224 (5'UTR -155 from ATG) CG vs TG'",
+          "id": "polymer:cohorts/migration/hla_a_ramsuran_pos224",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_a_ramsuran_pos224",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Underpowered but direction-matched: HLA-A pos-224 (5'UTR -155 from ATG) CG vs TG partition shows lower TPM at CG (Cohen's d ~ -0.93)",
         "version": "1.0.0"
       },
@@ -3478,8 +3747,12 @@
             "scale_note": "Whole-allele scope at HLA-B. The HLA-B 5'UTR-specific signal (hla_b_crc_polymorphic_cpg_cluster, etc.) is encoded as separate claims — this null at the bulk scale is consistent with regional structure being load-bearing for HLA-B."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -3618,7 +3891,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -3639,6 +3912,24 @@
             "value": 0.18
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "bettens_2022_hla_rnaseq_tpm"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "bettens_2022_v1"
+            }
+          },
+          "display": "Migration cohort for 'Designed negative control: HLA-B whole-allele dG37 does NOT correlate with mRNA '",
+          "id": "polymer:cohorts/migration/hla_b_bulk_biophysics_null",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_b_bulk_biophysics_null",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Designed negative control: HLA-B whole-allele dG37 does NOT correlate with mRNA expression (rho ~ +0.017, leave-one-out stable)",
         "version": "1.0.0"
       },
@@ -3696,8 +3987,12 @@
             "scale_note": "Per-CpG-position resolution within the HLA-B 5'UTR. Extension to other HLA loci and to non-CpG positions are sibling claims."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -3878,7 +4173,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -3905,6 +4200,24 @@
             "value": 0.003
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_b_5utr_per_position_polymorphism"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'Five FDR-significant HLA-B 5'UTR polymorphic CpGs cluster within named CRC modul'",
+          "id": "polymer:cohorts/migration/hla_b_crc_polymorphic_cpg_cluster",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_b_crc_polymorphic_cpg_cluster",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Five FDR-significant HLA-B 5'UTR polymorphic CpGs cluster within named CRC modules (4 of 5)",
         "version": "1.0.0"
       },
@@ -3957,8 +4270,12 @@
             "scale_note": "HLA-C 3'UTR specifically; HLA-A and HLA-B 3'UTR mir148a status are sibling claims (HLA-A: known canonical binding; HLA-B: variable)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -4119,7 +4436,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -4146,6 +4463,24 @@
             "value": 0.25
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'HLA-C miR-148a canonical 8-mer site is absent in 0/3,284 alleles, but the 7-mer '",
+          "id": "polymer:cohorts/migration/hla_c_mir148a_canonical_absence",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_c_mir148a_canonical_absence",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HLA-C miR-148a canonical 8-mer site is absent in 0/3,284 alleles, but the 7-mer seed is present in ~25% — partially dissolved by length audit",
         "version": "1.0.0"
       },
@@ -4209,8 +4544,12 @@
             "scale_note": "Reference-genome WGBS, NOT allele-resolved. The Ramsuran 2015 allele-specific component (A*24:02 vs A*01:01 methylation in monocytes) is a separate child claim because it requires allele-assigned reads that Loyfer does not provide."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-06",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -4382,7 +4721,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -4429,6 +4768,24 @@
             "value": 0.031
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "loyfer_wgbs_methylation_atlas"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "loyfer_2023_v1"
+            }
+          },
+          "display": "Migration cohort for 'HLA-A 5'UTR/promoter is dramatically cell-type-specific — monocyte β=0.083 (open'",
+          "id": "polymer:cohorts/migration/hla_t_naive_promoter_methylation_bimodal",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/hla_t_naive_promoter_methylation_bimodal",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HLA-A 5'UTR/promoter is dramatically cell-type-specific — monocyte β=0.083 (open) vs T-naive β=0.593 (closed), a Δβ=0.510 inversion that explains the Phase 4c paradox",
         "version": "1.0.0"
       },
@@ -4489,11 +4846,18 @@
             "scale_note": "Ratio-level claim across two species. The within-species gradient claims are separate fixtures (`cost_expression_gradient_human`, `cost_expression_gradient_ecoli_bsubtilis`). This claim is the interpretive synthesis."
           }
         },
+        "context": {
+          "modalities": [
+            "human",
+            "e-coli"
+          ]
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [
           "cost_expression_gradient_human",
           "cost_expression_gradient_ecoli_bsubtilis"
         ],
+        "domain": "multi_modal",
         "external_assumptions": [
           {
             "citation": "Takahata 1993; Lynch & Conery 2003; Bobay & Ochman 2018",
@@ -4648,7 +5012,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "D",
@@ -4675,6 +5039,34 @@
             "value": 1580
           }
         ],
+        "subject": {
+          "display": "Human cost-expression effect size is 16% of E. coli's — far larger than the naive Ne≈10^-4 prediction, placing human cost selection in the strong-selection regime",
+          "id": "composite:synthesis/LDER_COMPUTE_AT_CANONICALIZATION",
+          "kind": "composite",
+          "parts": [
+            {
+              "display": "Reference to claim 'cost_expression_gradient_human'",
+              "id": "literal:claim_ref/cost_expression_gradient_human",
+              "kind": "literal",
+              "prose": "Constituent claim cost_expression_gradient_human of the composite synthesis: The ratio of cost-expression effect sizes (human vs E. coli + B. subtilis) is consistent with effective-population-size scaling, proposing a causal selection mechanism for the dual-channel hypothesis.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "cost_expression_gradient_human"
+              }
+            },
+            {
+              "display": "Reference to claim 'cost_expression_gradient_ecoli_bsubtilis'",
+              "id": "literal:claim_ref/cost_expression_gradient_ecoli_bsubtilis",
+              "kind": "literal",
+              "prose": "Constituent claim cost_expression_gradient_ecoli_bsubtilis of the composite synthesis: The ratio of cost-expression effect sizes (human vs E. coli + B. subtilis) is consistent with effective-population-size scaling, proposing a causal selection mechanism for the dual-channel hypothesis.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "cost_expression_gradient_ecoli_bsubtilis"
+              }
+            }
+          ],
+          "relation": "causal_hypothesis"
+        },
         "title": "Human cost-expression effect size is 16% of E. coli's — far larger than the naive Ne≈10^-4 prediction, placing human cost selection in the strong-selection regime",
         "version": "1.0.0"
       },
@@ -4736,8 +5128,12 @@
             "scale_note": "Companion of sine_fraction_expression_positive_gc_independent."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 15,
         "external_assumptions": [
           {
@@ -4876,7 +5272,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -4894,6 +5290,24 @@
             "value": 1e-50
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "gtex_v8_median_tpm_per_1kb_window"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "gtex_v8"
+            }
+          },
+          "display": "Migration cohort for 'LTR fraction negatively correlates with median GTEx expression after GC residual'",
+          "id": "polymer:cohorts/migration/ltr_fraction_expression_negative_gc_independent",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/ltr_fraction_expression_negative_gc_independent",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "LTR fraction negatively correlates with median GTEx expression after GC residualization (partial rho ~ -0.18) — opposite-signed SINE companion",
         "version": "1.0.0"
       },
@@ -4942,8 +5356,12 @@
             "scale_note": "Whole-allele descriptive census. Per-region (5UTR-only, intron-only, 3UTR-only) decompositions are sibling claims."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-13",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 26,
         "external_assumptions": [
           {
@@ -5033,7 +5451,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "K",
@@ -5083,6 +5501,24 @@
             "value": 0.996
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "imgt_per_locus_substitution_census"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'Architecture: 85-99.6% of substitutions across HLA loci are non-coding (descript'",
+          "id": "polymer:cohorts/migration/nc_fraction_of_hla_variation",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/nc_fraction_of_hla_variation",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Architecture: 85-99.6% of substitutions across HLA loci are non-coding (descriptive K-class claim)",
         "version": "1.0.0"
       },
@@ -5152,8 +5588,12 @@
             "scale_note": "Falsification is at m=5000 specifically. Larger m (50K+) was tested in Stage 2 and did not close the gap; the falsification is robust across the swept m range. Other architectures (learned encoder, multi-output amortization) are out of scope for this claim object — they live as separate RC06 Aim 3 claims."
           }
         },
+        "context": {
+          "free_form": "migrated from v1.1 without domain-specific context"
+        },
         "data_version": "polymer-db@2026-04-14",
         "depends_on": [],
+        "domain": "other",
         "external_assumptions": [
           {
             "citation": "Hannum et al. Mol Cell 2013",
@@ -5360,7 +5800,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -5387,6 +5827,16 @@
             "value": 2.5
           }
         ],
+        "subject": {
+          "display": "FALSIFIED: ELM reservoir at m=5000 does NOT match elastic-net age MAE on GSE40279 5-fold CV",
+          "id": "literal:migration/1.0.0/na",
+          "kind": "literal",
+          "prose": "Migrated from v1.1 as a literal subject because the claim was marked withdrawn/falsified at migration time. Re-author with a typed subject when resuming.",
+          "structured": {
+            "migration_source": "v1.1",
+            "note": "literal wrap chosen due to withdrawn/falsified status"
+          }
+        },
         "title": "FALSIFIED: ELM reservoir at m=5000 does NOT match elastic-net age MAE on GSE40279 5-fold CV",
         "version": "1.0.0"
       },
@@ -5444,8 +5894,12 @@
             "scale_note": "Census-level claim at 1 Mb. Per-track sign-flip claims (A2) are separate child fixtures. Sub-isochore resolution (A5, oNCO 1 kb) is a pending bolstering fixture, not covered here."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -5619,7 +6073,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -5674,6 +6128,24 @@
             "value": 0.37
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for '109 biophysics-recombination partial correlations exceed |r| > 0.08 after GC con'",
+          "id": "polymer:cohorts/migration/recomb_a1_partial_correlations_109_signals",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a1_partial_correlations_109_signals",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "109 biophysics-recombination partial correlations exceed |r| > 0.08 after GC control — the genome-wide strong-signal census",
         "version": "1.0.0"
       },
@@ -5730,8 +6202,12 @@
             "scale_note": "Single-track claim. Parent corpus-wide sign-flip claim (12 of 22 tracks) is a separate synthesis claim."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -5959,7 +6435,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -5986,6 +6462,24 @@
             "value": 0.003
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Curvature has opposite signs for crossover vs non-crossover rate after GC correc'",
+          "id": "polymer:cohorts/migration/recomb_a2_co_vs_nco_signflip_curvature",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a2_co_vs_nco_signflip_curvature",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Curvature has opposite signs for crossover vs non-crossover rate after GC correction (CO -0.238, NCO +0.064)",
         "version": "1.0.0"
       },
@@ -6042,8 +6536,12 @@
             "scale_note": "Single-track claim. The corpus-wide CO/NCO sign-flip pattern (12 of 22 tracks) lives as the parent claim; this fixture is the per-track decomposition for groove_width specifically."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -6279,7 +6777,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -6305,6 +6803,24 @@
             "value": 1e-06
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Groove width has opposite signs for crossover vs non-crossover rate after GC cor'",
+          "id": "polymer:cohorts/migration/recomb_a2_co_vs_nco_signflip_groove_width",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a2_co_vs_nco_signflip_groove_width",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Groove width has opposite signs for crossover vs non-crossover rate after GC correction (CO +0.218, NCO -0.202; Steiger Z significant)",
         "version": "1.0.0"
       },
@@ -6361,8 +6877,12 @@
             "scale_note": "Single-track claim; parent corpus-wide sign-flip claim lives separately."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -6599,7 +7119,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -6626,6 +7146,24 @@
             "value": 0.0008
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Wrapping energy has opposite signs for crossover vs non-crossover rate after GC '",
+          "id": "polymer:cohorts/migration/recomb_a2_co_vs_nco_signflip_wrapping_energy",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a2_co_vs_nco_signflip_wrapping_energy",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Wrapping energy has opposite signs for crossover vs non-crossover rate after GC correction (CO +0.166, NCO -0.125)",
         "version": "1.0.0"
       },
@@ -6679,10 +7217,14 @@
             "scale_note": "1 Mb resolution, conservation-as-age-proxy. The mechanistic resolution of WHY gBGC GC-enrichment increases rather than decreases deformability is an open question; one hypothesis is that gBGC selects for specific GC-positions (CpG-rich, alternating purine-pyrimidine) that happen to be more flexible than other GC-rich configurations."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [
           "recomb_a3_gbgc_age_gradient_gc"
         ],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -6962,7 +7504,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -6994,6 +7536,24 @@
             "value": 0.002
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Surprise: OLD crossover hotspots are MORE deformable than YOUNG (Cohen's d = +1.'",
+          "id": "polymer:cohorts/migration/recomb_a3_gbgc_age_gradient_deformability",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a3_gbgc_age_gradient_deformability",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Surprise: OLD crossover hotspots are MORE deformable than YOUNG (Cohen's d = +1.73), overturning the naive gBGC stiffening prediction",
         "version": "1.0.0"
       },
@@ -7079,8 +7639,12 @@
             "scale_note": "1 Mb resolution; conservation as age proxy (not direct hotspot age). Sub-1-Mb test using DMC1 native ~300 bp peaks is queued as a separate claim."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -7377,7 +7941,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -7403,6 +7967,24 @@
             "value": 1.76
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Old crossover hotspots are GC-enriched relative to young hotspots (Cohen's d = +'",
+          "id": "polymer:cohorts/migration/recomb_a3_gbgc_age_gradient_gc",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a3_gbgc_age_gradient_gc",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Old crossover hotspots are GC-enriched relative to young hotspots (Cohen's d = +1.76); the gBGC scar is visible in the material channel",
         "version": "1.0.0"
       },
@@ -7454,8 +8036,12 @@
             "scale_note": "1 Mb windowed enrichment + per-breakpoint matched-control biophysics. Native-resolution breakpoint analysis is queued."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -7669,7 +8255,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -7716,6 +8302,24 @@
             ]
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "recombination_maps_1mb"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "palsson_2025"
+            }
+          },
+          "display": "Migration cohort for 'Cancer translocation breakpoints share the recombination hotspot biophysical sig'",
+          "id": "polymer:cohorts/migration/recomb_a4_translocation_overlap",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a4_translocation_overlap",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Cancer translocation breakpoints share the recombination hotspot biophysical signature: Fisher OR=2.34 enrichment, biophysics Cohen's d ~ +0.99",
         "version": "1.0.0"
       },
@@ -7759,10 +8363,14 @@
             "scale_note": "Single-model feature ranking. Cross-validation of the ranking (rerun with different seeds / different RF backends) is a queued sibling claim."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [
           "exp17_formal_claim"
         ],
+        "domain": "genomic",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -7848,7 +8456,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -7881,6 +8489,24 @@
             ]
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "exp17_a6_rf_permutation_importance"
+              },
+              "name": "Polymer recombination hotspots corpus",
+              "version": "exp17_a6_2026_04_03"
+            }
+          },
+          "display": "Migration cohort for 'Quantization_map (nucleosome-lattice property) ranks #1 in random-forest permuta'",
+          "id": "polymer:cohorts/migration/recomb_a6_rf_top_feature_quantization_map",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/recomb_a6_rf_top_feature_quantization_map",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Quantization_map (nucleosome-lattice property) ranks #1 in random-forest permutation importance for crossover prediction; GC ranks 8th",
         "version": "1.0.0"
       },
@@ -7929,10 +8555,14 @@
             "scale_note": "Meta-claim about a pre-registered null. The claim being falsified is an EXPECTATION; the observed result lives in the canonical exp17 fixture (depended on)."
           }
         },
+        "context": {
+          "free_form": "migrated from v1.1 without domain-specific context"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [
           "exp17_formal_claim"
         ],
+        "domain": "other",
         "exp_number": 17,
         "external_assumptions": [
           {
@@ -8046,7 +8676,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -8081,6 +8711,16 @@
             "value": 0.05
           }
         ],
+        "subject": {
+          "display": "Pre-registration falsified: 1 Mb biophysics-vs-recombination is NOT just an isochore rediscovery — observed signals exceed all pre-registered null thresholds",
+          "id": "literal:migration/1.0.0/17",
+          "kind": "literal",
+          "prose": "Migrated from v1.1 as a literal subject because the claim was marked withdrawn/falsified at migration time. Re-author with a typed subject when resuming.",
+          "structured": {
+            "migration_source": "v1.1",
+            "note": "literal wrap chosen due to withdrawn/falsified status"
+          }
+        },
         "title": "Pre-registration falsified: 1 Mb biophysics-vs-recombination is NOT just an isochore rediscovery — observed signals exceed all pre-registered null thresholds",
         "version": "1.0.0"
       },
@@ -8138,8 +8778,12 @@
             "scale_note": "Per-signature aggregate over the standard 96-channel decomposition. SBS39 / SBS40 / etc. are included but omitted from the top-10 list above."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "citation": "Alexandrov et al. Nature 2020; COSMIC v3.4 release",
@@ -8249,7 +8893,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "D",
@@ -8342,6 +8986,24 @@
             "value": 7.5
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "cosmic_sbs_signature_matrix_v3_4"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "cosmic_v3.4"
+            }
+          },
+          "display": "Migration cohort for 'COSMIC v3.4 SBS signatures rank by mean thermodynamic perturbation; clinical sig'",
+          "id": "polymer:cohorts/migration/sbs_thermodynamic_loudness_ranking",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/sbs_thermodynamic_loudness_ranking",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "COSMIC v3.4 SBS signatures rank by mean thermodynamic perturbation; clinical signatures (SBS1 aging, SBS2/13 APOBEC, SBS4 smoking, SBS7 UV) span the loudness spectrum",
         "version": "1.0.0"
       },
@@ -8403,8 +9065,12 @@
             "scale_note": "Tissue-aggregated median TPM; per-tissue analysis is the Phase-7 sibling claim (currently partial)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 15,
         "external_assumptions": [
           {
@@ -8544,7 +9210,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -8563,6 +9229,24 @@
             "value": 1e-50
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "gtex_v8_median_tpm_per_1kb_window"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "gtex_v8"
+            }
+          },
+          "display": "Migration cohort for 'SINE fraction positively correlates with median GTEx expression after GC residua'",
+          "id": "polymer:cohorts/migration/sine_fraction_expression_positive_gc_independent",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/sine_fraction_expression_positive_gc_independent",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "SINE fraction positively correlates with median GTEx expression after GC residualization (partial rho ~ +0.18)",
         "version": "1.0.0"
       },
@@ -8633,11 +9317,18 @@
             "scale_note": "Per-locus-metric pair count. The signed effect (which direction the rho moved) and the magnitude of the gain are sibling claims."
           }
         },
+        "context": {
+          "modalities": [
+            "resting",
+            "stimulated"
+          ]
+        },
         "data_version": "polymer-db@2026-04-14",
         "depends_on": [
           "hla_a_dg37_vs_tpm",
           "hla_a_cpg_density_vs_tpm"
         ],
+        "domain": "multi_modal",
         "exp_number": 24,
         "external_assumptions": [
           {
@@ -8808,7 +9499,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -8932,6 +9623,34 @@
             "value": 10
           }
         ],
+        "subject": {
+          "display": "Stimulation amplifies (does NOT collapse) the biophysical-expression signal: 10 of 12 locus-metric pairs increase |rho| under stim",
+          "id": "composite:synthesis/LDER_COMPUTE_AT_CANONICALIZATION",
+          "kind": "composite",
+          "parts": [
+            {
+              "display": "Reference to claim 'hla_a_dg37_vs_tpm'",
+              "id": "literal:claim_ref/hla_a_dg37_vs_tpm",
+              "kind": "literal",
+              "prose": "Constituent claim hla_a_dg37_vs_tpm of the composite synthesis: The biophysical signal in HLA-A expression coupling amplifies under stimulation, conditional on baseline (resting) coupling.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "hla_a_dg37_vs_tpm"
+              }
+            },
+            {
+              "display": "Reference to claim 'hla_a_cpg_density_vs_tpm'",
+              "id": "literal:claim_ref/hla_a_cpg_density_vs_tpm",
+              "kind": "literal",
+              "prose": "Constituent claim hla_a_cpg_density_vs_tpm of the composite synthesis: The biophysical signal in HLA-A expression coupling amplifies under stimulation, conditional on baseline (resting) coupling.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "hla_a_cpg_density_vs_tpm"
+              }
+            }
+          ],
+          "relation": "conditional"
+        },
         "title": "Stimulation amplifies (does NOT collapse) the biophysical-expression signal: 10 of 12 locus-metric pairs increase |rho| under stim",
         "version": "1.0.0"
       },
@@ -8972,8 +9691,12 @@
             "scale_note": "Withdrawal applies to Exp 03 as currently designed. If any derivative analysis (not yet written) retargets the prediction to a methylation β-value outcome, that separate claim will need its own deconvolution treatment."
           }
         },
+        "context": {
+          "free_form": "migrated from v1.1 without domain-specific context"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "other",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -9058,7 +9781,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "K",
@@ -9070,6 +9793,16 @@
             "value": 0
           }
         ],
+        "subject": {
+          "display": "The Phase 1 cell-deconvolution critique of TE silencing prediction is withdrawn — ChromHMM tissue-specific chromatin states and methylation-array CpG counts are structurally different assays, so cell composition is the biology, not a confound",
+          "id": "literal:migration/1.0.0/3",
+          "kind": "literal",
+          "prose": "Migrated from v1.1 as a literal subject because the claim was marked withdrawn/falsified at migration time. Re-author with a typed subject when resuming.",
+          "structured": {
+            "migration_source": "v1.1",
+            "note": "literal wrap chosen due to withdrawn/falsified status"
+          }
+        },
         "title": "The Phase 1 cell-deconvolution critique of TE silencing prediction is withdrawn — ChromHMM tissue-specific chromatin states and methylation-array CpG counts are structurally different assays, so cell composition is the biology, not a confound",
         "version": "1.0.0"
       },
@@ -9139,8 +9872,12 @@
             "scale_note": "One of the 9 mode-marker combinations in MOD-3. Sibling claims: oncoexaptation x active (headline), Retro-Age x identity-dependent."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-08",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -9323,7 +10060,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -9374,6 +10111,24 @@
             "value": 1.676
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "te_surveillance_mode_5class"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "exp03_2026_03_23"
+            }
+          },
+          "display": "Migration cohort for 'CoRSIV variably-methylated regions are enriched 1.676-fold at identity-dependent'",
+          "id": "polymer:cohorts/migration/te_corsiv_or_identity_mode",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_corsiv_or_identity_mode",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "CoRSIV variably-methylated regions are enriched 1.676-fold at identity-dependent TEs and the enrichment survives GC- and length-stratified permutation",
         "version": "1.0.0"
       },
@@ -9436,8 +10191,12 @@
             "scale_note": "1 kb resolution; pan-cancer pooled. Per-cancer-type breakdowns (panel C of Fig 1) are sibling claims and may show non-zero deltas in specific tissues."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 15,
         "external_assumptions": [
           {
@@ -9671,7 +10430,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -9712,6 +10471,24 @@
             "value": 0.002
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "pcawg_somatic_per_1kb_window"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "pcawg_release_v3"
+            }
+          },
+          "display": "Migration cohort for 'Mutation null: TE density does not predict somatic mutation rate after GC correc'",
+          "id": "polymer:cohorts/migration/te_density_mutation_null_partial_gc",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_density_mutation_null_partial_gc",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Mutation null: TE density does not predict somatic mutation rate after GC correction (partial rho ~ 0.000 across SNV / indel / SV)",
         "version": "1.0.0"
       },
@@ -9780,8 +10557,12 @@
             "scale_note": "Boundary-flank scope (±5 kb). TE-interior methylation is a related but separate claim. Reference-only methylation (germline) — PCAWG somatic methylation dynamics are deferred per PAPER_OUTLINE § limitations."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-08",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 15,
         "external_assumptions": [
           {
@@ -9995,7 +10776,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -10080,6 +10861,24 @@
             ]
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "te_class_assignments"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "repeatmasker_hg38_v1"
+            }
+          },
+          "display": "Migration cohort for 'Methylation cell-type variance at TE boundaries is class-specific — LTR/LINE/DNA'",
+          "id": "polymer:cohorts/migration/te_methylation_class_specific_at_boundary",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_methylation_class_specific_at_boundary",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Methylation cell-type variance at TE boundaries is class-specific — LTR/LINE/DNA elements show ~0.019 cross-cell-type variance, SINE only 0.014, with TE-free regions at 0.018 as baseline",
         "version": "1.0.0"
       },
@@ -10149,8 +10948,12 @@
             "scale_note": "One of the 9 mode-marker combinations in MOD-3. CoRSIV x identity-dependent and Retro-Age x identity-dependent are sibling claims (also encoded under matched-permutation null)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -10305,7 +11108,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -10339,6 +11142,24 @@
             "value": 0.0001
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "te_surveillance_mode_5class"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "exp03_2026_03_23"
+            }
+          },
+          "display": "Migration cohort for 'Oncoexapted TEs are enriched in the Active surveillance mode (raw OR=3.88) and t'",
+          "id": "polymer:cohorts/migration/te_oncoexaptation_or_active_mode_gc_matched",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_oncoexaptation_or_active_mode_gc_matched",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Oncoexapted TEs are enriched in the Active surveillance mode (raw OR=3.88) and the enrichment survives GC-matched stratified permutation",
         "version": "1.0.0"
       },
@@ -10417,8 +11238,12 @@
             "scale_note": "Per-feature resolution-gain claim (curvature). Generalization across the 15-track biophysics panel and across other chromatin states is in the parent panel of claims (mod02 output)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -10586,7 +11411,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -10618,6 +11443,24 @@
             "value": 0.041
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "chromhmm_15state_roadmap"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "pehrsson_2019_e003"
+            }
+          },
+          "display": "Migration cohort for 'Resolution gain at 147bp: curvature -> H3K9me3 AUROC improves over 1kb with boot'",
+          "id": "polymer:cohorts/migration/te_resolution_gain_curvature_h3k9me3_147bp",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_resolution_gain_curvature_h3k9me3_147bp",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Resolution gain at 147bp: curvature -> H3K9me3 AUROC improves over 1kb with bootstrap CI excluding zero",
         "version": "1.0.0"
       },
@@ -10686,8 +11529,12 @@
             "scale_note": "One of the 9 mode-marker combinations in MOD-3. Sibling claim: CoRSIV x identity-dependent."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-08",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -10868,7 +11715,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -10918,6 +11765,24 @@
             "value": 3.744
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "te_surveillance_mode_5class"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "exp03_2026_03_23"
+            }
+          },
+          "display": "Migration cohort for 'Retro-Age epigenetic clock CpGs are enriched 3.744-fold at identity-dependent TE'",
+          "id": "polymer:cohorts/migration/te_retro_age_or_identity_mode",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_retro_age_or_identity_mode",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Retro-Age epigenetic clock CpGs are enriched 3.744-fold at identity-dependent TEs and the enrichment survives GC- and length-stratified permutation",
         "version": "1.0.0"
       },
@@ -10974,8 +11839,12 @@
             "scale_note": "Multi-tissue parent claim. Within-age-class child (te_silencing_within_age_bivalent) tests the harder version on age-matched TEs; H3K9me3 negative control (te_silencing_h3k9me3_negative_control) tests the per-state specificity."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-03-23",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -11232,7 +12101,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -11335,6 +12204,24 @@
             "value": 0.043
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "repeats_repeatmasker"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "repeatmasker_hg38_v4.0.5"
+            }
+          },
+          "display": "Migration cohort for 'Multi-tissue overall: biophysics adds mean delta AUROC = +0.082 to TE silencing '",
+          "id": "polymer:cohorts/migration/te_silencing_biophysics_overall_auroc",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_silencing_biophysics_overall_auroc",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Multi-tissue overall: biophysics adds mean delta AUROC = +0.082 to TE silencing prediction across 5 representative tissues",
         "version": "1.0.0"
       },
@@ -11397,8 +12284,12 @@
             "scale_note": "Negative-control claim at the H1 ESC / H3K9me3 / 1 kb biophysics intersection. Cross-tissue stability of this null is itself a sibling claim; some other tissues show small non-null deltas at H3K9me3 (e.g. ESC delta = +0.098 within age band) that are documented separately."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-03-23",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -11654,7 +12545,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -11679,6 +12570,24 @@
             "value": 0.004
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "repeats_repeatmasker"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "repeatmasker_hg38_v4.0.5"
+            }
+          },
+          "display": "Migration cohort for 'Designed negative control: biophysics adds essentially nothing to baseline for H'",
+          "id": "polymer:cohorts/migration/te_silencing_h3k9me3_negative_control",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_silencing_h3k9me3_negative_control",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Designed negative control: biophysics adds essentially nothing to baseline for H3K9me3 prediction (delta AUROC = +0.004 in H1 ESC)",
         "version": "1.0.0"
       },
@@ -11731,8 +12640,12 @@
             "scale_note": "Feature-ranking claim at the tissue-aggregate level. Per-TE importance contributions (SHAP) are a separate deferred fixture."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-03",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -11865,7 +12778,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -11924,6 +12837,24 @@
             ]
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "exp03_rf_feature_importance_by_tissue"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "exp03_phase1_v2"
+            }
+          },
+          "display": "Migration cohort for 'Stacking ΔG₃₇ is the #1 feature for TE silencing prediction across 4 of 5 tissue'",
+          "id": "polymer:cohorts/migration/te_silencing_top_feature_stacking_dg37",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_silencing_top_feature_stacking_dg37",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Stacking ΔG₃₇ is the #1 feature for TE silencing prediction across 4 of 5 tissues; evolutionary age ranks 10th–14th",
         "version": "1.0.0"
       },
@@ -12005,8 +12936,12 @@
             "scale_note": "1 kb biophysics resolution, ChromHMM at 200 bp; TE-level aggregation by majority overlap. Cross-tissue and cross-state extensions (other Roadmap epigenomes; H3K27me3, H3K9me3, Active, Quiescent) live as sibling claim objects."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-03-23",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -12301,7 +13236,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -12335,6 +13270,24 @@
             "value": 0.428
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "repeats_repeatmasker"
+              },
+              "name": "Polymer TE surveillance corpus",
+              "version": "repeatmasker_hg38_v4.0.5"
+            }
+          },
+          "display": "Migration cohort for 'Within age-matched TEs (5-15% divergence), DNA biophysics predicts bivalent chro'",
+          "id": "polymer:cohorts/migration/te_silencing_within_age_bivalent",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/te_silencing_within_age_bivalent",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Within age-matched TEs (5-15% divergence), DNA biophysics predicts bivalent chromatin in fetal brain at AUROC 0.986",
         "version": "1.0.0"
       },
@@ -12422,12 +13375,19 @@
             "scale_note": "Synthesis claim — the double dissociation is demonstrated in H1 ESC and replicated across the remaining 4 tissues in paper1 Table S1 (not encoded as separate fixtures). Child fixtures: te_silencing_biophysics_overall_auroc (multi-tissue parent), te_silencing_within_age_bivalent (hard test), te_silencing_h3k9me3_negative_control."
           }
         },
+        "context": {
+          "modalities": [
+            "composition-channel",
+            "identity-channel"
+          ]
+        },
         "data_version": "polymer-db@2026-04-08",
         "depends_on": [
           "te_silencing_biophysics_overall_auroc",
           "te_silencing_within_age_bivalent",
           "te_silencing_h3k9me3_negative_control"
         ],
+        "domain": "multi_modal",
         "exp_number": 3,
         "external_assumptions": [
           {
@@ -12727,7 +13687,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -12779,6 +13739,44 @@
             "value": 0.001
           }
         ],
+        "subject": {
+          "display": "TE silencing pathway choice partitions into two orthogonal regimes — GC predicts H3K27me3 (Polycomb, AUROC 0.678) while age predicts H3K9me3 (KRAB-ZnF, AUROC 0.633); the dissociation magnitude Δ=0.078 exceeds 1,000-permutation null with p<0",
+          "id": "composite:synthesis/LDER_COMPUTE_AT_CANONICALIZATION",
+          "kind": "composite",
+          "parts": [
+            {
+              "display": "Reference to claim 'te_silencing_biophysics_overall_auroc'",
+              "id": "literal:claim_ref/te_silencing_biophysics_overall_auroc",
+              "kind": "literal",
+              "prose": "Constituent claim te_silencing_biophysics_overall_auroc of the composite synthesis: The TE surveillance dichotomy: composition-mode silencing (overall AUROC), identity-mode silencing (within-age bivalent), and the H3K9me3 negative control jointly partition the surveillance landscape into composition vs identity channels.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "te_silencing_biophysics_overall_auroc"
+              }
+            },
+            {
+              "display": "Reference to claim 'te_silencing_within_age_bivalent'",
+              "id": "literal:claim_ref/te_silencing_within_age_bivalent",
+              "kind": "literal",
+              "prose": "Constituent claim te_silencing_within_age_bivalent of the composite synthesis: The TE surveillance dichotomy: composition-mode silencing (overall AUROC), identity-mode silencing (within-age bivalent), and the H3K9me3 negative control jointly partition the surveillance landscape into composition vs identity channels.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "te_silencing_within_age_bivalent"
+              }
+            },
+            {
+              "display": "Reference to claim 'te_silencing_h3k9me3_negative_control'",
+              "id": "literal:claim_ref/te_silencing_h3k9me3_negative_control",
+              "kind": "literal",
+              "prose": "Constituent claim te_silencing_h3k9me3_negative_control of the composite synthesis: The TE surveillance dichotomy: composition-mode silencing (overall AUROC), identity-mode silencing (within-age bivalent), and the H3K9me3 negative control jointly partition the surveillance landscape into composition vs identity channels.",
+              "structured": {
+                "reference_type": "depends_on",
+                "referenced_claim_id": "te_silencing_h3k9me3_negative_control"
+              }
+            }
+          ],
+          "relation": "correlational"
+        },
         "title": "TE silencing pathway choice partitions into two orthogonal regimes — GC predicts H3K27me3 (Polycomb, AUROC 0.678) while age predicts H3K9me3 (KRAB-ZnF, AUROC 0.633); the dissociation magnitude Δ=0.078 exceeds 1,000-permutation null with p<0.001",
         "version": "1.0.0"
       },
@@ -12827,8 +13825,12 @@
             "scale_note": "Genome-wide Ti/Tv. Per-region (CDS / intron / UTR) decompositions and the 4-fold-degenerate-codon-position decomposition are sibling claims."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-02",
         "depends_on": [],
+        "domain": "genomic",
         "external_assumptions": [
           {
             "citation": "Kong et al. Nature 2012",
@@ -12933,7 +13935,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -12958,6 +13960,24 @@
             "value": 3.4
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "human_fixed_substitutions_titv"
+              },
+              "name": "Polymer dual-channel corpus",
+              "version": "ensembl_human_ancestral_v109"
+            }
+          },
+          "display": "Migration cohort for 'Descriptive: human fixed substitutions show ~2:1 transition/transversion ratio, '",
+          "id": "polymer:cohorts/migration/titv_2to1_fixation_bias",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/titv_2to1_fixation_bias",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Descriptive: human fixed substitutions show ~2:1 transition/transversion ratio, ~3.4-fold enriched over the unselected germline mutational input",
         "version": "1.0.0"
       },
@@ -13022,8 +14042,12 @@
             "scale_note": "Per-locus × per-compartment aggregate. Per-feature heatmap (E1/I1/E2/…/3'UTR) is in titv_per_feature.csv and is a child fixture, not pinned here."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-19",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 26,
         "external_assumptions": [
           {
@@ -13173,7 +14197,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -13276,6 +14300,24 @@
             "value": 2.0
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'HLA coding Ti/Tv = 0.67–1.54 (vs genome coding baseline ~3.0); HLA non-coding Ti'",
+          "id": "polymer:cohorts/migration/titv_balancing_selection_signature",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/titv_balancing_selection_signature",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "HLA coding Ti/Tv = 0.67–1.54 (vs genome coding baseline ~3.0); HLA non-coding Ti/Tv = 0.51–0.73 (vs neutral baseline ~2.0) — the transversion-enriched signature of diversifying selection",
         "version": "1.0.0"
       },
@@ -13349,8 +14391,12 @@
             "scale_note": "Whole-allele scope at 4-field resolution. The DPB1*11:01 d=25.44 outlier on Z-penalty is noted in the manuscript but deliberately excluded from the load-bearing inference conjuncts (single-allele observation)."
           }
         },
+        "context": {
+          "assembly": "GRCh38.p14"
+        },
         "data_version": "polymer-db@2026-04-19",
         "depends_on": [],
+        "domain": "genomic",
         "exp_number": 26,
         "external_assumptions": [
           {
@@ -13551,7 +14597,7 @@
             }
           }
         ],
-        "schema_version": "v1.1",
+        "schema_version": "v1.2",
         "statistics": [
           {
             "evidence_class": "S",
@@ -13652,6 +14698,24 @@
             "value": 9.6
           }
         ],
+        "subject": {
+          "definition": {
+            "exclusion": [],
+            "inclusion": [],
+            "source_dataset": {
+              "extra": {
+                "first_premise_layer": "hla_alleles_genomic_sequences"
+              },
+              "name": "IPD-IMGT/HLA",
+              "version": "ipd_imgt_hla_v3.56.0"
+            }
+          },
+          "display": "Migration cohort for 'Within-protein (2-field-invisible) non-coding biophysical variance is substantia'",
+          "id": "polymer:cohorts/migration/within_protein_biophysical_variance_invisible_to_matching",
+          "kind": "cohort",
+          "members_hash": "migration:v1_1_to_v1_2/within_protein_biophysical_variance_invisible_to_matching",
+          "note": "Inclusion predicates intentionally empty at migration time; the implicit member set is defined by the v1.1 premises. Re-author with explicit inclusion predicates to tighten the subject."
+        },
         "title": "Within-protein (2-field-invisible) non-coding biophysical variance is substantial at Class I HLA loci (29–69% at HLA-A; Z-penalty 68.9%) and corresponds to expression-variant alleles at d up to 2.49",
         "version": "1.0.0"
       },
@@ -13681,6 +14745,9 @@
     "provenance_state::remote_url",
     "provenance_state::reference_genome",
     "provenance_state::unknown",
+    "provenance_state::canonical_db",
+    "provenance_state::local_file",
+    "provenance_state::reference_resource",
     "cv_scheme::stratified_k_fold",
     "null_model::circular_shift",
     "null_model::parametric"
@@ -13691,7 +14758,7 @@
     0.087838
   ],
   "feature_dim_kept_after_zero_var_drop": 37,
-  "feature_dim_total": 48,
+  "feature_dim_total": 51,
   "feature_names": [
     "outcome::strong_positive",
     "outcome::positive",
@@ -13726,6 +14793,9 @@
     "provenance_state::remote_url",
     "provenance_state::reference_genome",
     "provenance_state::unknown",
+    "provenance_state::canonical_db",
+    "provenance_state::local_file",
+    "provenance_state::reference_resource",
     "count::n_premises_log1p",
     "count::n_operations_log1p",
     "count::n_statistics_log1p",

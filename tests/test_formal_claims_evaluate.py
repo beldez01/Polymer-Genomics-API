@@ -368,13 +368,65 @@ def test_evaluation_result_payload_shape() -> None:
     assert dumped["drift"] is None
 
 
-def test_materialization_mode_marks_not_implemented() -> None:
-    """Passing an api_client today records the skip, not a hard failure."""
+def test_materialization_exp17_ineligible_due_to_local_rds_premises() -> None:
+    """v0.2: exp17 premises are all ``local_rds``; the eligibility gate skips."""
     claim = _load(EXP17)
     sentinel = object()  # any non-None stand-in
     result = evaluate(claim, api_client=sentinel)
     assert result.materialization_status == "skipped_ineligible"
     assert result.materialization_error is not None
-    assert "v0.2" in result.materialization_error
+    assert "local_rds" in result.materialization_error
     # inference verdict is still computed from pinned stats
     assert result.verdict == "LICENSED"
+
+
+# ---------------------------------------------------------------------------
+# v1.2 invariance: wrapping a v1.1 claim with subject+domain does not
+# change the evaluator verdict. This locks in the "inference layer is
+# subject-agnostic" contract from MASTER_PLAN §5.4.
+# ---------------------------------------------------------------------------
+
+
+def test_v12_wrap_preserves_evaluator_verdict() -> None:
+    v11 = json.loads(EXP17.read_text())
+    v12 = dict(v11)
+    v12["schema_version"] = "v1.2"
+    v12["domain"] = "genomic"
+    v12["subject"] = {
+        "kind": "genomic_region",
+        "id": "hg38:autosomes:1Mb-windows",
+        "display": "Autosomes in 1 Mb windows (hg38)",
+        "assembly": "GRCh38.p14",
+        "chrom": "chr1",
+        "start": 1,
+        "end": 248956422,
+        "strand": ".",
+    }
+    v12["context"] = {"assembly": "GRCh38.p14"}
+
+    r_v11 = evaluate(FormalClaim.model_validate(v11))
+    r_v12 = evaluate(FormalClaim.model_validate(v12))
+    assert r_v11.verdict == r_v12.verdict == "LICENSED"
+    # conjunct-level results must match exactly
+    assert len(r_v11.conjuncts) == len(r_v12.conjuncts)
+    for c11, c12 in zip(r_v11.conjuncts, r_v12.conjuncts):
+        assert c11.result == c12.result
+    # the evaluation record echoes the input schema version, per MASTER_PLAN §5.4
+    assert r_v11.schema_version == "v1.1"
+    assert r_v12.schema_version == "v1.2"
+
+
+def test_migrated_corpus_has_expected_verdict_distribution() -> None:
+    """Regression guard: 46 LICENSED / 2 REJECTED / 0 PENDING across the corpus.
+
+    This is the baseline the MASTER_PLAN.md and the state audit both record,
+    and the invariant v1.2 migration is required to preserve.
+    """
+    counts = {"LICENSED": 0, "REJECTED": 0, "PENDING": 0}
+    fixtures = walk_fixtures(REPO_ROOT)
+    assert fixtures, "no fixtures discovered by walk_fixtures(REPO_ROOT)"
+    for path in fixtures:
+        claim = FormalClaim.model_validate(json.loads(path.read_text()))
+        counts[evaluate(claim).verdict] += 1
+    # Exact expected counts as of the v1.2 migration.
+    assert counts == {"LICENSED": 46, "REJECTED": 2, "PENDING": 0}

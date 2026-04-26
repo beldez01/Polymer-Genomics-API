@@ -94,7 +94,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         )}
         <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Viewer</Link>
         <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Atlas</Link>
-        <Link href="/claims" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Claims</Link>
+        <Link href="/portal/latent3d" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Claims</Link>
         <Link href="/newsroom" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Newsroom</Link>
         <Link href="/docs" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>{isMobile ? 'Dev' : 'Dev / API'}</Link>
       </div>

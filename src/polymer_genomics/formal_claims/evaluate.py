@@ -1,35 +1,33 @@
-"""evaluate.py — FormalClaim M2 (v0.1).
+"""evaluate.py — FormalClaim M2 (v0.2).
 
 Walks a FormalClaim's InferenceRule against its pinned statistics and
 produces an :class:`EvaluationResult` with a LICENSED / REJECTED / PENDING
-verdict, a per-leaf conjunct breakdown, and drift fields reserved for
-future materialization mode.
+verdict, a per-leaf conjunct breakdown, and — in v0.2 materialization
+mode — a drift report comparing live-computed statistics to their pinned
+values.
 
-Scope of v0.1
--------------
+Scope
+-----
 * **Inference-only evaluation** from ``Statistic.value`` pinned in the
-  fixture. Every encoded fixture today (30) has numeric pinned values for
-  every stat referenced by its inference rule, so no fixture lands on
-  PENDING in practice.
-* Full AND / OR / NOT / CMP semantics with three-valued logic
+  fixture. Full AND / OR / NOT / CMP semantics with three-valued logic
   (true / false / null → PENDING), matching the viewer-side evaluator in
-  ``viewer/src/lib/formalClaimsHelpers.ts``.
-* ``StatRef.transform`` (abs / neg / log) on both sides of a cmp, and
-  cmp.rhs as either a scalar or a :class:`StatRef` (stat-vs-stat).
+  ``viewer/src/lib/formalClaimsHelpers.ts``. ``StatRef.transform`` (abs /
+  neg / log) on both sides of a cmp, and ``cmp.rhs`` as either a scalar
+  or a :class:`StatRef` (stat-vs-stat).
+* **Materialization mode (v0.2)** — when an ``api_client`` is supplied,
+  :func:`evaluate` delegates to
+  :mod:`polymer_genomics.formal_claims.materialize`, which gates on
+  premise provenance, dispatches each ``EstimatorOp.estimator.impl`` by
+  prefix through a registry, collects computed statistics, and emits a
+  :class:`StatDrift` record per materialized stat. The registry ships
+  with an in-process identity handler and recognized (but not yet
+  implemented) prefixes for ``scipy.stats.*``, ``python::sklearn.*``,
+  ``R::*``. Individual adapter handlers land incrementally without
+  touching the public API.
 * CLI: ``python -m polymer_genomics.formal_claims.evaluate`` walks every
   fixture under ``internal/epistemic_os/fixtures/`` and
   ``internal/InSilico/**/claims/``, writing one
   ``<fixture>.evaluation.json`` sibling per claim.
-
-Deferred to v0.2 (materialization mode)
----------------------------------------
-When an ``api_client`` is passed, :func:`evaluate` will walk each claim's
-Operation DAG against the live Polymer Genomics API, materialize the
-statistics, compare to pinned values, and report drift. The dispatch by
-``EstimatorSpec.impl`` prefix is sketched in :func:`_materialize` but
-raises ``NotImplementedError`` today; the eligible-fixture gate is already
-wired so the returned :class:`EvaluationResult` payload has a stable
-shape.
 """
 
 from __future__ import annotations
@@ -54,7 +52,7 @@ from polymer_genomics.formal_claims.schema import (
     StatRef,
 )
 
-EVALUATOR_VERSION = "0.1.0"
+EVALUATOR_VERSION = "0.2.0"
 
 Verdict = Literal["LICENSED", "REJECTED", "PENDING"]
 
@@ -278,17 +276,32 @@ def evaluate(claim: FormalClaim, *, api_client: object | None = None) -> Evaluat
     materialization_error: str | None = None
 
     if api_client is not None:
+        from polymer_genomics.formal_claims.materialize import materialize_claim
+
         try:
-            result = _materialize(claim, api_client)
-            materialized = result["materialized"]
-            drift = result["drift"]
-            materialization_status = result["status"]
-        except NotImplementedError as exc:
-            materialization_status = "skipped_ineligible"
-            materialization_error = str(exc)
-        except Exception as exc:  # pragma: no cover — guard for future impls
+            run = materialize_claim(claim, api_client)
+        except Exception as exc:  # pragma: no cover — guard
             materialization_status = "error"
             materialization_error = f"{type(exc).__name__}: {exc}"
+        else:
+            # Status maps 1:1 — materialize uses the same vocabulary.
+            materialization_status = run.status  # type: ignore[assignment]
+            if run.error:
+                materialization_error = run.error
+            if run.materialized:
+                materialized = dict(run.materialized)
+            if run.drift:
+                drift = [
+                    StatDrift(
+                        stat_id=d.stat_id,
+                        pinned=d.pinned,
+                        computed=d.computed,
+                        abs_diff=d.abs_diff,
+                        rel_diff=d.rel_diff,
+                        within_tolerance=d.within_tolerance,
+                    )
+                    for d in run.drift
+                ]
 
     if root is True:
         verdict: Verdict = "LICENSED"
@@ -312,26 +325,9 @@ def evaluate(claim: FormalClaim, *, api_client: object | None = None) -> Evaluat
     )
 
 
-def _materialize(claim: FormalClaim, api_client: object) -> dict:
-    """Placeholder for v0.2 materialization mode.
-
-    Planned dispatch by ``EstimatorSpec.impl`` prefix:
-      * ``scipy.stats.*``                  → ``scipy.stats`` adapter
-      * ``python::polymer_genomics.stats.*`` → in-process adapter
-      * ``R::ranger::ranger``              → R subprocess adapter
-      * ``python::sklearn.*``              → sklearn adapter
-
-    Eligibility gate (all must hold for the fixture to materialize):
-      * Every premise has ``provenance_state == "fly_postgres"`` *or* the
-        caller has staged a reader for ``local_rds`` premises.
-      * Every estimator op's ``impl`` is recognized by the dispatch table.
-    """
-    # pragma: no cover — v0.2
-    _ = (claim, api_client)
-    raise NotImplementedError(
-        "evaluate.py v0.1 is inference-only; materialization is planned for v0.2. "
-        "See the module docstring for the dispatch design."
-    )
+# Legacy stub removed: materialization is now implemented in
+# ``polymer_genomics.formal_claims.materialize`` and invoked by ``evaluate``
+# when ``api_client`` is provided.
 
 
 # ---------------------------------------------------------------------------

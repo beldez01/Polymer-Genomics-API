@@ -178,7 +178,7 @@ export function NewsroomEntry({ claim }: NewsroomEntryProps) {
       {/* CTA */}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <Link
-          href="/claims"
+          href="/portal/latent3d"
           style={{
             color: COLOR.accent.teal,
             fontSize: TYPE.sm.fontSize,

@@ -5,6 +5,17 @@ const apiBase =
   (process.env.POLYMER_API_KEY ? "https://api.polymerbio.org" : "http://localhost:8000");
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        // Legacy `/claims` → canonical `/portal/latent3d` (Phase 0 portal).
+        // 308 permanent redirect preserves link equity without changing the method.
+        source: '/claims',
+        destination: '/portal/latent3d',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

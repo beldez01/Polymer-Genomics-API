@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Chip } from './Panel';
 import { PremisesPanel } from './PremisesPanel';
 import { OperationsPanel } from './OperationsPanel';
+import { SubjectPanel } from './SubjectPanel';
 import { StatisticsPanel } from './StatisticsPanel';
 import { InferencePanel } from './InferencePanel';
 import { ConclusionPanel } from './ConclusionPanel';
@@ -144,6 +145,8 @@ export function FormalClaimBody({ claim }: { claim: FormalClaim }) {
             {claim.exp_number !== null && claim.exp_number !== undefined ? (
               <Chip>exp {String(claim.exp_number).padStart(2, '0')}</Chip>
             ) : null}
+            <Chip>schema {claim.schema_version}</Chip>
+            {claim.domain ? <Chip>domain {claim.domain}</Chip> : null}
             <Chip>posted {claim.posted_at}</Chip>
             <Chip>api {claim.api_version}</Chip>
             <Chip>data {claim.data_version}</Chip>
@@ -161,6 +164,9 @@ export function FormalClaimBody({ claim }: { claim: FormalClaim }) {
             {claim.id}
           </div>
         </header>
+
+        {/* v1.2 — Subject + Context panel (renders only when present) */}
+        {claim.subject ? <SubjectPanel claim={claim} /> : null}
 
         {/* Panels — Operations DAG first (most compelling). Internal indices
             still reflect the ⟨P,O,S,I,C⟩ 5-tuple (O = 02, P = 01, …). */}

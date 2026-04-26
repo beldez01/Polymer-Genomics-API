@@ -1,15 +1,23 @@
 /**
- * Formal Claim IR (v3-formal, schema v1.1) — TypeScript mirror of schema.py
+ * Formal Claim IR (schema v1.2) — TypeScript mirror of schema.py
  *
- * Spec:    internal/epistemic_os/13_FORMAL_CLAIM_IR.md §3 (v1.1)
+ * Spec:    internal/epistemic_os/MASTER_PLAN.md §5 (v1.2 additions)
+ *          internal/epistemic_os/13_FORMAL_CLAIM_IR.md §3 (v1.1 base)
  * Python:  src/polymer_genomics/formal_claims/schema.py
- * Fixture: internal/epistemic_os/fixtures/exp17_formal_claim.json
+ * Fixture: internal/epistemic_os/fixtures/exp17_formal_claim.json  (v1.1)
  *
  * This file provides static types only (no runtime validation). Pydantic
  * on the Python side is the source of truth; keep that and this in sync.
+ *
+ * v1.2 adds: polymorphic `subject` slot (10 kinds), `domain` discriminator,
+ * per-domain `context` envelope. v1.1 fixtures remain type-valid (the
+ * v1.2 fields are all optional on `FormalClaim`).
  */
 
-export const FORMAL_CLAIM_SCHEMA_VERSION = 'v1.1' as const;
+export const FORMAL_CLAIM_SCHEMA_VERSION = 'v1.2' as const;
+export const FORMAL_CLAIM_SCHEMA_VERSIONS_SUPPORTED = ['v1.1', 'v1.2'] as const;
+export type FormalClaimSchemaVersion =
+  (typeof FORMAL_CLAIM_SCHEMA_VERSIONS_SUPPORTED)[number];
 
 // ---------------------------------------------------------------------------
 // Shared enums
@@ -253,12 +261,183 @@ export interface ExternalAssumption {
 }
 
 // ---------------------------------------------------------------------------
+// v1.2 — Domain discriminator
+// ---------------------------------------------------------------------------
+
+export type Domain =
+  | 'genomic'
+  | 'transcriptomic'
+  | 'single_cell'
+  | 'clinical'
+  | 'multi_modal'
+  | 'other';
+
+// ---------------------------------------------------------------------------
+// v1.2 — polymorphic SubjectRef (10 kinds; discriminated on `kind`)
+// ---------------------------------------------------------------------------
+
+interface SubjectBase {
+  id: string;
+  display: string;
+  note?: string | null;
+}
+
+export interface GenomicRegionSubject extends SubjectBase {
+  kind: 'genomic_region';
+  assembly: string;
+  chrom: string;
+  start: number;
+  end: number;
+  strand: '+' | '-' | '.';
+}
+
+export interface VariantVRSSubject extends SubjectBase {
+  kind: 'variant_vrs';
+  vrs_version: string;
+  assembly?: string | null;
+  hgvs?: string | null;
+  canonical_allele?: Record<string, unknown> | null;
+}
+
+export interface S4ObjectRefSubject extends SubjectBase {
+  kind: 's4_object';
+  bioc_class: string;
+  bioc_version: string;
+  blob_uri: string;
+  blob_hash: string;
+  projection?: string | null;
+  dims?: number[] | null;
+}
+
+export interface PhenopacketRetrieval {
+  mode: 'reference' | 'inline';
+  uri?: string | null;
+  hash?: string | null;
+}
+
+export interface PhenopacketRefSubject extends SubjectBase {
+  kind: 'phenopacket';
+  phenopacket_version: string;
+  retrieval: PhenopacketRetrieval;
+  inline?: Record<string, unknown> | null;
+}
+
+export type OntologyVocabulary =
+  | 'HPO'
+  | 'MONDO'
+  | 'GO'
+  | 'EFO'
+  | 'UBERON'
+  | 'CL'
+  | 'CHEBI'
+  | 'PR'
+  | 'DOID'
+  | 'NCIT'
+  | 'SO'
+  | 'ECO'
+  | 'other';
+
+export interface OntologyTermSubject extends SubjectBase {
+  kind: 'ontology_term';
+  ontology: OntologyVocabulary;
+  ontology_release: string; // ISO date
+  uri: string;
+  propagation:
+    | 'self_only'
+    | 'self_or_descendant'
+    | 'self_or_ancestor'
+    | 'exact_match';
+}
+
+export interface GeneOrProteinIdentifiers {
+  hgnc?: string | null;
+  ensembl_gene?: string | null;
+  ensembl_transcript?: string | null;
+  ensembl_protein?: string | null;
+  ncbi_gene?: number | null;
+  uniprot?: string | null;
+  refseq?: string | null;
+  symbol?: string | null;
+}
+
+export interface GeneOrProteinSubject extends SubjectBase {
+  kind: 'gene_or_protein';
+  identifiers: GeneOrProteinIdentifiers;
+  entity_type: 'gene' | 'protein' | 'transcript' | 'isoform';
+  assembly_context?: string | null;
+}
+
+export interface PathwayMembers {
+  retrieval: 'reference' | 'inline';
+  uri?: string | null;
+  count_hint?: number | null;
+  inline?: string[] | null;
+}
+
+export interface PathwayRefSubject extends SubjectBase {
+  kind: 'pathway';
+  source: 'Reactome' | 'KEGG' | 'WikiPathways' | 'MSigDB' | 'other';
+  source_version: string;
+  members?: PathwayMembers | null;
+}
+
+export interface CohortSourceDataset {
+  name: string;
+  version?: string | null;
+  tissue?: string | null;
+  extra?: Record<string, unknown> | null;
+}
+
+export interface CohortDefinition {
+  source_dataset?: CohortSourceDataset | null;
+  inclusion: SetExpression[];
+  exclusion: SetExpression[];
+  cardinality?: number | null;
+  random_seed?: number | null;
+}
+
+export interface CohortSubject extends SubjectBase {
+  kind: 'cohort';
+  definition: CohortDefinition;
+  members_hash: string;
+}
+
+export interface LiteralSubject extends SubjectBase {
+  kind: 'literal';
+  prose: string;
+  structured?: Record<string, unknown> | null;
+}
+
+export interface CompositeSubject extends SubjectBase {
+  kind: 'composite';
+  parts: SubjectRef[];
+  relation:
+    | 'co_occurrence'
+    | 'conditional'
+    | 'causal_hypothesis'
+    | 'temporal_sequence'
+    | 'correlational';
+}
+
+export type SubjectRef =
+  | GenomicRegionSubject
+  | VariantVRSSubject
+  | S4ObjectRefSubject
+  | PhenopacketRefSubject
+  | OntologyTermSubject
+  | GeneOrProteinSubject
+  | PathwayRefSubject
+  | CohortSubject
+  | LiteralSubject
+  | CompositeSubject;
+
+// ---------------------------------------------------------------------------
 // Root
 // ---------------------------------------------------------------------------
 
 export interface FormalClaim {
   $schema?: string | null;
-  schema_version: 'v1.1';
+  schema_version: FormalClaimSchemaVersion;
 
   id: string;
   exp_number?: number | null;
@@ -267,6 +446,11 @@ export interface FormalClaim {
   api_version: string;
   data_version: string;
   version: string;
+
+  /** v1.2 additions — required when schema_version === 'v1.2'. */
+  domain?: Domain | null;
+  subject?: SubjectRef | null;
+  context?: Record<string, unknown> | null;
 
   premises: Premise[];
   operations: Operation[];
