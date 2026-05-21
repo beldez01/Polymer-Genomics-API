@@ -1,26 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
-import { searchGenes } from '@/lib/api';
-import type { SearchResult } from '@/lib/api';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, COMPONENT } from '@/config/theme';
+import { useRouter } from 'next/navigation';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE } from '@/config/theme';
+import { searchAtlasGenes, getMatchedAlias, type AtlasGene } from '@/config/atlasGenes';
 
-interface GeneSearchProps {
-  build: string;
-  onSelectGene: (symbol: string) => void;
-  selectedGene: string | null;
-  onClear: () => void;
-}
+// All gene selections route to the working mock viewer (TP53) for now.
+const VIEWER_HREF = '/view/hg38/chr17:7668421-7687490';
 
-export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneSearchProps) {
+export function GeneSearch() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<AtlasGene[]>([]);
   const [open, setOpen] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [searchDone, setSearchDone] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -35,88 +28,57 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Scroll highlighted item into view
   const scrollToHighlighted = useCallback((index: number) => {
     if (!listRef.current) return;
     const items = listRef.current.querySelectorAll('[role="option"]');
-    if (items[index]) {
-      items[index].scrollIntoView({ block: 'nearest' });
-    }
+    if (items[index]) items[index].scrollIntoView({ block: 'nearest' });
   }, []);
 
   function handleChange(value: string) {
     setQuery(value);
     setHighlightedIndex(-1);
-    setSearchError(null);
-    clearTimeout(debounceRef.current);
-    if (value.trim().length < 2) {
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
       setResults([]);
       setOpen(false);
-      setSearching(false);
-      setSearchDone(false);
       return;
     }
-    setSearching(true);
-    setSearchDone(false);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const res = await searchGenes(value.trim(), build);
-        setResults(res);
-        setOpen(true);
-        setSearchDone(true);
-      } catch {
-        setResults([]);
-        setSearchDone(true);
-        setSearchError('Search unavailable');
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
+    const next = searchAtlasGenes(trimmed);
+    setResults(next);
+    setOpen(true);
   }
 
-  function handleSubmit() {
-    const trimmed = query.trim().toUpperCase();
-    if (!trimmed) return;
-    if (highlightedIndex >= 0 && highlightedIndex < results.length) {
-      onSelectGene(results[highlightedIndex].gene_symbol);
-    } else if (results.length > 0) {
-      onSelectGene(results[0].gene_symbol);
-    } else {
-      onSelectGene(trimmed);
-    }
+  function selectGene(_gene: AtlasGene) {
+    // In Tier 1, all gene selections route to the TP53 viewer mock.
+    // Tier 2 port-back wires this to a per-gene viewer URL.
     setQuery('');
     setResults([]);
     setOpen(false);
-    setSearchDone(false);
     setHighlightedIndex(-1);
-  }
-
-  function selectResult(symbol: string) {
-    onSelectGene(symbol);
-    setQuery('');
-    setResults([]);
-    setOpen(false);
-    setSearchDone(false);
-    setHighlightedIndex(-1);
+    router.push(VIEWER_HREF);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleSubmit();
+      if (highlightedIndex >= 0 && highlightedIndex < results.length) {
+        selectGene(results[highlightedIndex]);
+      } else if (results.length > 0) {
+        selectGene(results[0]);
+      }
     } else if (e.key === 'Escape') {
       setOpen(false);
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (!open && results.length > 0) setOpen(true);
-      setHighlightedIndex(prev => {
+      setHighlightedIndex((prev) => {
         const next = prev < results.length - 1 ? prev + 1 : 0;
         scrollToHighlighted(next);
         return next;
       });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setHighlightedIndex(prev => {
+      setHighlightedIndex((prev) => {
         const next = prev > 0 ? prev - 1 : results.length - 1;
         scrollToHighlighted(next);
         return next;
@@ -124,133 +86,75 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
     }
   }
 
-  // When a gene is selected, show chip instead of input
-  if (selectedGene) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        padding: `${SPACE[4]}px ${SPACE[4]}px ${SPACE[2]}px`,
-      }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: SPACE[2],
-          backgroundColor: 'rgba(78, 205, 196, 0.08)',
-          border: `1px solid ${COLOR.accent.teal}`,
-          padding: `${SPACE[1] + 2}px ${SPACE[4]}px`,
-        }}>
-          <span style={{
-            color: COLOR.accent.teal,
-            fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
-            fontWeight: WEIGHT.bold,
-            letterSpacing: '0.04em',
-          }}>
-            {selectedGene}
-          </span>
-          <button
-            onClick={onClear}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: COLOR.text.muted,
-              fontSize: TYPE.base.fontSize,
-              fontFamily: FONT_FAMILY,
-              cursor: 'pointer',
-              padding: `0 ${SPACE[1]}px`,
-              lineHeight: 1,
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.text.primary; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.muted; }}
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const trimmedQuery = query.trim().toUpperCase();
-  const showDropdown = open && (results.length > 0 || (searchDone && results.length === 0 && query.trim().length >= 2));
+  const showDropdown = open && (results.length > 0 || trimmedQuery.length >= 2);
   const activeDescendant = highlightedIndex >= 0 ? `gene-option-${highlightedIndex}` : undefined;
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      padding: `${SPACE[4]}px ${SPACE[4]}px ${SPACE[2]}px`,
-    }}>
-      <div ref={containerRef} style={{ position: 'relative', width: 400, maxWidth: '100%' }}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search gene... TP53, BRCA1, VAC14"
-          role="combobox"
-          aria-expanded={showDropdown}
-          aria-haspopup="listbox"
-          aria-activedescendant={activeDescendant}
-          aria-autocomplete="list"
-          style={{
-            ...COMPONENT.input.default,
-            width: '100%',
-            padding: `${SPACE[2] + 2}px ${SPACE[4]}px`,
-            fontSize: TYPE.base.fontSize,
-            boxSizing: 'border-box' as const,
-          }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = COLOR.accent.teal; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = COLOR.border.strong; }}
-        />
-
-        {/* Error indicator */}
-        {searchError && !searching && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: 2,
-            backgroundColor: COLOR.bg.track,
-            border: `1px solid ${COLOR.border.subtle}`,
-            zIndex: 50,
-            padding: `${SPACE[3]}px ${SPACE[4]}px`,
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div ref={containerRef} style={{ position: 'relative', width: 480, maxWidth: '100%' }}>
+        {/* Search label */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          backgroundColor: COLOR.bg.white,
+          border: `1px solid ${COLOR.border.strong}`,
+          borderRadius: 2,
+          paddingLeft: SPACE[3],
+          paddingRight: SPACE[2],
+          height: 40,
+        }}>
+          <span style={{
+            color: COLOR.text.faint,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            marginRight: SPACE[3],
           }}>
-            <span style={{
-              color: COLOR.accent.rose,
-              fontSize: TYPE.sm.fontSize,
+            Gene
+          </span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="TP53, BRCA1, TET2, HLA-A…"
+            role="combobox"
+            aria-expanded={showDropdown}
+            aria-haspopup="listbox"
+            aria-activedescendant={activeDescendant}
+            aria-autocomplete="list"
+            spellCheck={false}
+            style={{
+              flex: 1,
+              backgroundColor: 'transparent',
+              color: COLOR.text.primary,
+              border: 'none',
+              outline: 'none',
               fontFamily: FONT_FAMILY,
-            }}>
-              {searchError}
-            </span>
-          </div>
-        )}
-
-        {/* Searching indicator */}
-        {searching && query.trim().length >= 2 && !showDropdown && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            marginTop: 2,
-            backgroundColor: COLOR.bg.track,
-            border: `1px solid ${COLOR.border.subtle}`,
-            zIndex: 50,
-            padding: `${SPACE[3]}px ${SPACE[4]}px`,
-          }}>
+              fontSize: TYPE.base.fontSize,
+              letterSpacing: '0.01em',
+              padding: 0,
+            }}
+          />
+          {query.length === 0 && (
             <span style={{
-              color: COLOR.text.muted,
-              fontSize: TYPE.sm.fontSize,
-              fontFamily: FONT_FAMILY,
+              color: COLOR.text.faint,
+              fontFamily: FONT_FAMILY_MONO,
+              fontSize: TYPE.xs.fontSize,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginLeft: SPACE[2],
+              whiteSpace: 'nowrap',
             }}>
-              Searching&hellip;
+              ↵ to open
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
+        {/* Dropdown */}
         {showDropdown && (
           <ul
             ref={listRef}
@@ -260,96 +164,105 @@ export function GeneSearch({ build, onSelectGene, selectedGene, onClear }: GeneS
               top: '100%',
               left: 0,
               right: 0,
-              marginTop: 2,
-              backgroundColor: COLOR.bg.track,
-              border: `1px solid ${COLOR.border.subtle}`,
+              backgroundColor: COLOR.bg.white,
+              border: `1px solid ${COLOR.border.strong}`,
+              borderRadius: 2,
               zIndex: 50,
-              maxHeight: 240,
+              maxHeight: 280,
               overflowY: 'auto',
               listStyle: 'none',
               padding: 0,
-              margin: 0,
+              margin: '4px 0 0 0',
+              boxShadow: '0 4px 12px -6px rgba(15, 23, 42, 0.12)',
             }}
           >
             {results.length > 0 ? (
-              results.map((r, i) => {
+              results.map((g, i) => {
                 const isHighlighted = i === highlightedIndex;
-                const matchLen = trimmedQuery.length;
-                const symbolUpper = r.gene_symbol.toUpperCase();
-                const matchEnd = symbolUpper.startsWith(trimmedQuery) ? matchLen : 0;
-
+                const symUpper = g.symbol.toUpperCase();
+                const matchEnd = symUpper.startsWith(trimmedQuery) ? trimmedQuery.length : 0;
+                const aliasHit = matchEnd === 0 ? getMatchedAlias(g, query) : null;
                 return (
                   <li
-                    key={r.gene_symbol}
+                    key={g.symbol}
                     id={`gene-option-${i}`}
                     role="option"
                     aria-selected={isHighlighted}
-                    onClick={() => selectResult(r.gene_symbol)}
+                    onClick={() => selectGene(g)}
+                    onMouseEnter={() => setHighlightedIndex(i)}
                     style={{
-                      padding: `${SPACE[2]}px ${SPACE[4]}px`,
-                      fontSize: TYPE.sm.fontSize,
-                      color: COLOR.text.secondary,
-                      cursor: 'pointer',
-                      fontFamily: FONT_FAMILY,
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto',
+                      columnGap: SPACE[3],
+                      alignItems: 'baseline',
+                      padding: `${SPACE[2] + 2}px ${SPACE[3] + 4}px`,
+                      backgroundColor: isHighlighted ? COLOR.bg.deep : 'transparent',
                       borderBottom: `1px solid ${COLOR.border.subtle}`,
-                      backgroundColor: isHighlighted ? COLOR.bg.surface : 'transparent',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      setHighlightedIndex(i);
-                      if (!isHighlighted) (e.currentTarget as HTMLElement).style.backgroundColor = COLOR.bg.surface;
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isHighlighted) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                      cursor: 'pointer',
                     }}
                   >
-                    <span>
+                    <span style={{
+                      color: COLOR.text.primary,
+                      fontFamily: FONT_FAMILY,
+                      fontSize: TYPE.base.fontSize,
+                      fontWeight: WEIGHT.medium,
+                    }}>
                       {matchEnd > 0 ? (
                         <>
-                          <span style={{ color: COLOR.accent.teal, fontWeight: WEIGHT.bold }}>
-                            {r.gene_symbol.slice(0, matchEnd)}
+                          <span style={{ color: COLOR.primary.base, fontWeight: WEIGHT.bold }}>
+                            {g.symbol.slice(0, matchEnd)}
                           </span>
-                          <span>{r.gene_symbol.slice(matchEnd)}</span>
+                          <span>{g.symbol.slice(matchEnd)}</span>
                         </>
                       ) : (
-                        r.gene_symbol
+                        g.symbol
                       )}
-                      {r.match_type === 'alias' && r.matched_alias && (
+                      {aliasHit && (
                         <span style={{
                           color: COLOR.text.muted,
+                          fontFamily: FONT_FAMILY_MONO,
+                          fontSize: TYPE.xs.fontSize,
+                          marginLeft: SPACE[2],
+                          letterSpacing: '0.04em',
+                        }}>
+                          ({aliasHit})
+                        </span>
+                      )}
+                      {g.blurb && (
+                        <span style={{
+                          display: 'block',
+                          color: COLOR.text.tertiary,
                           fontSize: TYPE.xs.fontSize,
                           fontFamily: FONT_FAMILY,
-                          marginLeft: SPACE[2],
+                          letterSpacing: '0.01em',
+                          marginTop: 2,
+                          fontWeight: WEIGHT.normal,
                         }}>
-                          ({r.matched_alias})
+                          {g.blurb}
                         </span>
                       )}
                     </span>
-                    {r.chromosome && (
-                      <span style={{
-                        color: COLOR.text.faint,
-                        fontSize: TYPE.xs.fontSize,
-                        fontFamily: FONT_FAMILY,
-                        flexShrink: 0,
-                        marginLeft: SPACE[3],
-                      }}>
-                        {r.chromosome}
-                      </span>
-                    )}
+                    <span style={{
+                      color: COLOR.text.tertiary,
+                      fontFamily: FONT_FAMILY_MONO,
+                      fontSize: TYPE.xs.fontSize,
+                      letterSpacing: '0.04em',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {g.chromosome}
+                    </span>
                   </li>
                 );
               })
             ) : (
               <li style={{
                 padding: `${SPACE[3]}px ${SPACE[4]}px`,
-                fontSize: TYPE.sm.fontSize,
                 color: COLOR.text.muted,
                 fontFamily: FONT_FAMILY,
+                fontSize: TYPE.sm.fontSize,
                 textAlign: 'center',
               }}>
-                No genes found
+                No matches in this list.
               </li>
             )}
           </ul>
