@@ -16,8 +16,8 @@ const ISOCHORE_COLORS: Record<string, string> = {
 };
 
 function isochoreColor(cls: string | null | undefined): string {
-  if (!cls) return '#222222';
-  return ISOCHORE_COLORS[cls.toUpperCase()] ?? '#222222';
+  if (!cls) return '#D4D4D8';
+  return ISOCHORE_COLORS[cls.toUpperCase()] ?? '#D4D4D8';
 }
 
 export interface IsochoreTrackProps {

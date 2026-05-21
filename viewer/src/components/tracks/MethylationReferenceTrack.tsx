@@ -20,7 +20,7 @@ const N_CELLS = CELL_TYPES.length;
 
 // Beta=0 → blue (hypomethylated), Beta=0.5 → near-white, Beta=1 → red (hypermethylated)
 function betaToColor(beta: number | null | undefined): string {
-  if (beta == null || isNaN(beta)) return '#333333';
+  if (beta == null || isNaN(beta)) return '#A1A1AA';
   const t = Math.max(0, Math.min(1, beta));
   // Blue (#1e40af) → white (#e8e8e8) → Red (#b91c1c)
   if (t <= 0.5) {
@@ -103,7 +103,7 @@ export function MethylationReferenceTrack({
       const y = ci * rowH;
 
       // Row background
-      ctx.fillStyle = '#0d0d0d';
+      ctx.fillStyle = '#F4F4F5';
       ctx.fillRect(0, y, canvasWidth, rowH);
 
       // Cell type label (only when labels aren't handled by the label column)
@@ -149,7 +149,7 @@ export function MethylationReferenceTrack({
     }
 
     // Row dividers
-    ctx.strokeStyle = '#1a1a1a';
+    ctx.strokeStyle = '#D4D4D8';
     ctx.lineWidth = 0.5;
     for (let ci = 1; ci < nVisible; ci++) {
       const y = ci * rowH;
