@@ -1,303 +1,183 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { COLOR, TYPE, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
-import type { DMPRow, ThresholdState } from '@/lib/dmp/types';
-import { renderManhattan, manhattanToSVG } from '@/lib/dmp/manhattan-renderer';
-import type { QuadTree } from '@/lib/dmp/quadtree';
+import { COLOR } from '@/config/theme';
+import { PROBES, CHR_AXIS, type Probe } from '@/config/methylationMockData';
 
 interface ManhattanPlotProps {
-  rows: DMPRow[];
-  thresholds: ThresholdState;
-  selectedIndex: number | null;
-  onSelectIndex: (index: number | null) => void;
-  onHoverIndex: (index: number | null) => void;
-  hoveredIndex: number | null;
+  selectedProbeId?: string;
+  onProbeSelect?: (id: string) => void;
 }
 
-export function ManhattanPlot({
-  rows,
-  thresholds,
-  selectedIndex,
-  onSelectIndex,
-  onHoverIndex,
-  hoveredIndex,
-}: ManhattanPlotProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const quadtreeRef = useRef<QuadTree | null>(null);
-  const sizeRef = useRef({ w: 0, h: 0 });
-  const [tooltipInfo, setTooltipInfo] = useState<{ x: number; y: number; row: DMPRow } | null>(null);
-  const [svgHover, setSvgHover] = useState(false);
-  const [pngHover, setPngHover] = useState(false);
+const Y_MAX = 14;
+const GW_SIG = 7.3;
 
-  const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+export function ManhattanPlot({ selectedProbeId, onProbeSelect }: ManhattanPlotProps) {
+  const VB_W = 1200;
+  const VB_H = 320;
+  const PAD_L = 70;
+  const PAD_R = 24;
+  const PAD_TOP = 16;
+  const PAD_BOT = 44;
+  const PLOT_W = VB_W - PAD_L - PAD_R;
+  const PLOT_H = VB_H - PAD_TOP - PAD_BOT;
 
-  // Filter to rows with genomic coordinates
-  const genomicRows = rows.filter(r => r.chr && r.pos != null);
-  const hasCoords = genomicRows.length > 0;
+  // Each probe's x position: chromosome's normalized start + (position/length) * normalized width
+  const xAt = (chr: string, pos: number): number | null => {
+    const ax = CHR_AXIS.find((c) => c.name === chr);
+    if (!ax) return null;
+    const frac = ax.start + (pos / ax.length) * (ax.end - ax.start);
+    return PAD_L + frac * PLOT_W;
+  };
+  const yAt = (lp: number) => PAD_TOP + (1 - lp / Y_MAX) * PLOT_H;
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container || !hasCoords) return;
-
-    const rect = container.getBoundingClientRect();
-    const w = Math.floor(rect.width);
-    const h = Math.floor(rect.height);
-    sizeRef.current = { w, h };
-
-    canvas.width = w * DPR;
-    canvas.height = h * DPR;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const result = renderManhattan(ctx, w, h, rows, thresholds, selectedIndex, hoveredIndex);
-    quadtreeRef.current = result.quadtree;
-  }, [rows, thresholds, selectedIndex, hoveredIndex, DPR, hasCoords]);
-
-  useEffect(() => {
-    draw();
-  }, [draw]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new ResizeObserver(() => {
-      draw();
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [draw]);
-
-  const findPointAt = useCallback((clientX: number, clientY: number): number | null => {
-    const canvas = canvasRef.current;
-    const qt = quadtreeRef.current;
-    if (!canvas || !qt) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    const nearby = qt.queryRadius(x, y, 8);
-    if (nearby.length === 0) return null;
-
-    // Find closest
-    let minDist = Infinity;
-    let closest = nearby[0];
-    for (const p of nearby) {
-      const dx = p.x - x;
-      const dy = p.y - y;
-      const dist = dx * dx + dy * dy;
-      if (dist < minDist) {
-        minDist = dist;
-        closest = p;
-      }
+  const colorFor = (p: Probe, chrIdx: number): string => {
+    if (p.id === selectedProbeId) return COLOR.primary.active;
+    if (p.neglogp >= GW_SIG) {
+      return p.delta_beta > 0 ? COLOR.primary.base : COLOR.accent.rose;
     }
-    return closest.index;
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const idx = findPointAt(e.clientX, e.clientY);
-    onHoverIndex(idx);
-
-    if (idx !== null) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        setTooltipInfo({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-          row: rows[idx],
-        });
-      }
-    } else {
-      setTooltipInfo(null);
-    }
-  }, [findPointAt, onHoverIndex, rows]);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    const idx = findPointAt(e.clientX, e.clientY);
-    if (idx !== null) {
-      const row = rows[idx];
-      if (row.chr && row.pos != null) {
-        const start = Math.max(0, row.pos - 5000);
-        const end = row.pos + 5000;
-        window.open(`/view/hg38/${row.chr}:${start}-${end}`, '_blank');
-      }
-    }
-    onSelectIndex(idx);
-  }, [findPointAt, onSelectIndex, rows]);
-
-  const handleMouseLeave = useCallback(() => {
-    onHoverIndex(null);
-    setTooltipInfo(null);
-  }, [onHoverIndex]);
-
-  const handleExportSVG = useCallback(() => {
-    const { w, h } = sizeRef.current;
-    const svg = manhattanToSVG(w || 800, h || 500, rows, thresholds);
-    const blob = new Blob([svg], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'manhattan_plot.svg';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [rows, thresholds]);
-
-  const handleExportPNG = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'manhattan_plot.png';
-      a.click();
-      URL.revokeObjectURL(url);
-    }, 'image/png');
-  }, []);
+    return chrIdx % 2 === 0 ? COLOR.text.muted : COLOR.text.faint;
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Export buttons */}
-      <div style={{
-        display: 'flex',
-        gap: SPACE[2],
-        justifyContent: 'flex-end',
-        padding: `${SPACE[1]}px ${SPACE[2]}px`,
-      }}>
-        <button
-          onClick={handleExportSVG}
-          onMouseEnter={() => setSvgHover(true)}
-          onMouseLeave={() => setSvgHover(false)}
-          style={{
-            ...COMPONENT.button.small,
-            ...(svgHover ? { borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : {}),
-          }}
-        >
-          SVG
-        </button>
-        <button
-          onClick={handleExportPNG}
-          onMouseEnter={() => setPngHover(true)}
-          onMouseLeave={() => setPngHover(false)}
-          style={{
-            ...COMPONENT.button.small,
-            ...(pngHover ? { borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : {}),
-          }}
-        >
-          PNG
-        </button>
-      </div>
-
-      {/* Canvas container */}
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          position: 'relative',
-          minHeight: 300,
-          overflow: 'hidden',
-          backgroundColor: COLOR.canvas.background,
-          border: `1px solid ${COLOR.border.subtle}`,
-        }}
-      >
-        {hasCoords && (
-          <canvas
-            ref={canvasRef}
-            onMouseMove={handleMouseMove}
-            onClick={handleClick}
-            onMouseLeave={handleMouseLeave}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              cursor: hoveredIndex !== null ? 'pointer' : 'crosshair',
-            }}
+    <div style={{
+      backgroundColor: COLOR.bg.elevated,
+      border: `1px solid ${COLOR.border.default}`,
+      borderRadius: 2,
+      padding: 8,
+    }}>
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" style={{ display: 'block' }}>
+        {/* Alternating chromosome bands */}
+        {CHR_AXIS.map((c, i) => (
+          <rect
+            key={c.name}
+            x={PAD_L + c.start * PLOT_W}
+            y={PAD_TOP}
+            width={(c.end - c.start) * PLOT_W}
+            height={PLOT_H}
+            fill={i % 2 === 0 ? 'transparent' : COLOR.bg.deep}
+            fillOpacity={0.4}
           />
-        )}
+        ))}
 
-        {/* Tooltip */}
-        {tooltipInfo && (
-          <div style={{
-            position: 'absolute',
-            left: tooltipInfo.x + 12,
-            top: tooltipInfo.y - 8,
-            backgroundColor: COLOR.bg.surface,
-            border: `1px solid ${COLOR.border.strong}`,
-            padding: `${SPACE[2]}px ${SPACE[3]}px`,
-            pointerEvents: 'none',
-            zIndex: 10,
-            maxWidth: 320,
-          }}>
-            <div style={{
-              color: COLOR.text.primary,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-              fontWeight: 500,
-              marginBottom: 2,
-            }}>
-              {tooltipInfo.row.probe_id}
-            </div>
-            {tooltipInfo.row.gene_symbol && (
-              <div style={{
-                color: COLOR.accent.teal,
-                fontSize: TYPE.xs.fontSize,
-                fontFamily: FONT_FAMILY,
-                marginBottom: 2,
-              }}>
-                {tooltipInfo.row.gene_symbol}
-              </div>
-            )}
-            <div style={{
-              color: COLOR.text.tertiary,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-            }}>
-              {'\u0394\u03B2'} = {tooltipInfo.row.delta_beta.toFixed(4)}
-              {' | '}
-              p = {tooltipInfo.row.p_value.toExponential(2)}
-              {' | '}
-              adj.p = {tooltipInfo.row.adj_p_value.toExponential(2)}
-            </div>
-            {tooltipInfo.row.chr && tooltipInfo.row.pos != null && (
-              <div style={{
-                color: COLOR.text.muted,
-                fontSize: TYPE.xs.fontSize,
-                fontFamily: FONT_FAMILY,
-                marginTop: 2,
-              }}>
-                {tooltipInfo.row.chr}:{tooltipInfo.row.pos.toLocaleString()}
-              </div>
-            )}
-          </div>
-        )}
+        {/* gw-sig threshold */}
+        <line
+          x1={PAD_L} x2={PAD_L + PLOT_W}
+          y1={yAt(GW_SIG)} y2={yAt(GW_SIG)}
+          stroke={COLOR.accent.rose} strokeWidth={1} strokeDasharray="4 4"
+        />
+        <text
+          x={PAD_L + 4}
+          y={yAt(GW_SIG) - 4}
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={9}
+          fill={COLOR.accent.rose}
+          letterSpacing="0.04em"
+        >
+          gw-sig
+        </text>
 
-        {/* Empty state — no genomic coordinates */}
-        {!hasCoords && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: COLOR.canvas.emptyText,
-            fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
-          }}>
-            No genomic coordinates available
-          </div>
-        )}
-      </div>
+        {/* Dots */}
+        {PROBES.map((p) => {
+          const x = xAt(p.chr, p.position);
+          if (x === null) return null;
+          const y = yAt(Math.min(p.neglogp, Y_MAX));
+          const chrIdx = CHR_AXIS.findIndex((c) => c.name === p.chr);
+          const isSig = p.neglogp >= GW_SIG;
+          const isSel = p.id === selectedProbeId;
+          return (
+            <circle
+              key={p.id}
+              cx={x}
+              cy={y}
+              r={isSel ? 4.5 : isSig ? 2.4 : 1.2}
+              fill={colorFor(p, chrIdx)}
+              fillOpacity={isSel ? 1 : isSig ? 0.85 : 0.45}
+              stroke={isSel ? COLOR.bg.white : 'none'}
+              strokeWidth={isSel ? 1.5 : 0}
+              style={{ cursor: 'pointer' }}
+              onClick={() => onProbeSelect?.(p.id)}
+            />
+          );
+        })}
+
+        {/* X axis */}
+        <line
+          x1={PAD_L} x2={PAD_L + PLOT_W}
+          y1={PAD_TOP + PLOT_H} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.border.strong} strokeWidth={1}
+        />
+
+        {/* Chromosome tick labels */}
+        {CHR_AXIS.map((c) => {
+          const mid = PAD_L + ((c.start + c.end) / 2) * PLOT_W;
+          const label = c.name.replace('chr', '');
+          // Skip every other label for narrow chromosomes
+          return (
+            <text
+              key={`xc-${c.name}`}
+              x={mid}
+              y={PAD_TOP + PLOT_H + 16}
+              textAnchor="middle"
+              fontFamily="var(--font-jetbrains-mono), monospace"
+              fontSize={9}
+              fill={COLOR.text.tertiary}
+              letterSpacing="0.02em"
+            >
+              {label}
+            </text>
+          );
+        })}
+        <text
+          x={PAD_L + PLOT_W / 2}
+          y={PAD_TOP + PLOT_H + 36}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.text.tertiary}
+          letterSpacing="0.16em"
+          style={{ textTransform: 'uppercase' }}
+        >
+          Chromosome
+        </text>
+
+        {/* Y axis */}
+        <line
+          x1={PAD_L} x2={PAD_L}
+          y1={PAD_TOP} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.border.strong} strokeWidth={1}
+        />
+        {[0, 3, 6, 9, 12].map((lp) => (
+          <g key={`yt-${lp}`}>
+            <line
+              x1={PAD_L} x2={PAD_L - 4}
+              y1={yAt(lp)} y2={yAt(lp)}
+              stroke={COLOR.border.strong} strokeWidth={1}
+            />
+            <text
+              x={PAD_L - 8}
+              y={yAt(lp) + 3}
+              textAnchor="end"
+              fontFamily="var(--font-jetbrains-mono), monospace"
+              fontSize={10}
+              fill={COLOR.text.tertiary}
+            >
+              {lp}
+            </text>
+          </g>
+        ))}
+        <text
+          x={20}
+          y={PAD_TOP + PLOT_H / 2}
+          transform={`rotate(-90 20 ${PAD_TOP + PLOT_H / 2})`}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.text.tertiary}
+          letterSpacing="0.16em"
+        >
+          −log₁₀(p)
+        </text>
+      </svg>
     </div>
   );
 }

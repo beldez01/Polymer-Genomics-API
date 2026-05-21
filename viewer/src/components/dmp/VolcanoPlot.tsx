@@ -1,264 +1,243 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { COLOR, TYPE, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
-import type { DMPRow, ThresholdState } from '@/lib/dmp/types';
-import { renderVolcano } from '@/lib/dmp/volcano-renderer';
-import type { QuadTree } from '@/lib/dmp/quadtree';
-import { exportVolcanoSVG, exportVolcanoPNG } from '@/lib/dmp/export';
+import { useMemo } from 'react';
+import { COLOR, FONT_FAMILY_MONO } from '@/config/theme';
+import { PROBES, TOP_HITS, type Probe } from '@/config/methylationMockData';
 
 interface VolcanoPlotProps {
-  rows: DMPRow[];
-  thresholds: ThresholdState;
-  selectedIndex: number | null;
-  onSelectIndex: (index: number | null) => void;
-  onHoverIndex: (index: number | null) => void;
-  hoveredIndex: number | null;
+  selectedProbeId?: string;
+  onProbeSelect?: (id: string) => void;
 }
 
-export function VolcanoPlot({
-  rows,
-  thresholds,
-  selectedIndex,
-  onSelectIndex,
-  onHoverIndex,
-  hoveredIndex,
-}: VolcanoPlotProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const quadtreeRef = useRef<QuadTree | null>(null);
-  const sizeRef = useRef({ w: 0, h: 0 });
-  const [tooltipInfo, setTooltipInfo] = useState<{ x: number; y: number; row: DMPRow } | null>(null);
-  const [svgHover, setSvgHover] = useState(false);
-  const [pngHover, setPngHover] = useState(false);
+const X_MIN = -0.4;
+const X_MAX = 0.4;
+const Y_MIN = 0;
+const Y_MAX = 14;
+const GW_SIG = 7.3;
+const DB_THRESHOLD = 0.05;
 
-  const DPR = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+export function VolcanoPlot({ selectedProbeId, onProbeSelect }: VolcanoPlotProps) {
+  const VB_W = 1200;
+  const VB_H = 460;
+  const PAD_L = 70;
+  const PAD_R = 24;
+  const PAD_TOP = 16;
+  const PAD_BOT = 44;
+  const PLOT_W = VB_W - PAD_L - PAD_R;
+  const PLOT_H = VB_H - PAD_TOP - PAD_BOT;
 
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container || rows.length === 0) return;
+  const xAt = (db: number) => PAD_L + ((db - X_MIN) / (X_MAX - X_MIN)) * PLOT_W;
+  const yAt = (lp: number) => PAD_TOP + (1 - (lp - Y_MIN) / (Y_MAX - Y_MIN)) * PLOT_H;
 
-    const rect = container.getBoundingClientRect();
-    const w = Math.floor(rect.width);
-    const h = Math.floor(rect.height);
-    sizeRef.current = { w, h };
+  // Clip to [X_MIN, X_MAX] / [Y_MIN, Y_MAX]
+  const visible = useMemo(() => PROBES.filter((p) =>
+    p.delta_beta >= X_MIN && p.delta_beta <= X_MAX && p.neglogp <= Y_MAX
+  ), []);
 
-    canvas.width = w * DPR;
-    canvas.height = h * DPR;
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+  const colorFor = (p: Probe): string => {
+    if (p.id === selectedProbeId) return COLOR.primary.active;
+    if (p.klass === 'hyper') return COLOR.primary.base;
+    if (p.klass === 'hypo')  return COLOR.accent.rose;
+    return COLOR.text.faint;
+  };
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const radiusFor = (p: Probe): number => {
+    if (p.id === selectedProbeId) return 5;
+    if (p.klass !== 'ns') return 2.8;
+    return 1.4;
+  };
 
-    const result = renderVolcano(ctx, w, h, rows, thresholds, selectedIndex, hoveredIndex);
-    quadtreeRef.current = result.quadtree;
-  }, [rows, thresholds, selectedIndex, hoveredIndex, DPR]);
+  const opacityFor = (p: Probe): number => {
+    if (p.id === selectedProbeId) return 1;
+    if (p.klass !== 'ns') return 0.85;
+    return 0.45;
+  };
 
-  useEffect(() => {
-    draw();
-  }, [draw]);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new ResizeObserver(() => {
-      draw();
-    });
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [draw]);
-
-  const findPointAt = useCallback((clientX: number, clientY: number): number | null => {
-    const canvas = canvasRef.current;
-    const qt = quadtreeRef.current;
-    if (!canvas || !qt) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-
-    const nearby = qt.queryRadius(x, y, 8);
-    if (nearby.length === 0) return null;
-
-    // Find closest
-    let minDist = Infinity;
-    let closest = nearby[0];
-    for (const p of nearby) {
-      const dx = p.x - x;
-      const dy = p.y - y;
-      const dist = dx * dx + dy * dy;
-      if (dist < minDist) {
-        minDist = dist;
-        closest = p;
-      }
-    }
-    return closest.index;
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const idx = findPointAt(e.clientX, e.clientY);
-    onHoverIndex(idx);
-
-    if (idx !== null) {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const rect = canvas.getBoundingClientRect();
-        setTooltipInfo({
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-          row: rows[idx],
-        });
-      }
-    } else {
-      setTooltipInfo(null);
-    }
-  }, [findPointAt, onHoverIndex, rows]);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    const idx = findPointAt(e.clientX, e.clientY);
-    onSelectIndex(idx);
-  }, [findPointAt, onSelectIndex]);
-
-  const handleMouseLeave = useCallback(() => {
-    onHoverIndex(null);
-    setTooltipInfo(null);
-  }, [onHoverIndex]);
-
-  const handleExportSVG = useCallback(() => {
-    const { w, h } = sizeRef.current;
-    exportVolcanoSVG(w || 800, h || 500, rows, thresholds, 'volcano_plot.svg');
-  }, [rows, thresholds]);
-
-  const handleExportPNG = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (canvas) exportVolcanoPNG(canvas, 'volcano_plot.png');
-  }, []);
+  // Top-5 labels (highest neglogp)
+  const labels = TOP_HITS.slice(0, 6);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Export buttons */}
-      <div style={{
-        display: 'flex',
-        gap: SPACE[2],
-        justifyContent: 'flex-end',
-        padding: `${SPACE[1]}px ${SPACE[2]}px`,
-      }}>
-        <button
-          onClick={handleExportSVG}
-          onMouseEnter={() => setSvgHover(true)}
-          onMouseLeave={() => setSvgHover(false)}
-          style={{
-            ...COMPONENT.button.small,
-            ...(svgHover ? { borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : {}),
-          }}
+    <div style={{
+      backgroundColor: COLOR.bg.elevated,
+      border: `1px solid ${COLOR.border.default}`,
+      borderRadius: 2,
+      padding: 8,
+    }}>
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" style={{ display: 'block' }}>
+        {/* Threshold lines */}
+        <line
+          x1={PAD_L} x2={PAD_L + PLOT_W}
+          y1={yAt(GW_SIG)} y2={yAt(GW_SIG)}
+          stroke={COLOR.accent.rose} strokeWidth={1} strokeDasharray="4 4"
+        />
+        <text
+          x={PAD_L + PLOT_W - 4}
+          y={yAt(GW_SIG) - 4}
+          textAnchor="end"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={9}
+          fill={COLOR.accent.rose}
+          letterSpacing="0.04em"
         >
-          SVG
-        </button>
-        <button
-          onClick={handleExportPNG}
-          onMouseEnter={() => setPngHover(true)}
-          onMouseLeave={() => setPngHover(false)}
-          style={{
-            ...COMPONENT.button.small,
-            ...(pngHover ? { borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : {}),
-          }}
-        >
-          PNG
-        </button>
-      </div>
-
-      {/* Canvas container */}
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          position: 'relative',
-          minHeight: 300,
-          overflow: 'hidden',
-          backgroundColor: COLOR.canvas.background,
-          border: `1px solid ${COLOR.border.subtle}`,
-        }}
-      >
-        <canvas
-          ref={canvasRef}
-          onMouseMove={handleMouseMove}
-          onClick={handleClick}
-          onMouseLeave={handleMouseLeave}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            cursor: hoveredIndex !== null ? 'pointer' : 'crosshair',
-          }}
+          gw-sig · −log₁₀p = 7.3
+        </text>
+        <line
+          x1={xAt(-DB_THRESHOLD)} x2={xAt(-DB_THRESHOLD)}
+          y1={PAD_TOP} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.text.muted} strokeWidth={1} strokeDasharray="2 4"
+        />
+        <line
+          x1={xAt(DB_THRESHOLD)} x2={xAt(DB_THRESHOLD)}
+          y1={PAD_TOP} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.text.muted} strokeWidth={1} strokeDasharray="2 4"
         />
 
-        {/* Tooltip */}
-        {tooltipInfo && (
-          <div style={{
-            position: 'absolute',
-            left: tooltipInfo.x + 12,
-            top: tooltipInfo.y - 8,
-            backgroundColor: COLOR.bg.surface,
-            border: `1px solid ${COLOR.border.strong}`,
-            padding: `${SPACE[2]}px ${SPACE[3]}px`,
-            pointerEvents: 'none',
-            zIndex: 10,
-            maxWidth: 280,
-          }}>
-            <div style={{
-              color: COLOR.text.primary,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-              fontWeight: 500,
-              marginBottom: 2,
-            }}>
-              {tooltipInfo.row.probe_id}
-            </div>
-            {tooltipInfo.row.gene_symbol && (
-              <div style={{
-                color: COLOR.accent.teal,
-                fontSize: TYPE.xs.fontSize,
-                fontFamily: FONT_FAMILY,
-                marginBottom: 2,
-              }}>
-                {tooltipInfo.row.gene_symbol}
-              </div>
-            )}
-            <div style={{
-              color: COLOR.text.tertiary,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-            }}>
-              {'\u0394\u03B2'} = {tooltipInfo.row.delta_beta.toFixed(4)}
-              {' | '}
-              p = {tooltipInfo.row.p_value.toExponential(2)}
-              {' | '}
-              adj.p = {tooltipInfo.row.adj_p_value.toExponential(2)}
-            </div>
-          </div>
-        )}
+        {/* Vertical zero line */}
+        <line
+          x1={xAt(0)} x2={xAt(0)}
+          y1={PAD_TOP} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.border.strong} strokeWidth={1}
+        />
 
-        {/* Empty state */}
-        {rows.length === 0 && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: COLOR.canvas.emptyText,
-            fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
-          }}>
-            No data loaded
-          </div>
-        )}
-      </div>
+        {/* Quadrant labels */}
+        <text
+          x={xAt(-0.25)} y={PAD_TOP + 14}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.accent.rose}
+          letterSpacing="0.18em"
+        >
+          HYPO
+        </text>
+        <text
+          x={xAt(0.25)} y={PAD_TOP + 14}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.primary.base}
+          letterSpacing="0.18em"
+        >
+          HYPER
+        </text>
+
+        {/* Dots */}
+        {visible.map((p) => (
+          <circle
+            key={p.id}
+            cx={xAt(p.delta_beta)}
+            cy={yAt(p.neglogp)}
+            r={radiusFor(p)}
+            fill={colorFor(p)}
+            fillOpacity={opacityFor(p)}
+            stroke={p.id === selectedProbeId ? COLOR.bg.white : 'none'}
+            strokeWidth={p.id === selectedProbeId ? 1.5 : 0}
+            style={{ cursor: 'pointer' }}
+            onClick={() => onProbeSelect?.(p.id)}
+          />
+        ))}
+
+        {/* Labels for top hits */}
+        {labels.map((p) => (
+          <g key={`lbl-${p.id}`} pointerEvents="none">
+            <line
+              x1={xAt(p.delta_beta) + (p.delta_beta < 0 ? -2 : 2)}
+              x2={xAt(p.delta_beta) + (p.delta_beta < 0 ? -22 : 22)}
+              y1={yAt(p.neglogp)}
+              y2={yAt(p.neglogp) - 12}
+              stroke={COLOR.text.tertiary}
+              strokeWidth={0.5}
+            />
+            <text
+              x={xAt(p.delta_beta) + (p.delta_beta < 0 ? -24 : 24)}
+              y={yAt(p.neglogp) - 14}
+              textAnchor={p.delta_beta < 0 ? 'end' : 'start'}
+              fontFamily="var(--font-jetbrains-mono), monospace"
+              fontSize={9}
+              fontWeight={500}
+              fill={COLOR.text.primary}
+            >
+              {p.gene} · {p.id}
+            </text>
+          </g>
+        ))}
+
+        {/* X axis */}
+        <line
+          x1={PAD_L} x2={PAD_L + PLOT_W}
+          y1={PAD_TOP + PLOT_H} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.border.strong} strokeWidth={1}
+        />
+        {[-0.4, -0.2, 0, 0.2, 0.4].map((db) => (
+          <g key={`xt-${db}`}>
+            <line
+              x1={xAt(db)} x2={xAt(db)}
+              y1={PAD_TOP + PLOT_H} y2={PAD_TOP + PLOT_H + 4}
+              stroke={COLOR.border.strong} strokeWidth={1}
+            />
+            <text
+              x={xAt(db)}
+              y={PAD_TOP + PLOT_H + 18}
+              textAnchor="middle"
+              fontFamily="var(--font-jetbrains-mono), monospace"
+              fontSize={10}
+              fill={COLOR.text.tertiary}
+            >
+              {db > 0 ? `+${db.toFixed(1)}` : db.toFixed(1)}
+            </text>
+          </g>
+        ))}
+        <text
+          x={PAD_L + PLOT_W / 2}
+          y={PAD_TOP + PLOT_H + 36}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.text.tertiary}
+          letterSpacing="0.16em"
+          style={{ textTransform: 'uppercase' }}
+        >
+          Δβ (group A − group B)
+        </text>
+
+        {/* Y axis */}
+        <line
+          x1={PAD_L} x2={PAD_L}
+          y1={PAD_TOP} y2={PAD_TOP + PLOT_H}
+          stroke={COLOR.border.strong} strokeWidth={1}
+        />
+        {[0, 3, 6, 9, 12].map((lp) => (
+          <g key={`yt-${lp}`}>
+            <line
+              x1={PAD_L} x2={PAD_L - 4}
+              y1={yAt(lp)} y2={yAt(lp)}
+              stroke={COLOR.border.strong} strokeWidth={1}
+            />
+            <text
+              x={PAD_L - 8}
+              y={yAt(lp) + 3}
+              textAnchor="end"
+              fontFamily="var(--font-jetbrains-mono), monospace"
+              fontSize={10}
+              fill={COLOR.text.tertiary}
+            >
+              {lp}
+            </text>
+          </g>
+        ))}
+        <text
+          x={20}
+          y={PAD_TOP + PLOT_H / 2}
+          transform={`rotate(-90 20 ${PAD_TOP + PLOT_H / 2})`}
+          textAnchor="middle"
+          fontFamily="var(--font-jetbrains-mono), monospace"
+          fontSize={10}
+          fill={COLOR.text.tertiary}
+          letterSpacing="0.16em"
+        >
+          −log₁₀(p)
+        </text>
+      </svg>
     </div>
   );
 }
