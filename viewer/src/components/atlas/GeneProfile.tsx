@@ -281,7 +281,7 @@ function Abbr({ short, full }: { short: string; full: string }) {
           bottom: '100%',
           left: 0,
           marginBottom: 4,
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#FAFAFA',
           border: '1px solid #444',
           padding: '3px 8px',
           fontSize: GC_TYPE.xs,
