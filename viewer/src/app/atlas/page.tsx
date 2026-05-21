@@ -15,8 +15,17 @@ import {
   getIsochoreBins,
 } from '@/config/karyotypeData';
 
-// All atlas clicks navigate to the working mock viewer (TP53) for now.
-const VIEWER_HREF = '/view/hg38/chr17:7668421-7687490';
+const LAYERS = 'gencode_v44,cpg_sites,probe_epic_v2,isochores';
+
+// Per-chromosome viewer URL: opens at the chromosome's center with a
+// 1 Mb window (or the whole chromosome if shorter, e.g. chrM).
+function viewerHrefFor(chrName: string, length: number): string {
+  const targetWidth = Math.min(1_000_000, length);
+  const center = Math.round(length / 2);
+  const start = Math.max(1, center - Math.floor(targetWidth / 2));
+  const end = Math.min(length, start + targetWidth - 1);
+  return `/view/hg38/${chrName}:${start}-${end}?layers=${LAYERS}`;
+}
 
 const MAX_CHR_HEIGHT = 340;
 const CHR_WIDTH = 22;
@@ -168,7 +177,7 @@ export default function AtlasPage() {
               return (
                 <Link
                   key={chr.name}
-                  href={VIEWER_HREF}
+                  href={viewerHrefFor(chr.name, chr.length)}
                   onMouseEnter={() => setHoveredChr(chr.name)}
                   onMouseLeave={() => setHoveredChr(null)}
                   style={{
@@ -229,7 +238,7 @@ export default function AtlasPage() {
 
             {/* chrM — small electric-blue ring at the end */}
             <Link
-              href={VIEWER_HREF}
+              href={viewerHrefFor(CHR_M.name, CHR_M.length)}
               onMouseEnter={() => setHoveredChr('chrM')}
               onMouseLeave={() => setHoveredChr(null)}
               style={{
