@@ -3,17 +3,20 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE } from '@/config/theme';
-import { searchAtlasGenes, getMatchedAlias, type AtlasGene } from '@/config/atlasGenes';
+import { searchGenes, fetchGene, type SearchResult, type GRanges } from '@/lib/api';
 
-// All gene selections route to the working mock viewer (TP53) for now.
-const VIEWER_HREF = '/view/hg38/chr17:7668421-7687490';
+const BUILD = 'hg38';
+const LAYERS = 'gencode_v44,cpg_sites,probe_epic_v2,isochores';
 
 export function GeneSearch() {
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<AtlasGene[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -37,34 +40,75 @@ export function GeneSearch() {
   function handleChange(value: string) {
     setQuery(value);
     setHighlightedIndex(-1);
-    const trimmed = value.trim();
-    if (trimmed.length < 2) {
+    setError(null);
+    clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) {
       setResults([]);
       setOpen(false);
+      setSearching(false);
       return;
     }
-    const next = searchAtlasGenes(trimmed);
-    setResults(next);
-    setOpen(true);
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await searchGenes(value.trim(), BUILD);
+        setResults(res);
+        setOpen(true);
+        setSearching(false);
+      } catch {
+        setResults([]);
+        setOpen(true);
+        setSearching(false);
+        setError('Search unavailable');
+      }
+    }, 250);
   }
 
-  function selectGene(_gene: AtlasGene) {
-    // In Tier 1, all gene selections route to the TP53 viewer mock.
-    // Tier 2 port-back wires this to a per-gene viewer URL.
-    setQuery('');
-    setResults([]);
-    setOpen(false);
-    setHighlightedIndex(-1);
-    router.push(VIEWER_HREF);
+  async function selectGene(symbol: string) {
+    try {
+      const res = await fetchGene(BUILD, symbol);
+      const d = res.data as unknown as Record<string, unknown> & { class?: string };
+      const grangesList: GRanges[] = d.class === 'GRanges'
+        ? [res.data as unknown as GRanges]
+        : Object.values(res.data) as GRanges[];
+      if (grangesList.length === 0) {
+        setError(`No coordinates for "${symbol}"`);
+        return;
+      }
+      let minStart = Infinity, maxEnd = -Infinity, c = '';
+      for (const granges of grangesList) {
+        for (let i = 0; i < granges.n; i++) {
+          if (granges.ranges.start[i] < minStart) minStart = granges.ranges.start[i];
+          if (granges.ranges.end[i] > maxEnd) maxEnd = granges.ranges.end[i];
+          c = granges.seqnames[i];
+        }
+      }
+      if (!c || minStart === Infinity) {
+        setError(`No region for "${symbol}"`);
+        return;
+      }
+      const padding = Math.max(100, Math.round((maxEnd - minStart) * 0.1));
+      const start = Math.max(1, minStart - padding);
+      const end = maxEnd + padding;
+      setQuery('');
+      setResults([]);
+      setOpen(false);
+      setHighlightedIndex(-1);
+      router.push(`/view/${BUILD}/${c}:${start}-${end}?layers=${LAYERS}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Gene lookup failed');
+    }
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (highlightedIndex >= 0 && highlightedIndex < results.length) {
-        selectGene(results[highlightedIndex]);
+        selectGene(results[highlightedIndex].gene_symbol);
       } else if (results.length > 0) {
-        selectGene(results[0]);
+        selectGene(results[0].gene_symbol);
+      } else if (query.trim().length >= 2) {
+        selectGene(query.trim().toUpperCase());
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
@@ -87,13 +131,13 @@ export function GeneSearch() {
   }
 
   const trimmedQuery = query.trim().toUpperCase();
-  const showDropdown = open && (results.length > 0 || trimmedQuery.length >= 2);
+  const showDropdown = open && (results.length > 0 || (trimmedQuery.length >= 2 && !searching));
   const activeDescendant = highlightedIndex >= 0 ? `gene-option-${highlightedIndex}` : undefined;
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <div ref={containerRef} style={{ position: 'relative', width: 480, maxWidth: '100%' }}>
-        {/* Search label */}
+        {/* Search input */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -139,7 +183,20 @@ export function GeneSearch() {
               padding: 0,
             }}
           />
-          {query.length === 0 && (
+          {searching && (
+            <span style={{
+              color: COLOR.primary.base,
+              fontFamily: FONT_FAMILY_MONO,
+              fontSize: TYPE.xs.fontSize,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginLeft: SPACE[2],
+              whiteSpace: 'nowrap',
+            }}>
+              Searching…
+            </span>
+          )}
+          {!searching && query.length === 0 && (
             <span style={{
               color: COLOR.text.faint,
               fontFamily: FONT_FAMILY_MONO,
@@ -176,19 +233,28 @@ export function GeneSearch() {
               boxShadow: '0 4px 12px -6px rgba(15, 23, 42, 0.12)',
             }}
           >
-            {results.length > 0 ? (
-              results.map((g, i) => {
+            {error ? (
+              <li style={{
+                padding: `${SPACE[3]}px ${SPACE[4]}px`,
+                color: COLOR.accent.rose,
+                fontFamily: FONT_FAMILY,
+                fontSize: TYPE.sm.fontSize,
+                textAlign: 'center',
+              }}>
+                {error}
+              </li>
+            ) : results.length > 0 ? (
+              results.map((r, i) => {
                 const isHighlighted = i === highlightedIndex;
-                const symUpper = g.symbol.toUpperCase();
-                const matchEnd = symUpper.startsWith(trimmedQuery) ? trimmedQuery.length : 0;
-                const aliasHit = matchEnd === 0 ? getMatchedAlias(g, query) : null;
+                const sym = r.gene_symbol.toUpperCase();
+                const matchEnd = sym.startsWith(trimmedQuery) ? trimmedQuery.length : 0;
                 return (
                   <li
-                    key={g.symbol}
+                    key={r.gene_symbol}
                     id={`gene-option-${i}`}
                     role="option"
                     aria-selected={isHighlighted}
-                    onClick={() => selectGene(g)}
+                    onClick={() => selectGene(r.gene_symbol)}
                     onMouseEnter={() => setHighlightedIndex(i)}
                     style={{
                       display: 'grid',
@@ -210,14 +276,14 @@ export function GeneSearch() {
                       {matchEnd > 0 ? (
                         <>
                           <span style={{ color: COLOR.primary.base, fontWeight: WEIGHT.bold }}>
-                            {g.symbol.slice(0, matchEnd)}
+                            {r.gene_symbol.slice(0, matchEnd)}
                           </span>
-                          <span>{g.symbol.slice(matchEnd)}</span>
+                          <span>{r.gene_symbol.slice(matchEnd)}</span>
                         </>
                       ) : (
-                        g.symbol
+                        r.gene_symbol
                       )}
-                      {aliasHit && (
+                      {r.match_type === 'alias' && r.matched_alias && (
                         <span style={{
                           color: COLOR.text.muted,
                           fontFamily: FONT_FAMILY_MONO,
@@ -225,32 +291,21 @@ export function GeneSearch() {
                           marginLeft: SPACE[2],
                           letterSpacing: '0.04em',
                         }}>
-                          ({aliasHit})
-                        </span>
-                      )}
-                      {g.blurb && (
-                        <span style={{
-                          display: 'block',
-                          color: COLOR.text.tertiary,
-                          fontSize: TYPE.xs.fontSize,
-                          fontFamily: FONT_FAMILY,
-                          letterSpacing: '0.01em',
-                          marginTop: 2,
-                          fontWeight: WEIGHT.normal,
-                        }}>
-                          {g.blurb}
+                          ({r.matched_alias})
                         </span>
                       )}
                     </span>
-                    <span style={{
-                      color: COLOR.text.tertiary,
-                      fontFamily: FONT_FAMILY_MONO,
-                      fontSize: TYPE.xs.fontSize,
-                      letterSpacing: '0.04em',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {g.chromosome}
-                    </span>
+                    {r.chromosome && (
+                      <span style={{
+                        color: COLOR.text.tertiary,
+                        fontFamily: FONT_FAMILY_MONO,
+                        fontSize: TYPE.xs.fontSize,
+                        letterSpacing: '0.04em',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {r.chromosome}
+                      </span>
+                    )}
                   </li>
                 );
               })
@@ -262,7 +317,7 @@ export function GeneSearch() {
                 fontSize: TYPE.sm.fontSize,
                 textAlign: 'center',
               }}>
-                No matches in this list.
+                No genes found
               </li>
             )}
           </ul>
