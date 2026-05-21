@@ -106,7 +106,7 @@ export function RegionContextPanel({ context, activeLayers = [] }: RegionContext
       }}
     >
       {/* Header */}
-      <div style={{ padding: '8px 12px', borderBottom: `1px solid ${COLORS.border.subtle}`, backgroundColor: COLORS.bg.elevated }}>
+      <div style={{ padding: '8px 12px', borderBottom: `1px solid ${COLORS.border.subtle}`, backgroundColor: COLORS.bg.ideogram }}>
         <span style={{ color: COLORS.accent.teal, fontSize: 11, fontFamily: FONT, fontWeight: 500 }}>
           REGION CONTEXT
         </span>
