@@ -109,14 +109,20 @@ export const COLOR = {
     active: '#002D9C',
   },
 
-  // Four signature accents — retuned for light-mode legibility.
-  // Names preserved so existing imports keep working; values shifted darker.
+  // Signature accents.
+  // NOTE: accent.teal is aliased to the electric blue primary so existing
+  // legacy components (BrandBar wordmark, HeaderBar hovers, page.tsx
+  // module dots and dispatch badges) that read `COLOR.accent.teal` as the
+  // brand color shift to electric blue without component edits. Data
+  // encodings of teal live under `COLOR.layer.cpg_sites` and
+  // `COLOR.cpgContext.shore` — verified no track component uses
+  // accent.teal for data.
   accent: {
-    teal:   '#08A097',
+    teal:   '#0F62FE',     // was '#08A097' — aliased to brand blue
     amber:  '#B45309',
     violet: '#7C3AED',
     rose:   '#BE123C',
-    blue:   '#0F62FE',     // alias for primary
+    blue:   '#0F62FE',
   },
 
   // ── Data-layer identity colors ────────────────────────────────────────
