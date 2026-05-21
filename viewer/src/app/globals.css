@@ -1,54 +1,73 @@
 @import "tailwindcss";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-@import "@fontsource/jetbrains-mono/700.css";
 
+/* ──────────────────────────────────────────────────────────────────
+   D2 design tokens as CSS variables.
+   Names preserved from the legacy dark theme so existing components
+   reading var(--bg-primary), var(--text-primary), etc. keep working —
+   only the VALUES change. Body font shifts from mono to Inter; mono
+   becomes the opt-in register (.mono class, var(--font-mono)).
+   ────────────────────────────────────────────────────────────────── */
 :root {
-  --bg-primary: #0A0A0A;
-  --bg-elevated: #0D0D0D;
-  --bg-track: #111111;
-  --bg-surface: #1a1a1a;
-  --border-subtle: #1a1a1a;
-  --border-default: #222222;
-  --border-strong: #333333;
-  --text-primary: #E0E0E0;
-  --text-secondary: #CCCCCC;
-  --text-tertiary: #8a8a8a;
-  --text-muted: #777777;
-  --text-faint: #555555;
-  --accent-teal: #4ECDC4;
-  --accent-amber: #F0A500;
-  --accent-violet: #8B5CF6;
-  --accent-rose: #F43F5E;
+  --bg-primary:   #F4F4F5;
+  --bg-elevated:  #FAFAFA;
+  --bg-track:     #FAFAFA;
+  --bg-surface:   #FAFAFA;
+  --bg-deep:      #EBEBED;
+  --bg-white:     #FFFFFF;
 
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --border-subtle:  #D4D4D8;
+  --border-default: #E4E4E7;
+  --border-strong:  #A1A1AA;
+
+  --text-primary:   #18181B;
+  --text-secondary: #3F3F46;
+  --text-tertiary:  #52525B;
+  --text-muted:     #71717A;
+  --text-faint:     #A1A1AA;
+
+  --accent-teal:   #08A097;
+  --accent-amber:  #B45309;
+  --accent-violet: #7C3AED;
+  --accent-rose:   #BE123C;
+
+  --primary:        #0F62FE;
+  --primary-hover:  #0043CE;
+  --primary-active: #002D9C;
+
+  /* Font stacks — next/font/google sets --font-inter and
+     --font-jetbrains-mono on <html> via the className in layout.tsx. */
+  --font-sans:
+    var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono), 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
+/* Prose / sans helper — kept from legacy theme. Already used by viewer
+   long-form content; reads as Inter under the new stack. */
 .prose-sans {
   font-family: var(--font-sans);
   text-wrap: pretty;
 }
 
-/* BrandBar mobile nav — horizontal scroll for overflowing buttons, no visible scrollbar */
+/* BrandBar mobile nav — horizontal scroll without visible scrollbar */
 .brand-nav-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.brand-nav-scroll::-webkit-scrollbar {
-  display: none;
-}
+.brand-nav-scroll::-webkit-scrollbar { display: none; }
 
-/* Module row — hairline-divided, subtle hover indent */
+/* Module row — hairline-divided, subtle hover indent. Retuned to
+   electric-blue hover instead of teal wash. */
 .module-row {
   transition: padding-left 0.18s ease, background-color 0.18s ease;
 }
 .module-row:hover {
   padding-left: 12px !important;
-  background-color: rgba(78, 205, 196, 0.025);
+  background-color: rgba(15, 98, 254, 0.04);
 }
 .module-row:hover .module-row-arrow {
-  color: var(--accent-teal);
+  color: var(--primary);
   transform: translateX(4px);
 }
 .module-row:hover .module-row-name {
@@ -57,56 +76,74 @@
 .module-row:hover .module-row-count {
   color: var(--text-secondary);
 }
-.module-row-count {
-  transition: color 0.18s ease;
-}
-.module-row-arrow {
-  transition: color 0.18s ease, transform 0.18s ease;
-}
-.module-row-name {
-  transition: color 0.18s ease;
+.module-row-count { transition: color 0.18s ease; }
+.module-row-arrow { transition: color 0.18s ease, transform 0.18s ease; }
+.module-row-name  { transition: color 0.18s ease; }
+
+/* Tabular numerics — opt-in for data columns */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Mono register — opt-in for data, coordinates, section markers */
+.mono { font-family: var(--font-mono); }
+
+/* Section marker — used between editorial sections (§01 — INTRODUCTION) */
+.section-marker {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
-* {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.chr-btn {
-  border-radius: 8px !important;
+/* ──────────────────────────────────────────────────────────────────
+   Base reset — light mode, Inter primary.
+   Note: the legacy global `* { border-radius: 0 !important }` reset
+   has been DROPPED. Components now opt in to specific radii. The
+   special `.chr-btn { border-radius: 8px }` override is also dropped
+   since it's no longer needed without the global reset.
+   ────────────────────────────────────────────────────────────────── */
+html, body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  margin: 0;
+  min-height: 100vh;
 }
 
-/* Focus states — teal ring on keyboard navigation only */
+/* ──────────────────────────────────────────────────────────────────
+   Focus — 2 px solid electric blue, no glow.
+   ────────────────────────────────────────────────────────────────── */
 *:focus-visible {
-  outline: 2px solid var(--accent-teal);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
-
-/* Remove focus outline for mouse users */
 *:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Scrollbar styling — subtle, matches the palette */
+/* ──────────────────────────────────────────────────────────────────
+   Scrollbars — hairline, neutral, matches the light palette.
+   ────────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+::-webkit-scrollbar-track  { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb  { background: var(--border-default); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
+/* ──────────────────────────────────────────────────────────────────
+   Selection — electric blue with slight transparency.
+   ────────────────────────────────────────────────────────────────── */
+::selection {
+  background-color: rgba(15, 98, 254, 0.18);
+  color: var(--text-primary);
 }
