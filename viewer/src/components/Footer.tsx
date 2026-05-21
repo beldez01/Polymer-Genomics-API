@@ -1,79 +1,96 @@
 'use client';
 
 import Link from 'next/link';
-import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, SPACE } from '@/config/theme';
 
-const DOT = (
-  <span style={{ color: COLOR.border.strong, fontSize: 12, lineHeight: 1 }}>&middot;</span>
+const VIEWER_HREF =
+  '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
+
+const Dot = () => (
+  <span aria-hidden style={{ color: COLOR.border.strong, fontSize: 12, lineHeight: 1 }}>·</span>
 );
 
-const linkStyle = {
+const linkStyle: React.CSSProperties = {
   color: COLOR.text.tertiary,
   fontSize: TYPE.sm.fontSize,
   fontFamily: FONT_FAMILY,
   textDecoration: 'none',
-  letterSpacing: '0.02em',
-} as const;
+  letterSpacing: '0.01em',
+  transition: 'color 0.15s',
+};
+
+function FootLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={linkStyle}
+      onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.primary.base; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.tertiary; }}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function Footer() {
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        backgroundColor: COLOR.bg.elevated,
-        borderTop: `1px solid ${COLOR.border.default}`,
-        padding: `${SPACE[2]}px ${SPACE[4]}px`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: SPACE[2],
-      }}
-    >
-      {/* Left: links */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
-        <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={linkStyle}>Viewer</Link>
-        {DOT}
-        <Link href="/atlas" style={linkStyle}>Atlas</Link>
-        {DOT}
-        <Link href="/portal/latent3d" style={linkStyle}>Claims</Link>
-        {DOT}
-        <Link href="/newsroom" style={linkStyle}>Newsroom</Link>
-        {DOT}
-        <Link href="/docs" style={linkStyle}>Dev / API</Link>
-        {DOT}
-        <Link href="/terms" style={linkStyle}>Terms</Link>
-        {DOT}
-        <Link href="/privacy" style={linkStyle}>Privacy</Link>
-        {DOT}
-        <Link href="/data-sources" style={linkStyle}>Data Sources</Link>
+    <footer style={{
+      flexShrink: 0,
+      backgroundColor: COLOR.bg.primary,
+      borderTop: `1px solid ${COLOR.border.subtle}`,
+      padding: `${SPACE[4]}px ${SPACE[6]}px`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: SPACE[3],
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], flexWrap: 'wrap' }}>
+        <FootLink href={VIEWER_HREF}>Viewer</FootLink>
+        <Dot />
+        <FootLink href="/atlas">Atlas</FootLink>
+        <Dot />
+        <FootLink href="/portal/latent3d">Claims</FootLink>
+        <Dot />
+        <FootLink href="/newsroom">Newsroom</FootLink>
+        <Dot />
+        <FootLink href="/docs">Docs</FootLink>
+        <Dot />
+        <FootLink href="/developers">Developers</FootLink>
+        <Dot />
+        <FootLink href="/data-sources">Data sources</FootLink>
+        <Dot />
+        <FootLink href="/terms">Terms</FootLink>
+        <Dot />
+        <FootLink href="/privacy">Privacy</FootLink>
       </div>
 
-      {/* Right: RUO + copyright */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[2] }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
         <Link
           href="/terms"
           style={{
             color: COLOR.text.tertiary,
             fontSize: TYPE.xs.fontSize,
-            fontFamily: FONT_FAMILY,
-            letterSpacing: '0.06em',
+            fontFamily: FONT_FAMILY_MONO,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
             textDecoration: 'none',
             borderBottom: `1px dotted ${COLOR.text.faint}`,
           }}
-          title="Not for clinical or diagnostic use. Data provided as-is without warranty. Not intended as a substitute for professional medical advice, diagnosis, or treatment. Reference assembly coordinates may differ from clinical-grade annotations."
+          title="Not for clinical or diagnostic use. Data provided as-is without warranty. Not intended as a substitute for professional medical advice, diagnosis, or treatment."
         >
-          RESEARCH USE ONLY
+          Research use only
         </Link>
-        <span style={{ color: COLOR.border.strong, fontSize: 10 }}>&middot;</span>
+        <Dot />
         <span style={{
           color: COLOR.text.muted,
           fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
+          fontFamily: FONT_FAMILY_MONO,
+          letterSpacing: '0.04em',
         }}>
-          &copy; 2026 Polymer Genomics
+          © 2026 Polymer Genomics
         </span>
       </div>
-    </div>
+    </footer>
   );
 }
