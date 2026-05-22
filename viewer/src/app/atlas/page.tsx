@@ -15,17 +15,10 @@ import {
   getIsochoreBins,
 } from '@/config/karyotypeData';
 
-const LAYERS = 'gencode_v44,cpg_sites,probe_epic_v2,isochores';
-
-// Per-chromosome viewer URL: opens at the chromosome's center with a
-// 1 Mb window (or the whole chromosome if shorter, e.g. chrM).
-function viewerHrefFor(chrName: string, length: number): string {
-  const targetWidth = Math.min(1_000_000, length);
-  const center = Math.round(length / 2);
-  const start = Math.max(1, center - Math.floor(targetWidth / 2));
-  const end = Math.min(length, start + targetWidth - 1);
-  return `/view/hg38/${chrName}:${start}-${end}?layers=${LAYERS}`;
-}
+// Chromosome clicks route into the per-chromosome detail page
+// (/atlas/[chr]); the detail page owns the "Open in viewer" CTA so users
+// land on editorial chromosome content first before jumping to the
+// genome browser.
 
 const MAX_CHR_HEIGHT = 340;
 const CHR_WIDTH = 22;
@@ -177,7 +170,7 @@ export default function AtlasPage() {
               return (
                 <Link
                   key={chr.name}
-                  href={viewerHrefFor(chr.name, chr.length)}
+                  href={`/atlas/${chr.name}`}
                   onMouseEnter={() => setHoveredChr(chr.name)}
                   onMouseLeave={() => setHoveredChr(null)}
                   style={{
@@ -238,7 +231,7 @@ export default function AtlasPage() {
 
             {/* chrM — small electric-blue ring at the end */}
             <Link
-              href={viewerHrefFor(CHR_M.name, CHR_M.length)}
+              href={`/atlas/${CHR_M.name}`}
               onMouseEnter={() => setHoveredChr('chrM')}
               onMouseLeave={() => setHoveredChr(null)}
               style={{
