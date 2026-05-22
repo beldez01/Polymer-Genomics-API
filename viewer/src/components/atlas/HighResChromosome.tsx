@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CYTOBANDS, GIEMSA_COLORS, type CytoBand } from '@/config/cytobands';
+import { CYTOBANDS, type CytoBand } from '@/config/cytobands';
 import { CHROMOSOME_FACTS, type GeneFact } from '@/config/chromosomeFacts';
 import { type ChromosomeInfo } from '@/config/chromosomes';
+import { getIsochoreBins } from '@/config/karyotypeData';
 import { COLOR, TYPE, FONT_FAMILY, FONT_FAMILY_MONO, WEIGHT } from '@/config/theme';
 
 interface HighResChromosomeProps {
@@ -98,6 +99,7 @@ function getMajorBands(bands: CytoBand[]): MajorBand[] {
 
 export function HighResChromosome({ chr }: HighResChromosomeProps) {
   const bands = useMemo(() => CYTOBANDS.filter((b) => b.chrom === chr.name), [chr.name]);
+  const isochoreBins = useMemo(() => getIsochoreBins(chr.name), [chr.name]);
   const facts = CHROMOSOME_FACTS[chr.name];
   const features = facts;
   const genes: GeneFact[] = features?.notableGenes ?? [];
@@ -205,38 +207,32 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
           </clipPath>
         </defs>
         <g clipPath={`url(#${clipId})`}>
-          <rect x={0} y={0} width={CHR_WIDTH} height={height} fill={GIEMSA_COLORS.gneg} />
-          {bands.map((b, i) => {
-            const y = (b.start / chr.length) * height;
-            const h = Math.max(((b.end - b.start) / chr.length) * height, 0.5);
-            return (
-              <rect
-                key={`${b.name}-${i}`}
-                x={0}
-                y={y}
-                width={CHR_WIDTH}
-                height={h}
-                fill={GIEMSA_COLORS[b.gieStain] ?? GIEMSA_COLORS.gneg}
-              />
-            );
-          })}
-          {/* Telomere caps — subtle electric-blue tint at chromosome tips */}
-          {bands.length > 0 && (
-            <>
-              <rect
-                x={0} y={0} width={CHR_WIDTH}
-                height={Math.max((bands[0].end / chr.length) * height, 1)}
-                fill={COLOR.primary.base} opacity={0.18}
-              />
-              <rect
-                x={0}
-                y={(bands[bands.length - 1].start / chr.length) * height}
-                width={CHR_WIDTH}
-                height={Math.max(height - (bands[bands.length - 1].start / chr.length) * height, 1)}
-                fill={COLOR.primary.base} opacity={0.18}
-              />
-            </>
-          )}
+          {/* Background — light surface */}
+          <rect x={0} y={0} width={CHR_WIDTH} height={height} fill={COLOR.bg.elevated} />
+
+          {/* Isochore-coloured bins — same cool-warm AT→GC gradient as the
+              /atlas overview. Bins are normalised [0,1] across chr length. */}
+          {isochoreBins.map((b, i) => (
+            <rect
+              key={`iso-${i}`}
+              x={0}
+              y={b.start * height}
+              width={CHR_WIDTH}
+              height={Math.max((b.end - b.start) * height, 0.5)}
+              fill={COLOR.isochore[b.klass]}
+              fillOpacity={0.88}
+            />
+          ))}
+
+          {/* Centromere — desaturated overlay */}
+          <rect
+            x={0}
+            y={cenStartY}
+            width={CHR_WIDTH}
+            height={Math.max(cenEndY - cenStartY, 1)}
+            fill={COLOR.text.muted}
+            fillOpacity={0.6}
+          />
         </g>
         {/* Outline */}
         <path

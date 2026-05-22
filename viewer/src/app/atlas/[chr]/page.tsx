@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getChromosomeByName } from '@/config/chromosomes';
 import { CHROMOSOME_FEATURES, type FeatureEntry } from '@/config/chromosomeFeatures';
-import { CYTOBANDS } from '@/config/cytobands';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
 import { HighResChromosome } from '@/components/atlas/HighResChromosome';
@@ -25,108 +24,124 @@ function viewerHrefFor(chrName: string, length: number): string {
 function fmtMb(bp: number): string { return (bp / 1_000_000).toFixed(1) + ' Mb'; }
 function fmtKb(bp: number): string { return (bp / 1_000).toFixed(1) + ' kb'; }
 
-interface AccordionSectionProps { index: string; title: string; rows: FeatureEntry[]; defaultOpen?: boolean }
-function AccordionSection({ index, title, rows, defaultOpen }: AccordionSectionProps) {
-  const [open, setOpen] = useState(!!defaultOpen);
-  if (rows.length === 0) return null;
+const DEEP_DIVE_TABS = [
+  { id: 'architecture', label: 'Architecture',  key: 'genomicArchitecture'  as const },
+  { id: 'disease',      label: 'Disease',       key: 'diseaseAssociations'  as const },
+  { id: 'evolution',    label: 'Evolution',     key: 'evolutionaryHistory'  as const },
+  { id: 'biophysics',   label: 'Biophysics',    key: 'biophysicalFeatures'  as const },
+  { id: 'epigenetics',  label: 'Epigenetics',   key: 'epigeneticLandscape'  as const },
+  { id: 'deep_cuts',    label: 'Deep cuts',     key: 'deepCuts'             as const },
+];
+
+interface DeepDiveProps {
+  features: ReturnType<typeof getFeatures>;
+}
+
+function getFeatures(chrName: string) {
+  return CHROMOSOME_FEATURES[chrName];
+}
+
+function DeepDive({ features }: DeepDiveProps) {
+  const available = DEEP_DIVE_TABS.filter((t) => (features?.[t.key]?.length ?? 0) > 0);
+  const [activeId, setActiveId] = useState<string>(available[0]?.id ?? '');
+  if (available.length === 0 || !features) return null;
+  const active = available.find((t) => t.id === activeId) ?? available[0];
+  const rows: FeatureEntry[] = features[active.key] as FeatureEntry[];
+
   return (
-    <div style={{ marginBottom: SPACE[5] }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          width: '100%',
-          backgroundColor: 'transparent',
-          border: 'none',
-          borderBottom: `1px solid ${COLOR.border.strong}`,
-          padding: `${SPACE[3]}px ${SPACE[1]}px`,
-          marginBottom: SPACE[3],
-          cursor: 'pointer',
-          textAlign: 'left',
-          display: 'flex',
-          alignItems: 'baseline',
-          gap: SPACE[3],
-        }}
-      >
+    <section style={{ marginTop: SPACE[10] }}>
+      {/* Tab strip — eyebrow + horizontal tabs in one line */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: SPACE[4],
+        paddingBottom: SPACE[3],
+        marginBottom: SPACE[5],
+        borderBottom: `1px solid ${COLOR.border.strong}`,
+      }}>
         <span style={{
           color: COLOR.text.faint,
           fontFamily: FONT_FAMILY_MONO,
           fontSize: TYPE.xs.fontSize,
-          letterSpacing: '0.1em',
-        }}>
-          §{index}
-        </span>
-        <span style={{
-          color: COLOR.text.tertiary,
-          fontFamily: FONT_FAMILY_MONO,
-          fontSize: TYPE.sm.fontSize,
           fontWeight: WEIGHT.medium,
-          letterSpacing: '0.16em',
+          letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          flex: 1,
+          flexShrink: 0,
         }}>
-          {title}
+          § Deep dive
         </span>
-        <span style={{
-          color: COLOR.text.tertiary,
-          fontFamily: FONT_FAMILY_MONO,
-          fontSize: TYPE.sm.fontSize,
-        }}>
-          {rows.length}
-        </span>
-        <span style={{
-          color: COLOR.primary.base,
-          fontFamily: FONT_FAMILY_MONO,
-          fontSize: TYPE.sm.fontSize,
-          fontWeight: WEIGHT.semibold,
-          width: 14,
-          textAlign: 'center',
-        }}>
-          {open ? '−' : '+'}
-        </span>
-      </button>
-      {open && (
-        <div style={{
-          border: `1px solid ${COLOR.border.default}`,
-          borderRadius: 2,
-          overflow: 'hidden',
-        }}>
-          {rows.map((r, i) => (
-            <div
-              key={r.term + i}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '180px 1fr',
-                gap: SPACE[4],
-                padding: `${SPACE[3]}px ${SPACE[4]}px`,
-                borderBottom: i === rows.length - 1 ? 'none' : `1px solid ${COLOR.border.subtle}`,
-                backgroundColor: i % 2 === 0 ? COLOR.bg.elevated : COLOR.bg.deep,
-                alignItems: 'baseline',
-              }}
-            >
-              <span style={{
-                color: COLOR.text.tertiary,
-                fontFamily: FONT_FAMILY_MONO,
-                fontSize: TYPE.xs.fontSize,
-                fontWeight: WEIGHT.medium,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-              }}>
-                {r.term}
-              </span>
-              <span style={{
-                color: COLOR.text.primary,
-                fontFamily: FONT_FAMILY,
-                fontSize: TYPE.sm.fontSize,
-                lineHeight: 1.55,
-              }}>
-                {r.detail}
-              </span>
-            </div>
-          ))}
+        <div style={{ display: 'flex', gap: 0, marginLeft: 'auto' }}>
+          {available.map((t) => {
+            const isActive = t.id === active.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveId(t.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: `2px solid ${isActive ? COLOR.primary.base : 'transparent'}`,
+                  marginBottom: -1,
+                  padding: `${SPACE[2]}px ${SPACE[3] + 2}px`,
+                  color: isActive ? COLOR.primary.base : COLOR.text.tertiary,
+                  fontFamily: FONT_FAMILY,
+                  fontSize: TYPE.sm.fontSize,
+                  fontWeight: isActive ? WEIGHT.semibold : WEIGHT.medium,
+                  letterSpacing: '0.01em',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'color 0.12s, border-color 0.12s',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* Active section content as striped term/detail table */}
+      <div style={{
+        border: `1px solid ${COLOR.border.default}`,
+        borderRadius: 2,
+        overflow: 'hidden',
+      }}>
+        {rows.map((r, i) => (
+          <div
+            key={r.term + i}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '200px 1fr',
+              gap: SPACE[5],
+              padding: `${SPACE[3]}px ${SPACE[5]}px`,
+              borderBottom: i === rows.length - 1 ? 'none' : `1px solid ${COLOR.border.subtle}`,
+              backgroundColor: i % 2 === 0 ? COLOR.bg.elevated : COLOR.bg.deep,
+              alignItems: 'baseline',
+            }}
+          >
+            <span style={{
+              color: COLOR.text.tertiary,
+              fontFamily: FONT_FAMILY_MONO,
+              fontSize: TYPE.xs.fontSize,
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}>
+              {r.term}
+            </span>
+            <span style={{
+              color: COLOR.text.primary,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.sm.fontSize,
+              lineHeight: 1.6,
+            }}>
+              {r.detail}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -188,11 +203,9 @@ export default function ChromosomeAnalysisPage() {
     );
   }
 
-  const sizeStr = chrInfo.name === 'chrM' ? fmtKb(chrInfo.length) : fmtMb(chrInfo.length);
   const features = CHROMOSOME_FEATURES[chrInfo.name];
   const isMito = chrInfo.name === 'chrM';
   const chrLabel = isMito ? 'Mitochondrial Genome' : `Chromosome ${chrInfo.name.replace('chr', '')}`;
-  const bandCount = CYTOBANDS.filter((b) => b.chrom === chrInfo.name).length;
 
   return (
     <main style={{
@@ -205,86 +218,49 @@ export default function ChromosomeAnalysisPage() {
 
       <section style={{
         flex: 1,
-        maxWidth: 1280,
+        maxWidth: 1080,
         width: '100%',
         margin: '0 auto',
         padding: `${SPACE[10]}px ${SPACE[6]}px ${SPACE[16]}px`,
       }}>
-        {/* Back link */}
-        <Link
-          href="/atlas"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: SPACE[2],
-            color: COLOR.text.tertiary,
-            fontFamily: FONT_FAMILY_MONO,
-            fontSize: TYPE.xs.fontSize,
-            fontWeight: WEIGHT.medium,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            marginBottom: SPACE[6],
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.primary.base; }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.tertiary; }}
-        >
-          <span aria-hidden>←</span> Back to atlas
-        </Link>
-
-        {/* Header */}
-        <div style={{
+        {/* Compact header — title + CTA on one line */}
+        <header style={{
           display: 'flex',
-          alignItems: 'flex-end',
+          alignItems: 'baseline',
           justifyContent: 'space-between',
           gap: SPACE[4],
           flexWrap: 'wrap',
-          paddingBottom: SPACE[5],
-          marginBottom: SPACE[6],
-          borderBottom: `1px solid ${COLOR.border.strong}`,
+          paddingBottom: SPACE[3],
+          borderBottom: `1px solid ${COLOR.border.subtle}`,
+          marginBottom: SPACE[8],
         }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              color: COLOR.text.faint,
-              fontFamily: FONT_FAMILY_MONO,
-              fontSize: TYPE.xs.fontSize,
-              fontWeight: WEIGHT.medium,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              marginBottom: SPACE[3],
-            }}>
-              § CHROMOSOME · {chrInfo.name.replace('chr', '').toUpperCase()} · GRCh38 / hg38
-            </div>
+          <div style={{ minWidth: 0, display: 'flex', alignItems: 'baseline', gap: SPACE[4] }}>
+            <Link
+              href="/atlas"
+              style={{
+                color: COLOR.text.tertiary,
+                fontFamily: FONT_FAMILY_MONO,
+                fontSize: TYPE.xs.fontSize,
+                fontWeight: WEIGHT.medium,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span aria-hidden>←</span> Atlas
+            </Link>
             <h1 style={{
               margin: 0,
               color: COLOR.primary.base,
               fontFamily: FONT_FAMILY,
-              fontSize: TYPE.xl.fontSize,
-              lineHeight: TYPE.xl.lineHeight,
-              letterSpacing: TYPE.xl.letterSpacing,
+              fontSize: TYPE.lg.fontSize,
+              lineHeight: 1,
+              letterSpacing: TYPE.lg.letterSpacing,
               fontWeight: WEIGHT.bold,
-              marginBottom: SPACE[2],
             }}>
               {chrLabel}
             </h1>
-            <p className="tabular" style={{
-              margin: 0,
-              color: COLOR.text.secondary,
-              fontFamily: FONT_FAMILY_MONO,
-              fontSize: TYPE.sm.fontSize,
-              letterSpacing: '0.04em',
-            }}>
-              {sizeStr}
-              {chrInfo.centromereStart > 0 && (
-                <>
-                  <span style={{ color: COLOR.border.strong }}> · </span>
-                  centromere {(chrInfo.centromereStart / 1_000_000).toFixed(1)}–{(chrInfo.centromereEnd / 1_000_000).toFixed(1)} Mb
-                </>
-              )}
-              <span style={{ color: COLOR.border.strong }}> · </span>
-              {bandCount} bands
-            </p>
           </div>
 
           <Link
@@ -296,10 +272,10 @@ export default function ChromosomeAnalysisPage() {
               backgroundColor: COLOR.primary.base,
               color: COLOR.bg.white,
               fontFamily: FONT_FAMILY,
-              fontSize: TYPE.base.fontSize,
+              fontSize: TYPE.sm.fontSize,
               fontWeight: WEIGHT.medium,
               textDecoration: 'none',
-              padding: `${SPACE[3]}px ${SPACE[5]}px`,
+              padding: `${SPACE[2]}px ${SPACE[4]}px`,
               borderRadius: 2,
               letterSpacing: '0.01em',
               whiteSpace: 'nowrap',
@@ -308,44 +284,26 @@ export default function ChromosomeAnalysisPage() {
           >
             Open {chrInfo.name} in viewer <span aria-hidden>→</span>
           </Link>
-        </div>
+        </header>
 
-        {/* Two-column architecture + info panel */}
+        {/* Two-column hero: chromosome | info panel */}
         <div style={{
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(440px, auto) 1fr',
           gap: SPACE[10],
           alignItems: 'flex-start',
-          marginBottom: SPACE[12],
-          flexWrap: 'wrap',
         }}>
-          {/* LEFT: high-res chromosome with cytoband + gene labels */}
-          <div style={{ flexShrink: 0 }}>
+          {/* LEFT: chromosome with isochore coloring + cytoband labels + gene labels */}
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
             <HighResChromosome chr={chrInfo} />
           </div>
 
-          {/* RIGHT: info panel */}
-          <div style={{
-            flex: 1,
-            minWidth: 320,
-            paddingLeft: SPACE[6],
-            borderLeft: `1px solid ${COLOR.border.subtle}`,
-          }}>
-            <ChromosomeInfoPanel chr={chrInfo} />
-          </div>
+          {/* RIGHT: tabular info panel */}
+          <ChromosomeInfoPanel chr={chrInfo} />
         </div>
 
-        {/* Deep-dive accordions for the rich editorial content */}
-        {features && (
-          <>
-            <AccordionSection index="01" title="Physical properties" rows={features.physicalProperties} defaultOpen />
-            <AccordionSection index="02" title="Genomic architecture" rows={features.genomicArchitecture} />
-            <AccordionSection index="03" title="Disease associations" rows={features.diseaseAssociations} />
-            <AccordionSection index="04" title="Evolutionary history" rows={features.evolutionaryHistory} />
-            <AccordionSection index="05" title="Biophysical features" rows={features.biophysicalFeatures} />
-            <AccordionSection index="06" title="Epigenetic landscape" rows={features.epigeneticLandscape} />
-            <AccordionSection index="07" title="Deep cuts" rows={features.deepCuts} />
-          </>
-        )}
+        {/* Single tabbed deep-dive */}
+        {features && <DeepDive features={features} />}
       </section>
 
       <Footer />
