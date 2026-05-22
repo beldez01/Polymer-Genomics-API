@@ -47,6 +47,64 @@ function groupByTranscript(features: Feature[]): Map<string, Feature[]> {
   return map;
 }
 
+/**
+ * Pick one canonical transcript per gene. GENCODE returns every isoform
+ * for genes in the viewport — for the redesigned viewer we want a single
+ * representative track per gene, not 10+ stacked rows.
+ *
+ * Selection heuristic (no MANE/APPRIS flag available from this endpoint):
+ *   1. Most exon features (proxy for canonical isoform)
+ *   2. Tiebreak: longest genomic span
+ *   3. Tiebreak: alphabetically earliest transcript_id (deterministic)
+ *
+ * Features with no gene_symbol are grouped under '_unknown_' and pass
+ * through unchanged so we don't drop annotations on intergenic regions.
+ */
+function selectCanonicalTranscripts(features: Feature[]): Map<string, Feature[]> {
+  // First pass: group by gene
+  const byGene = new Map<string, Map<string, Feature[]>>();
+  for (const f of features) {
+    const gene = f.geneSymbol ?? '_unknown_';
+    const tx = f.transcriptId ?? '_unknown_';
+    if (!byGene.has(gene)) byGene.set(gene, new Map());
+    const txMap = byGene.get(gene)!;
+    if (!txMap.has(tx)) txMap.set(tx, []);
+    txMap.get(tx)!.push(f);
+  }
+
+  // Second pass: pick best transcript per gene
+  const result = new Map<string, Feature[]>();
+  for (const [gene, txMap] of byGene) {
+    // _unknown_ gene = ungrouped features (intergenic / no symbol) — keep all
+    if (gene === '_unknown_') {
+      for (const [tx, txFeatures] of txMap) {
+        result.set(`_unknown_${tx}`, txFeatures);
+      }
+      continue;
+    }
+    const candidates = Array.from(txMap.entries()).map(([tx, fs]) => {
+      const exonCount = fs.filter((f) => {
+        const t = f.type?.toLowerCase() ?? '';
+        return t === 'exon' || t === 'cds';
+      }).length;
+      let lo = Infinity, hi = -Infinity;
+      for (const f of fs) {
+        if (f.start < lo) lo = f.start;
+        if (f.end > hi) hi = f.end;
+      }
+      return { tx, fs, exonCount, span: hi - lo };
+    });
+    candidates.sort((a, b) => {
+      if (b.exonCount !== a.exonCount) return b.exonCount - a.exonCount;
+      if (b.span !== a.span) return b.span - a.span;
+      return a.tx.localeCompare(b.tx);
+    });
+    const best = candidates[0];
+    result.set(best.tx, best.fs);
+  }
+  return result;
+}
+
 export function GeneTrack({
   data,
   viewStart,
@@ -75,7 +133,7 @@ export function GeneTrack({
       }
     }
 
-    const transcripts = groupByTranscript(features);
+    const transcripts = selectCanonicalTranscripts(features);
     const rowCount = Math.max(1, transcripts.size);
     const height = heightProp ?? Math.min(rowCount * ROW_HEIGHT + 10, 200);
 
@@ -391,9 +449,11 @@ export function GeneTrack({
 
   }, [data, viewStart, viewEnd, canvasWidth, heightProp, showCodons]);
 
+  // Row count = number of unique genes (we render one canonical transcript
+  // per gene), so the canvas reserves height for genes not isoforms.
   const rowCount = data ? Math.max(1, new Set(
     Array.from({ length: data.n }, (_, i) =>
-      (data.mcols.transcript_id?.[i] as string) ?? (data.mcols.gene_symbol?.[i] as string) ?? '_',
+      (data.mcols.gene_symbol?.[i] as string) ?? (data.mcols.transcript_id?.[i] as string) ?? '_',
     ),
   ).size) : 1;
   const computedHeight = heightProp ?? Math.min(rowCount * ROW_HEIGHT + 10, 200);
