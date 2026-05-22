@@ -4,11 +4,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { getChromosomeByName } from '@/config/chromosomes';
-import { CHROMOSOME_FEATURES, type FeatureEntry, type GeneEntry } from '@/config/chromosomeFeatures';
+import { CHROMOSOME_FEATURES, type FeatureEntry } from '@/config/chromosomeFeatures';
 import { CYTOBANDS } from '@/config/cytobands';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
-import { ChromosomeArchitecture } from '@/components/atlas/ChromosomeArchitecture';
+import { HighResChromosome } from '@/components/atlas/HighResChromosome';
+import { ChromosomeInfoPanel } from '@/components/atlas/ChromosomeInfoPanel';
 import { COLOR, TYPE, FONT_FAMILY, FONT_FAMILY_MONO, WEIGHT, SPACE } from '@/config/theme';
 
 const LAYERS = 'gencode_v44,cpg_sites,probe_epic_v2,isochores';
@@ -23,51 +24,6 @@ function viewerHrefFor(chrName: string, length: number): string {
 
 function fmtMb(bp: number): string { return (bp / 1_000_000).toFixed(1) + ' Mb'; }
 function fmtKb(bp: number): string { return (bp / 1_000).toFixed(1) + ' kb'; }
-
-interface PropertyTableProps { rows: FeatureEntry[] }
-function PropertyTable({ rows }: PropertyTableProps) {
-  return (
-    <div style={{
-      border: `1px solid ${COLOR.border.default}`,
-      borderRadius: 2,
-      overflow: 'hidden',
-    }}>
-      {rows.map((r, i) => (
-        <div
-          key={r.term}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '180px 1fr',
-            gap: SPACE[4],
-            padding: `${SPACE[3]}px ${SPACE[4]}px`,
-            borderBottom: i === rows.length - 1 ? 'none' : `1px solid ${COLOR.border.subtle}`,
-            backgroundColor: i % 2 === 0 ? COLOR.bg.elevated : COLOR.bg.deep,
-            alignItems: 'baseline',
-          }}
-        >
-          <span style={{
-            color: COLOR.text.tertiary,
-            fontFamily: FONT_FAMILY_MONO,
-            fontSize: TYPE.xs.fontSize,
-            fontWeight: WEIGHT.medium,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
-            {r.term}
-          </span>
-          <span style={{
-            color: COLOR.text.primary,
-            fontFamily: FONT_FAMILY,
-            fontSize: TYPE.sm.fontSize,
-            lineHeight: 1.55,
-          }}>
-            {r.detail}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 interface AccordionSectionProps { index: string; title: string; rows: FeatureEntry[]; defaultOpen?: boolean }
 function AccordionSection({ index, title, rows, defaultOpen }: AccordionSectionProps) {
@@ -129,79 +85,47 @@ function AccordionSection({ index, title, rows, defaultOpen }: AccordionSectionP
           {open ? '−' : '+'}
         </span>
       </button>
-      {open && <PropertyTable rows={rows} />}
-    </div>
-  );
-}
-
-interface GeneTableProps { genes: GeneEntry[] }
-function GeneTable({ genes }: GeneTableProps) {
-  return (
-    <div style={{
-      border: `1px solid ${COLOR.border.default}`,
-      borderRadius: 2,
-      overflow: 'hidden',
-    }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '120px 100px 1fr',
-        gap: SPACE[4],
-        padding: `${SPACE[2] + 2}px ${SPACE[4]}px`,
-        backgroundColor: COLOR.bg.elevated,
-        borderBottom: `1px solid ${COLOR.border.subtle}`,
-      }}>
-        {['Symbol', 'Band', 'Detail'].map((h) => (
-          <span key={h} style={{
-            color: COLOR.text.tertiary,
-            fontFamily: FONT_FAMILY_MONO,
-            fontSize: 10,
-            fontWeight: WEIGHT.medium,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-          }}>
-            {h}
-          </span>
-        ))}
-      </div>
-      {genes.map((g, i) => (
-        <div
-          key={`${g.symbol}-${i}`}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '120px 100px 1fr',
-            gap: SPACE[4],
-            padding: `${SPACE[3]}px ${SPACE[4]}px`,
-            borderBottom: i === genes.length - 1 ? 'none' : `1px solid ${COLOR.border.subtle}`,
-            alignItems: 'baseline',
-          }}
-        >
-          <span style={{
-            color: COLOR.primary.base,
-            fontFamily: FONT_FAMILY_MONO,
-            fontSize: TYPE.sm.fontSize,
-            fontWeight: WEIGHT.semibold,
-            letterSpacing: '0.02em',
-          }}>
-            {g.symbol}
-          </span>
-          <span style={{
-            color: COLOR.text.tertiary,
-            fontFamily: FONT_FAMILY_MONO,
-            fontSize: TYPE.xs.fontSize,
-            letterSpacing: '0.04em',
-          }}>
-            {g.band}
-          </span>
-          <span style={{
-            color: COLOR.text.secondary,
-            fontFamily: FONT_FAMILY,
-            fontSize: TYPE.sm.fontSize,
-            lineHeight: 1.5,
-          }}>
-            {g.detail}
-          </span>
+      {open && (
+        <div style={{
+          border: `1px solid ${COLOR.border.default}`,
+          borderRadius: 2,
+          overflow: 'hidden',
+        }}>
+          {rows.map((r, i) => (
+            <div
+              key={r.term + i}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '180px 1fr',
+                gap: SPACE[4],
+                padding: `${SPACE[3]}px ${SPACE[4]}px`,
+                borderBottom: i === rows.length - 1 ? 'none' : `1px solid ${COLOR.border.subtle}`,
+                backgroundColor: i % 2 === 0 ? COLOR.bg.elevated : COLOR.bg.deep,
+                alignItems: 'baseline',
+              }}
+            >
+              <span style={{
+                color: COLOR.text.tertiary,
+                fontFamily: FONT_FAMILY_MONO,
+                fontSize: TYPE.xs.fontSize,
+                fontWeight: WEIGHT.medium,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}>
+                {r.term}
+              </span>
+              <span style={{
+                color: COLOR.text.primary,
+                fontFamily: FONT_FAMILY,
+                fontSize: TYPE.sm.fontSize,
+                lineHeight: 1.55,
+              }}>
+                {r.detail}
+              </span>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -270,9 +194,6 @@ export default function ChromosomeAnalysisPage() {
   const chrLabel = isMito ? 'Mitochondrial Genome' : `Chromosome ${chrInfo.name.replace('chr', '')}`;
   const bandCount = CYTOBANDS.filter((b) => b.chrom === chrInfo.name).length;
 
-  // Separate "real" notable genes from descriptive entries (clusters / cassettes)
-  const notableGenes = features?.notableGenes ?? [];
-
   return (
     <main style={{
       backgroundColor: COLOR.bg.primary,
@@ -284,7 +205,7 @@ export default function ChromosomeAnalysisPage() {
 
       <section style={{
         flex: 1,
-        maxWidth: 1120,
+        maxWidth: 1280,
         width: '100%',
         margin: '0 auto',
         padding: `${SPACE[10]}px ${SPACE[6]}px ${SPACE[16]}px`,
@@ -363,12 +284,6 @@ export default function ChromosomeAnalysisPage() {
               )}
               <span style={{ color: COLOR.border.strong }}> · </span>
               {bandCount} bands
-              {notableGenes.length > 0 && (
-                <>
-                  <span style={{ color: COLOR.border.strong }}> · </span>
-                  {notableGenes.length} notable loci
-                </>
-              )}
             </p>
           </div>
 
@@ -395,159 +310,41 @@ export default function ChromosomeAnalysisPage() {
           </Link>
         </div>
 
-        {/* Tagline — short italic pull quote, top-loaded */}
-        {features?.tagline && (
-          <p style={{
-            margin: `0 0 ${SPACE[8]}px 0`,
-            color: COLOR.text.secondary,
-            fontFamily: FONT_FAMILY,
-            fontSize: TYPE.md.fontSize,
-            lineHeight: 1.55,
-            fontStyle: 'italic',
-            paddingLeft: SPACE[4],
-            borderLeft: `3px solid ${COLOR.primary.base}`,
-            maxWidth: 880,
-          }}>
-            {features.tagline}
-          </p>
-        )}
-
-        {/* ARCHITECTURE — chromosome image + notable genes mapped to bands */}
-        <div style={{ marginBottom: SPACE[10] }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'baseline',
-            gap: SPACE[3],
-            paddingBottom: SPACE[3],
-            marginBottom: SPACE[4],
-            borderBottom: `1px solid ${COLOR.border.strong}`,
-          }}>
-            <span style={{ color: COLOR.text.faint, fontFamily: FONT_FAMILY_MONO, fontSize: TYPE.xs.fontSize, letterSpacing: '0.1em' }}>
-              §01
-            </span>
-            <span style={{
-              color: COLOR.text.tertiary,
-              fontFamily: FONT_FAMILY_MONO,
-              fontSize: TYPE.sm.fontSize,
-              fontWeight: WEIGHT.medium,
-              letterSpacing: '0.16em',
-              textTransform: 'uppercase',
-            }}>
-              Architecture
-            </span>
-            <span style={{ flex: 1 }} />
-            <span className="tabular" style={{
-              color: COLOR.text.tertiary,
-              fontFamily: FONT_FAMILY_MONO,
-              fontSize: TYPE.xs.fontSize,
-              letterSpacing: '0.04em',
-            }}>
-              cytobands · notable loci
-            </span>
+        {/* Two-column architecture + info panel */}
+        <div style={{
+          display: 'flex',
+          gap: SPACE[10],
+          alignItems: 'flex-start',
+          marginBottom: SPACE[12],
+          flexWrap: 'wrap',
+        }}>
+          {/* LEFT: high-res chromosome with cytoband + gene labels */}
+          <div style={{ flexShrink: 0 }}>
+            <HighResChromosome chr={chrInfo} />
           </div>
 
-          {bandCount > 0 ? (
-            <ChromosomeArchitecture
-              chrName={chrInfo.name}
-              chrLength={chrInfo.length}
-              centromereStart={chrInfo.centromereStart}
-              centromereEnd={chrInfo.centromereEnd}
-              notableGenes={notableGenes.filter((g) => !g.symbol.includes(' ') || g.band)}
-            />
-          ) : (
-            <div style={{
-              padding: SPACE[6],
-              textAlign: 'center',
-              color: COLOR.text.muted,
-              fontFamily: FONT_FAMILY,
-              fontSize: TYPE.sm.fontSize,
-              backgroundColor: COLOR.bg.elevated,
-              border: `1px solid ${COLOR.border.subtle}`,
-              borderRadius: 2,
-            }}>
-              No cytoband data for {chrInfo.name}.
-            </div>
-          )}
+          {/* RIGHT: info panel */}
+          <div style={{
+            flex: 1,
+            minWidth: 320,
+            paddingLeft: SPACE[6],
+            borderLeft: `1px solid ${COLOR.border.subtle}`,
+          }}>
+            <ChromosomeInfoPanel chr={chrInfo} />
+          </div>
         </div>
 
-        {/* Editorial sections — collapsible accordions, scannable tabular layouts */}
+        {/* Deep-dive accordions for the rich editorial content */}
         {features && (
           <>
-            <AccordionSection
-              index="02"
-              title="Physical properties"
-              rows={features.physicalProperties}
-              defaultOpen
-            />
-
-            {/* Notable genes — also tabular for scan-ability, even though architecture viz shows them visually */}
-            {notableGenes.length > 0 && (
-              <div style={{ marginBottom: SPACE[5] }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  gap: SPACE[3],
-                  paddingBottom: SPACE[3],
-                  marginBottom: SPACE[3],
-                  borderBottom: `1px solid ${COLOR.border.strong}`,
-                }}>
-                  <span style={{ color: COLOR.text.faint, fontFamily: FONT_FAMILY_MONO, fontSize: TYPE.xs.fontSize, letterSpacing: '0.1em' }}>
-                    §03
-                  </span>
-                  <span style={{
-                    color: COLOR.text.tertiary,
-                    fontFamily: FONT_FAMILY_MONO,
-                    fontSize: TYPE.sm.fontSize,
-                    fontWeight: WEIGHT.medium,
-                    letterSpacing: '0.16em',
-                    textTransform: 'uppercase',
-                    flex: 1,
-                  }}>
-                    Notable genes &amp; loci
-                  </span>
-                  <span className="tabular" style={{
-                    color: COLOR.text.tertiary,
-                    fontFamily: FONT_FAMILY_MONO,
-                    fontSize: TYPE.xs.fontSize,
-                  }}>
-                    {notableGenes.length}
-                  </span>
-                </div>
-                <GeneTable genes={notableGenes} />
-              </div>
-            )}
-
-            <AccordionSection index="04" title="Genomic architecture" rows={features.genomicArchitecture} />
-            <AccordionSection index="05" title="Disease associations" rows={features.diseaseAssociations} />
-            <AccordionSection index="06" title="Evolutionary history" rows={features.evolutionaryHistory} />
-            <AccordionSection index="07" title="Biophysical features" rows={features.biophysicalFeatures} />
-            <AccordionSection index="08" title="Epigenetic landscape" rows={features.epigeneticLandscape} />
-            <AccordionSection index="09" title="Deep cuts" rows={features.deepCuts} />
+            <AccordionSection index="01" title="Physical properties" rows={features.physicalProperties} defaultOpen />
+            <AccordionSection index="02" title="Genomic architecture" rows={features.genomicArchitecture} />
+            <AccordionSection index="03" title="Disease associations" rows={features.diseaseAssociations} />
+            <AccordionSection index="04" title="Evolutionary history" rows={features.evolutionaryHistory} />
+            <AccordionSection index="05" title="Biophysical features" rows={features.biophysicalFeatures} />
+            <AccordionSection index="06" title="Epigenetic landscape" rows={features.epigeneticLandscape} />
+            <AccordionSection index="07" title="Deep cuts" rows={features.deepCuts} />
           </>
-        )}
-
-        {!features && (
-          <div style={{
-            backgroundColor: COLOR.bg.elevated,
-            border: `1px solid ${COLOR.border.subtle}`,
-            borderRadius: 2,
-            padding: `${SPACE[6]}px ${SPACE[6]}px`,
-            textAlign: 'center',
-          }}>
-            <span style={{
-              color: COLOR.text.muted,
-              fontSize: TYPE.base.fontSize,
-              fontFamily: FONT_FAMILY,
-            }}>
-              Editorial content for {chrInfo.name} is in progress.{' '}
-              <Link
-                href={viewerHrefFor(chrInfo.name, chrInfo.length)}
-                style={{ color: COLOR.primary.base, textDecoration: 'none' }}
-              >
-                Jump to the viewer →
-              </Link>
-            </span>
-          </div>
         )}
       </section>
 
