@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { searchGenes, fetchGene, fetchProbe } from '@/lib/api';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE, LAYOUT } from '@/config/theme';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import type { GenomeBuild } from '@/stores/viewport';
 
@@ -20,10 +20,8 @@ interface HeaderBarProps {
   end: number;
   onNavigate: (chr: string, start: number, end: number) => void;
   onBuildChange: (build: GenomeBuild) => void;
-  /** Optional copy-link button label + handler, shown next to coordinates */
   copyLinkLabel?: string;
   onCopyLink?: () => void;
-  /** Navigation controls */
   onPanLeft?: () => void;
   onPanRight?: () => void;
   onZoomIn?: () => void;
@@ -32,15 +30,60 @@ interface HeaderBarProps {
   viewportWidth?: number;
 }
 
-export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, copyLinkLabel, onCopyLink, onPanLeft, onPanRight, onZoomIn, onZoomOut, onZoomPreset, viewportWidth }: HeaderBarProps) {
-  const [query, setQuery] = useState('');
+function IconBtn({ label, symbol, onClick }: { label: string; symbol: string; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      style={{
+        width: 32,
+        height: 32,
+        backgroundColor: 'transparent',
+        color: COLOR.text.secondary,
+        border: `1px solid ${COLOR.border.strong}`,
+        borderRadius: 2,
+        fontSize: 14,
+        fontFamily: FONT_FAMILY_MONO,
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'border-color 0.15s, color 0.15s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = COLOR.primary.base;
+        e.currentTarget.style.color = COLOR.primary.base;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = COLOR.border.strong;
+        e.currentTarget.style.color = COLOR.text.secondary;
+      }}
+    >
+      {symbol}
+    </button>
+  );
+}
+
+export function HeaderBar({
+  build, chr, start, end, onNavigate, onBuildChange, copyLinkLabel, onCopyLink,
+  onPanLeft, onPanRight, onZoomIn, onZoomOut, onZoomPreset, viewportWidth,
+}: HeaderBarProps) {
+  const coords = `${chr}:${start.toLocaleString()}-${end.toLocaleString()}`;
+  const [query, setQuery] = useState(coords);
   const [results, setResults] = useState<{ gene_symbol: string }[]>([]);
   const [open, setOpen] = useState(false);
-  const [isProbe, setIsProbe] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+
+  // Keep the input synced with viewport changes (pan / zoom)
+  useEffect(() => {
+    setQuery(coords);
+  }, [coords]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -56,12 +99,10 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
     clearTimeout(debounceRef.current);
     const trimmed = value.trim();
     if (/^cg\d{7,8}$/i.test(trimmed) || /^ch\.\d+\.\d+/i.test(trimmed)) {
-      setIsProbe(true);
       setResults([]);
       setOpen(false);
       return;
     }
-    setIsProbe(false);
     const regionMatch = value.match(/^(chr[0-9XYM]+):(\d+)-(\d+)$/i);
     if (regionMatch) { setResults([]); setOpen(false); return; }
     if (value.length < 2) { setResults([]); setOpen(false); return; }
@@ -88,9 +129,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
         const padding = Math.max(500, Math.round((p.end - p.start) * 5));
         onNavigate(p.seqname, Math.max(1, p.start - padding), p.end + padding);
         setOpen(false);
-        setQuery('');
       } catch (e) {
-        console.error('Probe lookup failed:', e);
         setActionError(e instanceof Error ? e.message : 'Probe lookup failed.');
       }
       return;
@@ -100,7 +139,6 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
       const c = regionMatch[1].toLowerCase().replace('chrx', 'chrX').replace('chry', 'chrY').replace('chrm', 'chrM');
       onNavigate(c, parseInt(regionMatch[2], 10), parseInt(regionMatch[3], 10));
       setOpen(false);
-      setQuery('');
       return;
     }
     await selectGene(query.toUpperCase());
@@ -109,7 +147,7 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
   async function selectGene(symbol: string) {
     try {
       const res = await fetchGene(build, symbol);
-      const d = res.data as Record<string, unknown>;
+      const d = res.data as unknown as Record<string, unknown> & { class?: string };
       const grangesList = d.class === 'GRanges'
         ? [res.data as unknown as import('@/lib/api').GRanges]
         : Object.values(res.data) as import('@/lib/api').GRanges[];
@@ -128,185 +166,147 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
       const padding = Math.max(100, Math.round((maxEnd - minStart) * 0.1));
       onNavigate(c, minStart - padding, maxEnd + padding);
       setOpen(false);
-      setQuery('');
     } catch (e) {
-      console.error('Gene lookup failed:', e);
       setActionError(e instanceof Error ? e.message : 'Gene lookup failed.');
     }
   }
 
-  const coords = `${chr}:${start.toLocaleString()}-${end.toLocaleString()}`;
+  const regionWidth = end - start + 1;
+  const widthLabel = regionWidth >= 1_000_000
+    ? `${(regionWidth / 1_000_000).toFixed(2)} Mb`
+    : regionWidth >= 1_000
+      ? `${(regionWidth / 1_000).toFixed(1)} kb`
+      : `${regionWidth} bp`;
 
   return (
-    <div className="w-full flex items-center px-4 gap-4 flex-shrink-0"
-         style={{
-           height: LAYOUT.headerHeight,
-           backgroundColor: COLOR.bg.primary,
-           borderBottom: `1px solid ${COLOR.border.subtle}`,
-           position: 'relative',
-         }}>
+    <div style={{
+      height: 48,
+      backgroundColor: COLOR.bg.primary,
+      borderBottom: `1px solid ${COLOR.border.subtle}`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: SPACE[3],
+      paddingLeft: SPACE[5],
+      paddingRight: SPACE[5],
+      position: 'relative',
+    }}>
+      {/* Build switch — far left */}
+      <div style={{
+        display: 'inline-flex',
+        border: `1px solid ${COLOR.border.strong}`,
+        borderRadius: 2,
+        height: 32,
+        overflow: 'hidden',
+        flexShrink: 0,
+      }}>
+        {(['hg38', 'hg37'] as const).map((b) => {
+          const active = b === build;
+          return (
+            <button
+              key={b}
+              type="button"
+              onClick={() => onBuildChange(b)}
+              style={{
+                backgroundColor: active ? COLOR.primary.base : 'transparent',
+                color: active ? COLOR.bg.white : COLOR.text.secondary,
+                border: 'none',
+                paddingLeft: SPACE[3],
+                paddingRight: SPACE[3],
+                fontFamily: FONT_FAMILY_MONO,
+                fontSize: TYPE.xs.fontSize,
+                fontWeight: WEIGHT.medium,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s, color 0.15s',
+              }}
+            >
+              {b}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Build toggle */}
-      <button
-        onClick={() => onBuildChange(build === 'hg38' ? 'hg37' : 'hg38')}
-        style={{
-          color: COLOR.text.secondary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          padding: `${SPACE[1]}px ${SPACE[2]}px`,
-          border: `1px solid ${COLOR.border.strong}`,
-          whiteSpace: 'nowrap',
-          backgroundColor: 'transparent',
-          cursor: 'pointer',
-          transition: 'border-color 0.15s, color 0.15s',
-          flexShrink: 0,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = COLOR.accent.teal;
-          e.currentTarget.style.color = COLOR.accent.teal;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = COLOR.border.strong;
-          e.currentTarget.style.color = COLOR.text.secondary;
-        }}
-      >
-        {build}
-      </button>
+      {/* Left spacer — pushes the region search to the center */}
+      <div style={{ flex: 1 }} />
 
-      {/* Navigation controls */}
-      {!isMobile && onPanLeft && onPanRight && onZoomIn && onZoomOut && (
-        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
-          <button onClick={onPanLeft} style={COMPONENT.button.small} title="Pan left 25%">&larr;</button>
-          <button onClick={onPanRight} style={COMPONENT.button.small} title="Pan right 25%">&rarr;</button>
-          <div style={{ width: SPACE[1] }} />
-          <button onClick={onZoomIn} style={COMPONENT.button.small} title="Zoom in 2x">+</button>
-          <button onClick={onZoomOut} style={COMPONENT.button.small} title="Zoom out 2x">&minus;</button>
-          {onZoomPreset && (
-            <>
-              <div style={{ width: SPACE[1] }} />
-              {ZOOM_PRESETS.map((p) => {
-                const isActive = viewportWidth != null && Math.abs(viewportWidth - p.width) < p.width * 0.2;
-                return (
-                  <button
-                    key={p.label}
-                    onClick={() => onZoomPreset(p.width)}
-                    style={isActive ? COMPONENT.button.smallActive : COMPONENT.button.small}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Coordinates — flex spacer between nav and search */}
-      {!isMobile && (
+      {/* Region search input — centered */}
+      <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
         <div style={{
-          flex: 1,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: SPACE[2],
-          whiteSpace: 'nowrap',
-          minWidth: 0,
-          overflow: 'hidden',
+          backgroundColor: COLOR.bg.white,
+          border: `1px solid ${COLOR.border.strong}`,
+          borderRadius: 2,
+          paddingLeft: SPACE[3],
+          paddingRight: SPACE[2],
+          height: 32,
+          minWidth: isMobile ? 220 : 380,
         }}>
           <span style={{
-            color: COLOR.text.secondary,
-            fontSize: TYPE.base.fontSize,
-            fontFamily: FONT_FAMILY,
+            color: COLOR.text.faint,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginRight: SPACE[2],
           }}>
-            {coords}
+            REGION
           </span>
-          {onCopyLink && (
-            <button
-              onClick={onCopyLink}
-              style={{
-                backgroundColor: 'transparent',
-                color: copyLinkLabel === 'Copied!' ? COLOR.accent.teal : COLOR.text.muted,
-                border: copyLinkLabel === 'Copied!' ? `1px solid ${COLOR.accent.teal}` : `1px solid ${COLOR.border.strong}`,
-                padding: `${SPACE[1]}px ${SPACE[2]}px`,
-                fontSize: TYPE.xs.fontSize,
-                fontFamily: FONT_FAMILY,
-                cursor: 'pointer',
-                transition: 'border-color 0.15s, color 0.15s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = COLOR.accent.teal;
-                e.currentTarget.style.color = COLOR.accent.teal;
-              }}
-              onMouseLeave={(e) => {
-                if (copyLinkLabel !== 'Copied!') {
-                  e.currentTarget.style.borderColor = COLOR.border.strong;
-                  e.currentTarget.style.color = COLOR.text.muted;
-                }
-              }}
-              title="Copy shareable link with active layers"
-            >
-              {copyLinkLabel || 'Link'}
-            </button>
-          )}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSubmit(); }}
+            placeholder={isMobile ? "TP53 / chr17:..." : "TP53, cg13580121, or chr17:7668421-7687490"}
+            spellCheck={false}
+            style={{
+              flex: 1,
+              backgroundColor: 'transparent',
+              color: COLOR.text.primary,
+              border: 'none',
+              outline: 'none',
+              fontFamily: FONT_FAMILY_MONO,
+              fontSize: TYPE.sm.fontSize,
+              letterSpacing: '0.01em',
+              padding: 0,
+              minWidth: 0,
+            }}
+          />
+          <span className="tabular" style={{
+            color: COLOR.text.tertiary,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            letterSpacing: '0.04em',
+            marginLeft: SPACE[2],
+            whiteSpace: 'nowrap',
+          }}>
+            {widthLabel}
+          </span>
         </div>
-      )}
-
-      {/* Search — right */}
-      <div ref={containerRef} className="flex items-center gap-1" style={{ position: 'relative', flexShrink: 0, marginLeft: 'auto' }}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSubmit(); }}
-          placeholder={isMobile ? "Gene or region..." : "chr17:7668421-7687490 or TP53"}
-          style={{
-            ...COMPONENT.input.default,
-            width: isMobile ? 140 : 200,
-          }}
-        />
-        <button
-          onClick={handleSubmit}
-          style={{
-            backgroundColor: COLOR.bg.track,
-            color: COLOR.text.secondary,
-            border: `1px solid ${COLOR.border.strong}`,
-            padding: `${SPACE[1] + 1}px ${SPACE[3]}px`,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            cursor: 'pointer',
-            transition: 'border-color 0.15s, color 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = COLOR.accent.teal;
-            e.currentTarget.style.color = COLOR.accent.teal;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = COLOR.border.strong;
-            e.currentTarget.style.color = COLOR.text.secondary;
-          }}
-        >
-          GO
-        </button>
 
         {open && results.length > 0 && (
           <ul style={{
-            position: 'absolute', top: '100%', right: 0, width: 280, marginTop: 2,
-            backgroundColor: COLOR.bg.track, border: `1px solid ${COLOR.border.subtle}`, zIndex: 50,
-            maxHeight: 192, overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0,
+            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
+            backgroundColor: COLOR.bg.white, border: `1px solid ${COLOR.border.strong}`,
+            borderRadius: 2, zIndex: 50,
+            maxHeight: 240, overflowY: 'auto', listStyle: 'none', padding: 0, margin: 0,
+            boxShadow: '0 4px 12px -6px rgba(15, 23, 42, 0.12)',
           }}>
             {results.map((r) => (
               <li key={r.gene_symbol}
                   onClick={() => selectGene(r.gene_symbol)}
                   style={{
-                    padding: `${SPACE[2]}px ${SPACE[2]}px`,
+                    padding: `${SPACE[2] + 2}px ${SPACE[3] + 4}px`,
                     fontSize: TYPE.sm.fontSize,
-                    color: COLOR.text.secondary,
+                    color: COLOR.text.primary,
                     cursor: 'pointer',
                     fontFamily: FONT_FAMILY,
+                    fontWeight: WEIGHT.medium,
                     borderBottom: `1px solid ${COLOR.border.subtle}`,
                   }}
-                  onMouseEnter={(e) => { (e.target as HTMLElement).style.backgroundColor = COLOR.bg.surface; }}
-                  onMouseLeave={(e) => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; }}>
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = COLOR.bg.deep; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}>
                 {r.gene_symbol}
               </li>
             ))}
@@ -315,15 +315,11 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
 
         {actionError && (
           <div style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            width: isMobile ? 220 : 280,
-            marginTop: 2,
+            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
             backgroundColor: `${COLOR.accent.rose}10`,
             border: `1px solid ${COLOR.accent.rose}55`,
             color: COLOR.accent.rose,
-            zIndex: 50,
+            borderRadius: 2, zIndex: 50,
             padding: `${SPACE[2]}px ${SPACE[3]}px`,
             fontSize: TYPE.xs.fontSize,
             fontFamily: FONT_FAMILY,
@@ -333,6 +329,77 @@ export function HeaderBar({ build, chr, start, end, onNavigate, onBuildChange, c
           </div>
         )}
       </div>
+
+      {/* Right spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Nav cluster — right */}
+      {!isMobile && onPanLeft && onPanRight && onZoomIn && onZoomOut && (
+        <div style={{ display: 'flex', gap: SPACE[1], flexShrink: 0 }}>
+          <IconBtn label="Pan left"  symbol="←" onClick={onPanLeft} />
+          <IconBtn label="Pan right" symbol="→" onClick={onPanRight} />
+          <IconBtn label="Zoom out"  symbol="−" onClick={onZoomOut} />
+          <IconBtn label="Zoom in"   symbol="+" onClick={onZoomIn} />
+        </div>
+      )}
+
+      {/* Zoom presets */}
+      {!isMobile && onZoomPreset && (
+        <div style={{ display: 'flex', gap: SPACE[1], flexShrink: 0 }}>
+          {ZOOM_PRESETS.map((p) => {
+            const isActive = viewportWidth != null && Math.abs(viewportWidth - p.width) < p.width * 0.2;
+            return (
+              <button
+                key={p.label}
+                onClick={() => onZoomPreset(p.width)}
+                style={{
+                  backgroundColor: isActive ? `${COLOR.primary.base}14` : 'transparent',
+                  color: isActive ? COLOR.primary.base : COLOR.text.tertiary,
+                  border: `1px solid ${isActive ? COLOR.primary.base : COLOR.border.strong}`,
+                  borderRadius: 2,
+                  height: 32,
+                  paddingLeft: SPACE[2] + 2,
+                  paddingRight: SPACE[2] + 2,
+                  fontFamily: FONT_FAMILY_MONO,
+                  fontSize: TYPE.xs.fontSize,
+                  fontWeight: WEIGHT.medium,
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, color 0.15s, background-color 0.15s',
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Share / copy link */}
+      {!isMobile && onCopyLink && (
+        <button
+          onClick={onCopyLink}
+          style={{
+            backgroundColor: 'transparent',
+            color: copyLinkLabel === 'Copied!' ? COLOR.primary.base : COLOR.text.secondary,
+            border: `1px solid ${copyLinkLabel === 'Copied!' ? COLOR.primary.base : COLOR.border.strong}`,
+            borderRadius: 2,
+            height: 32,
+            paddingLeft: SPACE[3],
+            paddingRight: SPACE[3],
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.sm.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.01em',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+          title="Copy shareable link with active layers"
+        >
+          {copyLinkLabel === 'Copied!' ? 'Copied ✓' : 'Share'}
+        </button>
+      )}
     </div>
   );
 }

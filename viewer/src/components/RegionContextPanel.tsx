@@ -17,7 +17,7 @@ const styles = {
     letterSpacing: '0.05em',
   },
   value: {
-    color: '#CCC',
+    color: COLORS.text.primary,
     fontSize: 11,
     fontFamily: FONT,
     lineHeight: 1.6,
@@ -56,7 +56,7 @@ function Badge({ text, color }: { text: string; color: string }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ padding: '8px 12px', borderBottom: '1px solid #1a1a1a' }}>
+    <div style={{ padding: '8px 12px', borderBottom: `1px solid ${COLORS.border.subtle}` }}>
       <div style={styles.sectionHeader}>{title}</div>
       {children}
     </div>
@@ -101,12 +101,12 @@ export function RegionContextPanel({ context, activeLayers = [] }: RegionContext
       className="h-full overflow-y-auto flex-shrink-0 flex flex-col"
       style={{
         width: 160,
-        backgroundColor: '#0A0A0A',
-        borderLeft: '1px solid #1a1a1a',
+        backgroundColor: COLORS.bg.primary,
+        borderLeft: `1px solid ${COLORS.border.subtle}`,
       }}
     >
       {/* Header */}
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid #1a1a1a', backgroundColor: '#0D0D0D' }}>
+      <div style={{ padding: '8px 12px', borderBottom: `1px solid ${COLORS.border.subtle}`, backgroundColor: COLORS.bg.ideogram }}>
         <span style={{ color: COLORS.accent.teal, fontSize: 11, fontFamily: FONT, fontWeight: 500 }}>
           REGION CONTEXT
         </span>

@@ -16,7 +16,7 @@ const COST_TIERS: Array<{ max: number; color: string }> = [
 ];
 
 function costColor(ecpa: number | null | undefined): string {
-  if (ecpa == null) return '#333333';
+  if (ecpa == null) return '#A1A1AA';
   for (const tier of COST_TIERS) {
     if (ecpa < tier.max) return tier.color;
   }

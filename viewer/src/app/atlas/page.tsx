@@ -1,399 +1,365 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { CHROMOSOMES, getChromosomeByName } from '@/config/chromosomes';
-import { fetchAggregation, fetchLayerSummary, AggregationResponse, LayerSummary } from '@/lib/api';
+import { useState } from 'react';
+import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
-import { KaryotypeOverview } from '@/components/atlas/KaryotypeOverview';
-import { ChromosomeDetail } from '@/components/atlas/ChromosomeDetail';
-import { GeneSearch } from '@/components/atlas/GeneSearch';
-import { GeneProfile } from '@/components/atlas/GeneProfile';
-import { Toolkit } from '@/components/atlas/Toolkit';
 import { Footer } from '@/components/Footer';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { COLOR, FONT_FAMILY, TYPE, SPACE } from '@/config/theme';
+import { ChromosomeSVG } from '@/components/atlas/ChromosomeSVG';
+import { GeneSearch } from '@/components/atlas/GeneSearch';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import {
+  KARYOTYPE,
+  KARYOTYPE_MAX_LEN,
+  CHR_M,
+  GENOME_STATS,
+  getIsochoreBins,
+} from '@/config/karyotypeData';
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+const LAYERS = 'gencode_v44,cpg_sites,probe_epic_v2,isochores';
 
-const BUILD = 'hg38';
-const LAYERS = ['gencode_v44', 'cpg_sites', 'probe_epic_v2'] as const;
-const AGG_RESOLUTION = 1_000_000;
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type ViewState =
-  | 'overview'
-  | 'entering'
-  | 'detail'
-  | 'exiting'
-  | 'gene_entering'
-  | 'gene'
-  | 'gene_exiting';
-
-interface ChrStats {
-  genes: number | null;
-  cpgIslands: number | null;
-  probes: number | null;
-  loaded: boolean;
+// Per-chromosome viewer URL: opens at the chromosome's center with a
+// 1 Mb window (or the whole chromosome if shorter, e.g. chrM).
+function viewerHrefFor(chrName: string, length: number): string {
+  const targetWidth = Math.min(1_000_000, length);
+  const center = Math.round(length / 2);
+  const start = Math.max(1, center - Math.floor(targetWidth / 2));
+  const end = Math.min(length, start + targetWidth - 1);
+  return `/view/hg38/${chrName}:${start}-${end}?layers=${LAYERS}`;
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const MAX_CHR_HEIGHT = 340;
+const CHR_WIDTH = 22;
 
-function sumBinCounts(agg: AggregationResponse, layer: string): number {
-  const layerData = agg.data[layer];
-  if (!layerData) return 0;
-  return layerData.bins.reduce((s, b) => s + b.count, 0);
+function chrHeight(length: number): number {
+  return Math.max(36, Math.round((length / KARYOTYPE_MAX_LEN) * MAX_CHR_HEIGHT));
 }
 
-function readUrlParams(): { chr: string | null; gene: string | null } {
-  if (typeof window === 'undefined') return { chr: null, gene: null };
-  const params = new URLSearchParams(window.location.search);
-  return {
-    chr: params.get('chr') || null,
-    gene: params.get('gene') || null,
-  };
-}
+interface StatProps { label: string; value: string; align: 'left' | 'right' }
 
-function createInitialChrStats(): Record<string, ChrStats> {
-  const init: Record<string, ChrStats> = {};
-  for (const chr of CHROMOSOMES) {
-    init[chr.name] = { genes: null, cpgIslands: null, probes: null, loaded: false };
-  }
-  return init;
+function Stat({ label, value, align }: StatProps) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: SPACE[1] + 2,
+      textAlign: align,
+    }}>
+      <span className="tabular" style={{
+        color: COLOR.text.primary,
+        fontSize: TYPE.xl.fontSize,
+        fontFamily: FONT_FAMILY,
+        fontWeight: WEIGHT.semibold,
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
+      }}>
+        {value}
+      </span>
+      <span style={{
+        color: COLOR.text.tertiary,
+        fontSize: TYPE.xs.fontSize,
+        fontFamily: FONT_FAMILY_MONO,
+        fontWeight: WEIGHT.medium,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+      }}>
+        {label}
+      </span>
+    </div>
+  );
 }
-
-async function runWithConcurrency(
-  tasks: Array<() => Promise<void>>,
-  limit: number,
-): Promise<void> {
-  const queue = [...tasks];
-  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
-    while (queue.length > 0) {
-      const task = queue.shift();
-      if (!task) return;
-      await task();
-    }
-  });
-  await Promise.allSettled(workers);
-}
-
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
 
 export default function AtlasPage() {
-  const [selectedChr, setSelectedChr] = useState<string | null>(null);
-  const [selectedGene, setSelectedGene] = useState<string | null>(null);
-  const [viewState, setViewState] = useState<ViewState>('overview');
-  const [hydrated, setHydrated] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [statsReloadKey, setStatsReloadKey] = useState(0);
+  const [hoveredChr, setHoveredChr] = useState<string | null>(null);
 
-  // Read URL params after mount
-  useEffect(() => {
-    const { chr, gene } = readUrlParams();
-    if (gene) {
-      setSelectedGene(gene.toUpperCase());
-      setViewState('gene');
-    } else if (chr) {
-      setSelectedChr(chr);
-      setViewState('detail');
-    }
-    setHydrated(true);
-  }, []);
-
-  const [chrStats, setChrStats] = useState<Record<string, ChrStats>>(createInitialChrStats);
-
-  // Authoritative counts from the layers summary endpoint
-  const [layerSummary, setLayerSummary] = useState<LayerSummary | null>(null);
-
-  useEffect(() => {
-    setSummaryError(null);
-    fetchLayerSummary(BUILD)
-      .then(setLayerSummary)
-      .catch((err: unknown) => {
-        setLayerSummary(null);
-        setSummaryError(err instanceof Error ? err.message : 'Layer summary unavailable.');
-      });
-  }, [statsReloadKey]);
-
-  // Load aggregation data for all chromosomes
-  useEffect(() => {
-    let cancelled = false;
-    setChrStats(createInitialChrStats());
-
-    async function loadAll() {
-      // Stats tasks (original 3 layers)
-      const statsTasks = CHROMOSOMES.map((chr) => async () => {
-        if (chr.name === 'chrM') {
-          if (!cancelled) {
-            setChrStats(prev => ({
-              ...prev,
-              [chr.name]: { genes: null, cpgIslands: null, probes: null, loaded: true },
-            }));
-          }
-          return;
-        }
-
-        try {
-          const region = `${chr.name}:1-${chr.length}`;
-          const agg = await fetchAggregation(BUILD, region, AGG_RESOLUTION, [...LAYERS]);
-          if (cancelled) return;
-
-          setChrStats(prev => ({
-            ...prev,
-            [chr.name]: {
-              genes: sumBinCounts(agg, 'gencode_v44'),
-              cpgIslands: sumBinCounts(agg, 'cpg_sites'),
-              probes: sumBinCounts(agg, 'probe_epic_v2'),
-              loaded: true,
-            },
-          }));
-        } catch {
-          if (!cancelled) {
-            setChrStats(prev => ({
-              ...prev,
-              [chr.name]: { genes: null, cpgIslands: null, probes: null, loaded: true },
-            }));
-          }
-        }
-      });
-
-      await runWithConcurrency(statsTasks, 4);
-    }
-
-    loadAll();
-    return () => { cancelled = true; };
-  }, [statsReloadKey]);
-
-  // URL sync
-  useEffect(() => {
-    if (!hydrated) return;
-    const url = new URL(window.location.href);
-    if (selectedGene) {
-      url.searchParams.delete('chr');
-      url.searchParams.set('gene', selectedGene);
-    } else if (selectedChr) {
-      url.searchParams.delete('gene');
-      url.searchParams.set('chr', selectedChr);
-    } else {
-      url.searchParams.delete('chr');
-      url.searchParams.delete('gene');
-    }
-    history.replaceState(null, '', url.toString());
-  }, [selectedChr, selectedGene, hydrated]);
-
-  // Handle browser back/forward
-  useEffect(() => {
-    function onPopState() {
-      const { chr, gene } = readUrlParams();
-      if (gene) {
-        setSelectedGene(gene.toUpperCase());
-        setSelectedChr(null);
-        setViewState('gene');
-      } else if (chr) {
-        setSelectedChr(chr);
-        setSelectedGene(null);
-        setViewState('detail');
-      } else {
-        setSelectedChr(null);
-        setSelectedGene(null);
-        setViewState('overview');
-      }
-    }
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, []);
-
-  const selectChromosome = useCallback((chrName: string) => {
-    setSelectedGene(null);
-    setSelectedChr(chrName);
-    setViewState('entering');
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setViewState('detail');
-      });
-    });
-  }, []);
-
-  const goBack = useCallback(() => {
-    setViewState('exiting');
-    setTimeout(() => {
-      setSelectedChr(null);
-      setViewState('overview');
-    }, 300);
-  }, []);
-
-  const selectGene = useCallback((symbol: string) => {
-    const upper = symbol.toUpperCase();
-    // If currently in chr detail, exit first then enter gene
-    if (viewState === 'detail' || viewState === 'entering') {
-      setViewState('exiting');
-      setTimeout(() => {
-        setSelectedChr(null);
-        setSelectedGene(upper);
-        setViewState('gene_entering');
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setViewState('gene');
-          });
-        });
-      }, 300);
-    } else {
-      setSelectedChr(null);
-      setSelectedGene(upper);
-      setViewState('gene_entering');
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setViewState('gene');
-        });
-      });
-    }
-  }, [viewState]);
-
-  const goBackFromGene = useCallback(() => {
-    setViewState('gene_exiting');
-    setTimeout(() => {
-      setSelectedGene(null);
-      setViewState('overview');
-    }, 300);
-  }, []);
-
-  const [aggBannerDismissed, setAggBannerDismissed] = useState(false);
-  const anyFailed = Object.entries(chrStats).some(([name, s]) => name !== 'chrM' && s.loaded && s.genes === null);
-  const failedCount = Object.entries(chrStats).filter(([name, s]) => name !== 'chrM' && s.loaded && s.genes === null).length;
-
-  const chrInfo = selectedChr ? getChromosomeByName(selectedChr) : null;
-  const stats = selectedChr ? chrStats[selectedChr] : null;
-
-  const showDetail = viewState === 'entering' || viewState === 'detail' || viewState === 'exiting';
-  const showOverview = viewState === 'overview' || viewState === 'exiting';
-  const showGene = viewState === 'gene_entering' || viewState === 'gene' || viewState === 'gene_exiting';
-
-  // Dynamic subtitle
-  const subtitle = selectedGene
-    ? `Gene Profile · ${selectedGene} · hg38`
-    : 'Karyotype Atlas · hg38';
+  const subtitle = (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'baseline',
+      gap: 12,
+      fontFamily: FONT_FAMILY_MONO,
+      fontSize: TYPE.sm.fontSize,
+      letterSpacing: '0.04em',
+    }}>
+      <span style={{ color: COLOR.text.tertiary }}>Chromosome Atlas</span>
+      <span style={{ color: COLOR.border.strong }}>·</span>
+      <span style={{ color: COLOR.text.tertiary }}>hg38</span>
+    </span>
+  );
 
   return (
     <main style={{
       backgroundColor: COLOR.bg.primary,
       minHeight: '100vh',
-      fontFamily: FONT_FAMILY,
+      display: 'flex',
+      flexDirection: 'column',
     }}>
-      <BrandBar subtitle={subtitle} sticky />
+      <BrandBar sticky subtitle={subtitle} />
 
-      <GeneSearch
-        build={BUILD}
-        onSelectGene={selectGene}
-        selectedGene={selectedGene}
-        onClear={goBackFromGene}
-      />
+      <section style={{
+        maxWidth: 1280,
+        width: '100%',
+        margin: '0 auto',
+        padding: `${SPACE[12]}px ${SPACE[6]}px ${SPACE[8]}px`,
+        flex: 1,
+      }}>
+        {/* Gene search — typeahead above the karyotype */}
+        <div style={{ marginBottom: SPACE[10] }}>
+          <GeneSearch />
+        </div>
 
-      {(anyFailed || summaryError) && !aggBannerDismissed && (
+        {/* Editorial overline — GRCh38 / hg38 ━━━━━━━━━━━━ GENOME REFERENCE */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
           gap: SPACE[3],
-          padding: `${SPACE[2]}px ${SPACE[4]}px`,
+          marginBottom: SPACE[10],
         }}>
           <span style={{
-            color: COLOR.text.muted,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
+            color: COLOR.primary.base,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY_MONO,
+            fontWeight: WEIGHT.semibold,
+            letterSpacing: '0.24em',
+            textTransform: 'uppercase',
+            flexShrink: 0,
           }}>
-            {failedCount > 0
-              ? `Chromosome statistics unavailable for ${failedCount} chromosome${failedCount === 1 ? '' : 's'}.`
-              : 'Chromosome statistics temporarily unavailable.'}
-            {summaryError ? ' Layer summary also failed to load.' : ''}
+            GRCh38 / hg38
           </span>
-          <button
-            onClick={() => {
-              setAggBannerDismissed(false);
-              setStatsReloadKey((v) => v + 1);
-            }}
-            style={{
-              background: 'none',
-              border: `1px solid ${COLOR.border.strong}`,
-              color: COLOR.text.secondary,
-              fontSize: TYPE.xs.fontSize,
-              fontFamily: FONT_FAMILY,
-              cursor: 'pointer',
-              padding: `2px ${SPACE[2]}px`,
-            }}
-          >
-            Retry
-          </button>
-          <button
-            onClick={() => setAggBannerDismissed(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: COLOR.text.muted,
-              fontSize: TYPE.sm.fontSize,
-              fontFamily: FONT_FAMILY,
-              cursor: 'pointer',
-              padding: `0 ${SPACE[1]}px`,
-            }}
-          >
-            &times;
-          </button>
+          <div style={{
+            flex: 1,
+            height: 1,
+            backgroundColor: COLOR.border.strong,
+          }} />
+          <span style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY_MONO,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            flexShrink: 0,
+          }}>
+            Genome Reference
+          </span>
         </div>
-      )}
 
-      {/* Overview */}
-      {showOverview && (
+        {/* Flanked layout: [stats] [karyotype] [stats], bottom-aligned */}
         <div style={{
-          opacity: viewState === 'overview' ? 1 : 0,
-          transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          display: 'grid',
+          gridTemplateColumns: '180px 1fr 180px',
+          gap: SPACE[6],
+          alignItems: 'end',
         }}>
-          <ErrorBoundary fallbackLabel="Karyotype Overview">
-            <KaryotypeOverview onSelectChromosome={selectChromosome} chrStats={chrStats} layerSummary={layerSummary} />
-          </ErrorBoundary>
-          <Toolkit />
-        </div>
-      )}
+          {/* Left stats column — right-aligned text so it reads "as you approach the karyotype" */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: SPACE[6],
+            paddingBottom: SPACE[4],
+          }}>
+            {GENOME_STATS.left.map((s) => (
+              <Stat key={s.label} label={s.label} value={s.value} align="right" />
+            ))}
+          </div>
 
-      {/* Chromosome Detail */}
-      {showDetail && chrInfo && (
-        <div style={{
-          opacity: viewState === 'detail' ? 1 : 0,
-          transform: viewState === 'detail' ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <ChromosomeDetail
-            chr={chrInfo}
-            geneCount={stats?.genes ?? null}
-            cpgIslandCount={stats?.cpgIslands ?? null}
-            probeCount={stats?.probes ?? null}
-            onBack={goBack}
-          />
-        </div>
-      )}
+          {/* Center column: karyotype */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            gap: SPACE[3],
+            flexWrap: 'nowrap',
+          }}>
+            {KARYOTYPE.map((chr) => {
+              const h = chrHeight(chr.length);
+              const isHovered = hoveredChr === chr.name;
+              const label = chr.name.replace('chr', '');
+              const bins = getIsochoreBins(chr.name);
+              return (
+                <Link
+                  key={chr.name}
+                  href={viewerHrefFor(chr.name, chr.length)}
+                  onMouseEnter={() => setHoveredChr(chr.name)}
+                  onMouseLeave={() => setHoveredChr(null)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: SPACE[1] + 2,
+                    position: 'relative',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {/* Hover tooltip */}
+                  {isHovered && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginBottom: 6,
+                      backgroundColor: COLOR.bg.elevated,
+                      border: `1px solid ${COLOR.border.strong}`,
+                      borderRadius: 2,
+                      padding: `${SPACE[1]}px ${SPACE[2]}px`,
+                      fontSize: TYPE.xs.fontSize,
+                      fontFamily: FONT_FAMILY_MONO,
+                      color: COLOR.text.secondary,
+                      whiteSpace: 'nowrap',
+                      zIndex: 50,
+                      pointerEvents: 'none',
+                      letterSpacing: '0.04em',
+                    }}>
+                      {chr.name} · {(chr.length / 1e6).toFixed(1)} Mb
+                    </div>
+                  )}
+                  <ChromosomeSVG
+                    chrName={chr.name}
+                    width={CHR_WIDTH}
+                    height={h}
+                    centromereStart={chr.centromereStart}
+                    centromereEnd={chr.centromereEnd}
+                    isochoreBins={bins}
+                    hovered={isHovered}
+                  />
+                  <span style={{
+                    color: isHovered ? COLOR.primary.base : COLOR.text.tertiary,
+                    fontSize: 11,
+                    fontFamily: FONT_FAMILY_MONO,
+                    fontWeight: isHovered ? WEIGHT.semibold : WEIGHT.medium,
+                    letterSpacing: '0.04em',
+                    transition: 'color 0.15s',
+                    userSelect: 'none',
+                  }}>
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
 
-      {/* Gene Profile */}
-      {showGene && selectedGene && (
-        <div style={{
-          opacity: viewState === 'gene' ? 1 : 0,
-          transform: viewState === 'gene' ? 'translateY(0)' : 'translateY(20px)',
-          transition: 'opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <ErrorBoundary fallbackLabel="Gene Profile">
-            <GeneProfile
-              symbol={selectedGene}
-              build={BUILD}
-              onBack={goBackFromGene}
-            />
-          </ErrorBoundary>
+            {/* chrM — small electric-blue ring at the end */}
+            <Link
+              href={viewerHrefFor(CHR_M.name, CHR_M.length)}
+              onMouseEnter={() => setHoveredChr('chrM')}
+              onMouseLeave={() => setHoveredChr(null)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: SPACE[1] + 2,
+                alignSelf: 'flex-end',
+                position: 'relative',
+                textDecoration: 'none',
+              }}
+            >
+              {hoveredChr === 'chrM' && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  marginBottom: 6,
+                  backgroundColor: COLOR.bg.elevated,
+                  border: `1px solid ${COLOR.border.strong}`,
+                  borderRadius: 2,
+                  padding: `${SPACE[1]}px ${SPACE[2]}px`,
+                  fontSize: TYPE.xs.fontSize,
+                  fontFamily: FONT_FAMILY_MONO,
+                  color: COLOR.text.secondary,
+                  whiteSpace: 'nowrap',
+                  zIndex: 50,
+                  pointerEvents: 'none',
+                  letterSpacing: '0.04em',
+                }}>
+                  chrM · {(CHR_M.length / 1000).toFixed(1)} kb (mitochondrial)
+                </div>
+              )}
+              <ChromosomeSVG
+                chrName="chrM"
+                width={28}
+                height={28}
+                centromereStart={0}
+                centromereEnd={0}
+                hovered={hoveredChr === 'chrM'}
+              />
+              <span style={{
+                color: hoveredChr === 'chrM' ? COLOR.primary.base : COLOR.text.tertiary,
+                fontSize: 11,
+                fontFamily: FONT_FAMILY_MONO,
+                fontWeight: hoveredChr === 'chrM' ? WEIGHT.semibold : WEIGHT.medium,
+                letterSpacing: '0.04em',
+                transition: 'color 0.15s',
+                userSelect: 'none',
+              }}>
+                M
+              </span>
+            </Link>
+          </div>
+
+          {/* Right stats column — left-aligned */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: SPACE[6],
+            paddingBottom: SPACE[4],
+          }}>
+            {GENOME_STATS.right.map((s) => (
+              <Stat key={s.label} label={s.label} value={s.value} align="left" />
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Isochore legend — anchored below */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: SPACE[5],
+          marginTop: SPACE[10],
+          paddingTop: SPACE[5],
+          borderTop: `1px solid ${COLOR.border.subtle}`,
+        }}>
+          <span style={{
+            color: COLOR.text.tertiary,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY_MONO,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+          }}>
+            Isochores
+          </span>
+          {(['L1', 'L2', 'H1', 'H2', 'H3'] as const).map((cls) => (
+            <div key={cls} style={{ display: 'flex', alignItems: 'center', gap: SPACE[1] + 2 }}>
+              <div style={{
+                width: 14,
+                height: 14,
+                backgroundColor: COLOR.isochore[cls],
+                border: `1px solid ${COLOR.border.subtle}`,
+              }} />
+              <span style={{
+                color: COLOR.text.secondary,
+                fontSize: TYPE.sm.fontSize,
+                fontFamily: FONT_FAMILY_MONO,
+                fontWeight: WEIGHT.medium,
+                letterSpacing: '0.06em',
+              }}>
+                {cls}
+              </span>
+            </div>
+          ))}
+          <span style={{
+            color: COLOR.text.muted,
+            fontSize: TYPE.xs.fontSize,
+            fontFamily: FONT_FAMILY_MONO,
+            letterSpacing: '0.1em',
+            marginLeft: SPACE[2],
+            textTransform: 'uppercase',
+          }}>
+            AT-rich → GC-rich
+          </span>
+        </div>
+      </section>
+
       <Footer />
     </main>
   );

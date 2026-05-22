@@ -4,523 +4,462 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
-import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
-import {
-  MCP_TOOL_COUNT,
-  usePlatformStats,
-} from '@/lib/platform-stats';
+import { CodeBlock, InlineCode } from '@/components/docs/CodeBlock';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import { API_BASE, MCP_TOTAL } from '@/config/apiDocsData';
 
-/* ── Data ── */
+const subtitle = (
+  <span style={{
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: 12,
+    fontFamily: FONT_FAMILY_MONO,
+    fontSize: TYPE.sm.fontSize,
+    letterSpacing: '0.04em',
+  }}>
+    <span style={{ color: COLOR.text.tertiary }}>Developers</span>
+    <span style={{ color: COLOR.border.strong }}>·</span>
+    <span style={{ color: COLOR.text.tertiary }}>Quickstart · SDK · MCP</span>
+  </span>
+);
 
-const USE_CASES = [
-  {
-    title: 'Synthetic Biology',
-    accent: COLOR.accent.teal,
-    desc: 'Evaluate constructs before synthesis. Flag CpG islands that cause silencing, low-stability regions that misfold, and repeats that recombine.',
-    example: 'client.evaluate(my_construct)',
-  },
-  {
-    title: 'AI Scientists',
-    accent: COLOR.accent.violet,
-    desc: `${MCP_TOOL_COUNT} agent-composable MCP tools for biology research agents. Gene lookup, region queries, biophysical computation, cross-layer correlation — all in one server.`,
-    example: 'evaluate_design(sequence=...)',
-  },
-  {
-    title: 'Epigenetic Clocks',
-    accent: COLOR.accent.amber,
-    desc: 'Mechanistic context for probe selection. 5 clock coefficient sets, 937K probe annotations, CpG context, and cross-array mapping.',
-    example: 'client.clock_probes("horvath")',
-  },
-] as const;
-
-function useInventory() {
-  const stats = usePlatformStats();
-  return [
-    { value: stats.cpg,      label: 'CpG sites' },
-    { value: stats.probes,   label: 'methylation probes' },
-    { value: stats.transcripts, label: 'transcripts' },
-    { value: '54',           label: 'GTEx tissues' },
-    { value: stats.mcpTools, label: 'MCP tools' },
-    { value: '30+',          label: 'physical constants' },
-  ];
-}
-
-/* ── Styles ── */
-
-const CODE_BLOCK: React.CSSProperties = {
-  backgroundColor: COLOR.bg.track,
-  border: `1px solid ${COLOR.border.default}`,
-  padding: `${SPACE[4]}px ${SPACE[5]}px`,
-  fontFamily: FONT_FAMILY,
-  fontSize: TYPE.sm.fontSize,
-  lineHeight: 1.8,
-  color: COLOR.text.secondary,
-  overflowX: 'auto',
-  whiteSpace: 'pre',
-};
-
-const SECTION_STYLE: React.CSSProperties = {
-  maxWidth: 720,
-  margin: '0 auto',
-  padding: `${SPACE[16]}px ${SPACE[6]}px`,
-};
-
-const DIVIDER: React.CSSProperties = {
-  width: 120,
-  height: 1,
-  backgroundColor: COLOR.border.subtle,
-  margin: '0 auto',
-};
-
-/* ── Try-It Component ── */
-
-function TryIt() {
-  const [seq, setSeq] = useState('');
-  const [result, setResult] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  async function handleEvaluate() {
-    const cleaned = seq.replace(/[^ACGTNacgtn]/g, '').toUpperCase();
-    if (cleaned.length < 10) {
-      setError('Sequence must be at least 10 bp');
-      return;
-    }
-    setError('');
-    setLoading(true);
-    setResult(null);
-    try {
-      const resp = await fetch('/api/v1/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sequence: cleaned, name: 'try-it', analysis: 'full' }),
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        const message =
-          body?.error?.message ||
-          body?.detail?.error?.message ||
-          body?.detail?.[0]?.msg ||
-          `HTTP ${resp.status}`;
-        throw new Error(message);
-      }
-      setResult(await resp.json());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  }
-
+function SectionHead({ index, label, count }: { index: string; label: string; count?: string }) {
   return (
-    <div>
-      <textarea
-        value={seq}
-        onChange={(e) => setSeq(e.target.value)}
-        placeholder="Paste a DNA sequence (ACGT, 10-100,000 bp)..."
-        rows={4}
-        style={{
-          ...COMPONENT.input.default as React.CSSProperties,
-          width: '100%',
-          resize: 'vertical',
-          boxSizing: 'border-box',
-          marginBottom: SPACE[3],
-        }}
-      />
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3] }}>
-        <button
-          onClick={handleEvaluate}
-          disabled={loading}
-          style={{
-            ...COMPONENT.button.ghost as React.CSSProperties,
-            borderColor: COLOR.accent.teal,
-            color: COLOR.accent.teal,
-            opacity: loading ? 0.5 : 1,
-          }}
-        >
-          {loading ? 'Evaluating...' : 'Evaluate'}
-        </button>
-        {error && (
-          <span style={{ color: COLOR.accent.rose, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY }}>
-            {error}
+    <div style={{
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: SPACE[3],
+      paddingBottom: SPACE[3],
+      marginBottom: SPACE[5],
+      borderBottom: `1px solid ${COLOR.border.strong}`,
+    }}>
+      <span style={{ color: COLOR.text.faint, fontFamily: FONT_FAMILY_MONO, fontSize: TYPE.xs.fontSize, letterSpacing: '0.1em' }}>
+        §{index}
+      </span>
+      <span style={{
+        color: COLOR.text.tertiary,
+        fontFamily: FONT_FAMILY_MONO,
+        fontSize: TYPE.sm.fontSize,
+        fontWeight: WEIGHT.medium,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+      }}>
+        {label}
+      </span>
+      {count && (
+        <>
+          <span style={{ flex: 1 }} />
+          <span className="tabular" style={{
+            color: COLOR.text.tertiary,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            letterSpacing: '0.04em',
+          }}>
+            {count}
           </span>
-        )}
-      </div>
-      {result && (
-        <pre style={{ ...CODE_BLOCK, marginTop: SPACE[4], maxHeight: 400, overflowY: 'auto' }}>
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        </>
       )}
     </div>
   );
 }
 
-/* ── Page ── */
-
-export default function DevelopersPage() {
-  const INVENTORY = useInventory();
-
+function Prose({ children }: { children: React.ReactNode }) {
   return (
-    <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <BrandBar />
-
-      {/* ─── Hero ─── */}
-      <section style={{
-        ...SECTION_STYLE,
-        textAlign: 'center',
-        paddingTop: SPACE[24],
-        paddingBottom: SPACE[16],
-      }}>
-        <h1 style={{
-          fontSize: TYPE.xl.fontSize,
-          fontWeight: WEIGHT.bold,
-          letterSpacing: '0.06em',
-          color: COLOR.accent.teal,
-          fontFamily: FONT_FAMILY,
-          marginBottom: SPACE[4],
-        }}>
-          THE BIOPHYSICAL DATA LAYER FOR DNA
-        </h1>
-        <p style={{
-          color: COLOR.text.tertiary,
-          fontSize: TYPE.md.fontSize,
-          fontFamily: FONT_FAMILY,
-          lineHeight: TYPE.md.lineHeight,
-          maxWidth: 560,
-          margin: '0 auto',
-          marginBottom: SPACE[10],
-        }}>
-          Every AI model treats DNA as text. We compute what DNA actually does as a physical material.
-        </p>
-
-        {/* 30-second quickstart */}
-        <div style={{ textAlign: 'left' }}>
-          <p style={{
-            color: COLOR.text.muted,
-            fontSize: TYPE.xs.fontSize,
-            fontFamily: FONT_FAMILY,
-            letterSpacing: '0.08em',
-            marginBottom: SPACE[2],
-          }}>
-            30-SECOND QUICKSTART
-          </p>
-          <pre style={CODE_BLOCK}>
-{`pip install polymer-genomics
-
-from polymer_genomics import PolymerClient
-
-client = PolymerClient()
-report = client.evaluate("ATGCGATCGATCGATCG" * 20)
-
-print(report["flag_counts"])   # {"warnings": 0, "info": 2}
-print(report["summary"]["gc_content"])  # 0.529`}
-          </pre>
-        </div>
-
-        {/* Access */}
-        <div style={{
-          backgroundColor: COLOR.bg.surface,
-          border: `1px solid ${COLOR.border.subtle}`,
-          borderRadius: 6,
-          padding: `${SPACE[4]}px ${SPACE[6]}px`,
-          marginTop: SPACE[6],
-        }}>
-          <div style={{
-            fontSize: TYPE.sm.fontSize,
-            fontWeight: WEIGHT.medium,
-            color: COLOR.accent.teal,
-            fontFamily: FONT_FAMILY,
-            letterSpacing: '0.06em',
-            marginBottom: SPACE[2],
-          }}>
-            OPEN ACCESS
-          </div>
-          <p style={{
-            color: COLOR.text.secondary,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            lineHeight: 1.7,
-            margin: 0,
-          }}>
-            No API key required. All endpoints are open during the research preview.
-            Base URL: <code style={{ color: COLOR.accent.teal }}>https://api.polymerbio.org</code>
-          </p>
-        </div>
-
-        {/* Limits & Versions */}
-        <div style={{
-          backgroundColor: COLOR.bg.surface,
-          border: `1px solid ${COLOR.border.subtle}`,
-          borderRadius: 6,
-          padding: `${SPACE[4]}px ${SPACE[6]}px`,
-          marginTop: SPACE[4],
-        }}>
-          <div style={{
-            fontSize: TYPE.sm.fontSize,
-            fontWeight: WEIGHT.medium,
-            color: COLOR.text.secondary,
-            fontFamily: FONT_FAMILY,
-            letterSpacing: '0.06em',
-            marginBottom: SPACE[2],
-          }}>
-            LIMITS &amp; VERSIONS
-          </div>
-          <div style={{
-            color: COLOR.text.tertiary,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            lineHeight: 1.8,
-          }}>
-            <div>API version: <code style={{ color: COLOR.accent.teal }}>0.2.0</code></div>
-            <div>SDK version: <code style={{ color: COLOR.accent.teal }}>polymer-genomics 0.3.0</code></div>
-            <div>Max sequence length (evaluate): 100,000 bp</div>
-            <div>Max region size (region query): 10 Mb</div>
-            <div>Max batch probes: 10,000</div>
-            <div>Max batch evaluate: 100 sequences</div>
-            <div>Max sequence retrieval: 100 kb</div>
-          </div>
-        </div>
-      </section>
-
-      <div style={DIVIDER} />
-
-      {/* ─── Use Cases ─── */}
-      <section style={SECTION_STYLE}>
-        <h2 style={{
-          ...COMPONENT.sectionHeader as React.CSSProperties,
-          fontSize: TYPE.xs.fontSize,
-          marginBottom: SPACE[8],
-          letterSpacing: '0.12em',
-        }}>
-          USE CASES
-        </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[8] }}>
-          {USE_CASES.map((uc) => (
-            <div key={uc.title} style={{ borderLeft: `3px solid ${uc.accent}`, paddingLeft: SPACE[4] }}>
-              <h3 style={{
-                color: COLOR.text.primary,
-                fontSize: TYPE.md.fontSize,
-                fontFamily: FONT_FAMILY,
-                fontWeight: WEIGHT.medium,
-                marginBottom: SPACE[2],
-              }}>
-                {uc.title}
-              </h3>
-              <p style={{
-                color: COLOR.text.tertiary,
-                fontSize: TYPE.base.fontSize,
-                fontFamily: FONT_FAMILY,
-                lineHeight: TYPE.base.lineHeight,
-                marginBottom: SPACE[2],
-              }}>
-                {uc.desc}
-              </p>
-              <code style={{
-                color: uc.accent,
-                fontSize: TYPE.sm.fontSize,
-                fontFamily: FONT_FAMILY,
-              }}>
-                {uc.example}
-              </code>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div style={DIVIDER} />
-
-      {/* ─── Data Inventory ─── */}
-      <section style={SECTION_STYLE}>
-        <h2 style={{
-          ...COMPONENT.sectionHeader as React.CSSProperties,
-          fontSize: TYPE.xs.fontSize,
-          marginBottom: SPACE[8],
-          letterSpacing: '0.12em',
-        }}>
-          DATA INVENTORY
-        </h2>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: SPACE[6],
-        }}>
-          {INVENTORY.map((item) => (
-            <div key={item.label} style={{ textAlign: 'center' }}>
-              <div style={{
-                color: COLOR.accent.teal,
-                fontSize: TYPE.lg.fontSize,
-                fontFamily: FONT_FAMILY,
-                fontWeight: WEIGHT.bold,
-                marginBottom: SPACE[1],
-              }}>
-                {item.value}
-              </div>
-              <div style={{
-                color: COLOR.text.tertiary,
-                fontSize: TYPE.sm.fontSize,
-                fontFamily: FONT_FAMILY,
-              }}>
-                {item.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div style={DIVIDER} />
-
-      {/* ─── Code Examples ─── */}
-      <section style={SECTION_STYLE}>
-        <h2 style={{
-          ...COMPONENT.sectionHeader as React.CSSProperties,
-          fontSize: TYPE.xs.fontSize,
-          marginBottom: SPACE[8],
-          letterSpacing: '0.12em',
-        }}>
-          CODE EXAMPLES
-        </h2>
-
-        {/* Python SDK */}
-        <h3 style={{
-          color: COLOR.text.secondary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-          marginBottom: SPACE[2],
-        }}>
-          Python SDK
-        </h3>
-        <pre style={{ ...CODE_BLOCK, marginBottom: SPACE[8] }}>
-{`from polymer_genomics import PolymerClient
-
-client = PolymerClient()
-
-# Evaluate a construct for biophysical issues
-report = client.evaluate(my_sequence)
-for flag in report["flags"]:
-    print(f'{flag["code"]}: {flag["message"]}')
-
-# Compare wild-type vs optimized design
-delta = client.compare({
-    "wildtype":  wt_sequence,
-    "optimized": opt_sequence,
-})
-print(delta["deltas_vs_reference"])
-
-# Look up gene biophysics
-tp53 = client.gene("hg38", "TP53")
-expr = client.gene_expression("hg38", "TP53")
-cost = client.gene_cost("hg38", "TP53")`}
-        </pre>
-
-        {/* MCP */}
-        <h3 style={{
-          color: COLOR.text.secondary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-          marginBottom: SPACE[2],
-        }}>
-          MCP Tools (Claude Code / AI Agents)
-        </h3>
-        <pre style={{ ...CODE_BLOCK, marginBottom: SPACE[8] }}>
-{`// claude_desktop_config.json
-{
-  "mcpServers": {
-    "polymer-genomics": {
-      "command": "uvx",
-      "args": ["polymer-genomics-mcp"],
-      "env": {
-        "POLYMER_API_BASE": "https://api.polymerbio.org"
-      }
-    }
-  }
+    <p style={{
+      margin: 0,
+      color: COLOR.text.secondary,
+      fontFamily: FONT_FAMILY,
+      fontSize: TYPE.base.fontSize,
+      lineHeight: 1.65,
+      marginBottom: SPACE[4],
+    }}>
+      {children}
+    </p>
+  );
 }
 
-// Then in Claude Code:
-// "Evaluate this construct for silencing risk"
-// "What genes are near chr17:7668402-7687550?"
-// "Compare these two promoter designs"`}
-        </pre>
+type Language = 'python' | 'curl' | 'r' | 'js';
 
-        {/* curl */}
-        <h3 style={{
-          color: COLOR.text.secondary,
-          fontSize: TYPE.base.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.medium,
-          marginBottom: SPACE[2],
-        }}>
-          REST API
-        </h3>
-        <pre style={CODE_BLOCK}>
-{`curl -X POST https://api.polymerbio.org/v1/evaluate \\
-  -H "Content-Type: application/json" \\
-  -d '{"sequence": "ATGCGATCGATCG...", "name": "my_construct"}'
+const SDK_EXAMPLES: Record<Language, string> = {
+  python:
+`from polymer_genomics import PolymerClient
 
-curl https://api.polymerbio.org/v1/genes/hg38/TP53
+client = PolymerClient(api_key="POLY_...")
 
-curl https://api.polymerbio.org/v1/biophysics/hg38/chr17:7668402-7669000`}
-        </pre>
-      </section>
+# 1. Fetch genome-wide biophysics for TP53
+region = client.regions.fetch("hg38", "chr17:7668421-7687490")
+print(region.stacking_dg37.mean)            # -8.42 kcal/mol
+print(region.cpg_sites.count)                # 47
 
-      <div style={DIVIDER} />
+# 2. Run the physics linter on your own sequence
+result = client.evaluate("ATGCGATCG...", analysis="full")
+print(result.summary.gc_content, result.flag_counts.warnings)
 
-      {/* ─── Try It ─── */}
-      <section style={SECTION_STYLE}>
-        <h2 style={{
-          ...COMPONENT.sectionHeader as React.CSSProperties,
-          fontSize: TYPE.xs.fontSize,
-          marginBottom: SPACE[8],
-          letterSpacing: '0.12em',
-        }}>
-          TRY IT
-        </h2>
-        <TryIt />
-      </section>
+# 3. Search for genes
+hits = client.search.genes("TP53")
+for h in hits:
+    print(h.symbol, h.chromosome)`,
+  curl:
+`# Region biophysics
+curl '${API_BASE}/v1/regions/hg38/chr17:7668421-7687490' \\
+  -H 'X-API-Key: POLY_...'
 
-      <div style={DIVIDER} />
+# Sequence evaluation
+curl -X POST '${API_BASE}/v1/evaluate' \\
+  -H 'Content-Type: application/json' \\
+  -H 'X-API-Key: POLY_...' \\
+  -d '{"sequence":"ATGCGATCG...","analysis":"full"}'
 
-      {/* ─── Links ─── */}
+# Gene search
+curl '${API_BASE}/v1/search/genes?q=TP53' \\
+  -H 'X-API-Key: POLY_...'`,
+  r:
+`library(polymerGenomics)
+
+client <- polymer_client(api_key = Sys.getenv("POLY_API_KEY"))
+
+# 1. Fetch genome-wide biophysics for TP53
+region <- regions_fetch(client, "hg38", "chr17:7668421-7687490")
+print(mean(region$stacking_dg37))
+
+# 2. Convert to GRanges for Bioconductor
+gr <- as_granges(region)
+mcols(gr)$stacking_dg37  # GRanges-compatible numeric metadata column
+
+# 3. Methylation-specific helpers
+betas <- read_idat("sample.idat")
+ages  <- predict_clock(client, betas, clock = "horvath")`,
+  js:
+`import { PolymerClient } from "@polymer-bio/sdk";
+
+const client = new PolymerClient({ apiKey: process.env.POLY_API_KEY });
+
+// 1. Fetch genome-wide biophysics for TP53
+const region = await client.regions.fetch("hg38", "chr17:7668421-7687490");
+console.log(region.stacking_dg37.mean);            // -8.42 kcal/mol
+
+// 2. Run the physics linter
+const result = await client.evaluate({
+  sequence: "ATGCGATCG...",
+  analysis: "full",
+});
+console.log(result.summary.gc_content, result.flag_counts.warnings);
+
+// 3. Search
+const hits = await client.search.genes("TP53");
+hits.forEach(h => console.log(h.symbol, h.chromosome));`,
+};
+
+const LANGS: Array<{ id: Language; label: string }> = [
+  { id: 'python', label: 'Python' },
+  { id: 'curl',   label: 'curl' },
+  { id: 'r',      label: 'R' },
+  { id: 'js',     label: 'TypeScript' },
+];
+
+const RECIPES = [
+  {
+    title: 'Cross-layer region query',
+    blurb: 'Fetch biophysics + CpG sites + EPIC v2 probes in one call. Single round-trip; agent-optimized response.',
+    code: `region = client.regions.fetch(\n  "hg38", "chr17:7668421-7687490",\n  layers=["biophysics", "cpg_sites", "probe_epic_v2"],\n)\nprint(region.cpg_sites.count, region.probe_epic_v2.count)`,
+  },
+  {
+    title: 'Batch evaluate (constructs / CDS panels)',
+    blurb: 'Send up to 1,000 sequences in one POST. Returns per-sequence flags and a summary roll-up.',
+    code: `batch = client.evaluate_batch([\n  {"name": "TP53_ex2", "sequence": "ATGCG..."},\n  {"name": "TP53_ex3", "sequence": "CGCGC..."},\n  # ...\n])\nfor r in batch.results:\n    print(r.name, r.flag_counts.warnings)`,
+  },
+  {
+    title: 'Apply a methylation clock',
+    blurb: 'Predict age from a beta matrix using any of the 6 supported clocks.',
+    code: `ages = client.clocks.predict(\n  betas=betas,             # pandas.DataFrame or path to CSV\n  clock="horvath",         # horvath | hannum | phenoage | grimage | retro_age | dunedinpace\n)\nprint(ages.head())`,
+  },
+  {
+    title: 'Aggregate genome-wide',
+    blurb: 'For atlas-scale overviews, request pre-binned counts instead of bp-resolution data.',
+    code: `agg = client.aggregation.fetch(\n  "hg38", "chr17:1-83257441",\n  layers=["cpg_sites", "probe_epic_v2"],\n  resolution=1_000_000,\n)\nfor bin in agg.cpg_sites.bins:\n    print(bin.start, bin.count)`,
+  },
+];
+
+export default function DevelopersPage() {
+  const [lang, setLang] = useState<Language>('python');
+
+  return (
+    <main style={{
+      backgroundColor: COLOR.bg.primary,
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      <BrandBar sticky subtitle={subtitle} />
+
       <section style={{
-        ...SECTION_STYLE,
-        display: 'flex',
-        gap: SPACE[6],
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+        maxWidth: 920,
+        width: '100%',
+        margin: '0 auto',
+        padding: `${SPACE[12]}px ${SPACE[6]}px ${SPACE[16]}px`,
+        flex: 1,
       }}>
-        <Link href="/docs" style={{
-          ...COMPONENT.button.ghost as React.CSSProperties,
-          textDecoration: 'none',
-          display: 'inline-block',
+        {/* Header */}
+        <div style={{ marginBottom: SPACE[10] }}>
+          <div style={{
+            color: COLOR.text.faint,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            marginBottom: SPACE[3],
+          }}>
+            § DEVELOPERS · 60-second quickstart · SDK + MCP + REST
+          </div>
+          <h1 style={{
+            margin: 0,
+            color: COLOR.primary.base,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.xl.fontSize,
+            lineHeight: TYPE.xl.lineHeight,
+            letterSpacing: TYPE.xl.letterSpacing,
+            fontWeight: WEIGHT.bold,
+            marginBottom: SPACE[3],
+          }}>
+            Build with Polymer
+          </h1>
+          <p style={{
+            margin: 0,
+            maxWidth: 640,
+            color: COLOR.text.secondary,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.md.fontSize,
+            lineHeight: 1.55,
+          }}>
+            Genome-wide DNA biophysics in your stack. Python SDK, R bindings,
+            TypeScript SDK, and an{' '}
+            <Link href="/docs" style={{ color: COLOR.primary.base, textDecoration: 'none', borderBottom: `1px solid ${COLOR.primary.base}40` }}>
+              MCP server
+            </Link>{' '}
+            with {MCP_TOTAL} tools for AI agents. Every response carries provenance.
+          </p>
+        </div>
+
+        {/* Quickstart */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead index="01" label="60-second quickstart" count="install · auth · first call" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[3] }}>
+            <Step n="1" title="Install the SDK">
+              <CodeBlock language="bash" code="pip install polymer-genomics" />
+            </Step>
+            <Step n="2" title="Get an API key">
+              <Prose>
+                Sign in at <span style={{ color: COLOR.primary.base }}>polymerbio.org/account</span> and
+                copy your <InlineCode>POLY_…</InlineCode> key. Free tier: 1,000 requests/day.
+              </Prose>
+            </Step>
+            <Step n="3" title="Fetch your first region">
+              <CodeBlock language="python" code={`from polymer_genomics import PolymerClient\n\nclient = PolymerClient(api_key="POLY_...")\n\nregion = client.regions.fetch("hg38", "chr17:7668421-7687490")\nprint(region.stacking_dg37.mean)   # -8.42 kcal/mol`} />
+            </Step>
+          </div>
+        </div>
+
+        {/* Language tabs */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead index="02" label="Pick your stack" count="Python · curl · R · TypeScript" />
+
+          <div style={{ display: 'flex', gap: SPACE[1], marginBottom: SPACE[4] }}>
+            {LANGS.map((l) => {
+              const active = lang === l.id;
+              return (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => setLang(l.id)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: active ? COLOR.primary.base : COLOR.text.secondary,
+                    border: 'none',
+                    borderBottom: `2px solid ${active ? COLOR.primary.base : 'transparent'}`,
+                    padding: `${SPACE[2]}px ${SPACE[3]}px`,
+                    fontFamily: FONT_FAMILY,
+                    fontSize: TYPE.sm.fontSize,
+                    fontWeight: active ? WEIGHT.semibold : WEIGHT.medium,
+                    letterSpacing: '0.01em',
+                    cursor: 'pointer',
+                    transition: 'color 0.12s, border-color 0.12s',
+                  }}
+                >
+                  {l.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <CodeBlock language={lang} code={SDK_EXAMPLES[lang]} />
+        </div>
+
+        {/* Recipes */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead index="03" label="Recipes" count={`${RECIPES.length} common patterns`} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[5] }}>
+            {RECIPES.map((r, i) => (
+              <div key={r.title}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'baseline',
+                  gap: SPACE[2],
+                  marginBottom: SPACE[2],
+                }}>
+                  <span style={{
+                    color: COLOR.text.faint,
+                    fontFamily: FONT_FAMILY_MONO,
+                    fontSize: TYPE.xs.fontSize,
+                    letterSpacing: '0.08em',
+                  }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h3 style={{
+                    margin: 0,
+                    color: COLOR.text.primary,
+                    fontFamily: FONT_FAMILY,
+                    fontSize: TYPE.md.fontSize,
+                    fontWeight: WEIGHT.semibold,
+                    letterSpacing: '-0.005em',
+                  }}>
+                    {r.title}
+                  </h3>
+                </div>
+                <Prose>{r.blurb}</Prose>
+                <CodeBlock language="python" code={r.code} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Agents */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead index="04" label="For AI agents · MCP" count={`${MCP_TOTAL} tools`} />
+          <Prose>
+            Polymer exposes its full API to LLM agents through a Model Context Protocol server.
+            Add it to Claude Desktop, Cursor, or your in-house agent in one line.
+          </Prose>
+          <CodeBlock language="json" code={`{\n  "mcpServers": {\n    "polymer": {\n      "command": "uvx",\n      "args": ["polymer-mcp", "serve"],\n      "env": { "POLYMER_API_KEY": "POLY_..." }\n    }\n  }\n}`} />
+          <div style={{ marginTop: SPACE[3] }}>
+            <Link href="/docs#mcp" style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: SPACE[2],
+              color: COLOR.primary.base,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.sm.fontSize,
+              fontWeight: WEIGHT.semibold,
+              textDecoration: 'none',
+              letterSpacing: '0.01em',
+            }}>
+              Full MCP tool reference <span aria-hidden>→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Inventory CTA */}
+        <div style={{
+          padding: SPACE[5],
+          backgroundColor: COLOR.bg.elevated,
+          border: `1px solid ${COLOR.border.default}`,
+          borderRadius: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: SPACE[4],
         }}>
-          API Reference
-        </Link>
-        <Link href="https://pypi.org/project/polymer-genomics/" style={{
-          ...COMPONENT.button.ghost as React.CSSProperties,
-          textDecoration: 'none',
-          display: 'inline-block',
-        }}>
-          PyPI Package
-        </Link>
-        <Link href="/view/hg38/chr17:7668402-7687490" style={{
-          ...COMPONENT.button.ghost as React.CSSProperties,
-          textDecoration: 'none',
-          display: 'inline-block',
-        }}>
-          Genome Browser
-        </Link>
-        <Link href="/data-sources" style={{
-          ...COMPONENT.button.ghost as React.CSSProperties,
-          textDecoration: 'none',
-          display: 'inline-block',
-        }}>
-          Data Sources
-        </Link>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              color: COLOR.text.tertiary,
+              fontFamily: FONT_FAMILY_MONO,
+              fontSize: TYPE.xs.fontSize,
+              fontWeight: WEIGHT.medium,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}>
+              50 layers · versions · licenses
+            </div>
+            <div style={{
+              color: COLOR.text.primary,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.md.fontSize,
+              fontWeight: WEIGHT.semibold,
+            }}>
+              Data inventory
+            </div>
+            <div style={{
+              color: COLOR.text.secondary,
+              fontFamily: FONT_FAMILY,
+              fontSize: TYPE.sm.fontSize,
+              marginTop: 2,
+            }}>
+              Browse every layer with citation, version, content hash, and license.
+            </div>
+          </div>
+          <Link href="/data-sources" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: SPACE[2],
+            backgroundColor: COLOR.primary.base,
+            color: COLOR.bg.white,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.sm.fontSize,
+            fontWeight: WEIGHT.medium,
+            textDecoration: 'none',
+            padding: `${SPACE[2] + 2}px ${SPACE[4]}px`,
+            borderRadius: 2,
+            letterSpacing: '0.01em',
+          }}>
+            View data sources <span aria-hidden>→</span>
+          </Link>
+        </div>
       </section>
 
-      <div style={{ flex: 1 }} />
       <Footer />
     </main>
+  );
+}
+
+function Step({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
+  return (
+    <div style={{
+      backgroundColor: COLOR.bg.elevated,
+      border: `1px solid ${COLOR.border.default}`,
+      borderRadius: 2,
+      padding: SPACE[4],
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: SPACE[3],
+        marginBottom: SPACE[3],
+      }}>
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 22,
+          height: 22,
+          backgroundColor: COLOR.primary.base,
+          color: COLOR.bg.white,
+          fontFamily: FONT_FAMILY_MONO,
+          fontSize: 12,
+          fontWeight: WEIGHT.bold,
+          borderRadius: 2,
+        }}>
+          {n}
+        </span>
+        <span style={{
+          color: COLOR.text.primary,
+          fontFamily: FONT_FAMILY,
+          fontSize: TYPE.md.fontSize,
+          fontWeight: WEIGHT.semibold,
+        }}>
+          {title}
+        </span>
+      </div>
+      {children}
+    </div>
   );
 }

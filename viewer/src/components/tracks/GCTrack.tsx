@@ -8,7 +8,7 @@ import { COLORS } from '@/config/colors';
 
 const GC_LOW_COLOR = '#4a5568';   // blue-grey
 const GC_HIGH_COLOR = '#4ECDC4';  // teal
-const REF_LINE_COLOR = '#333333';
+const REF_LINE_COLOR = '#A1A1AA';
 
 export interface GCTrackProps {
   data: ViewportData | null;

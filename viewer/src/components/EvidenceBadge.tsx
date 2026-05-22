@@ -62,7 +62,7 @@ export function EvidenceBadge({ evidenceClass, size = 'sm' }: EvidenceBadgeProps
           transform: 'translateX(-50%)',
           marginBottom: 4,
           padding: '4px 8px',
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#FAFAFA',
           color: '#E0E0E0',
           fontSize: TYPE.xs.fontSize,
           fontFamily: FONT_FAMILY,

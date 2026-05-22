@@ -1,51 +1,43 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CytoBand, GIEMSA_COLORS } from '@/config/cytobands';
 import { COLOR } from '@/config/theme';
-import type { IsochoreBin } from '@/lib/isochore';
-
-export type DetailLevel = 'low' | 'minimal' | 'high';
+import { type IsochoreBin } from '@/config/karyotypeData';
 
 interface ChromosomeSVGProps {
   chrName: string;
-  bands: CytoBand[];
-  chrLength: number;
-  centromereStart: number;
-  centromereEnd: number;
   width: number;
   height: number;
-  detail: DetailLevel;
-  onClick?: () => void;
-  hovered?: boolean;
+  centromereStart: number;   // normalized [0,1]
+  centromereEnd: number;
   isochoreBins?: IsochoreBin[];
+  hovered?: boolean;
+  onClick?: () => void;
 }
 
-// Centromere pinch ratio — how narrow the constriction gets
-const PINCH_RATIO = 0.4;
-// Radius for arm caps
-const CAP_FRAC = 0.5; // semicircle = half the width
+// Visual constants for the chromosome silhouette
+const PINCH_RATIO = 0.40;  // how narrow the centromere constriction gets
+const CAP_FRAC = 0.55;     // semicircular telomere cap radius as fraction of half-width
 
 /**
- * SVG-based vertical chromosome renderer with cytobands and centromere constriction.
- * p-arm at top, q-arm at bottom. Height is proportional to chromosome length.
+ * D2 vertical chromosome — p-arm at top, q-arm at bottom, semicircular
+ * telomere caps, quadratic-bezier centromere pinch, isochore-coloured
+ * interior. Light-mode styled (light-gray background, hairline outline,
+ * electric-blue hover). Drops the dark-mode teal glow and Giemsa fallback.
  */
 export function ChromosomeSVG({
   chrName,
-  bands,
-  chrLength,
-  centromereStart,
-  centromereEnd,
   width,
   height,
-  detail,
-  onClick,
-  hovered,
+  centromereStart,
+  centromereEnd,
   isochoreBins,
+  hovered,
+  onClick,
 }: ChromosomeSVGProps) {
-  // chrM: draw a small teal circle
+  // chrM — small electric-blue ring
   if (chrName === 'chrM') {
-    const r = Math.min(width, height) * 0.35;
+    const r = Math.min(width, height) * 0.40;
     const cx = width / 2;
     const cy = height / 2;
     return (
@@ -54,27 +46,16 @@ export function ChromosomeSVG({
         height={height}
         viewBox={`0 0 ${width} ${height}`}
         onClick={onClick}
-        style={{ cursor: onClick ? 'pointer' : 'default' }}
+        style={{ cursor: onClick ? 'pointer' : 'default', display: 'block' }}
       >
         <circle
           cx={cx}
           cy={cy}
           r={r}
-          fill={`${COLOR.accent.teal}33`}
-          stroke={COLOR.accent.teal}
-          strokeWidth={1.5}
+          fill={`${COLOR.primary.base}1F`}  // ~12% opacity
+          stroke={hovered ? COLOR.primary.base : COLOR.border.strong}
+          strokeWidth={hovered ? 1.5 : 1}
         />
-        {hovered && (
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r + 3}
-            fill="none"
-            stroke={COLOR.accent.teal}
-            strokeWidth={0.5}
-            opacity={0.5}
-          />
-        )}
       </svg>
     );
   }
@@ -83,76 +64,30 @@ export function ChromosomeSVG({
   const capR = halfW * CAP_FRAC;
   const pinchHalfW = halfW * PINCH_RATIO;
 
-  // Convert genomic position to y coordinate
-  const bpToY = (bp: number) => (bp / chrLength) * height;
+  // Convert normalized position to y coord
+  const yAt = (t: number) => t * height;
+  const cenStartY = yAt(centromereStart);
+  const cenEndY   = yAt(centromereEnd);
+  const cenMidY   = (cenStartY + cenEndY) / 2;
 
-  const cenStartY = bpToY(centromereStart);
-  const cenEndY = bpToY(centromereEnd);
-  const cenMidY = (cenStartY + cenEndY) / 2;
-
-  // Build the chromosome outline clip path
   const clipId = `chr-clip-${chrName}`;
 
-  // Merge small bands based on detail level
-  // low: aggressive merge (< 8px) — overview thumbnails
-  // minimal: moderate merge (< 2px) — detail page mini chr
-  // high: no merge — full resolution
-  const visibleBands = useMemo(() => {
-    if (detail === 'high') return bands;
-
-    const threshold = detail === 'low' ? 8 : 2;
-    const merged: CytoBand[] = [];
-    let acc: CytoBand | null = null;
-
-    for (const band of bands) {
-      const bandH = bpToY(band.end) - bpToY(band.start);
-      if (bandH < threshold) {
-        if (acc !== null) {
-          acc = { chrom: acc.chrom, start: acc.start, end: band.end, name: acc.name, gieStain: acc.gieStain };
-        } else {
-          acc = { chrom: band.chrom, start: band.start, end: band.end, name: band.name, gieStain: band.gieStain };
-        }
-      } else {
-        if (acc !== null) {
-          merged.push(acc);
-          acc = null;
-        }
-        merged.push(band);
-      }
-    }
-    if (acc !== null) merged.push(acc);
-    return merged;
-  }, [bands, detail, height, chrLength]);
-
-  // Build outline path with semicircular caps and centromere constriction
-  // Path goes: top cap (left to right), right side down through centromere, bottom cap (right to left), left side up through centromere
   const outlinePath = useMemo(() => {
     const parts: string[] = [];
-
-    // Start at top-left, after the cap
-    // Top semicircular cap: arc from left to right
-    parts.push(`M ${halfW - halfW} ${capR}`);
-    parts.push(`A ${halfW} ${capR} 0 0 1 ${halfW + halfW} ${capR}`);
-
-    // Right side: down to centromere
+    // Top cap
+    parts.push(`M 0 ${capR}`);
+    parts.push(`A ${halfW} ${capR} 0 0 1 ${width} ${capR}`);
+    // Right side down to centromere
     parts.push(`L ${width} ${cenStartY}`);
-    // Centromere pinch (right side): quadratic bezier inward
     parts.push(`Q ${halfW + pinchHalfW} ${cenMidY} ${width} ${cenEndY}`);
-
-    // Continue right side down to bottom cap
+    // Right side down to bottom cap
     parts.push(`L ${width} ${height - capR}`);
-    // Bottom semicircular cap: arc from right to left
     parts.push(`A ${halfW} ${capR} 0 0 1 0 ${height - capR}`);
-
-    // Left side: up to centromere
+    // Left side up through centromere
     parts.push(`L 0 ${cenEndY}`);
-    // Centromere pinch (left side): quadratic bezier inward
     parts.push(`Q ${halfW - pinchHalfW} ${cenMidY} 0 ${cenStartY}`);
-
-    // Left side up to top
     parts.push(`L 0 ${capR}`);
     parts.push('Z');
-
     return parts.join(' ');
   }, [width, height, halfW, capR, pinchHalfW, cenStartY, cenEndY, cenMidY]);
 
@@ -170,78 +105,50 @@ export function ChromosomeSVG({
         </clipPath>
       </defs>
 
-      {/* Band fills clipped to chromosome shape */}
+      {/* Interior — light background + isochore bands */}
       <g clipPath={`url(#${clipId})`}>
-        {/* Background fill */}
-        <rect x={0} y={0} width={width} height={height} fill={isochoreBins?.length ? '#1a1a1a' : GIEMSA_COLORS.gneg} />
+        <rect x={0} y={0} width={width} height={height} fill={COLOR.bg.elevated} />
 
-        {isochoreBins?.length ? (
-          <>
-            {/* Isochore-colored bands */}
-            {isochoreBins.map((bin, i) => {
-              const y = bpToY(bin.bin_start);
-              const h = Math.max(bpToY(bin.bin_end) - y, 0.5);
-              return (
-                <rect key={i} x={0} y={y} width={width} height={h} fill={bin.color} />
-              );
-            })}
-            {/* Centromere overlay */}
-            <rect
-              x={0}
-              y={bpToY(centromereStart)}
-              width={width}
-              height={Math.max(bpToY(centromereEnd) - bpToY(centromereStart), 1)}
-              fill={GIEMSA_COLORS.acen}
-              opacity={0.7}
-            />
-          </>
-        ) : (
-          <>
-            {/* Giemsa cytoband rects — fallback */}
-            {visibleBands.map((band, i) => {
-              const y = bpToY(band.start);
-              const h = Math.max(bpToY(band.end) - y, 0.5);
-              const fill = GIEMSA_COLORS[band.gieStain] || GIEMSA_COLORS.gneg;
-              return (
-                <rect key={`${band.name}-${i}`} x={0} y={y} width={width} height={h} fill={fill} />
-              );
-            })}
-            {/* Telomere caps — teal tint at chromosome tips */}
-            {bands.length > 0 && (
-              <>
-                <rect
-                  x={0} y={0} width={width}
-                  height={Math.max(bpToY(bands[0].end), 1)}
-                  fill={COLOR.accent.teal} opacity={0.4}
-                />
-                <rect
-                  x={0} y={bpToY(bands[bands.length - 1].start)} width={width}
-                  height={Math.max(height - bpToY(bands[bands.length - 1].start), 1)}
-                  fill={COLOR.accent.teal} opacity={0.4}
-                />
-              </>
-            )}
-          </>
-        )}
+        {isochoreBins && isochoreBins.map((b, i) => (
+          <rect
+            key={i}
+            x={0}
+            y={yAt(b.start)}
+            width={width}
+            height={Math.max(yAt(b.end) - yAt(b.start), 0.5)}
+            fill={COLOR.isochore[b.klass]}
+            fillOpacity={0.88}
+          />
+        ))}
+
+        {/* Centromere overlay — slight desaturate */}
+        <rect
+          x={0}
+          y={cenStartY}
+          width={width}
+          height={Math.max(cenEndY - cenStartY, 1)}
+          fill={COLOR.text.muted}
+          fillOpacity={0.55}
+        />
       </g>
 
-      {/* Chromosome outline */}
+      {/* Outline — hairline strong on idle, electric blue on hover */}
       <path
         d={outlinePath}
         fill="none"
-        stroke={hovered ? COLOR.accent.teal : COLOR.border.strong}
+        stroke={hovered ? COLOR.primary.base : COLOR.border.strong}
         strokeWidth={hovered ? 1.5 : 0.75}
         style={{ transition: 'stroke 0.15s, stroke-width 0.15s' }}
       />
 
-      {/* Hover glow */}
+      {/* Hover halo — very faint electric blue */}
       {hovered && (
         <path
           d={outlinePath}
           fill="none"
-          stroke={COLOR.accent.teal}
+          stroke={COLOR.primary.base}
           strokeWidth={3}
-          opacity={0.15}
+          opacity={0.12}
         />
       )}
     </svg>

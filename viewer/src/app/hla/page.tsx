@@ -1,1308 +1,214 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
+import { useState, useCallback } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
-import { HLASidebar } from '@/components/hla/HLASidebar';
-import { Term } from '@/components/hla/Term';
-import { SparklineHistogram, percentileRank } from '@/components/hla/SparklineHistogram';
-import { fetchLoci, fetchAlleles, fetchAlleleDetail, compareAlleles, fetchDivergence, fetchExpressionCorrelation, fetchWithinProtein, fetchDistributions } from '@/lib/hla/api';
-import type {
-  HLALocus, HLAClass, HLATab, LocusSummary, AlleleListItem,
-  AlleleDetail, CompareResult, DivergenceResult, ExpressionCorrelationResult,
-  WithinProteinResult, DistributionsResult,
-} from '@/lib/hla/types';
+import { LocusCards } from '@/components/hla/LocusCards';
+import { AlleleTable } from '@/components/hla/AlleleTable';
+import { DivergenceComparison } from '@/components/hla/DivergenceComparison';
+import { DivergenceDistribution } from '@/components/hla/DivergenceDistribution';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import { LOCI, getLocus, allelesForLocus } from '@/config/hlaMockData';
 
-/* ── Styles ── */
+const subtitle = (
+  <span style={{
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: 12,
+    fontFamily: FONT_FAMILY_MONO,
+    fontSize: TYPE.sm.fontSize,
+    letterSpacing: '0.04em',
+  }}>
+    <span style={{ color: COLOR.text.tertiary }}>HLA</span>
+    <span style={{ color: COLOR.border.strong }}>·</span>
+    <span style={{ color: COLOR.text.tertiary }}>6 transplant loci · biophysics divergence</span>
+  </span>
+);
 
-const CELL: React.CSSProperties = {
-  fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize, color: COLOR.text.primary,
-  padding: `${SPACE[2]}px ${SPACE[3]}px`,
-  borderBottom: `1px solid ${COLOR.border.subtle}20`,
-  fontVariantNumeric: 'tabular-nums',
-};
-
-const HEADER: React.CSSProperties = {
-  ...CELL, fontWeight: WEIGHT.medium, color: COLOR.text.tertiary,
-  borderBottom: `1px solid ${COLOR.border.subtle}`,
-  textTransform: 'uppercase' as const, letterSpacing: '0.05em',
-  cursor: 'pointer', userSelect: 'none', fontSize: 9,
-};
-
-const SECTION: React.CSSProperties = {
-  marginBottom: SPACE[4], paddingBottom: SPACE[3],
-  borderBottom: `1px solid ${COLOR.border.subtle}`,
-};
-
-const SECTION_HEADER: React.CSSProperties = {
-  fontFamily: FONT_FAMILY, fontSize: TYPE.md.fontSize,
-  fontWeight: WEIGHT.bold, color: COLOR.text.primary,
-  letterSpacing: TYPE.md.letterSpacing, marginBottom: SPACE[3],
-};
-
-const CARD: React.CSSProperties = {
-  border: `1px solid ${COLOR.border.subtle}`, borderRadius: 8,
-  padding: SPACE[4], background: COLOR.bg.primary,
-  cursor: 'pointer', transition: 'border-color 0.15s',
-};
-
-/* ── Page ── */
-
-export default function HLAPage() {
-  // Sidebar state
-  const [selectedLocus, setSelectedLocus] = useState<HLALocus | null>(null);
-  const [classFilter, setClassFilter] = useState<HLAClass | null>(null);
-  const [genomicOnly, setGenomicOnly] = useState(false);
-  const [alleleGroup, setAlleleGroup] = useState('');
-  const [activeTab, setActiveTab] = useState<HLATab>('alleles');
-
-  // Data state
-  const [loci, setLoci] = useState<LocusSummary[]>([]);
-  const [alleles, setAlleles] = useState<AlleleListItem[]>([]);
-  const [alleleTotal, setAlleleTotal] = useState(0);
-  const [alleleOffset, setAlleleOffset] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Detail state
-  const [selectedAllele, setSelectedAllele] = useState<AlleleDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-
-  // Compare state
-  const [compareNames, setCompareNames] = useState<string[]>([]);
-  const [compareInput, setCompareInput] = useState('');
-  const [compareFocus, setCompareFocus] = useState<'noncoding' | 'full' | 'coding'>('noncoding');
-  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
-  const [compareLoading, setCompareLoading] = useState(false);
-
-  // Divergence state
-  const [divGroup, setDivGroup] = useState('');
-  const [divProtein, setDivProtein] = useState('');
-  const [divResult, setDivResult] = useState<DivergenceResult | null>(null);
-  const [divLoading, setDivLoading] = useState(false);
-
-  // Expression correlation state
-  const [exprFocus, setExprFocus] = useState<'noncoding' | 'full' | 'both'>('noncoding');
-  const [exprAllLoci, setExprAllLoci] = useState(false);
-  const [exprResult, setExprResult] = useState<ExpressionCorrelationResult | null>(null);
-  const [exprLoading, setExprLoading] = useState(false);
-
-  // Within-protein state
-  const [wpResult, setWpResult] = useState<WithinProteinResult | null>(null);
-  const [wpLoading, setWpLoading] = useState(false);
-  const [wpExpanded, setWpExpanded] = useState<string | null>(null);
-
-  // Distributions state
-  const [distributions, setDistributions] = useState<DistributionsResult | null>(null);
-
-  // Sort
-  const [sortKey, setSortKey] = useState<string>('allele_name');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
-  // Derived: unique allele groups
-  const alleleGroups = useMemo(() => {
-    const groups = new Set(alleles.map((a) => a.allele_group));
-    return [...groups].sort((a, b) => Number(a) - Number(b));
-  }, [alleles]);
-
-  /* ── Fetch loci on mount ── */
-  useEffect(() => {
-    fetchLoci().then(setLoci).catch(() => {});
-  }, []);
-
-  /* ── Fetch alleles when locus/filters change ── */
-  useEffect(() => {
-    if (!selectedLocus) { setAlleles([]); return; }
-    setLoading(true);
-    setError(null);
-    setAlleleOffset(0);
-    fetchAlleles(selectedLocus, {
-      genomic_only: genomicOnly,
-      allele_group: alleleGroup || undefined,
-      limit: 200,
-      offset: 0,
-    })
-      .then((res) => { setAlleles(res.alleles); setAlleleTotal(res.total); })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [selectedLocus, genomicOnly, alleleGroup]);
-
-  /* ── Fetch distributions when locus changes ── */
-  useEffect(() => {
-    if (!selectedLocus) { setDistributions(null); return; }
-    fetchDistributions(selectedLocus).then(setDistributions).catch(() => {});
-  }, [selectedLocus]);
-
-  /* ── Load more ── */
-  const loadMore = useCallback(async () => {
-    if (!selectedLocus || loading) return;
-    const newOffset = alleleOffset + 200;
-    setLoading(true);
-    try {
-      const res = await fetchAlleles(selectedLocus, {
-        genomic_only: genomicOnly,
-        allele_group: alleleGroup || undefined,
-        limit: 200,
-        offset: newOffset,
-      });
-      setAlleles((prev) => [...prev, ...res.alleles]);
-      setAlleleOffset(newOffset);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLocus, genomicOnly, alleleGroup, alleleOffset, loading]);
-
-  /* ── Select allele for detail ── */
-  const handleSelectAllele = useCallback(async (name: string) => {
-    setDetailLoading(true);
-    try {
-      const detail = await fetchAlleleDetail(name);
-      setSelectedAllele(detail);
-    } catch {
-      setSelectedAllele(null);
-    } finally {
-      setDetailLoading(false);
-    }
-  }, []);
-
-  /* ── Compare ── */
-  const handleCompare = useCallback(async () => {
-    if (compareNames.length < 2) return;
-    setCompareLoading(true);
-    try {
-      const result = await compareAlleles(compareNames, compareFocus);
-      setCompareResult(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Compare failed');
-    } finally {
-      setCompareLoading(false);
-    }
-  }, [compareNames, compareFocus]);
-
-  const addCompareAllele = useCallback(() => {
-    const trimmed = compareInput.trim();
-    if (trimmed && !compareNames.includes(trimmed)) {
-      setCompareNames((prev) => [...prev, trimmed]);
-      setCompareInput('');
-    }
-  }, [compareInput, compareNames]);
-
-  /* ── Divergence ── */
-  const handleDivergence = useCallback(async () => {
-    if (!selectedLocus || !divGroup || !divProtein) return;
-    setDivLoading(true);
-    try {
-      const result = await fetchDivergence(selectedLocus, divGroup, divProtein);
-      setDivResult(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Divergence query failed');
-    } finally {
-      setDivLoading(false);
-    }
-  }, [selectedLocus, divGroup, divProtein]);
-
-  /* ── Expression correlation ── */
-  const handleExprCorrelation = useCallback(async () => {
-    setExprLoading(true);
-    try {
-      const locus = exprAllLoci ? undefined : selectedLocus ?? undefined;
-      const result = await fetchExpressionCorrelation({ locus: locus ?? undefined, focus: exprFocus });
-      setExprResult(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Expression correlation failed');
-    } finally {
-      setExprLoading(false);
-    }
-  }, [selectedLocus, exprFocus, exprAllLoci]);
-
-  /* ── Within-protein test ── */
-  const handleWithinProtein = useCallback(async () => {
-    setWpLoading(true);
-    try {
-      const locus = exprAllLoci ? undefined : selectedLocus ?? undefined;
-      const result = await fetchWithinProtein({
-        locus: locus ?? undefined,
-        include_features: false,
-      });
-      setWpResult(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Within-protein test failed');
-    } finally {
-      setWpLoading(false);
-    }
-  }, [selectedLocus, exprAllLoci]);
-
-  // Auto-fetch both when switching to expression tab
-  useEffect(() => {
-    if (activeTab === 'expression' && !exprResult && !exprLoading) {
-      handleExprCorrelation();
-    }
-    if (activeTab === 'expression' && !wpResult && !wpLoading) {
-      handleWithinProtein();
-    }
-  }, [activeTab]);
-
-  /* ── Sorting ── */
-  const sortedAlleles = useMemo(() => {
-    return [...alleles].sort((a, b) => {
-      const av = (a as any)[sortKey];
-      const bv = (b as any)[sortKey];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-      return sortDir === 'asc' ? av - bv : bv - av;
-    });
-  }, [alleles, sortKey, sortDir]);
-
-  const handleSort = (key: string) => {
-    if (sortKey === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('asc'); }
-  };
-
-  const fmt = (v: number | null, dp = 3) => v != null ? v.toFixed(dp) : '—';
-
-  /* ── Render ── */
+function SectionHead({ index, label, count }: { index: string; label: string; count?: string }) {
   return (
-    <div style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: FONT_FAMILY }}>
-      <BrandBar subtitle="HLA Allele Biophysics" />
-
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '220px 1fr', overflow: 'hidden' }}>
-        {/* Sidebar */}
-        <div style={{
-          borderRight: `1px solid ${COLOR.border.subtle}`,
-          background: COLOR.bg.elevated,
-          overflowY: 'auto',
-          padding: '16px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          <HLASidebar
-            selectedLocus={selectedLocus}
-            onSelectLocus={(l) => { setSelectedLocus(l); setAlleleGroup(''); setSelectedAllele(null); }}
-            classFilter={classFilter}
-            onClassFilter={setClassFilter}
-            genomicOnly={genomicOnly}
-            onGenomicOnly={setGenomicOnly}
-            alleleGroup={alleleGroup}
-            onAlleleGroup={setAlleleGroup}
-            alleleGroups={alleleGroups}
-            loci={loci}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-        </div>
-
-        {/* Main */}
-        <div style={{ overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-
-          {/* ── No locus selected: overview cards ── */}
-          {!selectedLocus && (
-            <div style={{ padding: `${SPACE[8]}px ${SPACE[6]}px`, maxWidth: 900, margin: '0 auto', width: '100%' }}>
-              <h1 style={{
-                fontSize: TYPE.xl.fontSize, fontWeight: WEIGHT.bold, letterSpacing: TYPE.xl.letterSpacing,
-                color: COLOR.text.primary, fontFamily: FONT_FAMILY, marginBottom: SPACE[2],
-              }}>
-                HLA Allele Biophysics
-              </h1>
-              <p style={{
-                fontSize: TYPE.base.fontSize, color: COLOR.text.tertiary, fontFamily: FONT_FAMILY,
-                lineHeight: TYPE.base.lineHeight, marginBottom: SPACE[8], maxWidth: 640,
-              }}>
-                Material-channel analysis of {loci.reduce((s, l) => s + l.total_alleles, 0).toLocaleString()} HLA
-                alleles from IPD-IMGT/HLA. Non-coding biophysics (introns, UTRs) capture the hidden
-                layer of expression-relevant variation that protein-level matching misses.
-                <span style={{ display: 'block', marginTop: SPACE[2], fontSize: TYPE.sm.fontSize, color: COLOR.text.muted }}>
-                  Bettens et al. 2022 — non-coding cis-eQTLs explain 13-50% of HLA class I expression variance.
-                </span>
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: SPACE[4] }}>
-                {loci.map((l) => (
-                  <div
-                    key={l.locus}
-                    onClick={() => setSelectedLocus(l.locus)}
-                    style={CARD}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = COLOR.accent.teal; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = COLOR.border.subtle; }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[2], marginBottom: SPACE[3] }}>
-                      <span style={{
-                        fontSize: 9, padding: '2px 5px',
-                        border: `1px solid ${l.hla_class === 1 ? COLOR.accent.teal : COLOR.accent.violet}40`,
-                        color: l.hla_class === 1 ? COLOR.accent.teal : COLOR.accent.violet,
-                        fontFamily: FONT_FAMILY,
-                      }}>
-                        Class {l.hla_class === 1 ? 'I' : 'II'}
-                      </span>
-                      <span style={{ fontSize: TYPE.md.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontFamily: FONT_FAMILY }}>
-                        {l.locus.replace('HLA-', '')}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <StatRow label="alleles" value={l.total_alleles.toLocaleString()} />
-                      <StatRow label="genomic" value={l.genomic_alleles.toLocaleString()} />
-                      <StatRow label="GC" value={fmt(l.mean_gc_content)} />
-                      <StatRow label="ΔG₃₇" value={fmt(l.mean_stacking_dg37)} />
-                      <StatRow label="nc GC" value={fmt(l.mean_nc_gc_content)} highlight />
-                      <StatRow label="nc ΔG₃₇" value={fmt(l.mean_nc_stacking_dg37)} highlight />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Locus selected ── */}
-          {selectedLocus && (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-              {/* ── ALLELES TAB ── */}
-              {activeTab === 'alleles' && (
-                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                  {/* Table */}
-                  <div style={{ flex: 1, overflowY: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          {[
-                            { key: 'allele_name', label: 'Allele', w: '16%' },
-                            { key: 'has_genomic', label: 'Seq', w: '4%' },
-                            { key: 'gc_content', label: 'GC', w: '10%', align: 'right' as const },
-                            { key: 'mean_stacking_dg37', label: 'ΔG₃₇', w: '10%', align: 'right' as const },
-                            { key: 'melting_temp_est', label: 'Tm', w: '10%', align: 'right' as const },
-                            { key: 'nc_gc_content', label: 'nc GC', w: '10%', align: 'right' as const },
-                            { key: 'nc_mean_stacking_dg37', label: 'nc ΔG₃₇', w: '10%', align: 'right' as const },
-                            { key: 'nc_melting_temp_est', label: 'nc Tm', w: '10%', align: 'right' as const },
-                            { key: 'sequence_length', label: 'Length', w: '8%', align: 'right' as const },
-                            { key: 'expression_suffix', label: 'Expr', w: '5%' },
-                          ].map((col) => (
-                            <th
-                              key={col.key}
-                              onClick={() => handleSort(col.key)}
-                              style={{ ...HEADER, width: col.w, textAlign: col.align ?? 'left' }}
-                            >
-                              <Term label={col.label} />
-                              {sortKey === col.key && (
-                                <span style={{ marginLeft: 3, fontSize: 8 }}>
-                                  {sortDir === 'asc' ? '▲' : '▼'}
-                                </span>
-                              )}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedAlleles.map((a) => {
-                          const isSelected = selectedAllele?.identity.allele_name === a.allele_name;
-                          return (
-                            <tr
-                              key={a.allele_name}
-                              onClick={() => handleSelectAllele(a.allele_name)}
-                              style={{
-                                cursor: 'pointer',
-                                background: isSelected ? `${COLOR.accent.teal}0C` : 'transparent',
-                                transition: 'background 0.1s',
-                              }}
-                              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = COLOR.bg.elevated; }}
-                              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <td style={{ ...CELL, fontWeight: WEIGHT.medium }}>{a.allele_name}</td>
-                              <td style={CELL}>
-                                <span style={{
-                                  width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-                                  background: a.has_genomic ? COLOR.accent.teal : `${COLOR.text.faint}40`,
-                                }} />
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.gc_content!} value={a.gc_content} />
-                                  {fmt(a.gc_content)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.mean_stacking_dg37!} value={a.mean_stacking_dg37} />
-                                  {fmt(a.mean_stacking_dg37)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.melting_temp_est!} value={a.melting_temp_est} />
-                                  {fmt(a.melting_temp_est, 1)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.nc_gc_content!} value={a.nc_gc_content} />
-                                  {fmt(a.nc_gc_content)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.nc_mean_stacking_dg37!} value={a.nc_mean_stacking_dg37} />
-                                  {fmt(a.nc_mean_stacking_dg37)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right', color: COLOR.accent.teal }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                                  <SparklineHistogram dist={distributions?.metrics.nc_melting_temp_est!} value={a.nc_melting_temp_est} />
-                                  {fmt(a.nc_melting_temp_est, 1)}
-                                </span>
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{a.sequence_length?.toLocaleString() ?? '—'}</td>
-                              <td style={{ ...CELL, color: a.expression_suffix ? COLOR.accent.amber : COLOR.text.muted }}>
-                                {a.expression_suffix ?? '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-
-                    {alleles.length < alleleTotal && (
-                      <div style={{ padding: SPACE[4], textAlign: 'center' }}>
-                        <button
-                          onClick={loadMore}
-                          disabled={loading}
-                          style={{
-                            ...COMPONENT.button.small,
-                            opacity: loading ? 0.5 : 1,
-                          }}
-                        >
-                          {loading ? 'Loading...' : `Load more (${alleles.length} / ${alleleTotal})`}
-                        </button>
-                      </div>
-                    )}
-
-                    {loading && alleles.length === 0 && (
-                      <div style={{ padding: SPACE[8], textAlign: 'center', color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>
-                        Loading alleles...
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Detail panel */}
-                  <div style={{
-                    width: 320, flexShrink: 0,
-                    borderLeft: `1px solid ${COLOR.border.subtle}`,
-                    overflowY: 'auto', padding: `${SPACE[4]}px ${SPACE[3]}px`,
-                    background: COLOR.bg.primary,
-                  }}>
-                    {detailLoading && (
-                      <div style={{ color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>Loading...</div>
-                    )}
-                    {!detailLoading && !selectedAllele && (
-                      <div style={{ color: COLOR.text.faint, fontSize: TYPE.sm.fontSize }}>
-                        Select an allele to view full biophysical profile
-                      </div>
-                    )}
-                    {!detailLoading && selectedAllele && (
-                      <AlleleDetailPanel detail={selectedAllele} distributions={distributions} />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ── COMPARE TAB ── */}
-              {activeTab === 'compare' && (
-                <div style={{ padding: `${SPACE[5]}px ${SPACE[6]}px`, maxWidth: 900, overflow: 'auto' }}>
-                  <div style={SECTION_HEADER}>Compare Alleles</div>
-                  <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
-                    Enter 2-10 allele names. First allele is the reference for delta computation.
-                    Focus on non-coding regions to reveal the expression-relevant hidden layer.
-                  </p>
-
-                  {/* Input */}
-                  <div style={{ display: 'flex', gap: SPACE[2], marginBottom: SPACE[3], flexWrap: 'wrap', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      value={compareInput}
-                      onChange={(e) => setCompareInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addCompareAllele(); }}
-                      placeholder={`e.g. ${selectedLocus?.replace('HLA-', '') ?? 'A'}*02:01:01:01`}
-                      style={{
-                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
-                        padding: `${SPACE[2]}px ${SPACE[3]}px`,
-                        border: `1px solid ${COLOR.border.default}`,
-                        background: COLOR.bg.primary, color: COLOR.text.primary,
-                        width: 220,
-                      }}
-                    />
-                    <button onClick={addCompareAllele} style={COMPONENT.button.small}>Add</button>
-                    <select
-                      value={compareFocus}
-                      onChange={(e) => setCompareFocus(e.target.value as any)}
-                      style={{
-                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
-                        padding: `${SPACE[1]}px ${SPACE[2]}px`,
-                        border: `1px solid ${COLOR.border.default}`,
-                        background: COLOR.bg.surface, color: COLOR.text.secondary,
-                      }}
-                    >
-                      <option value="noncoding">Non-coding focus</option>
-                      <option value="full">Full sequence</option>
-                      <option value="coding">Coding only</option>
-                    </select>
-                    <button
-                      onClick={handleCompare}
-                      disabled={compareNames.length < 2 || compareLoading}
-                      style={{
-                        ...COMPONENT.button.small,
-                        backgroundColor: compareNames.length >= 2 ? COLOR.accent.teal : 'transparent',
-                        color: compareNames.length >= 2 ? COLOR.bg.primary : COLOR.text.muted,
-                        borderColor: compareNames.length >= 2 ? COLOR.accent.teal : COLOR.border.default,
-                      }}
-                    >
-                      {compareLoading ? 'Running...' : 'Compare'}
-                    </button>
-                  </div>
-
-                  {/* Selected alleles */}
-                  {compareNames.length > 0 && (
-                    <div style={{ display: 'flex', gap: SPACE[2], flexWrap: 'wrap', marginBottom: SPACE[4] }}>
-                      {compareNames.map((name, i) => (
-                        <span key={name} style={{
-                          fontFamily: FONT_FAMILY, fontSize: 9, padding: '3px 8px',
-                          border: `1px solid ${i === 0 ? COLOR.accent.teal : COLOR.border.default}`,
-                          color: i === 0 ? COLOR.accent.teal : COLOR.text.secondary,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                          {i === 0 && <span style={{ fontSize: 7, opacity: 0.6 }}>REF</span>}
-                          {name}
-                          <span
-                            onClick={() => setCompareNames((prev) => prev.filter((_, j) => j !== i))}
-                            style={{ cursor: 'pointer', color: COLOR.text.faint, fontSize: 10, marginLeft: 2 }}
-                          >
-                            ×
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Results */}
-                  {compareResult && (
-                    <div>
-                      <div style={{ ...SECTION, marginTop: SPACE[4] }}>
-                        <div style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.muted, marginBottom: SPACE[2] }}>
-                          {compareResult.shared_protein ? 'Protein-identical alleles' : 'Different proteins'} ·
-                          Focus: {compareResult.focus} · Reference: {compareResult.reference}
-                        </div>
-                      </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={HEADER}>Metric</th>
-                            {Object.keys(compareResult.comparison).map((name) => (
-                              <th key={name} style={{ ...HEADER, textAlign: 'right' }}>
-                                {name === compareResult.reference ? `${name} (ref)` : name}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(() => {
-                            const ref = compareResult.comparison[compareResult.reference];
-                            const bio = compareResult.focus === 'noncoding' ? ref?.noncoding_biophysics : ref?.biophysics;
-                            if (!bio) return null;
-                            return Object.keys(bio).map((metric) => (
-                              <tr key={metric}>
-                                <td style={{ ...CELL, fontSize: 9 }}>{metric.replace(/_/g, ' ')}</td>
-                                {Object.entries(compareResult.comparison).map(([name, data]) => {
-                                  const val = compareResult.focus === 'noncoding'
-                                    ? (data.noncoding_biophysics as any)?.[metric]
-                                    : (data.biophysics as any)?.[metric];
-                                  const delta = compareResult.deltas_vs_reference[name]?.[`delta_${metric}`];
-                                  return (
-                                    <td key={name} style={{ ...CELL, textAlign: 'right' }}>
-                                      {val != null ? Number(val).toFixed(4) : '—'}
-                                      {delta != null && name !== compareResult.reference && (
-                                        <span style={{
-                                          display: 'block', fontSize: 8,
-                                          color: Math.abs(delta) > 0.01 ? COLOR.accent.rose : COLOR.text.faint,
-                                        }}>
-                                          {delta > 0 ? '+' : ''}{delta.toFixed(4)}
-                                        </span>
-                                      )}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ));
-                          })()}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── DIVERGENCE TAB ── */}
-              {activeTab === 'divergence' && (
-                <div style={{ padding: `${SPACE[5]}px ${SPACE[6]}px`, maxWidth: 900, overflow: 'auto' }}>
-                  <div style={SECTION_HEADER}>Non-Coding Divergence</div>
-                  <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
-                    Select a protein (e.g., {selectedLocus?.replace('HLA-', '')}*02:01) to find all alleles encoding
-                    the same protein and rank non-coding regions by biophysical variance.
-                    High variance = potential expression mismatch despite protein identity.
-                  </p>
-
-                  <div style={{ display: 'flex', gap: SPACE[2], marginBottom: SPACE[4], alignItems: 'center' }}>
-                    <span style={{ fontSize: TYPE.xs.fontSize, color: COLOR.text.muted }}>
-                      {selectedLocus?.replace('HLA-', '')}*
-                    </span>
-                    <input
-                      type="text"
-                      value={divGroup}
-                      onChange={(e) => setDivGroup(e.target.value)}
-                      placeholder="02"
-                      style={{
-                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
-                        padding: `${SPACE[2]}px ${SPACE[2]}px`, width: 50,
-                        border: `1px solid ${COLOR.border.default}`,
-                        background: COLOR.bg.primary, color: COLOR.text.primary,
-                      }}
-                    />
-                    <span style={{ fontSize: TYPE.xs.fontSize, color: COLOR.text.muted }}>:</span>
-                    <input
-                      type="text"
-                      value={divProtein}
-                      onChange={(e) => setDivProtein(e.target.value)}
-                      placeholder="01"
-                      style={{
-                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
-                        padding: `${SPACE[2]}px ${SPACE[2]}px`, width: 50,
-                        border: `1px solid ${COLOR.border.default}`,
-                        background: COLOR.bg.primary, color: COLOR.text.primary,
-                      }}
-                    />
-                    <button
-                      onClick={handleDivergence}
-                      disabled={!divGroup || !divProtein || divLoading}
-                      style={{
-                        ...COMPONENT.button.small,
-                        backgroundColor: divGroup && divProtein ? COLOR.accent.teal : 'transparent',
-                        color: divGroup && divProtein ? COLOR.bg.primary : COLOR.text.muted,
-                        borderColor: divGroup && divProtein ? COLOR.accent.teal : COLOR.border.default,
-                      }}
-                    >
-                      {divLoading ? 'Querying...' : 'Analyze'}
-                    </button>
-                  </div>
-
-                  {divResult && (
-                    <div>
-                      <div style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.muted, marginBottom: SPACE[3] }}>
-                        {divResult.n_alleles} alleles encode {divResult.query.locus.replace('HLA-', '')}*{divResult.query.allele_group}:{divResult.query.protein}
-                        {divResult.most_variable_metric && (
-                          <span> · Most variable: <strong style={{ color: COLOR.accent.teal }}>
-                            {divResult.most_variable_metric.replace(/^nc_/, '').replace(/_/g, ' ')}
-                          </strong></span>
-                        )}
-                      </div>
-
-                      {/* Variance ranking */}
-                      <div style={SECTION_HEADER}>Metric Variance Ranking</div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: SPACE[5] }}>
-                        <thead>
-                          <tr>
-                            <th style={HEADER}>NC Metric</th>
-                            <th style={{ ...HEADER, textAlign: 'right' }}>Variance</th>
-                            <th style={{ ...HEADER, textAlign: 'right' }}>Mean</th>
-                            <th style={{ ...HEADER, textAlign: 'right' }}>Range</th>
-                            <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {divResult.ranked_by_variance.map((m, i) => (
-                            <tr key={m.metric}>
-                              <td style={{ ...CELL, fontWeight: i === 0 ? WEIGHT.bold : WEIGHT.normal, color: i === 0 ? COLOR.accent.teal : COLOR.text.primary }}>
-                                {m.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{m.variance.toFixed(6)}</td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{m.mean.toFixed(4)}</td>
-                              <td style={{ ...CELL, textAlign: 'right', fontSize: 9 }}>
-                                [{m.range[0].toFixed(4)}, {m.range[1].toFixed(4)}]
-                              </td>
-                              <td style={{ ...CELL, textAlign: 'right' }}>{m.n}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── EXPRESSION TAB ── */}
-              {activeTab === 'expression' && (
-                <div style={{ padding: `${SPACE[5]}px ${SPACE[6]}px`, maxWidth: 1000, overflow: 'auto' }}>
-                  <div style={SECTION_HEADER}>Expression Correlation</div>
-                  <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
-                    Do biophysical properties of HLA allele DNA predict expression phenotype?
-                    Groups alleles by IMGT expression suffix and computes Cohen&apos;s d effect sizes
-                    for each biophysical metric (normal vs aberrant expression classes).
-                  </p>
-
-                  {/* Controls */}
-                  <div style={{ display: 'flex', gap: SPACE[2], marginBottom: SPACE[4], alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select
-                      value={exprFocus}
-                      onChange={(e) => { setExprFocus(e.target.value as any); setExprResult(null); }}
-                      style={{
-                        fontFamily: FONT_FAMILY, fontSize: TYPE.xs.fontSize,
-                        padding: `${SPACE[1]}px ${SPACE[2]}px`,
-                        border: `1px solid ${COLOR.border.default}`,
-                        background: COLOR.bg.surface, color: COLOR.text.secondary,
-                      }}
-                    >
-                      <option value="noncoding">Non-coding metrics</option>
-                      <option value="full">Whole-allele metrics</option>
-                      <option value="both">All metrics</option>
-                    </select>
-                    <button
-                      onClick={() => { setExprAllLoci(!exprAllLoci); setExprResult(null); }}
-                      style={exprAllLoci ? { ...COMPONENT.button.small, borderColor: COLOR.accent.teal, color: COLOR.accent.teal } : COMPONENT.button.small}
-                    >
-                      {exprAllLoci ? 'All loci' : selectedLocus?.replace('HLA-', '') ?? 'This locus'}
-                    </button>
-                    <button
-                      onClick={handleExprCorrelation}
-                      disabled={exprLoading}
-                      style={{
-                        ...COMPONENT.button.small,
-                        backgroundColor: COLOR.accent.teal,
-                        color: COLOR.bg.primary,
-                        borderColor: COLOR.accent.teal,
-                        opacity: exprLoading ? 0.5 : 1,
-                      }}
-                    >
-                      {exprLoading ? 'Analyzing...' : 'Run'}
-                    </button>
-                  </div>
-
-                  {exprLoading && !exprResult && (
-                    <div style={{ padding: SPACE[8], textAlign: 'center', color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>
-                      Analyzing expression correlation...
-                    </div>
-                  )}
-
-                  {exprResult && (
-                    <div>
-                      {/* Class distribution */}
-                      <div style={{ ...SECTION, marginBottom: SPACE[5] }}>
-                        <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                          CLASS DISTRIBUTION — {exprResult.n_alleles.toLocaleString()} genomic alleles
-                        </div>
-                        <div style={{ display: 'flex', gap: SPACE[2], flexWrap: 'wrap' }}>
-                          {Object.entries(exprResult.class_distribution).map(([label, info]) => {
-                            const isNormal = label === 'normal';
-                            const pct = ((info.n / exprResult.n_alleles) * 100).toFixed(1);
-                            return (
-                              <div key={label} style={{
-                                padding: `${SPACE[2]}px ${SPACE[3]}px`,
-                                border: `1px solid ${isNormal ? COLOR.accent.teal : COLOR.accent.amber}30`,
-                                background: isNormal ? `${COLOR.accent.teal}08` : 'transparent',
-                                minWidth: 80,
-                              }}>
-                                <div style={{ fontSize: 9, color: isNormal ? COLOR.accent.teal : COLOR.accent.amber, fontWeight: WEIGHT.medium, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
-                                  {label}{info.suffix ? ` (${info.suffix})` : ''}
-                                </div>
-                                <div style={{ fontSize: TYPE.md.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary, fontVariantNumeric: 'tabular-nums' }}>
-                                  {info.n.toLocaleString()}
-                                </div>
-                                <div style={{ fontSize: 8, color: COLOR.text.muted }}>{pct}%</div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Pooled: normal vs all-aberrant */}
-                      {exprResult.pooled_normal_vs_aberrant.length > 0 && (
-                        <div style={{ marginBottom: SPACE[5] }}>
-                          <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                            NORMAL vs ALL ABERRANT — ranked by |Cohen&apos;s d|
-                          </div>
-                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr>
-                                <th style={HEADER}>Metric</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}><Term label="Cohen's d" style={{ fontSize: 9 }} /></th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
-                                <th style={{ ...HEADER, width: '15%' }}>Effect</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>Normal mean</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>Aberrant mean</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
-                                <th style={HEADER}>Dir</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {exprResult.pooled_normal_vs_aberrant.map((e, i) => {
-                                const isLarge = e.abs_d >= 0.8;
-                                const isMed = e.abs_d >= 0.5;
-                                return (
-                                  <tr key={e.metric}>
-                                    <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal, color: isLarge ? COLOR.accent.teal : COLOR.text.primary }}>
-                                      {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
-                                    </td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
-                                      {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
-                                    </td>
-                                    <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>
-                                      {e.abs_d.toFixed(3)}
-                                    </td>
-                                    <td style={CELL}>
-                                      <EffectSizeBar value={e.abs_d} />
-                                    </td>
-                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
-                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.aberrant_mean.toFixed(4)}</td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.normal_n.toLocaleString()} / {e.aberrant_n.toLocaleString()}</td>
-                                    <td style={{ ...CELL, fontSize: 9, color: COLOR.text.muted }}>{e.direction}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                          <div style={{ marginTop: SPACE[2], fontSize: 8, color: COLOR.text.faint }}>
-                            Effect size: |d| &ge; 0.8 large · &ge; 0.5 medium · &ge; 0.2 small
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Per-class effect sizes (top 20) */}
-                      {exprResult.effect_sizes.length > 0 && (
-                        <div>
-                          <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                            PER-CLASS EFFECT SIZES — top {Math.min(30, exprResult.effect_sizes.length)}
-                          </div>
-                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                              <tr>
-                                <th style={HEADER}>Metric</th>
-                                <th style={HEADER}>Class</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>d</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>|d|</th>
-                                <th style={{ ...HEADER, width: '12%' }}>Effect</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>Normal</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>Class mean</th>
-                                <th style={{ ...HEADER, textAlign: 'right' }}>n</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {exprResult.effect_sizes.slice(0, 30).map((e, i) => {
-                                const isLarge = e.abs_d >= 0.8;
-                                const isMed = e.abs_d >= 0.5;
-                                return (
-                                  <tr key={`${e.metric}-${e.expression_class}`}>
-                                    <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal }}>
-                                      {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
-                                    </td>
-                                    <td style={{ ...CELL, color: COLOR.accent.amber }}>{e.expression_class}</td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
-                                      {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
-                                    </td>
-                                    <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.abs_d.toFixed(3)}</td>
-                                    <td style={CELL}>
-                                      <EffectSizeBar value={e.abs_d} />
-                                    </td>
-                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
-                                    <td style={{ ...CELL, textAlign: 'right' }}>{e.class_mean.toFixed(4)}</td>
-                                    <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.class_n}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* ── WITHIN-PROTEIN TEST ── */}
-                  <div style={{ marginTop: SPACE[6], borderTop: `1px solid ${COLOR.border.subtle}`, paddingTop: SPACE[5] }}>
-                    <div style={SECTION_HEADER}>Within-Protein Expression Test</div>
-                    <p style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.tertiary, marginBottom: SPACE[4], lineHeight: 1.6 }}>
-                      The Bettens test: among alleles encoding the <strong>same protein</strong>, do
-                      expression-suffix alleles (L, Q, S, C, A) differ in non-coding biophysics from
-                      their normally-expressed siblings? Excludes null (N) alleles (coding knockouts).
-                    </p>
-
-                    {!wpResult && !wpLoading && (
-                      <button onClick={handleWithinProtein} style={{ ...COMPONENT.button.small, backgroundColor: COLOR.accent.teal, color: COLOR.bg.primary, borderColor: COLOR.accent.teal }}>
-                        Run Within-Protein Test
-                      </button>
-                    )}
-
-                    {wpLoading && (
-                      <div style={{ padding: SPACE[4], color: COLOR.text.muted, fontSize: TYPE.sm.fontSize }}>
-                        Analyzing protein groups...
-                      </div>
-                    )}
-
-                    {wpResult && (
-                      <div>
-                        <div style={{ fontSize: TYPE.sm.fontSize, color: COLOR.text.muted, marginBottom: SPACE[4] }}>
-                          {wpResult.n_protein_groups_tested} protein groups qualify
-                          (of {wpResult.n_protein_groups_total.toLocaleString()} total) —
-                          groups with ≥{wpResult.min_alleles} alleles, at least 1 normal + 1 suffix (excl. N)
-                        </div>
-
-                        {wpResult.n_protein_groups_tested === 0 && (
-                          <div style={{ padding: SPACE[4], color: COLOR.text.muted, fontSize: TYPE.sm.fontSize, border: `1px solid ${COLOR.border.subtle}`, textAlign: 'center' }}>
-                            No qualifying protein groups found. Try &ldquo;All loci&rdquo; or lower the minimum allele threshold.
-                          </div>
-                        )}
-
-                        {/* Aggregate effects */}
-                        {wpResult.aggregate_effects.length > 0 && (
-                          <div style={{ marginBottom: SPACE[5] }}>
-                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                              AGGREGATE — mean effect across {wpResult.n_protein_groups_tested} protein groups
-                            </div>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                              <thead>
-                                <tr>
-                                  <th style={HEADER}>NC Metric</th>
-                                  <th style={{ ...HEADER, textAlign: 'right' }}>Mean d</th>
-                                  <th style={{ ...HEADER, textAlign: 'right' }}>Mean |d|</th>
-                                  <th style={{ ...HEADER, width: '12%' }}>Effect</th>
-                                  <th style={{ ...HEADER, textAlign: 'right' }}>Groups</th>
-                                  <th style={{ ...HEADER, textAlign: 'right' }}>Consistency</th>
-                                  <th style={HEADER}>Dir</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {wpResult.aggregate_effects.map((e) => {
-                                  const isLarge = e.mean_abs_d >= 0.8;
-                                  const isMed = e.mean_abs_d >= 0.5;
-                                  return (
-                                    <tr key={e.metric}>
-                                      <td style={{ ...CELL, fontWeight: isLarge ? WEIGHT.bold : WEIGHT.normal }}>
-                                        {e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}
-                                      </td>
-                                      <td style={{ ...CELL, textAlign: 'right', color: isLarge ? COLOR.accent.teal : isMed ? COLOR.accent.amber : COLOR.text.secondary }}>
-                                        {e.mean_d > 0 ? '+' : ''}{e.mean_d.toFixed(3)}
-                                      </td>
-                                      <td style={{ ...CELL, textAlign: 'right', fontWeight: WEIGHT.medium }}>{e.mean_abs_d.toFixed(3)}</td>
-                                      <td style={CELL}>
-                                        <EffectSizeBar value={e.mean_abs_d} />
-                                      </td>
-                                      <td style={{ ...CELL, textAlign: 'right', color: COLOR.text.muted }}>{e.n_groups}</td>
-                                      <td style={{ ...CELL, textAlign: 'right', color: e.direction_consistency >= 0.8 ? COLOR.accent.teal : COLOR.text.muted }}>
-                                        {(e.direction_consistency * 100).toFixed(0)}%
-                                        <span style={{ fontSize: 8, color: COLOR.text.faint, marginLeft: 3 }}>
-                                          ({e.direction_positive}+ / {e.direction_negative}−)
-                                        </span>
-                                      </td>
-                                      <td style={{ ...CELL, fontSize: 9, color: COLOR.text.muted }}>{e.dominant_direction}</td>
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-
-                        {/* Top protein groups */}
-                        {wpResult.protein_groups.length > 0 && (
-                          <div style={{ marginBottom: SPACE[5] }}>
-                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                              TOP PROTEIN GROUPS by max |d|
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: SPACE[2] }}>
-                              {wpResult.protein_groups.slice(0, 15).map((g) => {
-                                const isExpanded = wpExpanded === g.protein;
-                                return (
-                                  <div key={g.protein} style={{
-                                    border: `1px solid ${g.max_abs_d >= 0.8 ? COLOR.accent.teal : COLOR.border.subtle}30`,
-                                    padding: `${SPACE[2]}px ${SPACE[3]}px`,
-                                    cursor: 'pointer',
-                                    background: isExpanded ? `${COLOR.accent.teal}05` : 'transparent',
-                                  }} onClick={() => setWpExpanded(isExpanded ? null : g.protein)}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <div>
-                                        <span style={{ fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary }}>{g.protein}</span>
-                                        <span style={{ fontSize: 9, color: COLOR.text.muted, marginLeft: SPACE[2] }}>
-                                          {g.n_normal} normal + {g.n_suffix} suffix ({g.suffix_types.join(', ')})
-                                        </span>
-                                      </div>
-                                      <span style={{
-                                        fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.bold, fontVariantNumeric: 'tabular-nums',
-                                        color: g.max_abs_d >= 0.8 ? COLOR.accent.teal : g.max_abs_d >= 0.5 ? COLOR.accent.amber : COLOR.text.secondary,
-                                      }}>
-                                        |d| = {g.max_abs_d.toFixed(2)}
-                                      </span>
-                                    </div>
-                                    {isExpanded && g.effects.length > 0 && (
-                                      <div style={{ marginTop: SPACE[2], paddingTop: SPACE[2], borderTop: `1px solid ${COLOR.border.subtle}30` }}>
-                                        <div style={{ fontSize: 8, color: COLOR.text.faint, marginBottom: SPACE[1] }}>
-                                          Suffix alleles: {g.suffix_alleles.join(', ')}
-                                        </div>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                          <thead>
-                                            <tr>
-                                              <th style={{ ...HEADER, fontSize: 8 }}>Metric</th>
-                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>d</th>
-                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>Normal</th>
-                                              <th style={{ ...HEADER, fontSize: 8, textAlign: 'right' }}>Suffix</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {g.effects.map((e) => (
-                                              <tr key={e.metric}>
-                                                <td style={{ ...CELL, fontSize: 9 }}>{e.metric.replace(/^nc_/, '').replace(/_/g, ' ')}</td>
-                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right', color: e.abs_d >= 0.5 ? COLOR.accent.teal : COLOR.text.secondary }}>
-                                                  {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
-                                                </td>
-                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
-                                                <td style={{ ...CELL, fontSize: 9, textAlign: 'right' }}>{e.suffix_mean.toFixed(4)}</td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Feature breakdown */}
-                        {wpResult.feature_breakdown && wpResult.feature_breakdown.length > 0 && (
-                          <div>
-                            <div style={{ fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: COLOR.text.faint, marginBottom: SPACE[3] }}>
-                              FEATURE-LEVEL BREAKDOWN — which intron/UTR drives the signal?
-                            </div>
-                            {wpResult.feature_breakdown.map((fb) => (
-                              <div key={fb.protein} style={{ marginBottom: SPACE[4] }}>
-                                <div style={{ fontSize: TYPE.sm.fontSize, fontWeight: WEIGHT.medium, color: COLOR.text.primary, marginBottom: SPACE[2] }}>
-                                  {fb.protein} — {fb.n_features_compared} feature×metric comparisons
-                                </div>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                  <thead>
-                                    <tr>
-                                      <th style={HEADER}>Feature</th>
-                                      <th style={HEADER}>Metric</th>
-                                      <th style={{ ...HEADER, textAlign: 'right' }}>d</th>
-                                      <th style={{ ...HEADER, textAlign: 'right' }}>Normal</th>
-                                      <th style={{ ...HEADER, textAlign: 'right' }}>Suffix</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {fb.effects.slice(0, 10).map((e, i) => (
-                                      <tr key={`${e.feature}-${e.metric}`}>
-                                        <td style={{ ...CELL, fontWeight: i === 0 ? WEIGHT.bold : WEIGHT.normal, color: i < 3 ? COLOR.accent.teal : COLOR.text.primary }}>
-                                          {e.feature}
-                                        </td>
-                                        <td style={CELL}>{e.metric.replace(/_/g, ' ')}</td>
-                                        <td style={{ ...CELL, textAlign: 'right', color: e.abs_d >= 0.5 ? COLOR.accent.teal : COLOR.text.secondary }}>
-                                          {e.cohens_d > 0 ? '+' : ''}{e.cohens_d.toFixed(3)}
-                                        </td>
-                                        <td style={{ ...CELL, textAlign: 'right' }}>{e.normal_mean.toFixed(4)}</td>
-                                        <td style={{ ...CELL, textAlign: 'right' }}>{e.suffix_mean.toFixed(4)}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div style={{
-              margin: SPACE[4], padding: `${SPACE[2]}px ${SPACE[4]}px`,
-              background: 'rgba(244,63,94,0.08)', border: `1px solid ${COLOR.accent.rose}40`,
-              color: COLOR.accent.rose, fontSize: TYPE.sm.fontSize, fontFamily: FONT_FAMILY,
-            }}>
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <Footer />
-    </div>
-  );
-}
-
-/* ── Sub-components ── */
-
-function StatRow({ label, value, highlight, percentile }: {
-  label: string; value: string; highlight?: boolean; percentile?: number | null;
-}) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '1px 0' }}>
-      <Term label={label} style={{ fontSize: 9, color: COLOR.text.muted, fontFamily: FONT_FAMILY }} />
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-        {percentile != null && (
-          <span style={{ fontSize: 8, color: COLOR.text.faint, fontFamily: FONT_FAMILY, fontVariantNumeric: 'tabular-nums' }}>
-            P{percentile}
-          </span>
-        )}
-        <span style={{
-          fontSize: 10, fontFamily: FONT_FAMILY, fontWeight: WEIGHT.medium,
-          fontVariantNumeric: 'tabular-nums',
-          color: highlight ? COLOR.accent.teal : COLOR.text.secondary,
-        }}>
-          {value}
-        </span>
+    <div style={{
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: SPACE[3],
+      paddingBottom: SPACE[3],
+      marginBottom: SPACE[4],
+      borderBottom: `1px solid ${COLOR.border.strong}`,
+    }}>
+      <span style={{ color: COLOR.text.faint, fontFamily: FONT_FAMILY_MONO, fontSize: TYPE.xs.fontSize, letterSpacing: '0.1em' }}>
+        §{index}
       </span>
-    </div>
-  );
-}
-
-function AlleleDetailPanel({ detail, distributions }: { detail: AlleleDetail; distributions: DistributionsResult | null }) {
-  const { identity: id, sequence_metadata: seq, biophysics: bio, noncoding_biophysics: nc, features } = detail;
-  const fmt = (v: number | null, dp = 4) => v != null ? v.toFixed(dp) : '—';
-  const dm = distributions?.metrics;
-
-  /** Compute percentile rank for a metric, or null if no distribution data. */
-  const pctl = (metricKey: string, value: number | null): number | null => {
-    if (value == null || !dm?.[metricKey]) return null;
-    return percentileRank(dm[metricKey], value);
-  };
-
-  const SECT: React.CSSProperties = {
-    marginBottom: 14, paddingBottom: 14,
-    borderBottom: `1px solid ${COLOR.border.subtle}`,
-  };
-  const SECT_TITLE: React.CSSProperties = {
-    fontSize: 9, fontWeight: WEIGHT.medium, letterSpacing: '0.08em',
-    textTransform: 'uppercase' as const, color: COLOR.text.faint,
-    fontFamily: FONT_FAMILY, marginBottom: 8,
-  };
-
-  return (
-    <div style={{ fontFamily: FONT_FAMILY }}>
-      {/* Identity */}
-      <div style={SECT}>
-        <div style={{ fontSize: TYPE.md.fontSize, fontWeight: WEIGHT.bold, color: COLOR.text.primary, marginBottom: SPACE[2] }}>
-          {id.allele_name}
-        </div>
-        <div style={{ display: 'flex', gap: SPACE[2], flexWrap: 'wrap', marginBottom: SPACE[2] }}>
-          <span style={{
-            fontSize: 9, padding: '2px 5px',
-            border: `1px solid ${id.hla_class === 1 ? COLOR.accent.teal : COLOR.accent.violet}40`,
-            color: id.hla_class === 1 ? COLOR.accent.teal : COLOR.accent.violet,
+      <span style={{
+        color: COLOR.text.tertiary,
+        fontFamily: FONT_FAMILY_MONO,
+        fontSize: TYPE.sm.fontSize,
+        fontWeight: WEIGHT.medium,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+      }}>
+        {label}
+      </span>
+      {count && (
+        <>
+          <span style={{ flex: 1 }} />
+          <span className="tabular" style={{
+            color: COLOR.text.tertiary,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            letterSpacing: '0.04em',
           }}>
-            Class {id.hla_class === 1 ? 'I' : 'II'}
+            {count}
           </span>
-          {id.expression_suffix && (
-            <span style={{ fontSize: 9, padding: '2px 5px', border: `1px solid ${COLOR.accent.amber}40`, color: COLOR.accent.amber }}>
-              {id.expression_suffix}
-            </span>
-          )}
-          {seq.has_genomic && (
-            <span style={{ fontSize: 9, padding: '2px 5px', border: `1px solid ${COLOR.accent.teal}40`, color: COLOR.accent.teal }}>
-              Genomic
-            </span>
-          )}
-        </div>
-        <StatRow label="Length" value={seq.sequence_length?.toLocaleString() ?? '—'} percentile={pctl('sequence_length', seq.sequence_length)} />
-        <StatRow label="CDS" value={seq.cds_length?.toLocaleString() ?? '—'} />
-        <StatRow label="exons" value={String(seq.n_exons ?? '—')} />
-        <StatRow label="introns" value={String(seq.n_introns ?? '—')} />
-      </div>
-
-      {/* Whole-allele biophysics */}
-      <div style={SECT}>
-        <div style={SECT_TITLE}>WHOLE-ALLELE BIOPHYSICS</div>
-        <StatRow label="GC" value={fmt(bio.gc_content)} percentile={pctl('gc_content', bio.gc_content)} />
-        <StatRow label="CpG count" value={String(bio.cpg_count ?? '—')} percentile={pctl('cpg_count', bio.cpg_count)} />
-        <StatRow label="CpG obs/exp" value={fmt(bio.cpg_obs_exp)} percentile={pctl('cpg_obs_exp', bio.cpg_obs_exp)} />
-        <StatRow label="CpG islands" value={String(bio.cpg_island_count ?? '—')} percentile={pctl('cpg_island_count', bio.cpg_island_count)} />
-        <StatRow label="ΔG₃₇" value={fmt(bio.mean_stacking_dg37)} percentile={pctl('mean_stacking_dg37', bio.mean_stacking_dg37)} />
-        <StatRow label="Tm" value={fmt(bio.melting_temp_est, 1)} percentile={pctl('melting_temp_est', bio.melting_temp_est)} />
-        <StatRow label="A-form" value={fmt(bio.mean_a_form_prop)} percentile={pctl('mean_a_form_prop', bio.mean_a_form_prop)} />
-        <StatRow label="Z-form" value={fmt(bio.mean_z_form_prop)} percentile={pctl('mean_z_form_prop', bio.mean_z_form_prop)} />
-        <StatRow label="Z penalty" value={fmt(bio.total_z_penalty, 2)} percentile={pctl('total_z_penalty', bio.total_z_penalty)} />
-        <StatRow label="major groove" value={`${fmt(bio.mean_major_groove_w, 2)} Å`} percentile={pctl('mean_major_groove_w', bio.mean_major_groove_w)} />
-        <StatRow label="minor groove" value={`${fmt(bio.mean_minor_groove_w, 2)} Å`} percentile={pctl('mean_minor_groove_w', bio.mean_minor_groove_w)} />
-      </div>
-
-      {/* Non-coding biophysics */}
-      <div style={SECT}>
-        <div style={SECT_TITLE}>NON-CODING BIOPHYSICS</div>
-        <StatRow label="nc GC" value={fmt(nc.gc_content)} highlight percentile={pctl('nc_gc_content', nc.gc_content)} />
-        <StatRow label="nc CpG" value={String(nc.cpg_count ?? '—')} highlight percentile={pctl('nc_cpg_count', nc.cpg_count)} />
-        <StatRow label="nc ΔG₃₇" value={fmt(nc.mean_stacking_dg37)} highlight percentile={pctl('nc_mean_stacking_dg37', nc.mean_stacking_dg37)} />
-        <StatRow label="nc Tm" value={fmt(nc.melting_temp_est, 1)} highlight percentile={pctl('nc_melting_temp_est', nc.melting_temp_est)} />
-        <StatRow label="nc A-form" value={fmt(nc.mean_a_form_prop)} highlight percentile={pctl('nc_mean_a_form_prop', nc.mean_a_form_prop)} />
-        <StatRow label="nc Z-form" value={fmt(nc.mean_z_form_prop)} highlight percentile={pctl('nc_mean_z_form_prop', nc.mean_z_form_prop)} />
-        <StatRow label="nc CpG islands" value={String(nc.cpg_island_count ?? '—')} highlight percentile={pctl('nc_cpg_island_count', nc.cpg_island_count)} />
-      </div>
-
-      {/* Features */}
-      {features.length > 0 && (
-        <div>
-          <div style={SECT_TITLE}>FEATURES ({features.length})</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {features.map((f) => {
-              const isNC = f.feature_type !== 'exon';
-              return (
-                <div
-                  key={f.feature_label}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '3px 6px', background: isNC ? `${COLOR.accent.teal}08` : 'transparent',
-                    borderLeft: `2px solid ${isNC ? COLOR.accent.teal : COLOR.text.faint}40`,
-                  }}
-                >
-                  <span style={{ fontSize: 9, color: isNC ? COLOR.accent.teal : COLOR.text.secondary, fontWeight: WEIGHT.medium }}>
-                    {f.feature_label}
-                  </span>
-                  <span style={{ fontSize: 8, color: COLOR.text.muted, fontVariantNumeric: 'tabular-nums' }}>
-                    {f.length_bp}bp · GC {fmt(f.gc_content)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-/**
- * EffectSizeBar — horizontal bar showing |Cohen's d| against conventional thresholds.
- * Shows threshold markers at 0.2 (small), 0.5 (medium), 0.8 (large).
- * Capped at |d| = 2.0 for display purposes.
- */
-function EffectSizeBar({ value }: { value: number }) {
-  const maxD = 2.0;
-  const pct = Math.min(value / maxD, 1) * 100;
-  const barColor = value >= 0.8 ? COLOR.accent.teal : value >= 0.5 ? COLOR.accent.amber : COLOR.text.faint;
+export default function HLAPage() {
+  const [selectedLocus, setSelectedLocus] = useState<string>('B');
+  // Two-slot selection for pairwise comparison; pre-populated with first two alleles
+  const initialAlleles = allelesForLocus('B').slice(0, 2);
+  const [slotA, setSlotA] = useState<string | null>(initialAlleles[0]?.name ?? null);
+  const [slotB, setSlotB] = useState<string | null>(initialAlleles[1]?.name ?? null);
+
+  // Click toggles selection across the two slots
+  const handleSelect = useCallback((name: string) => {
+    if (slotA === name) {
+      setSlotA(slotB);
+      setSlotB(null);
+      return;
+    }
+    if (slotB === name) {
+      setSlotB(null);
+      return;
+    }
+    if (slotA === null) {
+      setSlotA(name);
+      return;
+    }
+    if (slotB === null) {
+      setSlotB(name);
+      return;
+    }
+    // Both filled — replace A and shift
+    setSlotA(slotB);
+    setSlotB(name);
+  }, [slotA, slotB]);
+
+  // When locus changes, reset comparison
+  const onLocusChange = useCallback((id: string) => {
+    setSelectedLocus(id);
+    const first = allelesForLocus(id).slice(0, 2);
+    setSlotA(first[0]?.name ?? null);
+    setSlotB(first[1]?.name ?? null);
+  }, []);
+
+  const locus = getLocus(selectedLocus);
+  const alleleCount = allelesForLocus(selectedLocus).length;
 
   return (
-    <div style={{ position: 'relative', height: 10, background: `${COLOR.border.subtle}60`, width: '100%' }}>
-      {/* Filled bar */}
-      <div style={{
-        position: 'absolute', left: 0, top: 0, bottom: 0,
-        width: `${pct}%`, background: barColor, opacity: 0.6,
-        transition: 'width 0.2s',
-      }} />
-      {/* Threshold markers */}
-      {[0.2, 0.5, 0.8].map((t) => (
-        <div key={t} style={{
-          position: 'absolute', left: `${(t / maxD) * 100}%`, top: 0, bottom: 0,
-          width: 1, background: COLOR.text.faint, opacity: 0.4,
-        }} />
-      ))}
-    </div>
+    <main style={{
+      backgroundColor: COLOR.bg.primary,
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      <BrandBar sticky subtitle={subtitle} />
+
+      <section style={{
+        maxWidth: 1280,
+        width: '100%',
+        margin: '0 auto',
+        padding: `${SPACE[12]}px ${SPACE[6]}px ${SPACE[16]}px`,
+        flex: 1,
+      }}>
+        {/* Page header */}
+        <div style={{ marginBottom: SPACE[10] }}>
+          <div style={{
+            color: COLOR.text.faint,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            marginBottom: SPACE[3],
+          }}>
+            § HLA · 6 transplant loci · {LOCI.reduce((s, l) => s + l.totalAlleles, 0).toLocaleString()} named alleles
+          </div>
+          <h1 style={{
+            margin: 0,
+            color: COLOR.primary.base,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.xl.fontSize,
+            lineHeight: TYPE.xl.lineHeight,
+            letterSpacing: TYPE.xl.letterSpacing,
+            fontWeight: WEIGHT.bold,
+            marginBottom: SPACE[3],
+          }}>
+            HLA biophysics
+          </h1>
+          <p style={{
+            margin: 0,
+            maxWidth: 720,
+            color: COLOR.text.secondary,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.base.fontSize,
+            lineHeight: 1.55,
+          }}>
+            Allele-level biophysics for transplant loci. Non-coding divergence (NCDS),
+            expression tier inference, and pairwise comparison at base-pair resolution.
+            Coding-identity-matched alleles can still differ markedly in non-coding regions —
+            that signal is what Polymer surfaces.
+          </p>
+        </div>
+
+        {/* Loci */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead
+            index="01"
+            label="Loci"
+            count={`Selected: ${locus?.name} · class ${locus?.class}`}
+          />
+          <LocusCards selected={selectedLocus} onSelect={onLocusChange} />
+        </div>
+
+        {/* Allele table */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead
+            index="02"
+            label="Alleles"
+            count={`${alleleCount} representative · sorted by global frequency`}
+          />
+          <AlleleTable
+            locusId={selectedLocus}
+            selectedNames={[slotA, slotB]}
+            onSelect={handleSelect}
+          />
+        </div>
+
+        {/* Pairwise comparison */}
+        <div style={{ marginBottom: SPACE[12] }}>
+          <SectionHead
+            index="03"
+            label="Pairwise non-coding divergence"
+            count="biophysics signature across gene span"
+          />
+          <DivergenceComparison alleleA={slotA} alleleB={slotB} />
+        </div>
+
+        {/* Locus-wide distribution */}
+        <div style={{ marginBottom: SPACE[8] }}>
+          <SectionHead
+            index="04"
+            label="Locus-wide divergence distribution"
+            count={`all pairs at ${locus?.name}`}
+          />
+          <DivergenceDistribution locusId={selectedLocus} />
+        </div>
+      </section>
+
+      <Footer />
+    </main>
   );
 }

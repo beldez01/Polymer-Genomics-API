@@ -87,8 +87,8 @@ function MinimapOverlay({ chrName, chrLength, viewStart, viewEnd, onNavigate, bu
         left: pxLeft,
         width: pxWidth,
         height: '100%',
-        backgroundColor: 'rgba(78, 205, 196, 0.20)',
-        border: `1px solid ${COLOR.accent.teal}`,
+        backgroundColor: 'rgba(15, 98, 254, 0.18)',
+        border: `1px solid ${COLOR.primary.base}`,
         borderRadius: 1,
         cursor: dragging ? 'grabbing' : 'grab',
         zIndex: 2,
@@ -105,7 +105,7 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
   if (isMobile) {
     return (
       <div className="w-full flex items-center flex-shrink-0"
-           style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 8px' }}>
+           style={{ height: 32, backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}`, padding: '4px 8px' }}>
         <select
           value={currentChromosome}
           onChange={(e) => onSelectChromosome(e.target.value)}
@@ -129,7 +129,7 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
 
   return (
     <div className="w-full flex items-stretch flex-shrink-0"
-         style={{ height: 32, backgroundColor: '#0D0D0D', borderBottom: '1px solid #222', padding: '4px 8px', gap: 2 }}>
+         style={{ height: 32, backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}`, padding: '4px 8px', gap: 2 }}>
       {CHROMOSOMES.map(chr => {
         const pct = (chr.length / GENOME_LENGTH) * 100;
         const isActive = currentChromosome === chr.name;
@@ -145,8 +145,9 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
                   style={{
                     flex: isMito ? '0 0 18px' : `${pct} 0 0`,
                     minWidth: isMito ? 18 : 10,
-                    backgroundColor: isActive ? '#1a2a28' : '#181818',
-                    border: isActive ? '1px solid #4ECDC4' : '1px solid #666666',
+                    backgroundColor: isActive ? `${COLOR.primary.base}14` : COLOR.bg.deep,
+                    border: isActive ? `1px solid ${COLOR.primary.base}` : `1px solid ${COLOR.border.strong}`,
+                    borderRadius: 999,
                     cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     overflow: 'hidden', position: 'relative',
@@ -158,14 +159,14 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
                 left: `${(chr.centromereStart / chr.length) * 100}%`,
                 width: `${Math.max(((chr.centromereEnd - chr.centromereStart) / chr.length) * 100, 4)}%`,
                 height: '100%',
-                backgroundColor: '#0A0A0A',
-                opacity: 0.7,
-                borderLeft: '1px solid #555',
-                borderRight: '1px solid #555',
+                backgroundColor: COLOR.text.muted,
+                opacity: 0.55,
+                borderLeft: `1px solid ${COLOR.border.strong}`,
+                borderRight: `1px solid ${COLOR.border.strong}`,
               }} />
             )}
             <span style={{
-              color: isActive ? '#4ECDC4' : '#AAA',
+              color: isActive ? COLOR.primary.base : COLOR.text.tertiary,
               fontSize: 9,
               fontFamily: "'JetBrains Mono', monospace",
               fontWeight: isActive ? 700 : 500,

@@ -18,7 +18,7 @@ import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
 import { usePinchZoom } from '@/hooks/usePinchZoom';
 import { useIsMobile } from '@/hooks/useBreakpoint';
-import { COLOR, FONT_FAMILY, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, LAYOUT, TYPE, WEIGHT } from '@/config/theme';
 import { fetchBiophysicsCompute, type BiophysicsComputeResponse } from '@/lib/api';
 
 function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
@@ -224,7 +224,38 @@ function ViewerPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
 
-      <BrandBar onToggleSidebar={() => setMobileSidebarOpen(v => !v)} />
+      <BrandBar
+        sticky
+        onToggleSidebar={() => setMobileSidebarOpen(v => !v)}
+        subtitle={
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: SPACE[3],
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.sm.fontSize,
+            letterSpacing: '0.04em',
+          }}>
+            <span style={{ color: COLOR.text.tertiary }}>
+              {chr}:{start.toLocaleString()}-{end.toLocaleString()}
+            </span>
+            <span style={{ color: COLOR.border.strong }}>·</span>
+            <span style={{ color: COLOR.text.tertiary }}>{build}</span>
+            {regionContext?.gene?.geneSymbol && (
+              <>
+                <span style={{ color: COLOR.border.strong }}>·</span>
+                <span style={{
+                  color: COLOR.primary.base,
+                  fontWeight: WEIGHT.semibold,
+                  letterSpacing: '0.08em',
+                }}>
+                  {regionContext.gene.geneSymbol}
+                </span>
+              </>
+            )}
+          </span>
+        }
+      />
 
       {/* ─── Navigation Bar: Build | Coordinates | Search ─── */}
       <div className="flex items-center" style={{ backgroundColor: COLOR.bg.primary }}>

@@ -1,39 +1,44 @@
 'use client';
 
 import Link from 'next/link';
-import { COLOR, FONT_FAMILY, TYPE, WEIGHT, SPACE, COMPONENT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 
 interface BrandBarProps {
   /** Content shown after the brand name with a vertical divider */
   subtitle?: React.ReactNode;
-  /** Extra content on the right side, before Atlas/API links */
+  /** Extra content inserted at the start of the nav cluster — used by /dmp and /transposome */
   children?: React.ReactNode;
   /** Make the bar sticky at viewport top */
   sticky?: boolean;
+  /** Mobile sidebar toggle — only rendered on mobile when provided. Used by /view. */
   onToggleSidebar?: () => void;
 }
+
+const VIEWER_HREF =
+  '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
 
 export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandBarProps) {
   const isMobile = useIsMobile();
   return (
     <div style={{
-      height: 44,
+      height: LAYOUT.headerHeight,
       backgroundColor: COLOR.bg.primary,
       display: 'flex',
       alignItems: 'center',
-      paddingLeft: SPACE[4],
-      paddingRight: SPACE[4],
+      paddingLeft: SPACE[6],
+      paddingRight: SPACE[6],
       borderBottom: `1px solid ${COLOR.border.subtle}`,
       flexShrink: 0,
       ...(sticky ? { position: 'sticky' as const, top: 0, zIndex: 100 } : {}),
     }}>
+      {/* Wordmark — electric blue, mono caps, the dream-vision title */}
       <Link href="/" style={{
-        color: COLOR.accent.teal,
-        fontSize: 17,
-        fontFamily: FONT_FAMILY,
+        color: COLOR.primary.base,
+        fontFamily: FONT_FAMILY_MONO,
+        fontSize: 15,
         fontWeight: WEIGHT.bold,
-        letterSpacing: '0.08em',
+        letterSpacing: '0.12em',
         textDecoration: 'none',
         flexShrink: 0,
       }}>
@@ -47,15 +52,15 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
             height: 20,
             backgroundColor: COLOR.border.strong,
             flexShrink: 0,
-            marginLeft: SPACE[3],
-            marginRight: SPACE[3],
+            marginLeft: SPACE[4],
+            marginRight: SPACE[4],
           }} />
           {typeof subtitle === 'string' ? (
             <span style={{
               color: COLOR.text.tertiary,
               fontSize: TYPE.base.fontSize,
               fontFamily: FONT_FAMILY,
-              letterSpacing: '0.02em',
+              letterSpacing: '0.01em',
             }}>
               {subtitle}
             </span>
@@ -63,13 +68,14 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         </>
       )}
 
-      <div
+      {/* Nav cluster — right side */}
+      <nav
         className={isMobile ? 'brand-nav-scroll' : undefined}
         style={{
           marginLeft: 'auto',
           display: 'flex',
           alignItems: 'center',
-          gap: isMobile ? SPACE[1] : SPACE[2],
+          gap: isMobile ? SPACE[1] : SPACE[5],
           ...(isMobile ? {
             minWidth: 0,
             overflowX: 'auto' as const,
@@ -77,7 +83,10 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
           } : {}),
         }}
       >
+        {/* Legacy passthrough — page-specific extras (e.g. region indicators) */}
         {children}
+
+        {/* Mobile sidebar toggle — only when caller opts in */}
         {isMobile && onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
@@ -92,12 +101,56 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
             &#9776;
           </button>
         )}
-        <Link href="/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Viewer</Link>
-        <Link href="/atlas" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Atlas</Link>
-        <Link href="/portal/latent3d" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Claims</Link>
-        <Link href="/newsroom" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>Newsroom</Link>
-        <Link href="/docs" style={{...COMPONENT.button.small as React.CSSProperties, whiteSpace: 'nowrap' as const, flexShrink: 0}}>{isMobile ? 'Dev' : 'Dev / API'}</Link>
-      </div>
+
+        {/* Standard nav links */}
+        <NavLink href="/atlas">Atlas</NavLink>
+        <NavLink href="/portal/latent3d">Claims</NavLink>
+        <NavLink href="/newsroom">Newsroom</NavLink>
+        <NavLink href={isMobile ? '/docs' : '/docs'}>{isMobile ? 'Dev' : 'Docs'}</NavLink>
+
+        {/* Primary CTA */}
+        <Link
+          href={VIEWER_HREF}
+          style={{
+            backgroundColor: COLOR.primary.base,
+            color: COLOR.bg.white,
+            fontFamily: FONT_FAMILY,
+            fontSize: TYPE.sm.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.01em',
+            textDecoration: 'none',
+            padding: `${SPACE[2]}px ${SPACE[4]}px`,
+            borderRadius: 2,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          Open viewer →
+        </Link>
+      </nav>
     </div>
+  );
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        color: COLOR.text.secondary,
+        fontFamily: FONT_FAMILY,
+        fontSize: TYPE.sm.fontSize,
+        fontWeight: WEIGHT.medium,
+        letterSpacing: '0.01em',
+        textDecoration: 'none',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        transition: 'color 0.15s',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.primary.base; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.secondary; }}
+    >
+      {children}
+    </Link>
   );
 }

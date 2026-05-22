@@ -40,7 +40,7 @@ export function ExportButton({ targetRef, region, build }: ExportButtonProps) {
       ctx.drawImage(canvas, 0, 0);
 
       // Draw legend background
-      ctx.fillStyle = '#111111';
+      ctx.fillStyle = '#F4F4F5';
       ctx.fillRect(0, canvas.height, finalCanvas.width, legendHeight * 2);
 
       // Draw legend text

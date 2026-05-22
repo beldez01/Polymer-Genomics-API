@@ -185,7 +185,7 @@ export function RepeatTrack({
           left: Math.min(tooltip.x, canvasWidth - 310),
           top: tooltip.y - 8,
           transform: 'translateY(-100%)',
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#FAFAFA',
           border: '1px solid #444',
           padding: '6px 10px',
           maxWidth: 340,

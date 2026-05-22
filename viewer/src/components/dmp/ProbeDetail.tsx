@@ -1,292 +1,164 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { COLOR, TYPE, WEIGHT, FONT_FAMILY, SPACE, COMPONENT } from '@/config/theme';
-import type { DMPRow } from '@/lib/dmp/types';
-import { fetchProbe, fetchCpgProfile } from '@/lib/api';
-import type { ProbeResponse, CpgProfileResponse, CpgProfileSection } from '@/lib/api';
+import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import type { Probe } from '@/config/methylationMockData';
 
 interface ProbeDetailProps {
-  row: DMPRow | null;
+  probe: Probe | null;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: SPACE[4] }}>
-      <h3 style={{
-        ...COMPONENT.sectionHeader,
-        marginBottom: SPACE[2],
-      }}>
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
+interface KVProps { label: string; value: React.ReactNode; mono?: boolean; emphasize?: boolean }
 
-function KVRow({ label, value, color }: { label: string; value: string | number | null | undefined; color?: string }) {
-  if (value === null || value === undefined) return null;
+function KV({ label, value, mono, emphasize }: KVProps) {
   return (
     <div style={{
       display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'baseline',
-      padding: `${SPACE[1]}px 0`,
+      flexDirection: 'column',
+      gap: 4,
+      paddingTop: SPACE[2],
+      paddingBottom: SPACE[2],
       borderBottom: `1px solid ${COLOR.border.subtle}`,
     }}>
       <span style={{
-        color: COLOR.text.muted,
-        fontSize: TYPE.xs.fontSize,
-        fontFamily: FONT_FAMILY,
+        color: COLOR.text.tertiary,
+        fontFamily: FONT_FAMILY_MONO,
+        fontSize: 10,
+        fontWeight: WEIGHT.medium,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
       }}>
         {label}
       </span>
-      <span style={{
-        color: color || COLOR.text.secondary,
-        fontSize: TYPE.xs.fontSize,
-        fontFamily: FONT_FAMILY,
-        fontWeight: WEIGHT.medium,
-        textAlign: 'right',
-        maxWidth: '60%',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
-        {typeof value === 'number' ? formatNumber(value) : value}
+      <span
+        className={mono ? 'tabular' : undefined}
+        style={{
+          color: emphasize ? COLOR.primary.base : COLOR.text.primary,
+          fontFamily: mono ? FONT_FAMILY_MONO : FONT_FAMILY,
+          fontSize: mono ? TYPE.sm.fontSize : TYPE.base.fontSize,
+          fontWeight: emphasize ? WEIGHT.semibold : WEIGHT.medium,
+          letterSpacing: mono ? '0.01em' : 0,
+        }}
+      >
+        {value}
       </span>
     </div>
   );
 }
 
-function formatNumber(n: number): string {
-  if (Math.abs(n) < 0.001 && n !== 0) return n.toExponential(3);
-  if (Number.isInteger(n)) return n.toLocaleString();
-  return n.toFixed(4);
-}
-
-function renderProfileSection(section: CpgProfileSection, title: string) {
-  const skip = new Set(['evidence_class', 'scale', 'status', 'provenance', 'rationale']);
-  const entries = Object.entries(section).filter(([k]) => !skip.has(k));
-  if (entries.length === 0) return null;
-
-  return (
-    <Section title={title}>
-      {section.rationale && (
-        <div style={{
-          color: COLOR.text.muted,
-          fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontStyle: 'italic',
-          marginBottom: SPACE[2],
-        }}>
-          {section.rationale as string}
-        </div>
-      )}
-      {entries.map(([key, val]) => {
-        if (val === null || val === undefined) return null;
-        if (typeof val === 'object' && !Array.isArray(val)) {
-          // Nested object: render each sub-key
-          return Object.entries(val as Record<string, unknown>).map(([sk, sv]) => (
-            <KVRow
-              key={`${key}.${sk}`}
-              label={`${key}.${sk}`}
-              value={sv as string | number}
-            />
-          ));
-        }
-        if (Array.isArray(val)) {
-          return <KVRow key={key} label={key} value={`[${val.length} items]`} />;
-        }
-        return <KVRow key={key} label={key} value={val as string | number} />;
-      })}
-    </Section>
-  );
-}
-
-export function ProbeDetail({ row }: ProbeDetailProps) {
-  const [probeData, setProbeData] = useState<ProbeResponse | null>(null);
-  const [profileData, setProfileData] = useState<CpgProfileResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    if (!row) {
-      setProbeData(null);
-      setProfileData(null);
-      setError(null);
-      return;
-    }
-
-    // Cancel previous requests
-    if (abortRef.current) {
-      abortRef.current.abort();
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setLoading(true);
-    setError(null);
-
-    const probeId = row.probe_id;
-
-    Promise.allSettled([
-      fetchProbe('hg38', probeId),
-      fetchCpgProfile('hg38', probeId),
-    ]).then(([probeResult, profileResult]) => {
-      if (controller.signal.aborted) return;
-
-      if (probeResult.status === 'fulfilled') {
-        setProbeData(probeResult.value);
-      } else {
-        setProbeData(null);
-      }
-
-      if (profileResult.status === 'fulfilled') {
-        setProfileData(profileResult.value);
-      } else {
-        setProfileData(null);
-      }
-
-      // Only set error if both failed
-      if (probeResult.status === 'rejected' && profileResult.status === 'rejected') {
-        setError('Could not fetch probe data from API');
-      }
-
-      setLoading(false);
-    });
-
-    return () => {
-      controller.abort();
-    };
-  }, [row]);
-
-  if (!row) {
+export function ProbeDetail({ probe }: ProbeDetailProps) {
+  if (!probe) {
     return (
       <div style={{
+        padding: SPACE[6],
+        textAlign: 'center',
+        color: COLOR.text.muted,
+        fontFamily: FONT_FAMILY,
+        fontSize: TYPE.base.fontSize,
         backgroundColor: COLOR.bg.elevated,
         border: `1px solid ${COLOR.border.subtle}`,
-        padding: SPACE[6],
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        borderRadius: 2,
       }}>
-        <span style={{
-          color: COLOR.text.muted,
-          fontSize: TYPE.sm.fontSize,
-          fontFamily: FONT_FAMILY,
-        }}>
-          Select a probe to view details
-        </span>
+        Click any probe in the volcano, Manhattan, or top-hits table to see its details.
       </div>
     );
   }
 
+  const pStr = Math.pow(10, -probe.neglogp).toExponential(2);
+  const qStr = Math.pow(10, -(probe.neglogp - 2.3)).toExponential(2);  // approx q ~ p × correction
+  const isHyper = probe.delta_beta > 0;
+
   return (
     <div style={{
       backgroundColor: COLOR.bg.elevated,
-      border: `1px solid ${COLOR.border.subtle}`,
-      padding: SPACE[4],
-      height: '100%',
-      overflowY: 'auto',
+      border: `1px solid ${COLOR.border.default}`,
+      borderRadius: 2,
+      padding: SPACE[5],
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      columnGap: SPACE[6],
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: SPACE[4] }}>
+      {/* Left column — identity */}
+      <div>
         <div style={{
-          color: COLOR.text.primary,
-          fontSize: TYPE.md.fontSize,
-          fontFamily: FONT_FAMILY,
-          fontWeight: WEIGHT.bold,
+          display: 'flex',
+          alignItems: 'center',
+          gap: SPACE[3],
+          paddingBottom: SPACE[3],
+          borderBottom: `1px solid ${COLOR.border.strong}`,
           marginBottom: SPACE[1],
-          wordBreak: 'break-all',
         }}>
-          {row.probe_id}
-        </div>
-        {row.gene_symbol && (
-          <div style={{
-            color: COLOR.accent.teal,
-            fontSize: TYPE.sm.fontSize,
-            fontFamily: FONT_FAMILY,
-            fontWeight: WEIGHT.medium,
+          <span style={{
+            color: COLOR.primary.base,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.lg.fontSize,
+            fontWeight: WEIGHT.bold,
+            letterSpacing: '0.04em',
           }}>
-            {row.gene_symbol}
-          </div>
-        )}
+            {probe.id}
+          </span>
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 8px',
+            backgroundColor: isHyper ? `${COLOR.primary.base}1F` : `${COLOR.accent.rose}1F`,
+            color: isHyper ? COLOR.primary.base : COLOR.accent.rose,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: 10,
+            fontWeight: WEIGHT.semibold,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            borderRadius: 2,
+          }}>
+            {isHyper ? 'Hyper-methyl.' : 'Hypo-methyl.'}
+          </span>
+        </div>
+
+        <KV label="Gene"     value={probe.gene ?? '— intergenic —'} />
+        <KV label="Position" value={`${probe.chr}:${probe.position.toLocaleString()}`} mono />
+        <KV label="Context"  value={probe.context ? probe.context.replace('_', ' ') : '— open sea —'} />
       </div>
 
-      {/* DMP Stats */}
-      <Section title="DMP STATISTICS">
-        <KVRow
-          label="Delta Beta"
-          value={row.delta_beta > 0 ? `+${row.delta_beta.toFixed(4)}` : row.delta_beta.toFixed(4)}
-          color={row.delta_beta > 0 ? COLOR.accent.rose : COLOR.accent.teal}
+      {/* Right column — effect */}
+      <div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: SPACE[2],
+          paddingBottom: SPACE[3],
+          borderBottom: `1px solid ${COLOR.border.strong}`,
+          marginBottom: SPACE[1],
+        }}>
+          <span style={{
+            color: COLOR.text.tertiary,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            fontWeight: WEIGHT.medium,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+          }}>
+            Effect
+          </span>
+          <span style={{ flex: 1 }} />
+          <span className="tabular" style={{
+            color: COLOR.text.faint,
+            fontFamily: FONT_FAMILY_MONO,
+            fontSize: TYPE.xs.fontSize,
+            letterSpacing: '0.04em',
+          }}>
+            −log₁₀p = {probe.neglogp.toFixed(2)}
+          </span>
+        </div>
+
+        <KV
+          label="Δβ (A − B)"
+          value={`${probe.delta_beta > 0 ? '+' : ''}${probe.delta_beta.toFixed(3)}`}
+          mono
+          emphasize
         />
-        <KVRow label="p-value" value={row.p_value.toExponential(4)} />
-        <KVRow label="adj. p-value" value={row.adj_p_value.toExponential(4)} />
-        <KVRow label="-log10(p)" value={row.neg_log10_p.toFixed(2)} />
-        {row.chr && <KVRow label="Chromosome" value={row.chr} />}
-        {row.pos && <KVRow label="Position" value={row.pos.toLocaleString()} />}
-      </Section>
-
-      {/* Loading/Error */}
-      {loading && (
-        <div style={{
-          color: COLOR.text.muted,
-          fontSize: TYPE.sm.fontSize,
-          fontFamily: FONT_FAMILY,
-          padding: `${SPACE[4]}px 0`,
-        }}>
-          Loading probe data...
-        </div>
-      )}
-
-      {error && (
-        <div style={{
-          color: COLOR.accent.amber,
-          fontSize: TYPE.xs.fontSize,
-          fontFamily: FONT_FAMILY,
-          padding: `${SPACE[2]}px ${SPACE[3]}px`,
-          backgroundColor: 'rgba(240, 165, 0, 0.08)',
-          border: `1px solid ${COLOR.accent.amber}40`,
-          marginBottom: SPACE[3],
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* Probe API Data */}
-      {probeData && (
-        <Section title="PROBE COORDINATES">
-          <KVRow label="Chromosome" value={probeData.data.probe.seqname} />
-          <KVRow label="Start" value={probeData.data.probe.start.toLocaleString()} />
-          <KVRow label="End" value={probeData.data.probe.end.toLocaleString()} />
-          <KVRow label="Gene" value={probeData.data.probe.gene_symbol || 'intergenic'} />
-          <KVRow label="CpG Context" value={probeData.data.probe.cpg_context} />
-          {probeData.data.crossmap.length > 0 && (
-            <KVRow
-              label="Crossmap"
-              value={probeData.data.crossmap.map(c => `${c.dst_platform}:${c.dst_probe_id}`).join(', ')}
-            />
-          )}
-        </Section>
-      )}
-
-      {/* CpG Profile Data */}
-      {profileData && (
-        <>
-          {profileData.data.site_identity &&
-            renderProfileSection(profileData.data.site_identity, 'SITE IDENTITY')}
-          {profileData.data.gene_context &&
-            renderProfileSection(profileData.data.gene_context, 'GENE CONTEXT')}
-          {profileData.data.regulatory_context &&
-            renderProfileSection(profileData.data.regulatory_context, 'REGULATORY CONTEXT')}
-          {profileData.data.regional_sequence_biophysics &&
-            renderProfileSection(profileData.data.regional_sequence_biophysics, 'SEQUENCE BIOPHYSICS')}
-          {profileData.data.methylation_biophysics_model &&
-            renderProfileSection(profileData.data.methylation_biophysics_model, 'METHYLATION BIOPHYSICS')}
-        </>
-      )}
+        <KV label="Mean β · group A" value={probe.beta_a.toFixed(3)} mono />
+        <KV label="Mean β · group B" value={probe.beta_b.toFixed(3)} mono />
+        <KV label="p-value"            value={pStr} mono />
+        <KV label="q-value (BH)"       value={qStr} mono />
+      </div>
     </div>
   );
 }
