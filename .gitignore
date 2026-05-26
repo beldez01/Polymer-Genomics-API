@@ -59,6 +59,11 @@ PROVISIONAL_PATENT_DRAFT.md
 *ownership-certificate*.pdf
 paper_framing.md
 
+# Polymer_Evolution regeneration source (R scripts + ~2.8 GB outputs) — subsumed
+# from ~/Desktop/Polymer_Evolution 2026-05-26. Feeds ingest/repopulate scripts.
+# Kept local only; not for the public repo.
+external/
+
 # Internal docs — not for public repo
 CLAUDE.md
 COMPUTATIONAL_ASSUMPTIONS.md

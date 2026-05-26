@@ -7,7 +7,7 @@
 #
 # Prerequisites:
 #   - fly proxy 15432:5432 -a polymer-db  (must be running)
-#   - ~/Desktop/Polymer_Evolution/ BigWig files (phases 1, 2, 3.5)
+#   - ~/Desktop/PolymerGenomicsAPI/external/polymer_evolution/ BigWig files (phases 1, 2, 3.5)
 #   - data/replication/*.bed files
 #   - data/hg38.fa
 
@@ -21,7 +21,7 @@ export POSTGRES_USER=polymer_genomics_api
 export POSTGRES_USER_PASSWORD=4Nt2CNeHMncMjKv8WHPbo1w8w0ZupTdL
 export POSTGRES_ADMIN_USER=polymer_genomics_api
 
-PE=~/Desktop/Polymer_Evolution
+PE=~/Desktop/PolymerGenomicsAPI/external/polymer_evolution
 P1="$PE/phase1/output/window_1000"
 P2="$PE/phase2/output/window_1000"
 P35="$PE/phase3_5/output/window_1000"

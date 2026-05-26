@@ -35,7 +35,7 @@ from polymer_genomics.biophysics import (
 
 import pyBigWig
 
-MNASE_BW = Path("/Users/zbb2/Desktop/Polymer_Evolution/material_channel_validation"
+MNASE_BW = Path("/Users/zbb2/Desktop/PolymerGenomicsAPI/external/polymer_evolution/material_channel_validation"
                 "/exp03_nucleosome_prediction/reference_data/GM12878_MNase_fc.bw")
 
 RESOLUTIONS = [147, 200, 500, 1000]

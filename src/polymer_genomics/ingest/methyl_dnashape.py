@@ -47,7 +47,7 @@ DELTA_BIGWIG_FILES: dict[str, str] = {
 }
 
 DEFAULT_DATA_DIR = os.path.expanduser(
-    "~/Desktop/Polymer_Evolution/phase1/output/window_1000"
+    "~/Desktop/PolymerGenomicsAPI/external/polymer_evolution/phase1/output/window_1000"
 )
 
 

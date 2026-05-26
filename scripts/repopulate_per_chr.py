@@ -30,7 +30,7 @@ DB = dict(
     password="4Nt2CNeHMncMjKv8WHPbo1w8w0ZupTdL",
 )
 
-PE = Path.home() / "Desktop" / "Polymer_Evolution"
+PE = Path.home() / "Desktop" / "PolymerGenomicsAPI" / "external" / "polymer_evolution"
 P1 = PE / "phase1" / "output" / "window_1000"
 P2 = PE / "phase2" / "output" / "window_1000"
 P35 = PE / "phase3_5" / "output" / "window_1000"

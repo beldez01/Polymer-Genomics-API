@@ -16,7 +16,7 @@ export POSTGRES_USER=polymer_genomics_api
 export POSTGRES_USER_PASSWORD=4Nt2CNeHMncMjKv8WHPbo1w8w0ZupTdL
 export POSTGRES_ADMIN_USER=polymer_genomics_api
 
-PE=~/Desktop/Polymer_Evolution
+PE=~/Desktop/PolymerGenomicsAPI/external/polymer_evolution
 
 run() {
     echo ""

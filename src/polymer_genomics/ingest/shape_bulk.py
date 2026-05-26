@@ -12,7 +12,7 @@ import pyBigWig
 from polymer_genomics.ingest._connection import get_ingest_connection
 from polymer_genomics.ingest._transaction import check_base_rows, assert_rows_updated
 
-DATA_DIR = os.path.expanduser("~/Desktop/Polymer_Evolution/phase1/output/window_1000")
+DATA_DIR = os.path.expanduser("~/Desktop/PolymerGenomicsAPI/external/polymer_evolution/phase1/output/window_1000")
 
 CHR_MAP = {f"chr{i}": i for i in range(1, 23)}
 CHR_MAP.update({"chrX": 23, "chrY": 24, "chrM": 25})
