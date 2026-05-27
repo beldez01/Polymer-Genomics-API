@@ -72,3 +72,9 @@ VALIDATION_REGISTRY.md
 docs/superpowers/
 viewer/docs/superpowers/
 .venv-vcp/
+
+# Local MCP config — contains a live POLYMER_API_KEY (keep secrets out of the public repo)
+.mcp.json
+
+# Conductor — internal pan-integrator workspace, not API code
+Conductor/
