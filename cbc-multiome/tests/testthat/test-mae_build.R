@@ -32,3 +32,16 @@ test_that("write_mae_contract writes JSON whose hash matches the MAE", {
   expect_equal(ct$type, "MAEContract")
   expect_equal(ct$dimnames_hash, compute_mae_dimnames_hash(mae))
 })
+
+test_that("write_mae_contract keeps samples as a JSON array for single-cell-type experiment", {
+  exps <- list(methylation = make_se(c("hsc")))   # only one sample
+  mae <- build_cbc_mae(exps)
+  tmp <- tempfile(fileext = ".json")
+  write_mae_contract(mae, tmp)
+  ct <- jsonlite::read_json(tmp)
+  # samples must remain an array (list in R), not a scalar string
+  samp <- ct$experiments[[1]]$samples
+  expect_true(is.list(samp))
+  expect_equal(length(samp), 1L)
+  expect_equal(samp[[1]], "hsc")
+})

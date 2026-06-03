@@ -5,6 +5,12 @@ suppressPackageStartupMessages({
 
 #' Build a RangedSummarizedExperiment for a region (cCRE-keyed) assay.
 build_region_se <- function(mat, ccres, assay_name) {
+  stopifnot(!is.null(rownames(mat)))
+  missing <- setdiff(rownames(mat), names(ccres))
+  if (length(missing))
+    stop("build_region_se: ", length(missing), " rownames not in ccres, e.g. ",
+         paste(head(missing, 3), collapse = ", "))
+  stopifnot(!anyDuplicated(rownames(mat)))
   rr <- ccres[rownames(mat)]
   a <- list(mat); names(a) <- assay_name
   SummarizedExperiment::SummarizedExperiment(assays = a, rowRanges = rr)

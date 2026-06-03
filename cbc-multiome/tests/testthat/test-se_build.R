@@ -8,6 +8,20 @@ test_that("build_region_se makes an SE with rowRanges and one assay", {
   expect_equal(ncol(se), 2L)
 })
 
+test_that("build_region_se errors when a rowname is absent from ccres", {
+  ccres <- GenomicRanges::GRanges("chr1", IRanges::IRanges(c(100, 300), c(200, 400)))
+  names(ccres) <- c("E1", "E2")
+  m <- matrix(0.5, nrow = 1, dimnames = list("MISSING_KEY", "cd4_t"))
+  expect_error(build_region_se(m, ccres, assay_name = "beta"))
+})
+
+test_that("build_region_se errors on duplicate rownames", {
+  ccres <- GenomicRanges::GRanges("chr1", IRanges::IRanges(c(100, 300), c(200, 400)))
+  names(ccres) <- c("E1", "E2")
+  m <- matrix(c(0.1, 0.2), nrow = 2, dimnames = list(c("E1", "E1"), "cd4_t"))
+  expect_error(build_region_se(m, ccres, assay_name = "beta"))
+})
+
 test_that("se_contract emits assay_type and sample/feature counts", {
   ccres <- GenomicRanges::GRanges("chr1", IRanges::IRanges(100,200)); names(ccres) <- "E1"
   m <- matrix(0.5, nrow=1, dimnames=list("E1","cd4_t"))

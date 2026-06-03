@@ -37,7 +37,7 @@ write_mae_contract <- function(mae, path, cell_meta = NULL) {
     type = "MAEContract",
     experiments = lapply(names(exps), function(n) list(
       name = n, n_features = nrow(exps[[n]]), n_samples = ncol(exps[[n]]),
-      samples = colnames(exps[[n]])
+      samples = I(colnames(exps[[n]]))
     )),
     primary_data = lapply(primary, function(p) list(primary_id = p, tissue_type = "blood")),
     dimnames_hash = compute_mae_dimnames_hash(mae)
