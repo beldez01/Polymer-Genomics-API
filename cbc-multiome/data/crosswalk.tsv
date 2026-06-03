@@ -1,0 +1,37 @@
+source_label	bucket
+hematopoietic stem cell	hsc
+HSC	hsc
+hematopoietic multipotent progenitor cell	mpp
+MPP	mpp
+common lymphoid progenitor	clp
+CLP	clp
+common myeloid progenitor	cmp
+CMP	cmp
+granulocyte monocyte progenitor cell	gmp
+GMP	gmp
+CD4-positive, alpha-beta T cell	cd4_t
+central memory CD4-positive, alpha-beta T cell	cd4_t
+effector memory CD4-positive, alpha-beta T cell	cd4_t
+regulatory T cell	cd4_t
+Blood-T-CD4	cd4_t
+CD8-positive, alpha-beta T cell	cd8_t
+central memory CD8-positive, alpha-beta T cell	cd8_t
+effector memory CD8-positive, alpha-beta T cell	cd8_t
+Blood-T-CD8	cd8_t
+naive B cell	b_cell
+memory B cell	b_cell
+class switched memory B cell	b_cell
+germinal center B cell	b_cell
+plasma cell	b_cell
+Blood-B	b_cell
+cytotoxic CD56-dim natural killer cell	nk
+Blood-NK	nk
+CD14-positive, CD16-negative classical monocyte	monocyte
+monocyte	monocyte
+Blood-Monocytes	monocyte
+Mono	monocyte
+mature neutrophil	neutrophil
+segmented neutrophil of bone marrow	neutrophil
+band form neutrophil	neutrophil
+Blood-Granulocytes	neutrophil
+mature eosinophil	eosinophil
