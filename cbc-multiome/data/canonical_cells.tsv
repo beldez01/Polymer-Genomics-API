@@ -1,0 +1,13 @@
+cell	compartment	lineage
+hsc	stem	stem
+mpp	progenitor	multipotent
+clp	progenitor	lymphoid
+cmp	progenitor	myeloid
+gmp	progenitor	myeloid
+cd4_t	mature	lymphoid
+cd8_t	mature	lymphoid
+b_cell	mature	lymphoid
+nk	mature	lymphoid
+monocyte	mature	myeloid
+neutrophil	mature	myeloid
+eosinophil	mature	myeloid
