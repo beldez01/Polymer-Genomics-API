@@ -44,3 +44,8 @@ Blood-T-EffMem-CD8	cd8_t
 Blood-T-Naive-CD8	cd8_t
 CD38-negative naive B cell	b_cell
 unswitched memory B cell	b_cell
+MLP0	clp
+MLP1	clp
+MLP2	clp
+MLP3	clp
+multilymphoid progenitor	clp
