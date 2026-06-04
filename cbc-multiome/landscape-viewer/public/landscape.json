@@ -4484,7 +4484,7 @@
       "from": "gmp",
       "to": "eosinophil",
       "branch_nature": "canalized",
-      "layers": []
+      "layers": {}
     },
     {
       "from": "clp",
