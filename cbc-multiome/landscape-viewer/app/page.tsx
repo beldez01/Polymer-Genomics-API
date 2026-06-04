@@ -2,12 +2,16 @@
 import { useEffect, useState } from "react";
 import Landscape3D from "@/components/Landscape3D";
 import Controls from "@/components/Controls";
+import GenomicPanel from "@/components/GenomicPanel";
 import { Landscape, Layer, Metric } from "@/lib/types";
+
+type Selection = { kind: "node" | "edge"; id: string } | null;
 
 export default function Page() {
   const [data, setData] = useState<Landscape | null>(null);
   const [layer, setLayer] = useState<Layer>("methylation");
   const [metric, setMetric] = useState<Metric>("elevation_alt");
+  const [selection, setSelection] = useState<Selection>(null);
 
   useEffect(() => {
     fetch("/landscape.json")
@@ -38,7 +42,14 @@ export default function Page() {
         metric={metric}
         setMetric={setMetric}
       />
-      <Landscape3D data={data} layer={layer} metric={metric} />
+      <Landscape3D
+        data={data}
+        layer={layer}
+        metric={metric}
+        onSelect={setSelection}
+        selected={selection}
+      />
+      <GenomicPanel data={data} selection={selection} layer={layer} />
     </main>
   );
 }

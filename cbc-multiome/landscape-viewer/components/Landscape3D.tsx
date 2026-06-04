@@ -1,7 +1,7 @@
 "use client";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Text, Line } from "@react-three/drei";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Landscape, Layer, Metric, LNode } from "@/lib/types";
 import { idwHeight, CtrlPt } from "@/lib/surface";
@@ -31,14 +31,91 @@ function worldPos(
   return [n.x * SP - cx, (n as any)[metric] * HEIGHT, n.y * SP - cz];
 }
 
+// ─── Flow marker: animated sphere sliding from a→b in a loop ───────────────
+function FlowMarker({ a, b }: { a: [number, number, number]; b: [number, number, number] }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const t = useRef(Math.random());
+  useFrame((_, dt) => {
+    t.current = (t.current + dt * 0.25) % 1;
+    const m = ref.current;
+    if (!m) return;
+    m.position.set(
+      a[0] + (b[0] - a[0]) * t.current,
+      a[1] + (b[1] - a[1]) * t.current,
+      a[2] + (b[2] - a[2]) * t.current
+    );
+  });
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[0.15, 8, 8]} />
+      <meshStandardMaterial color="#ffe082" emissive="#7a5c00" />
+    </mesh>
+  );
+}
+
+// ─── Clickable node group ───────────────────────────────────────────────────
+function NodeGroup({
+  n,
+  metric,
+  cx,
+  cz,
+  selected,
+  onSelect,
+}: {
+  n: LNode;
+  metric: Metric;
+  cx: number;
+  cz: number;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const [wx, wy, wz] = worldPos(n, metric, cx, cz);
+  const color = LINEAGE_COLOR[n.lineage] ?? "#888888";
+  return (
+    <group
+      position={[wx, wy, wz]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+    >
+      <mesh scale={selected ? 1.5 : 1}>
+        <sphereGeometry args={[0.42, 24, 24]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={0.4}
+          metalness={0.2}
+          emissive={selected ? color : "#000000"}
+          emissiveIntensity={selected ? 0.5 : 0}
+        />
+      </mesh>
+      <Text
+        position={[0, 0.9, 0]}
+        fontSize={0.55}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="bottom"
+        outlineWidth={0.05}
+        outlineColor="#000000"
+      >
+        {n.label}
+      </Text>
+    </group>
+  );
+}
+
 export default function Landscape3D({
   data,
   layer,
   metric,
+  onSelect,
+  selected,
 }: {
   data: Landscape;
   layer: Layer;
   metric: Metric;
+  onSelect?: (sel: { kind: "node" | "edge"; id: string } | null) => void;
+  selected?: { kind: "node" | "edge"; id: string } | null;
 }) {
   // Bounding box in node coordinate space
   const nodeXs = data.nodes.map((n) => n.x * SP);
@@ -105,6 +182,7 @@ export default function Landscape3D({
     <Canvas
       camera={{ position: [20, 18, 20], fov: 50 }}
       style={{ height: "72vh", background: "#0b1020" }}
+      onPointerMissed={() => onSelect?.(null)}
     >
       <ambientLight intensity={0.6} />
       <directionalLight position={[15, 30, 10]} intensity={1.2} />
@@ -115,61 +193,60 @@ export default function Landscape3D({
         <meshStandardMaterial vertexColors flatShading />
       </mesh>
 
-      {/* Edges */}
+      {/* Edges + flow markers */}
       {data.edges.map((e, i) => {
         const a = data.nodes.find((n) => n.id === e.from);
         const b = data.nodes.find((n) => n.id === e.to);
         if (!a || !b) return null;
 
+        const edgeId = `${e.from}->${e.to}`;
+        const isSelected = selected?.kind === "edge" && selected.id === edgeId;
         const mag = (e.layers[layer]?.n ?? 0) / maxN;
         const dashed =
           e.branch_nature === "soft-branch" ||
           e.branch_nature === "continuum";
 
-        const r = Math.round(80 + 175 * mag);
-        const g = Math.round(120 - 80 * mag);
-        const bV = Math.round(160 - 120 * mag);
+        const r = Math.round(isSelected ? 255 : 80 + 175 * mag);
+        const g = Math.round(isSelected ? 220 : 120 - 80 * mag);
+        const bV = Math.round(isSelected ? 50 : 160 - 120 * mag);
+
+        const posA = worldPos(a, metric, cx, cz);
+        const posB = worldPos(b, metric, cx, cz);
 
         return (
-          <Line
-            key={i}
-            points={[
-              worldPos(a, metric, cx, cz),
-              worldPos(b, metric, cx, cz),
-            ]}
-            color={`rgb(${r},${g},${bV})`}
-            lineWidth={1 + 3 * mag}
-            dashed={dashed}
-            dashSize={0.5}
-            dashOffset={0}
-          />
+          <group key={i}>
+            <Line
+              points={[posA, posB]}
+              color={`rgb(${r},${g},${bV})`}
+              lineWidth={isSelected ? 4 : 1 + 3 * mag}
+              dashed={dashed}
+              dashSize={0.5}
+              dashOffset={0}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                onSelect?.({ kind: "edge", id: edgeId });
+              }}
+            />
+            {/* Only render flow markers for edges with data */}
+            {(e.layers[layer]?.n ?? 0) > 0 && (
+              <FlowMarker a={posA} b={posB} />
+            )}
+          </group>
         );
       })}
 
       {/* Node spheres + labels */}
-      {data.nodes.map((n) => {
-        const [wx, wy, wz] = worldPos(n, metric, cx, cz);
-        const color = LINEAGE_COLOR[n.lineage] ?? "#888888";
-        return (
-          <group key={n.id} position={[wx, wy, wz]}>
-            <mesh>
-              <sphereGeometry args={[0.42, 24, 24]} />
-              <meshStandardMaterial color={color} roughness={0.4} metalness={0.2} />
-            </mesh>
-            <Text
-              position={[0, 0.9, 0]}
-              fontSize={0.55}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="bottom"
-              outlineWidth={0.05}
-              outlineColor="#000000"
-            >
-              {n.label}
-            </Text>
-          </group>
-        );
-      })}
+      {data.nodes.map((n) => (
+        <NodeGroup
+          key={n.id}
+          n={n}
+          metric={metric}
+          cx={cx}
+          cz={cz}
+          selected={selected?.kind === "node" && selected.id === n.id}
+          onSelect={() => onSelect?.({ kind: "node", id: n.id })}
+        />
+      ))}
 
       <OrbitControls makeDefault />
     </Canvas>
