@@ -42,3 +42,4 @@ Blood-T-Naive-CD4	cd4_t
 Blood-T-Eff-CD8	cd8_t
 Blood-T-EffMem-CD8	cd8_t
 Blood-T-Naive-CD8	cd8_t
+CD38-negative naive B cell	b_cell
