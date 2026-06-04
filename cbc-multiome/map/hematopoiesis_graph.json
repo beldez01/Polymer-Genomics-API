@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.0",
+  "description": "Human hematopoiesis differentiation map for the cbc-multiome MultiAssayExperiment. Two layers: (a) data-backed subgraph over the 12 sampled cell types, (b) canonical reference nodes/edges (no omics). Branch geometry reflects the modern continuum/CLOUD-HSPC view, NOT a strict discrete tree. Literature-grounded (deep-research 2026-06-04); see hematopoiesis_map.md for narrative + verification votes.",
+  "modeling_notes": {
+    "topology": "continuum-with-canalization, not a discrete tree. Early progenitor nodes (hsc/mpp/clp/cmp/gmp) form a broad blurry basin; mature lineages are canalized endpoints.",
+    "elevation_guidance": "Waddington 'elevation' = a continuous potential. Defensible options: distance-from-HSC along the graph, an accessibility-derived potential (Buenrostro basin), or 1 - differentiation-potential. For the data-driven terrain, per-edge magnitude = count of distal cCREs that flip methylation/accessibility between adjacent nodes.",
+    "layer_independence": "methylation and chromatin-accessibility are TEMPORALLY DECOUPLED (Barnett 2020); render as separate toggleable surfaces, not one fused rail.",
+    "genome_locus": "lineage decisions are written predominantly at DISTAL enhancers/cCREs, not promoters (Corces 2016). Distal cCRE accessibility is the most discriminative feature."
+  },
+  "nodes": [
+    {"id": "hsc", "label": "HSC", "compartment": "stem", "lineage": "stem", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac"], "role": "apex; broad low-primed basin; Er/Mk priming already present"},
+    {"id": "mpp", "label": "MPP", "compartment": "progenitor", "lineage": "multipotent", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac"], "role": "multipotent; lineage bias measurable but not committed"},
+    {"id": "clp", "label": "CLP", "compartment": "progenitor", "lineage": "lymphoid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac"], "role": "lymphoid-primed; approximates Farlik MLP (MLP0 = multipotent apex); methylation-shielded from default myeloid program", "approximation": "MLP≈CLP (MLP0 CD7-CD10- is the distinctively-methylated multipotent apex)"},
+    {"id": "cmp", "label": "CMP", "compartment": "progenitor", "lineage": "myeloid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac"], "role": "gateable population emerging from continuum; myeloerythroid priming", "caveat": "not a discrete fundamental entity; emerges from the continuum (Velten 2017)"},
+    {"id": "gmp", "label": "GMP", "compartment": "progenitor", "lineage": "myeloid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac"], "role": "granulocyte-monocyte gate; demethylation-dominated commitment", "caveat": "gateable but continuum-derived; internally fate-primed subpopulations (Paul 2015)"},
+    {"id": "cd4_t", "label": "CD4 T", "compartment": "mature", "lineage": "lymphoid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac", "dnase", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint"},
+    {"id": "cd8_t", "label": "CD8 T", "compartment": "mature", "lineage": "lymphoid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac", "dnase", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint"},
+    {"id": "b_cell", "label": "B cell", "compartment": "mature", "lineage": "lymphoid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint; enhancer repertoire reshaped largely independent of early priming (Bevington 2015)"},
+    {"id": "nk", "label": "NK", "compartment": "mature", "lineage": "lymphoid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint"},
+    {"id": "monocyte", "label": "Monocyte", "compartment": "mature", "lineage": "myeloid", "data_backed": true, "modalities": ["methylation", "rnaseq", "atac", "dnase", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint; ATAC waves precede demethylation (Barnett 2020)"},
+    {"id": "neutrophil", "label": "Neutrophil", "compartment": "mature", "lineage": "myeloid", "data_backed": true, "modalities": ["methylation", "rnaseq", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint; no ATAC (granulocytes absent from PBMC/CD34 ATAC atlases)"},
+    {"id": "eosinophil", "label": "Eosinophil", "compartment": "mature", "lineage": "myeloid", "data_backed": true, "modalities": ["rnaseq", "h3k4me1", "h3k4me3", "h3k27ac", "h3k27me3", "h3k36me3", "h3k9me3"], "role": "canalized endpoint; sparsest node (no ATAC/DNase/methylation); GMP attachment is an open question"},
+
+    {"id": "lmpp", "label": "LMPP", "compartment": "progenitor", "lineage": "lympho-myeloid", "data_backed": false, "modalities": [], "role": "canonical reference; lymphoid-primed multipotent (in Corces 13-pop panel)"},
+    {"id": "mep", "label": "MEP", "compartment": "progenitor", "lineage": "myeloerythroid", "data_backed": false, "modalities": [], "role": "canonical reference; at single-cell resolution principally unipotent erythroid, NOT a true Mk/Er bipotent progenitor (Notta 2016)"},
+    {"id": "mlp", "label": "MLP", "compartment": "progenitor", "lineage": "lymphoid", "data_backed": false, "modalities": [], "role": "canonical reference; multilymphoid progenitor ≈ CLP (data mapped to clp node)"},
+    {"id": "erythroid", "label": "Erythroid", "compartment": "mature", "lineage": "erythroid", "data_backed": false, "modalities": [], "role": "canonical reference; branches directly off HSC/MPP"},
+    {"id": "mk", "label": "Megakaryocyte/Platelet", "compartment": "mature", "lineage": "megakaryocytic", "data_backed": false, "modalities": [], "role": "canonical reference; branches directly off HSC (Mk-primed HSC)"},
+    {"id": "basophil", "label": "Basophil/Mast", "compartment": "mature", "lineage": "myeloid", "data_backed": false, "modalities": [], "role": "canonical reference"},
+    {"id": "dc", "label": "Dendritic cell", "compartment": "mature", "lineage": "myeloid-lymphoid", "data_backed": false, "modalities": [], "role": "canonical reference (cDC/pDC)"}
+  ],
+  "edges": [
+    {"from": "hsc", "to": "mpp", "model": "data-backed", "branch_nature": "continuum", "epigenetic_signature": "earliest transition within the CLOUD basin; minimal commitment", "evidence": ["Velten2017", "Buenrostro2018"]},
+    {"from": "mpp", "to": "clp", "model": "data-backed", "branch_nature": "soft-branch", "epigenetic_signature": "lymphoid priming (MESP/ID motifs); methylation MAINTAINED to shield from default myeloid program", "evidence": ["Buenrostro2018", "Farlik2016"]},
+    {"from": "mpp", "to": "cmp", "model": "data-backed", "branch_nature": "soft-branch", "epigenetic_signature": "myeloerythroid priming (GATA motifs); onset of demethylation at GATA1/TAL1 distal sites", "evidence": ["Buenrostro2018", "Farlik2016"]},
+    {"from": "cmp", "to": "gmp", "model": "data-backed", "branch_nature": "canalizing", "epigenetic_signature": "demethylation-dominated (myeloid: 607 demethylated regions vs 101 lymphoid)", "evidence": ["Farlik2016"]},
+    {"from": "gmp", "to": "monocyte", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "rapid enhancer accessibility waves; demethylation lags (decoupled)", "evidence": ["Barnett2020", "Corces2016"]},
+    {"from": "gmp", "to": "neutrophil", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "granulocytic enhancer program", "evidence": ["Corces2016"]},
+    {"from": "gmp", "to": "eosinophil", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "granulocytic enhancer program", "evidence": ["Corces2016"], "uncertain": true, "note": "exact attachment (GMP vs dedicated eosinophil progenitor) is an open question"},
+    {"from": "clp", "to": "b_cell", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "de novo B-lineage enhancer establishment", "evidence": ["Corces2016", "Bevington2015"]},
+    {"from": "clp", "to": "nk", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "NK enhancer program", "evidence": ["Corces2016"]},
+    {"from": "clp", "to": "cd4_t", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "T-lineage program (maturation is thymic/extramedullary; not captured between these two nodes)", "evidence": ["Laurenti2018"], "note": "edge spans an extramedullary maturation gap"},
+    {"from": "clp", "to": "cd8_t", "model": "data-backed", "branch_nature": "canalized", "epigenetic_signature": "T-lineage program (thymic)", "evidence": ["Laurenti2018"], "note": "edge spans an extramedullary maturation gap"},
+
+    {"from": "hsc", "to": "erythroid", "model": "canonical", "branch_nature": "direct-off-hsc", "epigenetic_signature": "erythroid (GATA1) program; branches high off HSC/MPP, NOT via CMP→MEP", "evidence": ["Notta2016", "Laurenti2018"]},
+    {"from": "hsc", "to": "mk", "model": "canonical", "branch_nature": "direct-off-hsc", "epigenetic_signature": "Mk-primed HSC (CD41/CD61+); shortcut directly from HSC", "evidence": ["Notta2016", "Laurenti2018"]},
+    {"from": "mpp", "to": "lmpp", "model": "canonical", "branch_nature": "soft-branch", "epigenetic_signature": "lympho-myeloid priming", "evidence": ["Laurenti2018"]},
+    {"from": "lmpp", "to": "clp", "model": "canonical", "branch_nature": "soft-branch", "evidence": ["Laurenti2018"]},
+    {"from": "lmpp", "to": "gmp", "model": "canonical", "branch_nature": "soft-branch", "evidence": ["Laurenti2018"]},
+    {"from": "cmp", "to": "mep", "model": "canonical", "branch_nature": "idealized", "status": "classical-deprecated", "note": "classical tree edge; modern view branches Er/Mk off HSC/MPP directly", "evidence": ["Notta2016"]},
+    {"from": "mep", "to": "erythroid", "model": "canonical", "branch_nature": "canalized", "status": "classical-deprecated", "evidence": ["Notta2016"]},
+    {"from": "mep", "to": "mk", "model": "canonical", "branch_nature": "canalized", "status": "classical-deprecated", "note": "sorted MEPs are principally unipotent erythroid, not Mk/Er bipotent", "evidence": ["Notta2016"]},
+    {"from": "clp", "to": "mlp", "model": "canonical", "branch_nature": "equivalence", "note": "MLP≈CLP modeling approximation", "evidence": ["Farlik2016"]},
+    {"from": "gmp", "to": "basophil", "model": "canonical", "branch_nature": "canalized", "evidence": ["Laurenti2018"]},
+    {"from": "mpp", "to": "dc", "model": "canonical", "branch_nature": "soft-branch", "evidence": ["Laurenti2018"]}
+  ],
+  "sources": {
+    "Velten2017": {"ref": "Velten et al. 2017, Nat Cell Biol", "url": "https://www.nature.com/articles/ncb3493", "note": "CLOUD-HSPC continuum", "verification": "2-1"},
+    "Notta2016": {"ref": "Notta et al. 2016, Science", "url": "https://pubmed.ncbi.nlm.nih.gov/26541609/", "note": "two-tier adult collapse; Er/Mk off HSC", "verification": "3-0"},
+    "Buenrostro2018": {"ref": "Buenrostro et al. 2018, Cell", "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC5989727/", "note": "single-cell ATAC basin-and-canalization landscape", "verification": "3-0"},
+    "Corces2016": {"ref": "Corces et al. 2016, Nat Genet", "url": "https://www.nature.com/articles/ng.3646", "note": "distal cCREs classify cell types (91% vs 78%); 13-pop reference chromatin map; enhancer priming", "verification": "3-0"},
+    "Farlik2016": {"ref": "Farlik et al. 2016, Cell Stem Cell", "url": "https://www.cell.com/cell-stem-cell/fulltext/S1934-5909(16)30360-5", "note": "WGBS hierarchy; lineage-asymmetric demethylation at GATA1/TAL1; MLP0 apex; THIS IS OUR PROGENITOR METHYLATION SOURCE", "verification": "3-0"},
+    "Barnett2020": {"ref": "Barnett et al. 2020, Mol Cell (ATAC-Me)", "url": "https://www.sciencedirect.com/science/article/pii/S1097276520300046", "note": "accessibility/methylation temporally decoupled", "verification": "3-0"},
+    "Lara-Astiaso2014": {"ref": "Lara-Astiaso et al. 2014, Science (mouse, foundational)", "url": "https://www.science.org/doi/abs/10.1126/science.1256271", "note": "de novo lineage enhancer establishment foreshadows expression", "verification": "3-0"},
+    "Bevington2015": {"ref": "Bevington et al. 2015, Nat Commun", "note": "enhancer priming NOT obligate/universal (B cells)", "verification": "caveat"},
+    "Paul2015": {"ref": "Paul et al. 2015, Cell", "url": "https://www.cell.com/cell/fulltext/S0092-8674(15)01493-2", "note": "myeloid progenitors are fate-primed subpopulations, not bulk", "verification": "3-0"},
+    "Laurenti2018": {"ref": "Laurenti & Gottgens 2018, Nature (review)", "url": "https://www.nature.com/articles/nature25022", "note": "continuum-vs-discrete is a hybrid open question", "verification": "secondary"}
+  },
+  "refuted_do_not_assert": [
+    "Lineage-restricted cells emerge from the continuum WITHOUT ANY transit through intermediates (killed 0-3).",
+    "~70% of HSC->progenitor expression change is lineage-independent (killed 0-3).",
+    "No progenitor occupies a mixed/co-primed state (killed 0-3) — co-primed states DO exist.",
+    "LMPP/MLP keep lymphoid and myeloid potential coupled (killed 1-2)."
+  ]
+}
