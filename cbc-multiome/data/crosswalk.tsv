@@ -35,3 +35,10 @@ segmented neutrophil of bone marrow	neutrophil
 band form neutrophil	neutrophil
 Blood-Granulocytes	neutrophil
 mature eosinophil	eosinophil
+Blood-B-Mem	b_cell
+Blood-T-CenMem-CD4	cd4_t
+Blood-T-EffMem-CD4	cd4_t
+Blood-T-Naive-CD4	cd4_t
+Blood-T-Eff-CD8	cd8_t
+Blood-T-EffMem-CD8	cd8_t
+Blood-T-Naive-CD8	cd8_t
