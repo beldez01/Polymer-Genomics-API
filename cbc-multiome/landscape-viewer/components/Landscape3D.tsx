@@ -61,6 +61,7 @@ function NodeGroup({
   cz,
   selected,
   onSelect,
+  layer,
 }: {
   n: LNode;
   metric: Metric;
@@ -68,9 +69,15 @@ function NodeGroup({
   cz: number;
   selected: boolean;
   onSelect: () => void;
+  layer: Layer;
 }) {
   const [wx, wy, wz] = worldPos(n, metric, cx, cz);
-  const color = LINEAGE_COLOR[n.lineage] ?? "#888888";
+  const baseColor = LINEAGE_COLOR[n.lineage] ?? "#888888";
+  const hasLayer = n.modalities.includes(layer);
+  // When node lacks data for the active layer, use a desaturated gray and lower opacity
+  const color = hasLayer ? baseColor : "#555566";
+  const opacity = hasLayer ? 1 : 0.35;
+
   return (
     <group
       position={[wx, wy, wz]}
@@ -87,12 +94,14 @@ function NodeGroup({
           metalness={0.2}
           emissive={selected ? color : "#000000"}
           emissiveIntensity={selected ? 0.5 : 0}
+          transparent={!hasLayer}
+          opacity={opacity}
         />
       </mesh>
       <Text
         position={[0, 0.9, 0]}
         fontSize={0.55}
-        color="#ffffff"
+        color={hasLayer ? "#ffffff" : "#888899"}
         anchorX="center"
         anchorY="bottom"
         outlineWidth={0.05}
@@ -205,6 +214,8 @@ export default function Landscape3D({
         const dashed =
           e.branch_nature === "soft-branch" ||
           e.branch_nature === "continuum";
+        // Uncertain attachment: gmp→eosinophil rendered dotted at low opacity
+        const uncertain = e.from === "gmp" && e.to === "eosinophil";
 
         const r = Math.round(isSelected ? 255 : 80 + 175 * mag);
         const g = Math.round(isSelected ? 220 : 120 - 80 * mag);
@@ -217,10 +228,10 @@ export default function Landscape3D({
           <group key={i}>
             <Line
               points={[posA, posB]}
-              color={`rgb(${r},${g},${bV})`}
-              lineWidth={isSelected ? 4 : 1 + 3 * mag}
-              dashed={dashed}
-              dashSize={0.5}
+              color={uncertain ? `rgba(${r},${g},${bV},0.4)` : `rgb(${r},${g},${bV})`}
+              lineWidth={uncertain ? Math.max(0.5, (isSelected ? 4 : 1 + 3 * mag) * 0.5) : isSelected ? 4 : 1 + 3 * mag}
+              dashed={dashed || uncertain}
+              dashSize={uncertain ? 0.25 : 0.5}
               dashOffset={0}
               onClick={(ev) => {
                 ev.stopPropagation();
@@ -243,6 +254,7 @@ export default function Landscape3D({
           metric={metric}
           cx={cx}
           cz={cz}
+          layer={layer}
           selected={selected?.kind === "node" && selected.id === n.id}
           onSelect={() => onSelect?.({ kind: "node", id: n.id })}
         />
