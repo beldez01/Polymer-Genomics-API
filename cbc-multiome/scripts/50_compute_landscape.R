@@ -42,6 +42,7 @@ for (i in seq_len(nrow(de))) {
                    start=start(ccres[changed[k]]),
                    class=unname(cls[k]), delta=round(unname(d[k]),3))))
   }
+  if (length(layers) == 0) layers <- setNames(list(), character(0))  # force {} not [] in JSON
   edge_json[[length(edge_json)+1]] <- list(from=a, to=b, branch_nature=de$branch_nature[i], layers=layers)
 }
 
