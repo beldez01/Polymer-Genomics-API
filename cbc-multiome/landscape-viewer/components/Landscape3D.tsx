@@ -9,9 +9,13 @@ import { idwHeight, CtrlPt } from "@/lib/surface";
 const HEIGHT = 6;   // vertical exaggeration — elevation_alt is 0–1, so HSC peak = 6 units
 const SP = 3;       // horizontal spacing multiplier
 
+// D2 lineage colors on light background
+// stem: neutral mid-gray (was white/light — invisible on light bg)
+// multipotent: violet (aligns with D2 accent-violet)
+// lymphoid/myeloid: kept as-is (readable on light)
 const LINEAGE_COLOR: Record<string, string> = {
-  stem: "#e0e0e0",
-  multipotent: "#9c27b0",
+  stem: "#71717A",
+  multipotent: "#7C3AED",
   lymphoid: "#4caf50",
   myeloid: "#ff9800",
 };
@@ -32,6 +36,7 @@ function worldPos(
 }
 
 // ─── Flow marker: animated sphere sliding from a→b in a loop ───────────────
+// Amber flow markers — D2 accent-amber, readable on light terrain
 function FlowMarker({ a, b }: { a: [number, number, number]; b: [number, number, number] }) {
   const ref = useRef<THREE.Mesh>(null);
   const t = useRef(Math.random());
@@ -48,7 +53,8 @@ function FlowMarker({ a, b }: { a: [number, number, number]; b: [number, number,
   return (
     <mesh ref={ref}>
       <sphereGeometry args={[0.15, 8, 8]} />
-      <meshStandardMaterial color="#ffe082" emissive="#7a5c00" />
+      {/* Amber: #B45309 D2 accent */}
+      <meshStandardMaterial color="#B45309" emissive="#7a3800" emissiveIntensity={0.3} />
     </mesh>
   );
 }
@@ -72,10 +78,10 @@ function NodeGroup({
   layer: Layer;
 }) {
   const [wx, wy, wz] = worldPos(n, metric, cx, cz);
-  const baseColor = LINEAGE_COLOR[n.lineage] ?? "#888888";
+  const baseColor = LINEAGE_COLOR[n.lineage] ?? "#71717A";
   const hasLayer = n.modalities.includes(layer);
-  // When node lacks data for the active layer, use a desaturated gray and lower opacity
-  const color = hasLayer ? baseColor : "#555566";
+  // No-data nodes: faint gray, lower opacity
+  const color = hasLayer ? baseColor : "#A1A1AA";
   const opacity = hasLayer ? 1 : 0.35;
 
   return (
@@ -90,22 +96,23 @@ function NodeGroup({
         <sphereGeometry args={[0.42, 24, 24]} />
         <meshStandardMaterial
           color={color}
-          roughness={0.4}
-          metalness={0.2}
+          roughness={0.35}
+          metalness={0.15}
           emissive={selected ? color : "#000000"}
-          emissiveIntensity={selected ? 0.5 : 0}
+          emissiveIntensity={selected ? 0.3 : 0}
           transparent={!hasLayer}
           opacity={opacity}
         />
       </mesh>
+      {/* Dark labels — readable on light terrain */}
       <Text
         position={[0, 0.9, 0]}
         fontSize={0.55}
-        color={hasLayer ? "#ffffff" : "#888899"}
+        color={hasLayer ? "#18181B" : "#A1A1AA"}
         anchorX="center"
         anchorY="bottom"
-        outlineWidth={0.05}
-        outlineColor="#000000"
+        outlineWidth={0.04}
+        outlineColor="#FFFFFF"
       >
         {n.label}
       </Text>
@@ -138,13 +145,6 @@ export default function Landscape3D({
   const cx = (xMin + xMax) / 2;
   const cz = (zMin + zMax) / 2;
 
-  // PlaneGeometry spans local X and local Y.
-  // After rotation [-π/2, 0, 0]: local Y maps to world -Z.
-  // So local Y for a node = -(node.y*SP - cz) = cz - node.y*SP
-  //
-  // ctrl.x = world X = node.x*SP - cx  (matches plane local X)
-  // ctrl.y = plane local Y = cz - node.y*SP  (matches plane local Y after rotation)
-  // ctrl.z = metric value (drives displacement)
   const ctrl: CtrlPt[] = useMemo(
     () =>
       data.nodes.map((n) => ({
@@ -163,16 +163,32 @@ export default function Landscape3D({
     const pos = g.attributes.position as THREE.BufferAttribute;
     const colorArr: number[] = [];
 
+    // D2 light terrain colormap:
+    // Valleys (h≈0): light neutral gray-blue (#D4D4D8 family)
+    // Mid slopes: gray-blue transitioning toward electric blue
+    // Peaks (h≈1): electric blue #0F62FE — the HSC peak is the most saturated
+    const valleyColor = new THREE.Color("#C8CDD8");  // light gray-blue
+    const peakColor = new THREE.Color("#0F62FE");    // electric blue
+
     for (let i = 0; i < pos.count; i++) {
-      const lx = pos.getX(i); // plane local X = world X
-      const ly = pos.getY(i); // plane local Y = -(world Z - cz) → i.e. cz - worldZ
+      const lx = pos.getX(i);
+      const ly = pos.getY(i);
       const h = idwHeight(lx, ly, ctrl);
-      pos.setZ(i, h * HEIGHT); // local Z → world Y after rotation
-      const c = new THREE.Color().setHSL(
-        0.6 - 0.4 * h,       // blue (0.6) for valley → teal/green (0.2) for peak
-        0.75,
-        0.3 + 0.35 * h        // darker valleys, brighter peaks
-      );
+      pos.setZ(i, h * HEIGHT);
+
+      // Lerp from valley gray-blue → electric blue peak
+      // Add a slight lightness boost at mid range so the topography reads well
+      const c = new THREE.Color();
+      if (h < 0.5) {
+        // valley → mid: neutral gray-blue to a lighter blue
+        const midColor = new THREE.Color("#8AABDE");
+        c.lerpColors(valleyColor, midColor, h * 2);
+      } else {
+        // mid → peak: lighter blue to electric blue
+        const midColor = new THREE.Color("#8AABDE");
+        c.lerpColors(midColor, peakColor, (h - 0.5) * 2);
+      }
+
       colorArr.push(c.r, c.g, c.b);
     }
 
@@ -190,12 +206,13 @@ export default function Landscape3D({
   return (
     <Canvas
       camera={{ position: [20, 18, 20], fov: 50 }}
-      style={{ height: "72vh", background: "#0b1020" }}
+      style={{ height: "72vh", background: "#EBEBED" }}
       onPointerMissed={() => onSelect?.(null)}
     >
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[15, 30, 10]} intensity={1.2} />
-      <directionalLight position={[-10, 20, -10]} intensity={0.4} />
+      {/* Bumped ambient for light terrain — prevents flat/washed look */}
+      <ambientLight intensity={0.9} />
+      <directionalLight position={[15, 30, 10]} intensity={0.8} />
+      <directionalLight position={[-10, 20, -10]} intensity={0.35} />
 
       {/* Terrain mesh — PlaneGeometry lies in XY, rotation puts it in XZ */}
       <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
@@ -214,12 +231,24 @@ export default function Landscape3D({
         const dashed =
           e.branch_nature === "soft-branch" ||
           e.branch_nature === "continuum";
-        // Uncertain attachment: gmp→eosinophil rendered dotted at low opacity
         const uncertain = e.from === "gmp" && e.to === "eosinophil";
 
-        const r = Math.round(isSelected ? 255 : 80 + 175 * mag);
-        const g = Math.round(isSelected ? 220 : 120 - 80 * mag);
-        const bV = Math.round(isSelected ? 50 : 160 - 120 * mag);
+        // D2 edge coloring: light neutral (#A1A1AA border-strong) → electric blue (#0F62FE)
+        // lerp based on mag; selected = electric blue full
+        const edgeColor = isSelected
+          ? "#0F62FE"
+          : (() => {
+              const base = new THREE.Color("#A1A1AA");
+              const accent = new THREE.Color("#0F62FE");
+              const c = new THREE.Color().lerpColors(base, accent, mag);
+              return `#${c.getHexString()}`;
+            })();
+
+        const lineWidth = uncertain
+          ? Math.max(0.5, (isSelected ? 4 : 1 + 3 * mag) * 0.5)
+          : isSelected
+          ? 4
+          : 1 + 3 * mag;
 
         const posA = worldPos(a, metric, cx, cz);
         const posB = worldPos(b, metric, cx, cz);
@@ -228,8 +257,8 @@ export default function Landscape3D({
           <group key={i}>
             <Line
               points={[posA, posB]}
-              color={uncertain ? `rgba(${r},${g},${bV},0.4)` : `rgb(${r},${g},${bV})`}
-              lineWidth={uncertain ? Math.max(0.5, (isSelected ? 4 : 1 + 3 * mag) * 0.5) : isSelected ? 4 : 1 + 3 * mag}
+              color={uncertain ? edgeColor : edgeColor}
+              lineWidth={lineWidth}
               dashed={dashed || uncertain}
               dashSize={uncertain ? 0.25 : 0.5}
               dashOffset={0}
@@ -238,7 +267,6 @@ export default function Landscape3D({
                 onSelect?.({ kind: "edge", id: edgeId });
               }}
             />
-            {/* Only render flow markers for edges with data */}
             {(e.layers[layer]?.n ?? 0) > 0 && (
               <FlowMarker a={posA} b={posB} />
             )}

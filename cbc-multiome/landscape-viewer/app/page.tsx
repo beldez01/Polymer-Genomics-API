@@ -21,7 +21,16 @@ export default function Page() {
 
   if (!data) {
     return (
-      <p style={{ padding: 16, fontFamily: "system-ui" }}>loading…</p>
+      <p
+        style={{
+          padding: 24,
+          fontFamily: "var(--font-sans)",
+          color: "var(--text-muted)",
+          fontSize: 13,
+        }}
+      >
+        Loading…
+      </p>
     );
   }
 
@@ -31,36 +40,70 @@ export default function Page() {
       : "height = transcriptional entropy";
 
   return (
-    <main style={{ padding: 16, fontFamily: "system-ui" }}>
-      <h1 style={{ margin: "0 0 2px", fontSize: 20 }}>
-        Hematopoiesis Waddington Landscape
-      </h1>
-      <p style={{ margin: "0 0 2px", color: "#888", fontSize: 11 }}>
-        Map: literature-grounded (deep-research 2026-06-04); terrain from
-        cbc-multiome MAE. Progenitor methylation: Farlik 2016. See{" "}
-        <span style={{ fontFamily: "monospace" }}>
-          map/hematopoiesis_map.md
-        </span>
-        .{" "}
-        <em>
-          CLP node ≈ Farlik MLP (multilymphoid progenitor) — approximate
-          equivalence.
-        </em>
-      </p>
-      <p
-        style={{ margin: "0 0 8px", color: "#666", fontSize: 13 }}
-      >
-        HSC peak → canalized lineage valleys; edge color/width = # cCREs
-        changing on that transition.
-      </p>
+    <main
+      style={{
+        maxWidth: 1440,
+        margin: "0 auto",
+        padding: "24px 24px 48px",
+        fontFamily: "var(--font-sans)",
+      }}
+    >
+      {/* Header block */}
+      <div style={{ marginBottom: 20 }}>
+        <div className="section-marker" style={{ marginBottom: 8 }}>
+          § HEMATOPOIESIS / MULTI-OMIC LANDSCAPE
+        </div>
+        <h1 style={{ marginBottom: 6 }}>
+          Hematopoiesis Waddington Landscape
+        </h1>
+        <p
+          style={{
+            margin: "0 0 4px",
+            color: "var(--text-muted)",
+            fontSize: 12,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          Map: literature-grounded (deep-research 2026-06-04); terrain from
+          cbc-multiome MAE. Progenitor methylation: Farlik 2016. See{" "}
+          <span style={{ color: "var(--text-tertiary)" }}>
+            map/hematopoiesis_map.md
+          </span>
+          .{" "}
+          <em style={{ fontStyle: "italic", color: "var(--text-faint)" }}>
+            CLP node ≈ Farlik MLP (multilymphoid progenitor) — approximate
+            equivalence.
+          </em>
+        </p>
+        <p
+          style={{
+            margin: "0",
+            color: "var(--text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          HSC peak → canalized lineage valleys; edge color/width = # cCREs
+          changing on that transition.
+        </p>
+      </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid var(--border-subtle)",
+          margin: "0 0 16px",
+        }}
+      />
+
       <Controls
         layer={layer}
         setLayer={setLayer}
         metric={metric}
         setMetric={setMetric}
       />
+
       {/* Canvas + legend wrapper */}
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", marginTop: 12 }}>
         <Landscape3D
           data={data}
           layer={layer}
@@ -74,30 +117,30 @@ export default function Page() {
             position: "absolute",
             bottom: 12,
             right: 12,
-            background: "rgba(8, 12, 28, 0.82)",
-            border: "1px solid #1e2d4a",
-            borderRadius: 6,
-            padding: "8px 12px",
-            fontSize: 11,
-            color: "#b0c4de",
+            background: "rgba(250,250,250,0.92)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: 2,
+            padding: "10px 14px",
+            fontSize: 12,
+            color: "var(--text-secondary)",
             lineHeight: 1.7,
-            maxWidth: 260,
-            backdropFilter: "blur(2px)",
+            maxWidth: 280,
+            fontFamily: "var(--font-mono)",
           }}
         >
           {/* Lineage colors */}
-          <div style={{ marginBottom: 6 }}>
+          <div style={{ marginBottom: 8 }}>
             {(
               [
-                ["stem", "#e0e0e0", "Stem (HSC)"],
-                ["multipotent", "#9c27b0", "Multipotent progenitor"],
+                ["stem", "#71717A", "Stem (HSC)"],
+                ["multipotent", "#7C3AED", "Multipotent progenitor"],
                 ["lymphoid", "#4caf50", "Lymphoid"],
                 ["myeloid", "#ff9800", "Myeloid"],
               ] as const
             ).map(([, color, label]) => (
               <div
                 key={label}
-                style={{ display: "flex", alignItems: "center", gap: 6 }}
+                style={{ display: "flex", alignItems: "center", gap: 8 }}
               >
                 <span
                   style={{
@@ -106,7 +149,7 @@ export default function Page() {
                     height: 9,
                     borderRadius: "50%",
                     background: color,
-                    border: "1px solid #333",
+                    border: "1px solid var(--border-strong)",
                     flexShrink: 0,
                   }}
                 />
@@ -116,21 +159,25 @@ export default function Page() {
           </div>
           <div
             style={{
-              borderTop: "1px solid #1e2d4a",
-              paddingTop: 5,
-              color: "#8a9db8",
+              borderTop: "1px solid var(--border-subtle)",
+              paddingTop: 6,
+              color: "var(--text-muted)",
+              fontSize: 11,
             }}
           >
             <div>Edge width/brightness = # cCREs changing</div>
             <div>Dashed = blurry / continuum branch</div>
             <div>Dotted/faint edge = uncertain attachment (eosinophil)</div>
-            <div style={{ marginTop: 3, color: "#6a7d94" }}>{metricLabel}</div>
-            <div style={{ marginTop: 3, color: "#5a7090", fontSize: 10 }}>
+            <div style={{ marginTop: 4, color: "var(--text-tertiary)" }}>
+              {metricLabel}
+            </div>
+            <div style={{ marginTop: 3, color: "var(--text-faint)", fontSize: 10 }}>
               Dimmed node = no data for selected layer
             </div>
           </div>
         </div>
       </div>
+
       <GenomicPanel data={data} selection={selection} layer={layer} />
     </main>
   );
