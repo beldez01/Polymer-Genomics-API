@@ -14,9 +14,12 @@ export default function Page() {
   const [selection, setSelection] = useState<Selection>(null);
 
   useEffect(() => {
-    fetch("/landscape.json")
-      .then((r) => r.json())
-      .then(setData);
+    (async () => {
+      const r2 = await fetch("/landscape_v2.json").catch(() => null);
+      if (r2 && r2.ok) { setData(await r2.json()); return; }
+      const r1 = await fetch("/landscape.json");
+      setData(await r1.json());
+    })();
   }, []);
 
   if (!data) {

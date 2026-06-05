@@ -3,8 +3,8 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Text, Line, Grid } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Landscape, Layer, Metric, LNode } from "@/lib/types";
-import { idwHeight, waddingtonHeight, CtrlPt, Seg } from "@/lib/surface";
+import { Landscape, Layer, Metric, LNode, isGridLandscape } from "@/lib/types";
+import { idwHeight, waddingtonHeight, sampleGrid, CtrlPt, Seg } from "@/lib/surface";
 
 const HEIGHT = 6;   // vertical exaggeration — elevation_alt is 0–1
 const SP = 3;       // horizontal spacing multiplier
@@ -375,6 +375,53 @@ export default function Landscape3D({
     return g;
   }, [ctrl, segs, planeW, planeH]);
 
+  // ── Grid mode ──────────────────────────────────────────────────────────────
+  const grid = isGridLandscape(data) ? data.grid : null;
+
+  // Manifold(x,y) -> world mapping (grid mode).
+  // worldX = (mx - mcx) * sc ; worldZ = (my - mcy) * sc
+  // plane-local: lx = worldX, ly = -worldZ (PlaneGeometry Y is -Z after rotation)
+  // Inverse: mx = lx/sc + mcx ; my = -ly/sc + mcy
+  const gmap = useMemo(() => {
+    if (!grid) return null;
+    const spanX = grid.x1 - grid.x0, spanY = grid.y1 - grid.y0;
+    const PLANE = 24;
+    const sc = PLANE / Math.max(spanX, spanY);
+    const mcx = (grid.x0 + grid.x1) / 2, mcy = (grid.y0 + grid.y1) / 2;
+    let zmin = Infinity, zmax = -Infinity;
+    for (const v of grid.z) { if (v < zmin) zmin = v; if (v > zmax) zmax = v; }
+    const VSCALE = 6;
+    return {
+      sc, mcx, mcy, zmin, zmax,
+      gpw: spanX * sc, gph: spanY * sc,
+      worldX: (mx: number) => (mx - mcx) * sc,
+      worldZ: (my: number) => (my - mcy) * sc,
+      hNorm: (z: number) => ((z - zmin) / (zmax - zmin || 1)) * VSCALE,
+    };
+  }, [grid]);
+
+  const gridGeo = useMemo(() => {
+    if (!grid || !gmap) return null;
+    const g = new THREE.PlaneGeometry(gmap.gpw, gmap.gph, grid.nx - 1, grid.ny - 1);
+    const pos = g.attributes.position as THREE.BufferAttribute;
+    const colorArr: number[] = [];
+    for (let i = 0; i < pos.count; i++) {
+      const lx = pos.getX(i), ly = pos.getY(i);
+      // plane-local -> manifold coords (inverse of the mapping above)
+      const mx = lx / gmap.sc + gmap.mcx;
+      const my = -ly / gmap.sc + gmap.mcy;
+      const z = sampleGrid(grid, mx, my);
+      const hn = (z - gmap.zmin) / (gmap.zmax - gmap.zmin || 1); // 0..1, 1=apex
+      pos.setZ(i, hn * 6);
+      // Invert: low z = mature attractor (valley, blue); high z = stem ridge (gray)
+      const c = valleyColor(1 - hn);
+      colorArr.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(colorArr, 3));
+    g.computeVertexNormals();
+    return g;
+  }, [grid, gmap]);
+
   // Elevation axis position: back-left corner of the terrain bounding box
   const axisX = -planeW / 2 - 1.2;
   const axisZ = -planeH / 2 - 1.2;
@@ -402,7 +449,7 @@ export default function Landscape3D({
       <directionalLight position={[15, 30, 10]} intensity={0.8} />
       <directionalLight position={[-10, 20, -10]} intensity={0.35} />
 
-      {/* Ground reference grid — sits at WORLD_FLOOR, the deepest terminal-well level */}
+      {/* Ground reference grid — shared by both render paths */}
       <Grid
         args={[gridW, gridH]}
         position={[0, WORLD_FLOOR + 0.05, 0]}
@@ -417,88 +464,185 @@ export default function Landscape3D({
         infiniteGrid={false}
       />
 
-      {/* Terrain mesh — valley-blue creodes, gray ridges, topographic contour banding */}
-      <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
-        <meshStandardMaterial vertexColors flatShading />
-      </mesh>
+      {/* ── Legacy (IDW) render path — only when no precomputed grid ── */}
+      {!grid && (
+        <>
+          {/* Terrain mesh — valley-blue creodes, gray ridges, topographic contour banding */}
+          <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
+            <meshStandardMaterial vertexColors flatShading />
+          </mesh>
 
-      {/* Wireframe overlay — measurement grid on surface */}
-      <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
-        <meshBasicMaterial wireframe transparent opacity={0.10} color="#A1A1AA" />
-      </mesh>
+          {/* Wireframe overlay — measurement grid on surface */}
+          <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
+            <meshBasicMaterial wireframe transparent opacity={0.10} color="#A1A1AA" />
+          </mesh>
 
-      {/* Elevation axis with numeric ticks — 0=terminal floor, 1=HSC source */}
-      <ElevationAxis axisX={axisX} axisZ={axisZ} minY={minY} maxY={maxY} />
+          {/* Elevation axis with numeric ticks — 0=terminal floor, 1=HSC source */}
+          <ElevationAxis axisX={axisX} axisZ={axisZ} minY={minY} maxY={maxY} />
 
-      {/* Edges + flow markers — flow balls roll along valley floors */}
-      {data.edges.map((e, i) => {
-        const a = data.nodes.find((n) => n.id === e.from);
-        const b = data.nodes.find((n) => n.id === e.to);
-        if (!a || !b) return null;
+          {/* Edges + flow markers — flow balls roll along valley floors */}
+          {data.edges.map((e, i) => {
+            const a = data.nodes.find((n) => n.id === e.from);
+            const b = data.nodes.find((n) => n.id === e.to);
+            if (!a || !b) return null;
 
-        const edgeId = `${e.from}->${e.to}`;
-        const isSelected = selected?.kind === "edge" && selected.id === edgeId;
-        const mag = (e.layers[layer]?.n ?? 0) / maxN;
-        const dashed =
-          e.branch_nature === "soft-branch" ||
-          e.branch_nature === "continuum";
-        const uncertain = e.from === "gmp" && e.to === "eosinophil";
+            const edgeId = `${e.from}->${e.to}`;
+            const isSelected = selected?.kind === "edge" && selected.id === edgeId;
+            const mag = (e.layers[layer]?.n ?? 0) / maxN;
+            const dashed =
+              e.branch_nature === "soft-branch" ||
+              e.branch_nature === "continuum";
+            const uncertain = e.from === "gmp" && e.to === "eosinophil";
 
-        const edgeColor = isSelected
-          ? "#0F62FE"
-          : (() => {
-              const base = new THREE.Color("#A1A1AA");
-              const accent = new THREE.Color("#0F62FE");
-              const c = new THREE.Color().lerpColors(base, accent, mag);
-              return `#${c.getHexString()}`;
-            })();
+            const edgeColor = isSelected
+              ? "#0F62FE"
+              : (() => {
+                  const base = new THREE.Color("#A1A1AA");
+                  const accent = new THREE.Color("#0F62FE");
+                  const c = new THREE.Color().lerpColors(base, accent, mag);
+                  return `#${c.getHexString()}`;
+                })();
 
-        const lineWidth = uncertain
-          ? Math.max(0.5, (isSelected ? 4 : 1 + 3 * mag) * 0.5)
-          : isSelected
-          ? 4
-          : 1 + 3 * mag;
+            const lineWidth = uncertain
+              ? Math.max(0.5, (isSelected ? 4 : 1 + 3 * mag) * 0.5)
+              : isSelected
+              ? 4
+              : 1 + 3 * mag;
 
-        // Nodes now sit at valley-floor Y
-        const posA = waddingtonWorldPos(a, ctrl, segs, cx, cz);
-        const posB = waddingtonWorldPos(b, ctrl, segs, cx, cz);
+            const posA = waddingtonWorldPos(a, ctrl, segs, cx, cz);
+            const posB = waddingtonWorldPos(b, ctrl, segs, cx, cz);
 
-        return (
-          <group key={i}>
-            <Line
-              points={[posA, posB]}
-              color={edgeColor}
-              lineWidth={lineWidth}
-              dashed={dashed || uncertain}
-              dashSize={uncertain ? 0.25 : 0.5}
-              dashOffset={0}
-              onClick={(ev) => {
-                ev.stopPropagation();
-                onSelect?.({ kind: "edge", id: edgeId });
-              }}
+            return (
+              <group key={i}>
+                <Line
+                  points={[posA, posB]}
+                  color={edgeColor}
+                  lineWidth={lineWidth}
+                  dashed={dashed || uncertain}
+                  dashSize={uncertain ? 0.25 : 0.5}
+                  dashOffset={0}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onSelect?.({ kind: "edge", id: edgeId });
+                  }}
+                />
+                {(e.layers[layer]?.n ?? 0) > 0 && (
+                  <FlowMarker a={posA} b={posB} />
+                )}
+              </group>
+            );
+          })}
+
+          {/* Node spheres + labels + numeric values — seated at valley floors */}
+          {data.nodes.map((n) => (
+            <NodeGroup
+              key={n.id}
+              n={n}
+              ctrl={ctrl}
+              segs={segs}
+              cx={cx}
+              cz={cz}
+              layer={layer}
+              metric={metric}
+              selected={selected?.kind === "node" && selected.id === n.id}
+              onSelect={() => onSelect?.({ kind: "node", id: n.id })}
             />
-            {(e.layers[layer]?.n ?? 0) > 0 && (
-              <FlowMarker a={posA} b={posB} />
-            )}
-          </group>
-        );
-      })}
+          ))}
+        </>
+      )}
 
-      {/* Node spheres + labels + numeric values — seated at valley floors */}
-      {data.nodes.map((n) => (
-        <NodeGroup
-          key={n.id}
-          n={n}
-          ctrl={ctrl}
-          segs={segs}
-          cx={cx}
-          cz={cz}
-          layer={layer}
-          metric={metric}
-          selected={selected?.kind === "node" && selected.id === n.id}
-          onSelect={() => onSelect?.({ kind: "node", id: n.id })}
-        />
-      ))}
+      {/* ── Grid (manifold) render path — precomputed landscape_v2.json ── */}
+      {grid && gmap && gridGeo && (
+        <>
+          <mesh geometry={gridGeo} rotation={[-Math.PI / 2, 0, 0]}>
+            <meshStandardMaterial vertexColors flatShading />
+          </mesh>
+
+          {/* edges */}
+          {data.edges.map((e, i) => {
+            const a = data.nodes.find((n) => n.id === e.from);
+            const b = data.nodes.find((n) => n.id === e.to);
+            if (!a || !b) return null;
+            const pa: [number, number, number] = [
+              gmap.worldX(a.x),
+              gmap.hNorm(a.z ?? 0),
+              gmap.worldZ(a.y),
+            ];
+            const pb: [number, number, number] = [
+              gmap.worldX(b.x),
+              gmap.hNorm(b.z ?? 0),
+              gmap.worldZ(b.y),
+            ];
+            const edgeId = `${e.from}->${e.to}`;
+            return (
+              <Line
+                key={i}
+                points={[pa, pb]}
+                color="#A1A1AA"
+                lineWidth={1.2}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onSelect?.({ kind: "edge", id: edgeId });
+                }}
+              />
+            );
+          })}
+
+          {/* nodes */}
+          {data.nodes.map((n) => {
+            const p: [number, number, number] = [
+              gmap.worldX(n.x),
+              gmap.hNorm(n.z ?? 0),
+              gmap.worldZ(n.y),
+            ];
+            const isSel = selected?.kind === "node" && selected.id === n.id;
+            const color =
+              n.out_of_manifold
+                ? "#A1A1AA"
+                : (LINEAGE_COLOR[n.lineage ?? ""] ?? "#0F62FE");
+            return (
+              <group
+                key={n.id}
+                position={p}
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  onSelect?.({ kind: "node", id: n.id });
+                }}
+              >
+                <mesh scale={isSel ? 1.5 : 1}>
+                  <sphereGeometry args={[0.42, 24, 24]} />
+                  <meshStandardMaterial
+                    color={color}
+                    roughness={0.25}
+                    metalness={0.2}
+                    emissive={isSel ? color : "#FFFFFF"}
+                    emissiveIntensity={isSel ? 0.35 : 0.08}
+                  />
+                </mesh>
+                <group position={[0, 2.0, 0]}>
+                  <Line
+                    points={[[0, -1.55, 0], [0, -0.05, 0]]}
+                    color="#A1A1AA"
+                    lineWidth={0.8}
+                  />
+                  <Text
+                    position={[0, 0, 0]}
+                    fontSize={n.id === "hsc" ? 0.62 : 0.5}
+                    color="#18181B"
+                    anchorX="center"
+                    anchorY="bottom"
+                    outlineWidth={0.05}
+                    outlineColor="#FFFFFF"
+                  >
+                    {n.id === "hsc" ? `${n.label}  ▸ source` : n.label}
+                    {n.out_of_manifold ? "  (OOM)" : ""}
+                  </Text>
+                </group>
+              </group>
+            );
+          })}
+        </>
+      )}
 
       <OrbitControls makeDefault />
     </Canvas>
