@@ -1,5 +1,5 @@
 import numpy as np
-from manifold.projection import ManifoldModel, project_node
+from manifold.projection import ManifoldModel, project_node, _align
 
 
 def _toy_model():
@@ -36,11 +36,11 @@ def test_confidence_is_worse_for_off_manifold_node():
     assert far.confidence > near.confidence
 
 
-def test_gene_alignment_reorders_bulk_vector():
-    model, genes = _toy_model()
-    # genes given in reversed order with an asymmetric vector: value 10.0 belongs
-    # to g0 and value 0.1 to g1, so the aligned point is ~(10,10) -> cluster_b.
-    # A broken (no-op) _align would leave it at ~(0.1,10)/wrong place and fail.
-    proj = project_node(np.array([0.1, 10.0]), ["g1", "g0"], model, k=10)
-    assert abs(proj.x - 10.0) < 1.0 and abs(proj.y - 10.0) < 1.0
-    assert proj.pseudotime > 0.8
+def test_align_reorders_to_model_gene_order():
+    out = _align(np.array([0.1, 10.0]), ["g1", "g0"], ["g0", "g1"])
+    assert np.allclose(out, [10.0, 0.1])  # g0<-10.0, g1<-0.1
+
+
+def test_align_missing_gene_is_zero():
+    out = _align(np.array([5.0]), ["g0"], ["g0", "g1"])
+    assert np.allclose(out, [5.0, 0.0])  # g1 absent in bulk -> 0
