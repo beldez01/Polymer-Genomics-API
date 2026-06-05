@@ -22,3 +22,10 @@ def test_two_basis_fields_sum():
     D2 = np.array([[0.0, 0.0, 5.0]])
     out = apply_deformation(H, {"basis": [D1, D2], "coefficients": [3.0, 1.0]})
     assert np.allclose(out, np.array([[4.0, 1.0, 6.0]]))
+
+
+def test_length_mismatch_raises():
+    import pytest
+    H = np.zeros((2, 2))
+    with pytest.raises(ValueError):
+        apply_deformation(H, {"basis": [np.ones((2, 2))], "coefficients": []})

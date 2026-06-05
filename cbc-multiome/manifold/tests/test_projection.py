@@ -38,5 +38,9 @@ def test_confidence_is_worse_for_off_manifold_node():
 
 def test_gene_alignment_reorders_bulk_vector():
     model, genes = _toy_model()
-    proj = project_node(np.array([0.1, 0.1]), ["g1", "g0"], model, k=10)
-    assert abs(proj.x - 0.0) < 1.0 and abs(proj.y - 0.0) < 1.0
+    # genes given in reversed order with an asymmetric vector: value 10.0 belongs
+    # to g0 and value 0.1 to g1, so the aligned point is ~(10,10) -> cluster_b.
+    # A broken (no-op) _align would leave it at ~(0.1,10)/wrong place and fail.
+    proj = project_node(np.array([0.1, 10.0]), ["g1", "g0"], model, k=10)
+    assert abs(proj.x - 10.0) < 1.0 and abs(proj.y - 10.0) < 1.0
+    assert proj.pseudotime > 0.8
