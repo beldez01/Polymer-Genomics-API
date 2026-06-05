@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { idwHeight, waddingtonHeight, Seg } from "./surface";
+import { idwHeight, waddingtonHeight, Seg, sampleGrid } from "./surface";
 describe("idwHeight", () => {
   const pts = [{x:0,y:0,z:1},{x:10,y:0,z:0}];
   it("returns the control value exactly at a control point", () => {
@@ -25,5 +25,22 @@ describe("waddingtonHeight", () => {
     // Far from edge (perp distance >> sigma) → trough≈0, height≈baseline
     const offEdge = waddingtonHeight(5, 10, ctrl, segs, opts);
     expect(onEdge).toBeLessThan(offEdge);
+  });
+});
+
+describe("sampleGrid", () => {
+  const g = { nx: 2, ny: 2, x0: 0, x1: 1, y0: 0, y1: 1, z: [0, 2, 4, 6] };
+  it("returns corner values exactly", () => {
+    expect(sampleGrid(g, 0, 0)).toBeCloseTo(0);
+    expect(sampleGrid(g, 1, 0)).toBeCloseTo(2);
+    expect(sampleGrid(g, 0, 1)).toBeCloseTo(4);
+    expect(sampleGrid(g, 1, 1)).toBeCloseTo(6);
+  });
+  it("interpolates the center", () => {
+    expect(sampleGrid(g, 0.5, 0.5)).toBeCloseTo(3);
+  });
+  it("clamps out-of-bounds samples", () => {
+    expect(sampleGrid(g, -5, -5)).toBeCloseTo(0);
+    expect(sampleGrid(g, 5, 5)).toBeCloseTo(6);
   });
 });

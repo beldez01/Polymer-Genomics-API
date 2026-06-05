@@ -37,3 +37,20 @@ export function waddingtonHeight(x: number, y: number, ctrl: CtrlPt[],
   const depthEff = opts.depth * (1 + K * (1 - B_raw)); // shallow at HSC, deep at terminals
   return B - depthEff * trough;
 }
+
+export interface GridLike {
+  nx: number; ny: number; x0: number; x1: number; y0: number; y1: number; z: number[];
+}
+/** Bilinear sample of a row-major height grid at world (x,y), clamped to bounds. */
+export function sampleGrid(g: GridLike, x: number, y: number): number {
+  const fx = ((x - g.x0) / (g.x1 - g.x0)) * (g.nx - 1);
+  const fy = ((y - g.y0) / (g.y1 - g.y0)) * (g.ny - 1);
+  const ix = Math.max(0, Math.min(g.nx - 2, Math.floor(fx)));
+  const iy = Math.max(0, Math.min(g.ny - 2, Math.floor(fy)));
+  const tx = Math.max(0, Math.min(1, fx - ix));
+  const ty = Math.max(0, Math.min(1, fy - iy));
+  const at = (i: number, j: number) => g.z[j * g.nx + i];
+  const z00 = at(ix, iy), z10 = at(ix + 1, iy), z01 = at(ix, iy + 1), z11 = at(ix + 1, iy + 1);
+  return z00 * (1 - tx) * (1 - ty) + z10 * tx * (1 - ty)
+       + z01 * (1 - tx) * ty + z11 * tx * ty;
+}
