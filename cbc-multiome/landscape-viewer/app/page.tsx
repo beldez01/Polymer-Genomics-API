@@ -157,6 +157,67 @@ export default function Page() {
               </div>
             ))}
           </div>
+
+          {/* Elevation colorbar — metrological precision cue */}
+          <div
+            style={{
+              borderTop: "1px solid var(--border-subtle)",
+              paddingTop: 8,
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--text-muted)",
+                letterSpacing: "0.08em",
+                marginBottom: 5,
+              }}
+            >
+              ELEVATION
+            </div>
+            <div style={{ display: "flex", alignItems: "stretch", gap: 6 }}>
+              {/* Colorbar gradient strip */}
+              <div
+                style={{
+                  width: 14,
+                  height: 80,
+                  background:
+                    "linear-gradient(to top, #C8CDD8 0%, #8AABDE 50%, #0F62FE 100%)",
+                  border: "1px solid var(--border-subtle)",
+                  flexShrink: 0,
+                  borderRadius: 1,
+                }}
+              />
+              {/* Tick labels */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  height: 80,
+                  fontSize: 10,
+                  color: "#52525B",
+                }}
+              >
+                {["1.0", "0.75", "0.5", "0.25", "0.0"].map((v) => (
+                  <span key={v}>{v}</span>
+                ))}
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--text-tertiary)",
+                marginTop: 3,
+              }}
+            >
+              {metric === "elevation_alt"
+                ? "cumulative genomic change"
+                : "transcriptional entropy"}
+            </div>
+          </div>
+
           <div
             style={{
               borderTop: "1px solid var(--border-subtle)",
