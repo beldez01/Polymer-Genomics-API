@@ -10,9 +10,18 @@ const HEIGHT = 6;   // vertical exaggeration — elevation_alt is 0–1
 const SP = 3;       // horizontal spacing multiplier
 const CONTOUR_BANDS = 12;  // number of discrete bands for topographic look
 
-// Waddington valley parameters
-const DEPTH = 0.65;   // fraction of full height range to carve (ridges clearly above valleys)
-const SIGMA = 0.7;    // valley half-width in world units (node x/y * SP space)
+// Waddington valley parameters — descending cascade design
+// TILT: multiplies the potency baseline so HSC–terminal span ≈ 2.5× the carve depth.
+//   HSC (B_raw=1.0) floor ≈ (1.0*TILT − DEPTH)*HEIGHT = 7.5 world units
+//   Terminals (B_raw≈0) floor ≈ max(0, −DEPTH*(1+K))*HEIGHT = 0 (deep wells)
+const TILT  = 1.5;  // amplifies developmental tilt (dominant vertical feature)
+const DEPTH = 0.25; // base carve depth (modest so HSC well is shallow)
+const K     = 2.0;  // depthEff exponent: terminal wells 3× deeper than HSC well
+const SIGMA = 0.7;  // valley half-width in world units (node x/y * SP space)
+
+// Floating label offset above the sphere's surface
+const LABEL_FLOAT = 2.2;   // world units above the valley floor
+const LEADER_BOT  = 0.45;  // leader line starts just above sphere surface
 
 // D2 lineage colors on light background
 const LINEAGE_COLOR: Record<string, string> = {
@@ -57,8 +66,8 @@ function waddingtonWorldPos(
   const wz = n.y * SP - cz;
   // plane geometry coords: lx = node.x*SP - cx, ly = cz - node.y*SP
   const ply = cz - n.y * SP;
-  const h = waddingtonHeight(wx, ply, ctrl, segs, { depth: DEPTH, sigma: SIGMA });
-  return [wx, h * HEIGHT, wz];
+  const h = waddingtonHeight(wx, ply, ctrl, segs, { depth: DEPTH, sigma: SIGMA, tilt: TILT, K });
+  return [wx, Math.max(0, h) * HEIGHT, wz];
 }
 
 /** Color a vertex by trough strength: ridge #D4D4D8 (trough≈0) → valley #0F62FE (trough≈1).
@@ -130,6 +139,12 @@ function NodeGroup({
   const opacity = hasLayer ? 1 : 0.35;
   // Metric value for the numeric label
   const metricVal = ((n as any)[metric] as number).toFixed(2);
+  const isHSC = n.id === "hsc";
+
+  // Floating label sits LABEL_FLOAT units above the sphere, leader line connects downward
+  const labelY = LABEL_FLOAT;        // relative to group origin (sphere center at wy)
+  const leaderTop = labelY - 0.05;   // just below label base
+  const leaderBot = LEADER_BOT;      // just above sphere surface
 
   return (
     <group
@@ -139,42 +154,54 @@ function NodeGroup({
         onSelect();
       }}
     >
+      {/* Attractor sphere — brightened with white rim so it reads in blue valleys */}
       <mesh scale={selected ? 1.5 : 1}>
         <sphereGeometry args={[0.42, 24, 24]} />
         <meshStandardMaterial
           color={color}
-          roughness={0.35}
-          metalness={0.15}
-          emissive={selected ? color : "#000000"}
-          emissiveIntensity={selected ? 0.3 : 0}
+          roughness={0.25}
+          metalness={0.2}
+          emissive={selected ? color : "#FFFFFF"}
+          emissiveIntensity={selected ? 0.35 : 0.08}
           transparent={!hasLayer}
           opacity={opacity}
         />
       </mesh>
-      {/* Node name label */}
-      <Text
-        position={[0, 0.9, 0]}
-        fontSize={0.55}
-        color={hasLayer ? "#18181B" : "#A1A1AA"}
-        anchorX="center"
-        anchorY="bottom"
-        outlineWidth={0.04}
-        outlineColor="#FFFFFF"
-      >
-        {n.label}
-      </Text>
-      {/* Numeric metric value — metrological second line */}
-      <Text
-        position={[0, 0.35, 0]}
-        fontSize={0.38}
-        color="#52525B"
-        anchorX="center"
-        anchorY="bottom"
-        outlineWidth={0.025}
-        outlineColor="#FFFFFF"
-      >
-        {metricVal}
-      </Text>
+
+      {/* Hairline leader line: sphere top → floating label base */}
+      <Line
+        points={[[0, leaderBot, 0], [0, leaderTop, 0]]}
+        color="#A1A1AA"
+        lineWidth={0.8}
+      />
+
+      {/* Floating label group — fixed height above valley floor */}
+      <group position={[0, labelY, 0]}>
+        {/* Node name label */}
+        <Text
+          position={[0, isHSC ? 0.55 : 0.28, 0]}
+          fontSize={isHSC ? 0.62 : 0.52}
+          color={hasLayer ? "#18181B" : "#A1A1AA"}
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.05}
+          outlineColor="#FFFFFF"
+        >
+          {isHSC ? `${n.label}  ▸ source` : n.label}
+        </Text>
+        {/* Numeric metric value — monospaced metrological second line */}
+        <Text
+          position={[0, 0, 0]}
+          fontSize={0.36}
+          color="#52525B"
+          anchorX="center"
+          anchorY="bottom"
+          outlineWidth={0.03}
+          outlineColor="#FFFFFF"
+        >
+          {metricVal}
+        </Text>
+      </group>
     </group>
   );
 }
@@ -297,8 +324,10 @@ export default function Landscape3D({
       const lx = pos.getX(i);
       const ly = pos.getY(i);
 
-      // Baseline (developmental tilt)
-      const B = idwHeight(lx, ly, ctrl);
+      // Raw potency baseline in [0,1] from IDW
+      const B_raw = idwHeight(lx, ly, ctrl);
+      // Amplified baseline: dominant vertical feature (HSC high, terminals low)
+      const B = B_raw * TILT;
 
       // Trough strength for this vertex
       let best = Infinity;
@@ -314,7 +343,8 @@ export default function Landscape3D({
       const trough = segs.length > 0
         ? Math.exp(-(best * best) / (2 * SIGMA * SIGMA))
         : 0;
-      const depthEff = DEPTH * (1 + 0.6 * (1 - B));
+      // depthEff uses raw B so HSC wells are shallow, terminal wells are deep
+      const depthEff = DEPTH * (1 + K * (1 - B_raw));
       const h = Math.max(0, B - depthEff * trough);
 
       pos.setZ(i, h * HEIGHT);
@@ -330,9 +360,10 @@ export default function Landscape3D({
   }, [ctrl, segs, planeW, planeH]);
 
   // Elevation axis position: back-left corner of the terrain bounding box
+  // maxY accounts for TILT expanding the vertical range beyond HEIGHT
   const axisX = -planeW / 2 - 1.2;
   const axisZ = -planeH / 2 - 1.2;
-  const maxY = HEIGHT;
+  const maxY = HEIGHT * TILT;
 
   // Grid dimensions (match terrain footprint)
   const gridW = planeW + 2;
@@ -346,7 +377,7 @@ export default function Landscape3D({
 
   return (
     <Canvas
-      camera={{ position: [18, 22, 18], fov: 48 }}
+      camera={{ position: [20, 28, 20], fov: 50 }}
       style={{ height: "72vh", background: "#EBEBED" }}
       onPointerMissed={() => onSelect?.(null)}
     >

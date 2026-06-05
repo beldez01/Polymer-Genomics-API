@@ -17,13 +17,23 @@ export function distToSegment(px: number, py: number, s: Seg): number {
   let t = L2 > 0 ? ((px - s.ax) * dx + (py - s.ay) * dy) / L2 : 0; t = Math.max(0, Math.min(1, t));
   const cx = s.ax + t * dx, cy = s.ay + t * dy; return Math.hypot(px - cx, py - cy);
 }
-/** Waddington height: developmental baseline minus valleys carved along edges. */
+/** Waddington height: developmental baseline minus valleys carved along edges.
+ *
+ *  tilt:  multiplies the raw IDW baseline (B) so the potency axis spans a larger
+ *         vertical range. B_raw stays in [0,1] and is used for the depthEff
+ *         modulation so that HSC wells are shallow (B_raw≈1 → depthEff≈depth) and
+ *         terminal wells are deep (B_raw≈0 → depthEff≈depth*(1+K)).
+ *         The returned height is B_raw*tilt − depthEff*trough.
+ */
 export function waddingtonHeight(x: number, y: number, ctrl: CtrlPt[],
-  segs: Seg[], opts: { depth: number; sigma: number }): number {
-  const B = idwHeight(x, y, ctrl);
+  segs: Seg[], opts: { depth: number; sigma: number; tilt?: number; K?: number }): number {
+  const tilt  = opts.tilt  ?? 1.0;
+  const K     = opts.K     ?? 0.6;
+  const B_raw = idwHeight(x, y, ctrl);           // potency in [0,1]
+  const B     = B_raw * tilt;                    // amplified baseline (dominant vertical feature)
   if (!segs.length) return B;
   let best = Infinity; for (const s of segs) { const d = distToSegment(x, y, s); if (d < best) best = d; }
-  const trough = Math.exp(-(best * best) / (2 * opts.sigma * opts.sigma));
-  const depthEff = opts.depth * (1 + 0.6 * (1 - B));
+  const trough   = Math.exp(-(best * best) / (2 * opts.sigma * opts.sigma));
+  const depthEff = opts.depth * (1 + K * (1 - B_raw)); // shallow at HSC, deep at terminals
   return B - depthEff * trough;
 }
