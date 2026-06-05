@@ -4,11 +4,15 @@ import { OrbitControls, Text, Line, Grid } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Landscape, Layer, Metric, LNode } from "@/lib/types";
-import { idwHeight, CtrlPt } from "@/lib/surface";
+import { idwHeight, waddingtonHeight, CtrlPt, Seg } from "@/lib/surface";
 
-const HEIGHT = 6;   // vertical exaggeration — elevation_alt is 0–1, so HSC peak = 6 units
+const HEIGHT = 6;   // vertical exaggeration — elevation_alt is 0–1
 const SP = 3;       // horizontal spacing multiplier
-const CONTOUR_BANDS = 14;  // number of discrete elevation bands for topographic look
+const CONTOUR_BANDS = 12;  // number of discrete bands for topographic look
+
+// Waddington valley parameters
+const DEPTH = 0.65;   // fraction of full height range to carve (ridges clearly above valleys)
+const SIGMA = 0.7;    // valley half-width in world units (node x/y * SP space)
 
 // D2 lineage colors on light background
 const LINEAGE_COLOR: Record<string, string> = {
@@ -18,39 +22,59 @@ const LINEAGE_COLOR: Record<string, string> = {
   myeloid: "#ff9800",
 };
 
-/** World-space position for a node.
- *  Coordinate layout (after PlaneGeometry rotation [-π/2, 0, 0]):
- *    world X = node.x * SP - cx
- *    world Y = node[metric] * HEIGHT   (height above ground)
- *    world Z = node.y * SP - cz
+/** Build edge segments in world space (before centering — centering applied in geo loop) */
+function buildSegs(
+  nodes: LNode[],
+  edges: { from: string; to: string }[],
+  cx: number,
+  cz: number
+): Seg[] {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  return edges.flatMap((e) => {
+    const a = nodeMap.get(e.from);
+    const b = nodeMap.get(e.to);
+    if (!a || !b) return [];
+    return [{
+      ax: a.x * SP - cx,
+      ay: cz - a.y * SP,   // note: plane geometry Y maps to -node.y (same sign convention as ctrl.y)
+      bx: b.x * SP - cx,
+      by: cz - b.y * SP,
+    }];
+  });
+}
+
+/** Waddington-corrected world-space position for a node.
+ *  Nodes sit at the valley floor so the sphere rests in its attractor basin.
  */
-function worldPos(
+function waddingtonWorldPos(
   n: LNode,
-  metric: Metric,
+  ctrl: CtrlPt[],
+  segs: Seg[],
   cx: number,
   cz: number
 ): [number, number, number] {
-  return [n.x * SP - cx, (n as any)[metric] * HEIGHT, n.y * SP - cz];
+  const wx = n.x * SP - cx;
+  const wz = n.y * SP - cz;
+  // plane geometry coords: lx = node.x*SP - cx, ly = cz - node.y*SP
+  const ply = cz - n.y * SP;
+  const h = waddingtonHeight(wx, ply, ctrl, segs, { depth: DEPTH, sigma: SIGMA });
+  return [wx, h * HEIGHT, wz];
 }
 
-/** Compute the stepped/banded color for a height value h in [0,1].
- *  Quantizes h into CONTOUR_BANDS discrete steps, then applies the same
- *  #C8CDD8 → #8AABDE → #0F62FE ramp — giving a topographic-contour look.
+/** Color a vertex by trough strength: ridge #D4D4D8 (trough≈0) → valley #0F62FE (trough≈1).
+ *  Quantize into bands for a topographic-contour look.
  */
-function bandedColor(h: number): THREE.Color {
-  // Quantize to discrete band
-  const band = Math.floor(h * CONTOUR_BANDS) / CONTOUR_BANDS;
-  const hSnapped = Math.min(band, 1.0);
-
-  const valleyColor = new THREE.Color("#C8CDD8");
-  const midColor = new THREE.Color("#8AABDE");
-  const peakColor = new THREE.Color("#0F62FE");
-
+function valleyColor(trough: number): THREE.Color {
+  const band = Math.floor(trough * CONTOUR_BANDS) / CONTOUR_BANDS;
+  const t = Math.min(band, 1.0);
+  const ridgeColor = new THREE.Color("#D4D4D8");
+  const midColor   = new THREE.Color("#8AABDE");
+  const valleyBlue = new THREE.Color("#0F62FE");
   const c = new THREE.Color();
-  if (hSnapped < 0.5) {
-    c.lerpColors(valleyColor, midColor, hSnapped * 2);
+  if (t < 0.5) {
+    c.lerpColors(ridgeColor, midColor, t * 2);
   } else {
-    c.lerpColors(midColor, peakColor, (hSnapped - 0.5) * 2);
+    c.lerpColors(midColor, valleyBlue, (t - 0.5) * 2);
   }
   return c;
 }
@@ -80,22 +104,26 @@ function FlowMarker({ a, b }: { a: [number, number, number]; b: [number, number,
 // ─── Clickable node group ───────────────────────────────────────────────────
 function NodeGroup({
   n,
-  metric,
+  ctrl,
+  segs,
   cx,
   cz,
   selected,
   onSelect,
   layer,
+  metric,
 }: {
   n: LNode;
-  metric: Metric;
+  ctrl: CtrlPt[];
+  segs: Seg[];
   cx: number;
   cz: number;
   selected: boolean;
   onSelect: () => void;
   layer: Layer;
+  metric: Metric;
 }) {
-  const [wx, wy, wz] = worldPos(n, metric, cx, cz);
+  const [wx, wy, wz] = waddingtonWorldPos(n, ctrl, segs, cx, cz);
   const baseColor = LINEAGE_COLOR[n.lineage] ?? "#71717A";
   const hasLayer = n.modalities.includes(layer);
   const color = hasLayer ? baseColor : "#A1A1AA";
@@ -240,6 +268,7 @@ export default function Landscape3D({
   const cx = (xMin + xMax) / 2;
   const cz = (zMin + zMax) / 2;
 
+  // IDW control points (in plane-local coords): x = node.x*SP - cx, y = cz - node.y*SP
   const ctrl: CtrlPt[] = useMemo(
     () =>
       data.nodes.map((n) => ({
@@ -250,29 +279,55 @@ export default function Landscape3D({
     [data.nodes, metric, cx, cz]
   );
 
+  // Edge segments for valley carving (plane-local coords, same sign convention)
+  const segs: Seg[] = useMemo(
+    () => buildSegs(data.nodes, data.edges, cx, cz),
+    [data.nodes, data.edges, cx, cz]
+  );
+
   const planeW = xMax - xMin + 2 * SP;
   const planeH = zMax - zMin + 2 * SP;
 
   const geo = useMemo(() => {
-    const g = new THREE.PlaneGeometry(planeW, planeH, 60, 60);
+    const g = new THREE.PlaneGeometry(planeW, planeH, 80, 80);
     const pos = g.attributes.position as THREE.BufferAttribute;
     const colorArr: number[] = [];
 
     for (let i = 0; i < pos.count; i++) {
       const lx = pos.getX(i);
       const ly = pos.getY(i);
-      const h = idwHeight(lx, ly, ctrl);
+
+      // Baseline (developmental tilt)
+      const B = idwHeight(lx, ly, ctrl);
+
+      // Trough strength for this vertex
+      let best = Infinity;
+      for (const s of segs) {
+        const dx = s.bx - s.ax, dy = s.by - s.ay;
+        const L2 = dx * dx + dy * dy;
+        let t2 = L2 > 0 ? ((lx - s.ax) * dx + (ly - s.ay) * dy) / L2 : 0;
+        t2 = Math.max(0, Math.min(1, t2));
+        const cx2 = s.ax + t2 * dx, cy2 = s.ay + t2 * dy;
+        const d = Math.hypot(lx - cx2, ly - cy2);
+        if (d < best) best = d;
+      }
+      const trough = segs.length > 0
+        ? Math.exp(-(best * best) / (2 * SIGMA * SIGMA))
+        : 0;
+      const depthEff = DEPTH * (1 + 0.6 * (1 - B));
+      const h = Math.max(0, B - depthEff * trough);
+
       pos.setZ(i, h * HEIGHT);
 
-      // Banded contour colors (topographic look)
-      const c = bandedColor(h);
+      // Color by trough strength: valleys glow electric blue, ridges are light gray
+      const c = valleyColor(trough);
       colorArr.push(c.r, c.g, c.b);
     }
 
     g.setAttribute("color", new THREE.Float32BufferAttribute(colorArr, 3));
     g.computeVertexNormals();
     return g;
-  }, [ctrl, planeW, planeH]);
+  }, [ctrl, segs, planeW, planeH]);
 
   // Elevation axis position: back-left corner of the terrain bounding box
   const axisX = -planeW / 2 - 1.2;
@@ -291,7 +346,7 @@ export default function Landscape3D({
 
   return (
     <Canvas
-      camera={{ position: [20, 18, 20], fov: 50 }}
+      camera={{ position: [18, 22, 18], fov: 48 }}
       style={{ height: "72vh", background: "#EBEBED" }}
       onPointerMissed={() => onSelect?.(null)}
     >
@@ -314,20 +369,20 @@ export default function Landscape3D({
         infiniteGrid={false}
       />
 
-      {/* Terrain mesh — contour-banded vertex colors */}
+      {/* Terrain mesh — valley-blue creodes, gray ridges, topographic contour banding */}
       <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
         <meshStandardMaterial vertexColors flatShading />
       </mesh>
 
       {/* Wireframe overlay — measurement grid on surface */}
       <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]}>
-        <meshBasicMaterial wireframe transparent opacity={0.12} color="#A1A1AA" />
+        <meshBasicMaterial wireframe transparent opacity={0.10} color="#A1A1AA" />
       </mesh>
 
       {/* Elevation axis with numeric ticks */}
       <ElevationAxis axisX={axisX} axisZ={axisZ} maxY={maxY} />
 
-      {/* Edges + flow markers */}
+      {/* Edges + flow markers — flow balls roll along valley floors */}
       {data.edges.map((e, i) => {
         const a = data.nodes.find((n) => n.id === e.from);
         const b = data.nodes.find((n) => n.id === e.to);
@@ -356,8 +411,9 @@ export default function Landscape3D({
           ? 4
           : 1 + 3 * mag;
 
-        const posA = worldPos(a, metric, cx, cz);
-        const posB = worldPos(b, metric, cx, cz);
+        // Nodes now sit at valley-floor Y
+        const posA = waddingtonWorldPos(a, ctrl, segs, cx, cz);
+        const posB = waddingtonWorldPos(b, ctrl, segs, cx, cz);
 
         return (
           <group key={i}>
@@ -380,15 +436,17 @@ export default function Landscape3D({
         );
       })}
 
-      {/* Node spheres + labels + numeric values */}
+      {/* Node spheres + labels + numeric values — seated at valley floors */}
       {data.nodes.map((n) => (
         <NodeGroup
           key={n.id}
           n={n}
-          metric={metric}
+          ctrl={ctrl}
+          segs={segs}
           cx={cx}
           cz={cz}
           layer={layer}
+          metric={metric}
           selected={selected?.kind === "node" && selected.id === n.id}
           onSelect={() => onSelect?.({ kind: "node", id: n.id })}
         />

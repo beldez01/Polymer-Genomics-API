@@ -82,8 +82,7 @@ export default function Page() {
             fontSize: 13,
           }}
         >
-          HSC peak → canalized lineage valleys; edge color/width = # cCREs
-          changing on that transition.
+          Valleys = cell-state attractors; ridges = fate barriers. Ball rolls from the HSC basin down branching valleys. Edge color/width = # cCREs changing on that transition.
         </p>
       </div>
 
@@ -158,7 +157,7 @@ export default function Page() {
             ))}
           </div>
 
-          {/* Elevation colorbar — metrological precision cue */}
+          {/* Colorbar: valley (blue) → ridge (gray) */}
           <div
             style={{
               borderTop: "1px solid var(--border-subtle)",
@@ -174,22 +173,22 @@ export default function Page() {
                 marginBottom: 5,
               }}
             >
-              ELEVATION
+              TERRAIN COLOR
             </div>
             <div style={{ display: "flex", alignItems: "stretch", gap: 6 }}>
-              {/* Colorbar gradient strip */}
+              {/* Colorbar gradient strip: valley blue at top, ridge gray at bottom */}
               <div
                 style={{
                   width: 14,
                   height: 80,
                   background:
-                    "linear-gradient(to top, #C8CDD8 0%, #8AABDE 50%, #0F62FE 100%)",
+                    "linear-gradient(to top, #D4D4D8 0%, #8AABDE 50%, #0F62FE 100%)",
                   border: "1px solid var(--border-subtle)",
                   flexShrink: 0,
                   borderRadius: 1,
                 }}
               />
-              {/* Tick labels */}
+              {/* Labels */}
               <div
                 style={{
                   display: "flex",
@@ -200,9 +199,9 @@ export default function Page() {
                   color: "#52525B",
                 }}
               >
-                {["1.0", "0.75", "0.5", "0.25", "0.0"].map((v) => (
-                  <span key={v}>{v}</span>
-                ))}
+                <span>valley</span>
+                <span>↕</span>
+                <span>ridge</span>
               </div>
             </div>
             <div
@@ -212,9 +211,7 @@ export default function Page() {
                 marginTop: 3,
               }}
             >
-              {metric === "elevation_alt"
-                ? "cumulative genomic change"
-                : "transcriptional entropy"}
+              blue = attractor (creode); gray = fate barrier
             </div>
           </div>
 
@@ -234,6 +231,9 @@ export default function Page() {
             </div>
             <div style={{ marginTop: 3, color: "var(--text-faint)", fontSize: 10 }}>
               Dimmed node = no data for selected layer
+            </div>
+            <div style={{ marginTop: 4, color: "var(--text-faint)", fontSize: 10, fontStyle: "italic" }}>
+              Waddington topology: nodes sit in valleys (attractors); orange ball rolls downhill from HSC.
             </div>
           </div>
         </div>
