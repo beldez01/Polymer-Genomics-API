@@ -48,7 +48,7 @@ export default function Controls({
       <label style={{ display: "flex", flexDirection: "column" }}>
         <span style={labelStyle}>Surface height</span>
         <select value={metric} onChange={(e) => setMetric(e.target.value as Metric)}>
-          <option value="elevation_alt">differentiation potential (fate entropy)</option>
+          <option value="elevation_alt">inverse pseudotime (HSC → terminal cascade)</option>
           <option value="elevation">transcriptional entropy (legacy)</option>
         </select>
       </label>

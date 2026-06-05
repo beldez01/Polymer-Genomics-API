@@ -1,4 +1,5 @@
-"""Differentiation potential = Shannon entropy of branch-fate probabilities."""
+"""Differentiation potential = Shannon entropy of branch-fate probabilities.
+Reference implementation; the P0 pipeline uses palantir's own pr.entropy. Kept for tests and potential reuse."""
 from __future__ import annotations
 
 import numpy as np

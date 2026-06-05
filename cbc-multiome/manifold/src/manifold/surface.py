@@ -2,7 +2,7 @@
 
 H(x,y) = w_e * Ebar(x,y) - w_d * log(rho(x,y) + eps)
 
-  Ebar  = smoothed differentiation-potential field (descending cascade)
+  Ebar  = smoothed scalar height field (P0 feeds 1 - pseudotime; any per-cell scalar works)
   rho   = smoothed cell density (attractor wells; sparse regions rise)
 
 Implemented with a 2D histogram + Gaussian smoothing (fast, deterministic).

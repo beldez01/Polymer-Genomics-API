@@ -30,7 +30,7 @@ class NodeProjection:
     diff_potential: float
     pseudotime: float
     density: float
-    confidence: float
+    mean_neighbor_distance: float
 
 
 def _align(bulk_vec: np.ndarray, bulk_genes: list[str], model_genes: list[str]) -> np.ndarray:
@@ -55,5 +55,5 @@ def project_node(bulk_vec, bulk_genes, model: ManifoldModel, k: int = 30) -> Nod
         diff_potential=float(w @ model.cell_diff_potential[nn]),
         pseudotime=float(w @ model.cell_pseudotime[nn]),
         density=float(w @ model.cell_density[nn]),
-        confidence=float(dist.mean()),
+        mean_neighbor_distance=float(dist.mean()),
     )

@@ -33,7 +33,7 @@ def test_confidence_is_worse_for_off_manifold_node():
     model, genes = _toy_model()
     near = project_node(np.array([0.0, 0.0]), genes, model, k=10)
     far = project_node(np.array([100.0, 100.0]), genes, model, k=10)
-    assert far.confidence > near.confidence
+    assert far.mean_neighbor_distance > near.mean_neighbor_distance
 
 
 def test_align_reorders_to_model_gene_order():

@@ -37,8 +37,10 @@ export default function Page() {
     );
   }
 
-  const metricLabel =
-    metric === "elevation_alt"
+  const isGrid = (data as { grid?: unknown }).grid !== undefined;
+  const metricLabel = isGrid
+    ? "height = inverse pseudotime (HSC apex → terminal wells); density carves attractor basins"
+    : metric === "elevation_alt"
       ? "height = cumulative genomic change from HSC"
       : "height = transcriptional entropy";
 

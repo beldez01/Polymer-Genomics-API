@@ -147,7 +147,8 @@ function NodeGroup({
   const color = hasLayer ? baseColor : "#A1A1AA";
   const opacity = hasLayer ? 1 : 0.35;
   // Metric value for the numeric label
-  const metricVal = ((n as any)[metric] as number).toFixed(2);
+  const mv = (n as any)[metric];
+  const metricVal = typeof mv === "number" ? mv.toFixed(2) : "—";
   const isHSC = n.id === "hsc";
 
   // Floating label sits LABEL_FLOAT units above the sphere, leader line connects downward
@@ -590,10 +591,12 @@ export default function Landscape3D({
 
           {/* nodes */}
           {data.nodes.map((n) => {
+            const OOM_DROP = 0.6;     // world units below the progenitor they map onto
+            const jitter = n.id === "neutrophil" ? -0.5 : n.id === "eosinophil" ? 0.5 : 0;
             const p: [number, number, number] = [
-              gmap.worldX(n.x),
-              gmap.hNorm(n.z ?? 0),
-              gmap.worldZ(n.y),
+              gmap.worldX(n.x) + jitter,
+              gmap.hNorm(n.z ?? 0) - (n.out_of_manifold ? OOM_DROP : 0),
+              gmap.worldZ(n.y) + jitter,
             ];
             const isSel = selected?.kind === "node" && selected.id === n.id;
             const color =
