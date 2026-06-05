@@ -3,3 +3,6 @@ output/
 *.rds
 .Rhistory
 .RData
+manifold/.venv/
+manifold/uv.lock
+data/manifold/
