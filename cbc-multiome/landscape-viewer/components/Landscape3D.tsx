@@ -142,8 +142,8 @@ function NodeGroup({
   metric: Metric;
 }) {
   const [wx, wy, wz] = waddingtonWorldPos(n, ctrl, segs, cx, cz);
-  const baseColor = LINEAGE_COLOR[n.lineage] ?? "#71717A";
-  const hasLayer = n.modalities.includes(layer);
+  const baseColor = LINEAGE_COLOR[n.lineage ?? ""] ?? "#71717A";
+  const hasLayer = (n.modalities ?? []).includes(layer);
   const color = hasLayer ? baseColor : "#A1A1AA";
   const opacity = hasLayer ? 1 : 0.35;
   // Metric value for the numeric label

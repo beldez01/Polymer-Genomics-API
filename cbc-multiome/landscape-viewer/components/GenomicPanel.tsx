@@ -201,7 +201,7 @@ export default function GenomicPanel({
           <span style={sectionMarkerStyle}>Modality Coverage</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 20px" }}>
             {ALL_MODALITIES.map((mod) => {
-              const has = node.modalities.includes(mod);
+              const has = (node.modalities ?? []).includes(mod);
               return (
                 <span
                   key={mod}
