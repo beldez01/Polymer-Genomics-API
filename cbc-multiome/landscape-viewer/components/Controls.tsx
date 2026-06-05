@@ -46,12 +46,22 @@ export default function Controls({
       </label>
 
       <label style={{ display: "flex", flexDirection: "column" }}>
-        <span style={labelStyle}>Elevation</span>
+        <span style={labelStyle}>Surface height</span>
         <select value={metric} onChange={(e) => setMetric(e.target.value as Metric)}>
-          <option value="elevation_alt">cumulative genomic change (HSC peak)</option>
-          <option value="elevation">transcriptional entropy (peaks at progenitors)</option>
+          <option value="elevation_alt">differentiation potential (fate entropy)</option>
+          <option value="elevation">transcriptional entropy (legacy)</option>
         </select>
       </label>
+
+      <div style={{ display: "flex", flexDirection: "column", opacity: 0.45 }}
+           title="Enabled in P1: methylation / TET2 deformation of the landscape">
+        <span style={labelStyle}>Perturbation (P1)</span>
+        <input type="range" min={0} max={1} step={0.01} defaultValue={0} disabled
+               aria-label="perturbation (disabled in P0)" />
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>
+          inert — no deformation in P0
+        </span>
+      </div>
 
       {/* Lineage legend */}
       <div
