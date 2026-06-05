@@ -13,7 +13,11 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data" / "manifold"
 OUT = ROOT / "landscape-viewer" / "public" / "landscape_v2.json"
 GRID_DIM = 160
-W_E, W_D = 1.0, 0.5
+# Elevation field (1 - pseudotime) is in [0,1]; the -log(density) term has a much
+# larger raw swing (~2-5), so it must be down-weighted or it swamps the cascade.
+# w_e=3.0 makes the developmental cascade the DOMINANT vertical feature (~0-3),
+# w_d=0.2 keeps density as a SECONDARY attractor-well texture (~0.9-1.8 swing).
+W_E, W_D = 3.0, 0.12
 
 
 def _carry_over_edges() -> list:
@@ -28,8 +32,12 @@ def main() -> int:
     cells = pd.read_parquet(DATA / "cells.parquet")
     nodes = json.loads((DATA / "nodes.json").read_text())
 
+    # Height field = inverse pseudotime (HSC apex high -> terminal low), a monotonic
+    # descending cascade across all lineages; fate-entropy separated only some
+    # branches on this atlas. Density still carves attractor wells.
+    height = 1.0 - cells["pseudotime"].values
     surface = build_surface(
-        cells[["x", "y"]].values, cells["diff_potential"].values,
+        cells[["x", "y"]].values, height,
         grid_dim=GRID_DIM, w_e=W_E, w_d=W_D,
     )
     for n in nodes:
@@ -38,7 +46,7 @@ def main() -> int:
     landscape = {
         "meta": {
             "generated_from": "GSE194122 + setty2019",
-            "elevation": "palantir_differentiation_potential",
+            "elevation": "inverse_palantir_pseudotime",
             "well_term": "neg_log_density",
             "weights": {"w_e": W_E, "w_d": W_D},
             "grid_dim": GRID_DIM,

@@ -10,9 +10,23 @@ API adaptations (palantir 1.4.4, harmonypy 2.0):
     sc.external.pp.harmony_integrate applies .T which gives the wrong shape.
     We call harmonypy.run_harmony directly.
   - palantir 1.4.4: terminal state auto-detection via eigenvector ranks fails on
-    large (>60k) heterogeneous atlases (cutoff becomes too strict).  We supply
-    explicit terminal states: one representative cell per mature lineage, chosen
-    as the most extreme point in multiscale diffusion space for that cell type.
+    large (>60k) heterogeneous atlases (cutoff becomes too strict, returns []).
+    We supply explicit terminal states: one per MATURE lineage, anchored by CANONICAL
+    MARKER expression (the highest-marker cell of each type sits at the differentiated
+    TIP of its cluster — see TERMINAL_MARKERS). Centroid/closest-to-mean terminals left
+    mature myeloid diffusely multipotent; marker-tip terminals concentrate the
+    absorbing probability. Passed to run_palantir(..., terminal_states=[barcodes]).
+    NOTE: downstream P0 uses pr.pseudotime (not pr.entropy) for elevation, because
+    fate-entropy on this atlas separates only some branches; pseudotime is monotonic
+    across all lineages. cells.parquet still records both.
+  - Root cell: the atlas's own GEX_pseudotime_order (per-cell differentiation order
+    from the NeurIPS study) covers ONLY the erythroid trajectory
+    (HSC -> MK/E -> Proerythroblast -> Erythroblast -> Normoblast); lymphoid/myeloid
+    cells are NaN. So we cannot use it to pick the mature terminals (the plan's
+    proposed GEX_pseudotime_order.idxmax() yields only 1 terminal, Normoblast).
+    But ALL HSC cells DO have it, so we use it to pin the root = the HSC cell with
+    the MINIMUM GEX_pseudotime_order (the atlas-defined apex of differentiation),
+    which is more defensible than the marker-argmax single cell.
   - run_palantir returns PResults; .entropy IS the Shannon entropy of branch_probs
     (already computed inside palantir), so we use pr.entropy directly as
     diff_potential rather than recomputing it via the local entropy module.
@@ -41,26 +55,46 @@ N_PCS = 30
 N_HVG = 2000
 ROOT_MARKERS = ["CD34", "AVP", "CRHBP", "HLF"]
 
-# Terminally differentiated cell types present in this atlas.
-# One representative per lineage — selected as most extreme in multiscale diffusion
-# space (furthest from cell-type mean), which places them at the boundary of their
-# fate compartment.
-TERMINAL_TYPES = [
-    "CD14+ Mono",
-    "CD8+ T",
-    "NK",
-    "Naive CD20+ B",
-    "Normoblast",
-    "pDC",
-]
+# Mature / terminally differentiated endpoints across all hematopoietic branches.
+# One absorbing terminal per mature lineage. The terminal is anchored by CANONICAL
+# MARKER expression: the cell of each type with the highest marker score sits at the
+# differentiated TIP of its cluster, so the diffusion absorbing probability of nearby
+# committed cells concentrates on that terminal (low entropy = committed). Centroid /
+# closest-to-mean terminals sat in the cluster middle and left mature myeloid cells
+# diffusely multipotent (biologically wrong high differentiation potential).
+TERMINAL_MARKERS = {
+    "CD14+ Mono":       ["CD14", "FCN1", "S100A8", "LYZ"],
+    "CD16+ Mono":       ["FCGR3A", "MS4A7", "CDKN1C"],
+    "CD8+ T":           ["CD8A", "CD8B", "GZMK", "CD3D"],
+    "CD4+ T activated": ["CD4", "IL7R", "CD3D", "IL2RA"],
+    "NK":               ["NKG7", "GNLY", "KLRD1", "NCAM1"],
+    "ILC":              ["KIT", "IL7R", "RORC"],
+    "Naive CD20+ B":    ["MS4A1", "CD79A", "CD79B", "CD19"],
+    "Plasma cell":      ["MZB1", "JCHAIN", "XBP1", "SDC1"],
+    "Normoblast":       ["HBB", "HBA1", "GYPA", "ALAS2"],
+    "pDC":              ["LILRA4", "IL3RA", "CLEC4C", "GZMB"],
+    "cDC2":             ["CD1C", "FCER1A", "CLEC10A"],
+}
 
 
-def _pick_terminal(ms: pd.DataFrame, adata_obs: pd.DataFrame, cell_type: str) -> str:
-    """Return the barcode of the most diffusion-extreme cell for a given cell_type."""
-    barcodes = adata_obs.index[adata_obs["cell_type"] == cell_type]
-    ct_ms = ms.loc[barcodes]
-    deviation = (ct_ms - ct_ms.mean()).abs().sum(axis=1)
-    return deviation.idxmax()
+def _pick_terminal_marker(
+    marker_expr: pd.DataFrame, obs: pd.DataFrame, cell_type: str, markers: list[str]
+) -> str | None:
+    """Barcode of the cell of `cell_type` with the highest mean marker expression.
+
+    Markers are scored on the FULL log-normalized gene set (captured before HVG
+    subsetting). Restricting to cells annotated as `cell_type` avoids picking a
+    high-marker doublet from another compartment. The argmax cell is the
+    differentiated tip of the lineage — a strong absorbing terminal.
+    """
+    present = [m for m in markers if m in marker_expr.columns]
+    if not present:
+        return None
+    barcodes = obs.index[obs["cell_type"].astype(str) == cell_type]
+    if len(barcodes) == 0:
+        return None
+    score = marker_expr.loc[barcodes, present].mean(axis=1)
+    return score.idxmax()
 
 
 def main() -> int:
@@ -77,13 +111,38 @@ def main() -> int:
     sc.pp.normalize_total(adata, target_sum=1e4)
     sc.pp.log1p(adata)
 
-    # Root marker score on FULL gene set (before HVG subset, so markers survive)
-    present = [g for g in ROOT_MARKERS if g in adata.var_names]
-    if not present:
-        raise ValueError(f"No root markers {ROOT_MARKERS} found in var_names")
-    print(f"  Root markers found: {present}")
-    marker_score = np.asarray(adata[:, present].X.mean(axis=1)).ravel()
-    root = adata.obs_names[int(np.argmax(marker_score))]
+    # Capture terminal-marker expression on the FULL gene set BEFORE HVG subsetting
+    # (markers like CD14 / MS4A1 are not guaranteed to survive HVG selection).
+    all_markers = sorted(
+        {g for gs in TERMINAL_MARKERS.values() for g in gs if g in adata.var_names}
+    )
+    _mx = adata[:, all_markers].X
+    _mx = _mx.toarray() if hasattr(_mx, "toarray") else np.asarray(_mx)
+    marker_expr = pd.DataFrame(_mx, index=adata.obs_names, columns=all_markers)
+    print(f"  Captured {len(all_markers)} terminal markers for terminal selection")
+
+    # Root cell = the HSC cell at the apex of the atlas's own differentiation order.
+    # GEX_pseudotime_order covers all HSC cells (lymphoid/myeloid mature cells are
+    # NaN), so the HSC cell with the MINIMUM order is the atlas-defined starting
+    # point of hematopoiesis. Fall back to a marker-score argmax if the column is
+    # absent or HSC cells lack order values.
+    root = None
+    if "GEX_pseudotime_order" in adata.obs.columns:
+        order = adata.obs["GEX_pseudotime_order"].astype(float)
+        hsc_order = order[(adata.obs["cell_type"].astype(str) == "HSC").values].dropna()
+        if len(hsc_order) > 0:
+            root = hsc_order.idxmin()
+            print(
+                f"  Root (HSC apex via GEX_pseudotime_order): {root} "
+                f"order={order[root]:.3f}"
+            )
+    if root is None:
+        present = [g for g in ROOT_MARKERS if g in adata.var_names]
+        if not present:
+            raise ValueError(f"No root markers {ROOT_MARKERS} found in var_names")
+        print(f"  [fallback] Root markers found: {present}")
+        marker_score = np.asarray(adata[:, present].X.mean(axis=1)).ravel()
+        root = adata.obs_names[int(np.argmax(marker_score))]
     print(f"  Root cell: {root}  cell_type: {adata.obs.loc[root, 'cell_type']}")
 
     # HVG selection
@@ -91,7 +150,10 @@ def main() -> int:
     adata = adata[:, adata.var.highly_variable].copy()
     print(f"  After HVG subset: {adata.shape}")
 
-    genes = list(adata.var_names)
+    # Store genes as base Ensembl IDs (var['gene_id']) so bulk nodes (which carry
+    # Ensembl IDs) can be aligned for projection. var_names are symbols and would
+    # have zero overlap with the MAE's Ensembl-keyed node vectors.
+    genes = [str(g) for g in adata.var["gene_id"]]
     Xd = (
         adata.X.toarray().astype(np.float32)
         if hasattr(adata.X, "toarray")
@@ -131,16 +193,23 @@ def main() -> int:
     # ms is a DataFrame (n_cells × n_eigs), index = obs_names
 
     # Terminal states: auto-detection fails on large heterogeneous atlases.
-    # Supply one cell per mature lineage (most diffusion-extreme in its cell type).
-    terminal_cells = [
-        _pick_terminal(ms, adata.obs, ct)
-        for ct in TERMINAL_TYPES
-        if ct in adata.obs["cell_type"].values
-    ]
+    # Supply one representative cell per mature lineage (closest to its centroid).
+    terminal_map = {
+        ct: _pick_terminal_marker(marker_expr, adata.obs, ct, markers)
+        for ct, markers in TERMINAL_MARKERS.items()
+    }
+    terminal_map = {ct: bc for ct, bc in terminal_map.items() if bc is not None}
+    terminal_cells = list(terminal_map.values())
+    if len(terminal_cells) < 4:
+        raise ValueError(
+            f"Only {len(terminal_cells)} terminal states found; need >=4 for a "
+            f"meaningful fate-probability landscape."
+        )
     print(f"  Terminal state cells selected: {len(terminal_cells)}")
-    for ct, bc in zip(TERMINAL_TYPES, terminal_cells):
+    for ct, bc in terminal_map.items():
         print(f"    {ct}: {bc}")
 
+    # palantir 1.4.4 kwarg: terminal_states accepts a list of cell barcodes.
     print(f"Running Palantir (num_waypoints=500, root={root})...")
     pr = palantir.core.run_palantir(
         ms, root, terminal_states=terminal_cells, num_waypoints=500
@@ -197,12 +266,12 @@ def main() -> int:
         "diff_potential:", round(float(cells.loc[root, "diff_potential"]), 3),
         "| cell_type:", cells.loc[root, "cell_type"],
     )
-    top = (
-        cells.groupby("cell_type")["diff_potential"]
+    by_type = (
+        cells.groupby("cell_type", observed=True)["diff_potential"]
         .mean()
         .sort_values(ascending=False)
     )
-    print("top diff_potential cell types:\n", top.head(6).round(3).to_string())
+    print("mean diff_potential by cell_type (full, sorted):\n", by_type.round(3).to_string())
     return 0
 
 
