@@ -12,12 +12,20 @@ const CONTOUR_BANDS = 12;  // number of discrete bands for topographic look
 
 // Waddington valley parameters — descending cascade design
 // TILT: multiplies the potency baseline so HSC–terminal span ≈ 2.5× the carve depth.
-//   HSC (B_raw=1.0) floor ≈ (1.0*TILT − DEPTH)*HEIGHT = 7.5 world units
-//   Terminals (B_raw≈0) floor ≈ max(0, −DEPTH*(1+K))*HEIGHT = 0 (deep wells)
+//   HSC (B_raw=1.0) floor  = (2*1.0 − 0.75)*HEIGHT = 1.25*6 = +7.5 world units
+//   GMP (B_raw≈0.31)  floor = (2*0.31 − 0.75)*HEIGHT ≈ −0.76 world units
+//   Terminals (B_raw≈0) floor ≈ (−0.75)*HEIGHT = −4.5 world units (deepest wells)
+// NO floor clamp — H is allowed to go negative so terminals are the deepest attractors.
 const TILT  = 1.5;  // amplifies developmental tilt (dominant vertical feature)
 const DEPTH = 0.25; // base carve depth (modest so HSC well is shallow)
 const K     = 2.0;  // depthEff exponent: terminal wells 3× deeper than HSC well
 const SIGMA = 0.7;  // valley half-width in world units (node x/y * SP space)
+
+// Approximate world-space floor (deepest terminal well).
+// Formula: H_min ≈ (2*0 − 0.75) at trough=1, × HEIGHT = −4.5.
+// Grid and axis are anchored here so the floor reads as the absolute bottom.
+const WORLD_FLOOR = -4.8; // world units (slightly below the deepest terminal)
+const WORLD_TOP   = HEIGHT * TILT; // ≈ 9.0 world units (axis top, above HSC source)
 
 // Floating label offset above the sphere's surface
 const LABEL_FLOAT = 2.2;   // world units above the valley floor
@@ -67,7 +75,8 @@ function waddingtonWorldPos(
   // plane geometry coords: lx = node.x*SP - cx, ly = cz - node.y*SP
   const ply = cz - n.y * SP;
   const h = waddingtonHeight(wx, ply, ctrl, segs, { depth: DEPTH, sigma: SIGMA, tilt: TILT, K });
-  return [wx, Math.max(0, h) * HEIGHT, wz];
+  // No clamp — h can be negative for GMP and terminal cells (deepest attractors)
+  return [wx, h * HEIGHT, wz];
 }
 
 /** Color a vertex by trough strength: ridge #D4D4D8 (trough≈0) → valley #0F62FE (trough≈1).
@@ -207,31 +216,37 @@ function NodeGroup({
 }
 
 // ─── Elevation axis with ticks ──────────────────────────────────────────────
+// minY: world-space floor (deepest terminal well, negative)
+// maxY: world-space top (HSC source basin)
+// Ticks are labelled as normalized 0..1 where 0 = deepest terminal, 1 = HSC top.
 function ElevationAxis({
   axisX,
   axisZ,
+  minY,
   maxY,
 }: {
   axisX: number;
   axisZ: number;
+  minY: number;
   maxY: number;
 }) {
+  const span = maxY - minY;
   const ticks = [0, 0.25, 0.5, 0.75, 1.0];
 
   return (
-    <group position={[axisX, 0, axisZ]}>
-      {/* Vertical axis line */}
+    <group position={[axisX, minY, axisZ]}>
+      {/* Vertical axis line — spans from floor to top */}
       <Line
         points={[
           [0, 0, 0],
-          [0, maxY, 0],
+          [0, span, 0],
         ]}
         color="#A1A1AA"
         lineWidth={1}
       />
-      {/* Tick marks + labels */}
+      {/* Tick marks + labels — 0 at floor, 1 at HSC top */}
       {ticks.map((t) => {
-        const y = t * maxY;
+        const y = t * span;
         return (
           <group key={t} position={[0, y, 0]}>
             {/* Tick mark */}
@@ -243,7 +258,7 @@ function ElevationAxis({
               color="#A1A1AA"
               lineWidth={1}
             />
-            {/* Numeric label */}
+            {/* Normalized label (0=terminal floor, 1=HSC source) */}
             <Text
               position={[-0.55, 0, 0]}
               fontSize={0.38}
@@ -258,7 +273,7 @@ function ElevationAxis({
       })}
       {/* "ELEVATION" axis label at top */}
       <Text
-        position={[0, maxY + 0.7, 0]}
+        position={[0, span + 0.7, 0]}
         fontSize={0.38}
         color="#52525B"
         anchorX="center"
@@ -345,7 +360,8 @@ export default function Landscape3D({
         : 0;
       // depthEff uses raw B so HSC wells are shallow, terminal wells are deep
       const depthEff = DEPTH * (1 + K * (1 - B_raw));
-      const h = Math.max(0, B - depthEff * trough);
+      // No clamp — h can go negative so terminal wells sit below y=0
+      const h = B - depthEff * trough;
 
       pos.setZ(i, h * HEIGHT);
 
@@ -360,10 +376,11 @@ export default function Landscape3D({
   }, [ctrl, segs, planeW, planeH]);
 
   // Elevation axis position: back-left corner of the terrain bounding box
-  // maxY accounts for TILT expanding the vertical range beyond HEIGHT
   const axisX = -planeW / 2 - 1.2;
   const axisZ = -planeH / 2 - 1.2;
-  const maxY = HEIGHT * TILT;
+  // Axis spans from WORLD_FLOOR (deepest terminal) to WORLD_TOP (above HSC)
+  const minY = WORLD_FLOOR;
+  const maxY = WORLD_TOP;
 
   // Grid dimensions (match terrain footprint)
   const gridW = planeW + 2;
@@ -377,7 +394,7 @@ export default function Landscape3D({
 
   return (
     <Canvas
-      camera={{ position: [20, 28, 20], fov: 50 }}
+      camera={{ position: [22, 22, 28], fov: 55 }}
       style={{ height: "72vh", background: "#EBEBED" }}
       onPointerMissed={() => onSelect?.(null)}
     >
@@ -385,10 +402,10 @@ export default function Landscape3D({
       <directionalLight position={[15, 30, 10]} intensity={0.8} />
       <directionalLight position={[-10, 20, -10]} intensity={0.35} />
 
-      {/* Ground reference grid — hairline gray, valley floor at y=0 */}
+      {/* Ground reference grid — sits at WORLD_FLOOR, the deepest terminal-well level */}
       <Grid
         args={[gridW, gridH]}
-        position={[0, 0.01, 0]}
+        position={[0, WORLD_FLOOR + 0.05, 0]}
         cellSize={1}
         cellThickness={0.5}
         cellColor="#D4D4D8"
@@ -410,8 +427,8 @@ export default function Landscape3D({
         <meshBasicMaterial wireframe transparent opacity={0.10} color="#A1A1AA" />
       </mesh>
 
-      {/* Elevation axis with numeric ticks */}
-      <ElevationAxis axisX={axisX} axisZ={axisZ} maxY={maxY} />
+      {/* Elevation axis with numeric ticks — 0=terminal floor, 1=HSC source */}
+      <ElevationAxis axisX={axisX} axisZ={axisZ} minY={minY} maxY={maxY} />
 
       {/* Edges + flow markers — flow balls roll along valley floors */}
       {data.edges.map((e, i) => {
