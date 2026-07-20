@@ -52,8 +52,6 @@ export function Footer() {
         <Dot />
         <FootLink href="/claims">Claims</FootLink>
         <Dot />
-        <FootLink href="/newsroom">Newsroom</FootLink>
-        <Dot />
         <FootLink href="/docs">Docs</FootLink>
         <Dot />
         <FootLink href="/developers">Developers</FootLink>
