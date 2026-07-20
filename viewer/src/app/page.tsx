@@ -76,10 +76,10 @@ const MODULES_ANALYZE: Module[] = [
   },
   {
     name: 'Claims',
-    desc: 'Formal claim records with premise · operation · statistic · inference · conclusion. Latent space projection.',
+    desc: 'The Polymer Claims universe — a live topology of machine-verifiable scientific claims: status-colored nodes, defeat / equivalence / entails edges, each licensed by evidence, not asserted.',
     href: '/claims',
     accent: COLOR.primary.base,
-    count: 'IR v1.2',
+    count: 'live corpus',
   },
 ];
 
