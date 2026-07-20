@@ -10,8 +10,6 @@ const PROJECTION_TABS: Array<{
   label: string;
   status: 'live' | 'v0' | 'v1';
 }> = [
-  { slug: 'latent3d', label: 'Latent 3D', status: 'live' },
-  { slug: 'graph', label: 'Graph', status: 'live' },
   { slug: 'umap', label: 'UMAP', status: 'v1' },
   { slug: 'cohort', label: 'Cohort', status: 'v1' },
   { slug: 'pathway', label: 'Pathway', status: 'v1' },

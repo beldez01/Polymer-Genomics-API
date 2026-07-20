@@ -11,13 +11,7 @@ const CARDS = [
   {
     title: 'Explore the claim universe',
     subtitle: '3-D latent projection of the corpus',
-    href: '/portal/latent3d',
-    cta: 'Open',
-  },
-  {
-    title: 'Browse the graph',
-    subtitle: 'depends_on edges across the merged corpus',
-    href: '/portal/graph',
+    href: '/claims',
     cta: 'Open',
   },
   {
