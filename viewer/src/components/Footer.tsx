@@ -50,7 +50,7 @@ export function Footer() {
         <Dot />
         <FootLink href="/atlas">Atlas</FootLink>
         <Dot />
-        <FootLink href="/portal/latent3d">Claims</FootLink>
+        <FootLink href="/claims">Claims</FootLink>
         <Dot />
         <FootLink href="/newsroom">Newsroom</FootLink>
         <Dot />

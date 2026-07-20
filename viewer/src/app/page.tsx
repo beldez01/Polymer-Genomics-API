@@ -77,7 +77,7 @@ const MODULES_ANALYZE: Module[] = [
   {
     name: 'Claims',
     desc: 'Formal claim records with premise · operation · statistic · inference · conclusion. Latent space projection.',
-    href: '/portal/latent3d',
+    href: '/claims',
     accent: COLOR.primary.base,
     count: 'IR v1.2',
   },

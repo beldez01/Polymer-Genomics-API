@@ -104,7 +104,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
 
         {/* Standard nav links */}
         <NavLink href="/atlas">Atlas</NavLink>
-        <NavLink href="/portal/latent3d">Claims</NavLink>
+        <NavLink href="/claims">Claims</NavLink>
         <NavLink href="/newsroom">Newsroom</NavLink>
         <NavLink href={isMobile ? '/docs' : '/docs'}>{isMobile ? 'Dev' : 'Docs'}</NavLink>
 
