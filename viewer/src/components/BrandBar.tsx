@@ -102,30 +102,10 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
           </button>
         )}
 
-        {/* Standard nav links */}
-        <NavLink href="/atlas">Atlas</NavLink>
+        {/* Umbrella nav — Polymer Bio subsections */}
+        <NavLink href={VIEWER_HREF}>Genomics</NavLink>
         <NavLink href="/claims">Claims</NavLink>
-        <NavLink href={isMobile ? '/docs' : '/docs'}>{isMobile ? 'Dev' : 'Docs'}</NavLink>
-
-        {/* Primary CTA */}
-        <Link
-          href={VIEWER_HREF}
-          style={{
-            backgroundColor: COLOR.primary.base,
-            color: COLOR.bg.white,
-            fontFamily: FONT_FAMILY,
-            fontSize: TYPE.sm.fontSize,
-            fontWeight: WEIGHT.medium,
-            letterSpacing: '0.01em',
-            textDecoration: 'none',
-            padding: `${SPACE[2]}px ${SPACE[4]}px`,
-            borderRadius: 2,
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          Open viewer →
-        </Link>
+        <NavLink href="/docs">Docs</NavLink>
       </nav>
     </div>
   );
