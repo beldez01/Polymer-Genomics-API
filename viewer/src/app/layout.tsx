@@ -21,31 +21,31 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Polymer Genomics — Genome-wide DNA biophysics',
+  title: 'Polymer Bio — Computational infrastructure for the genome',
   description:
-    'The material channel of the genome — stacking energy, curvature, flexibility, groove geometry — computed at base-pair resolution across 50 genomic layers. REST API and MCP tools for AI agents.',
+    'Polymer Bio builds computational infrastructure for the genome — from base-pair DNA biophysics to a live universe of evidence-licensed claims. REST API and MCP tools for AI agents.',
   metadataBase: new URL('https://polymerbio.org'),
   openGraph: {
-    title: 'Polymer Genomics — Genome-wide DNA biophysics',
+    title: 'Polymer Bio — Computational infrastructure for the genome',
     description:
-      'Stacking energy, curvature, flexibility, groove geometry — computed at base-pair resolution across 50 genomic layers. Queryable by humans and by agents.',
+      'Computational infrastructure for the genome — from base-pair biophysics to a live universe of evidence-licensed claims. Queryable by humans and by agents.',
     url: 'https://polymerbio.org',
-    siteName: 'Polymer Genomics',
+    siteName: 'Polymer Bio',
     type: 'website',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Polymer Genomics — the material channel of the genome',
+        alt: 'Polymer Bio — computational infrastructure for the genome',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Polymer Genomics — Genome-wide DNA biophysics',
+    title: 'Polymer Bio — Computational infrastructure for the genome',
     description:
-      'The material channel of the genome, computed at base-pair resolution across 50 layers.',
+      'Computational infrastructure for the genome — from base-pair biophysics to a live universe of evidence-licensed claims.',
     images: ['/og-image.png'],
   },
   icons: {
