@@ -83,6 +83,31 @@
 /* Tabular numerics — opt-in for data columns */
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* ──────────────────────────────────────────────────────────────────
+   /biologics — standalone PolymerBio front door.
+   Quiet fade-and-rise entrance, staggered via inline animation-delay.
+   Pure CSS (no JS) so the page stays a server component.
+   ────────────────────────────────────────────────────────────────── */
+@keyframes bio-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bio-rise {
+  opacity: 0;
+  animation: bio-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bio-rise { animation: none; opacity: 1; transform: none; }
+}
+
+/* Standalone header nav links — text.secondary → electric-blue on hover */
+.bio-navlink {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.bio-navlink:hover { color: var(--primary); }
+
 /* Mono register — opt-in for data, coordinates, section markers */
 .mono { font-family: var(--font-mono); }
 

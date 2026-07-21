@@ -42,7 +42,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         textDecoration: 'none',
         flexShrink: 0,
       }}>
-        POLYMER GENOMICS
+        POLYMER BIO
       </Link>
 
       {subtitle && (

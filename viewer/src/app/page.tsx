@@ -259,7 +259,7 @@ export default function Home() {
           color: COLOR.primary.base,
           marginBottom: SPACE[5],
         }}>
-          Polymer Genomics
+          Polymer Bio
         </h1>
 
         {/* Tagline */}

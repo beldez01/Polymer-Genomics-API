@@ -86,7 +86,7 @@ export function Footer() {
           fontFamily: FONT_FAMILY_MONO,
           letterSpacing: '0.04em',
         }}>
-          © 2026 Polymer Genomics
+          © 2026 Polymer Bio
         </span>
       </div>
     </footer>
