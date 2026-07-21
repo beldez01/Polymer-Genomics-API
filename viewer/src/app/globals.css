@@ -83,6 +83,19 @@
 /* Tabular numerics — opt-in for data columns */
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* Lead pathway cards (landing) — hairline → electric-blue on hover */
+.pathway-card {
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+.pathway-card:hover {
+  border-color: var(--primary);
+  background-color: rgba(15, 98, 254, 0.04);
+}
+.pathway-card:hover .pathway-card-arrow {
+  transform: translateX(4px);
+}
+.pathway-card-arrow { transition: transform 0.18s ease; }
+
 /* ──────────────────────────────────────────────────────────────────
    /biologics — standalone PolymerBio front door.
    Quiet fade-and-rise entrance, staggered via inline animation-delay.
