@@ -21,14 +21,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Polymer Bio — Computational infrastructure for the genome',
+  title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
   description:
-    'Polymer Bio builds computational infrastructure for the genome — from base-pair DNA biophysics to a live universe of evidence-licensed claims. REST API and MCP tools for AI agents.',
+    'Polymer Bio is building a partnered programmable-RNA discovery platform, supported by working genomics and governed-evidence infrastructure.',
   metadataBase: new URL('https://polymerbio.org'),
   openGraph: {
-    title: 'Polymer Bio — Computational infrastructure for the genome',
+    title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
     description:
-      'Computational infrastructure for the genome — from base-pair biophysics to a live universe of evidence-licensed claims. Queryable by humans and by agents.',
+      'A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure.',
     url: 'https://polymerbio.org',
     siteName: 'Polymer Bio',
     type: 'website',
@@ -37,15 +37,15 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Polymer Bio — computational infrastructure for the genome',
+        alt: 'Polymer Bio — programmable RNA discovery, genomics, and governed evidence',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Polymer Bio — Computational infrastructure for the genome',
+    title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
     description:
-      'Computational infrastructure for the genome — from base-pair biophysics to a live universe of evidence-licensed claims.',
+      'A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure.',
     images: ['/og-image.png'],
   },
   icons: {

@@ -103,6 +103,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         )}
 
         {/* Umbrella nav — Polymer Bio subsections */}
+        <NavLink href="/biologics">Biologics</NavLink>
         <NavLink href={VIEWER_HREF}>Genomics</NavLink>
         <NavLink href="/claims">Claims</NavLink>
         <NavLink href="/docs">Docs</NavLink>

@@ -8,10 +8,9 @@ import {
 /* ────────────────────────────────────────────────────────────────────────
    Polymer Bio landing — umbrella front door.
 
-   IA is organized by SUBSECTION, not by tool verb. Two visible pathways —
-   Polymer Genomics and Polymer Claims — lead as cards, then expand into
-   route listings below. Polymer Biologics is intentionally NOT surfaced
-   here (route stays live + directly reachable, but unlinked).
+   IA is organized by SUBSECTION, not by tool verb. Three visible pathways —
+   Polymer Biologics, Polymer Claims, and Polymer Genomics — lead as cards,
+   then expand into route listings below.
    ──────────────────────────────────────────────────────────────────────── */
 
 const VIEWER_HREF =
@@ -28,16 +27,22 @@ interface Pathway {
 
 const PATHWAYS: Pathway[] = [
   {
-    name: 'Polymer Genomics',
-    desc: 'Genome-wide DNA biophysics — the genome viewer, the Chromosome Atlas, and the full analysis suite.',
-    href: VIEWER_HREF,
-    tag: '50 layers',
+    name: 'Polymer Biologics',
+    desc: 'Partnered programmable-RNA discovery. SensorKit generates reviewable constructs; CytoWell is the proposed physical engine that tests them.',
+    href: '/biologics',
+    tag: 'pre-seed',
   },
   {
     name: 'Polymer Claims',
-    desc: 'A live universe of machine-verifiable scientific claims — each licensed by evidence, not asserted.',
+    desc: 'Governed scientific memory — a live universe of machine-verifiable claims licensed by evidence, not asserted.',
     href: '/claims',
-    tag: 'live corpus',
+    tag: 'built · live corpus',
+  },
+  {
+    name: 'Polymer Genomics',
+    desc: 'Multi-layer reference-genome data and analysis infrastructure — viewer, Atlas, evaluation tools, and API.',
+    href: VIEWER_HREF,
+    tag: 'built · 50 layers',
   },
 ];
 
@@ -113,6 +118,27 @@ const MODULES_CLAIMS: Module[] = [
     desc: 'The Polymer Claims universe — a live topology of machine-verifiable scientific claims: status-colored nodes, defeat / equivalence / entails edges, each licensed by evidence, not asserted.',
     href: '/claims',
     count: 'live corpus',
+  },
+];
+
+const MODULES_BIOLOGICS: Module[] = [
+  {
+    name: 'Polymer Biologics',
+    desc: 'The functional design foundry for programmable RNA — company thesis, first proving ground, platform architecture, and partnering model.',
+    href: '/biologics',
+    count: 'company',
+  },
+  {
+    name: 'SensorKit',
+    desc: 'Built RNA-sensor scoring, construct assembly, design checks, and a governed path from evidence to a reviewable library.',
+    href: '/biologics#platform',
+    count: 'built',
+  },
+  {
+    name: 'CytoWell',
+    desc: 'Proposed fabricated experimentation engine linking construct identity, cell context, controlled delivery, trajectory, and phenotype.',
+    href: '/biologics#cytowell',
+    count: 'proposed',
   },
 ];
 
@@ -305,7 +331,7 @@ export default function Home() {
     <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
       <BrandBar sticky />
 
-      {/* HERO — umbrella. Material-channel framing intentionally retired. */}
+      {/* HERO — umbrella. Each pathway carries an explicit standing boundary. */}
       <section style={{
         maxWidth: 960,
         margin: '0 auto',
@@ -320,7 +346,7 @@ export default function Home() {
           textTransform: 'uppercase',
           marginBottom: SPACE[6],
         }}>
-          Genomics &nbsp;·&nbsp; Claims
+          Biologics &nbsp;·&nbsp; Genomics &nbsp;·&nbsp; Claims
         </div>
 
         <h1 style={{
@@ -336,7 +362,6 @@ export default function Home() {
           Polymer Bio
         </h1>
 
-        {/* Placeholder umbrella tagline — refine positioning copy later. */}
         <p style={{
           margin: 0,
           maxWidth: 660,
@@ -347,12 +372,12 @@ export default function Home() {
           letterSpacing: TYPE.md.letterSpacing,
           fontWeight: WEIGHT.normal,
         }}>
-          Computational infrastructure for the genome — from base-pair biophysics to
-          a live universe of evidence-licensed claims.
+          A functional design foundry for programmable RNA, supported by working
+          genomics and governed-evidence infrastructure.
         </p>
       </section>
 
-      {/* LEAD PATHWAYS — the two visible subsections */}
+      {/* LEAD PATHWAYS — the three visible Polymer Bio subsections */}
       <section style={{
         maxWidth: 960,
         margin: '0 auto',
@@ -373,8 +398,9 @@ export default function Home() {
         margin: '0 auto',
         padding: `${SPACE[4]}px ${SPACE[6]}px ${SPACE[16]}px`,
       }}>
-        <ModuleGroup index="01" label="Polymer Genomics" modules={MODULES_GENOMICS} />
-        <ModuleGroup index="02" label="Polymer Claims"   modules={MODULES_CLAIMS} />
+        <ModuleGroup index="01" label="Polymer Biologics" modules={MODULES_BIOLOGICS} />
+        <ModuleGroup index="02" label="Polymer Claims"    modules={MODULES_CLAIMS} />
+        <ModuleGroup index="03" label="Polymer Genomics"  modules={MODULES_GENOMICS} />
       </section>
 
       <Footer />

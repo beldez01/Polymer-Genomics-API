@@ -46,6 +46,8 @@ export function Footer() {
       gap: SPACE[3],
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], flexWrap: 'wrap' }}>
+        <FootLink href="/biologics">Biologics</FootLink>
+        <Dot />
         <FootLink href={VIEWER_HREF}>Viewer</FootLink>
         <Dot />
         <FootLink href="/atlas">Atlas</FootLink>
@@ -77,7 +79,7 @@ export function Footer() {
           }}
           title="Not for clinical or diagnostic use. Data provided as-is without warranty. Not intended as a substitute for professional medical advice, diagnosis, or treatment."
         >
-          Research use only
+          Research tools: research use only
         </Link>
         <Dot />
         <span style={{
