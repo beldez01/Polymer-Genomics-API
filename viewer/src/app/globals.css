@@ -57,6 +57,28 @@
 }
 .brand-nav-scroll::-webkit-scrollbar { display: none; }
 
+/* /genomics index rows. The four-column grid needs a fixed name column and a
+   nowrap count, which together set a ~500px floor — below that the row has to
+   stack or it pushes the whole page sideways. */
+.genomics-row {
+  display: grid;
+  grid-template-columns: 220px 1fr auto 20px;
+  column-gap: 20px;
+  align-items: baseline;
+}
+@media (max-width: 720px) {
+  .genomics-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 4px;
+  }
+  .genomics-row > .genomics-row-desc {
+    grid-column: 1 / -1;
+  }
+  .genomics-row > .genomics-row-arrow {
+    display: none;
+  }
+}
+
 /* Module row — hairline-divided, subtle hover indent. Retuned to
    electric-blue hover instead of teal wash. */
 .module-row {
@@ -97,7 +119,7 @@
 .pathway-card-arrow { transition: transform 0.18s ease; }
 
 /* ──────────────────────────────────────────────────────────────────
-   /biologics — standalone PolymerBio front door.
+   Company pages — the Polymer Bio front door.
    Quiet fade-and-rise entrance, staggered via inline animation-delay.
    Pure CSS (no JS) so the page stays a server component.
    ────────────────────────────────────────────────────────────────── */
@@ -111,6 +133,95 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .bio-rise { animation: none; opacity: 1; transform: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Home hero — a blue field, and the RNA glyph that crosses out of it.
+
+   The two halves each clip their own copy of the same line. The custom
+   properties below place those copies against the shared edge: the upper
+   copy hangs (--glyph-h - --glyph-seam) past the bottom of the blue, the
+   lower copy starts --glyph-seam above the top of the band. Keep --glyph-h
+   and --glyph-seam in the ratio 1046 : 783 or the figure will step at the
+   seam. Values mirror GLYPH_H / SEAM_Y in components/company/RnaGlyph.
+   ────────────────────────────────────────────────────────────────── */
+.bio-hero-stack {
+  --glyph-h: 700px;
+  --glyph-seam: 524px;
+  --glyph-right: 7vw;
+}
+.bio-hero-blue {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: center;
+  min-height: 560px;
+  padding: 72px 0;
+  box-sizing: border-box;
+}
+/* Top padding clears the glyph's tail — it runs (--glyph-h - --glyph-seam)
+   past the seam, and the cards start below where it lands, so the stroke
+   finishes in open ground instead of cutting across a card. */
+.bio-surface-band {
+  position: relative;
+  overflow: hidden;
+  padding: 216px 0 80px;
+}
+.bio-glyph {
+  position: absolute;
+  right: var(--glyph-right);
+  z-index: 0;
+  pointer-events: none;
+}
+.bio-glyph svg {
+  height: var(--glyph-h);
+  width: auto;
+}
+.bio-glyph--above { bottom: calc(var(--glyph-seam) - var(--glyph-h)); }
+.bio-glyph--below { top: calc(-1 * var(--glyph-seam)); }
+
+/* Home surface cards — Polymer Genomics / RNA Construct Design */
+.bio-surface {
+  display: flex;
+  flex-direction: column;
+  min-height: 230px;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-subtle, #D4D4D8);
+  border-radius: 2px;
+  background-color: #FAFAFA;
+  text-decoration: none;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+a.bio-surface:hover {
+  border-color: #0F62FE;
+  transform: translateY(-2px);
+}
+a.bio-surface:focus-visible {
+  outline: 2px solid #0F62FE;
+  outline-offset: 2px;
+}
+.bio-surface-arrow { transition: transform 0.18s ease; }
+a.bio-surface:hover .bio-surface-arrow { transform: translateX(4px); }
+.bio-surface--static { opacity: 0.82; }
+@media (prefers-reduced-motion: reduce) {
+  a.bio-surface:hover { transform: none; }
+  a.bio-surface:hover .bio-surface-arrow { transform: none; }
+}
+
+@media (max-width: 1180px) {
+  .bio-hero-stack {
+    --glyph-h: 560px;
+    --glyph-seam: 419px;
+    --glyph-right: 3vw;
+  }
+  .bio-hero-blue { min-height: 470px; }
+  .bio-surface-band { padding-top: 178px; }
+}
+@media (max-width: 900px) {
+  .bio-glyph { display: none; }
+  .bio-hero-blue { min-height: 0; padding: 56px 0 64px; }
+  .bio-surface-band { padding-top: 56px; }
 }
 
 /* Standalone header nav links — text.secondary → electric-blue on hover */
@@ -131,6 +242,19 @@
 
 .bio-page {
   overflow-x: clip;
+}
+
+.campaign-page {
+  overflow-x: clip;
+}
+
+.campaign-scroll-region {
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+.campaign-trajectory-grid > * {
+  min-width: 0;
 }
 
 .bio-cta {
@@ -169,6 +293,25 @@
     grid-template-columns: 1fr !important;
     gap: 24px !important;
   }
+
+  .campaign-hero-grid,
+  .campaign-trajectory-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campaign-summary-grid,
+  .campaign-rank-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .campaign-claims-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campaign-section-heading {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
 }
 
 @media (max-width: 640px) {
@@ -190,6 +333,16 @@
   .bio-rank-flow > [aria-hidden] {
     transform: rotate(90deg);
     justify-self: center;
+  }
+
+  .campaign-summary-grid,
+  .campaign-rank-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .campaign-event-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
   }
 }
 

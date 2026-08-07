@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /v1/
+Disallow: /_newsroom/
 
 Sitemap: https://polymerbio.org/sitemap.xml

@@ -116,7 +116,7 @@ function ViewerPage() {
       params.set('layers', activeLayers.join(','));
     }
 
-    const nextPath = `/view/${build}/${encodeURIComponent(region)}`;
+    const nextPath = `/genomics/view/${build}/${encodeURIComponent(region)}`;
     const nextQuery = params.toString();
     const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath;
     const currentUrl = `${window.location.pathname}${window.location.search}`;

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, SPACE } from '@/config/theme';
 
 const VIEWER_HREF =
-  '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
+  '/genomics/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
 
 const Dot = () => (
   <span aria-hidden style={{ color: COLOR.border.strong, fontSize: 12, lineHeight: 1 }}>·</span>
@@ -46,19 +46,17 @@ export function Footer() {
       gap: SPACE[3],
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], flexWrap: 'wrap' }}>
-        <FootLink href="/biologics">Biologics</FootLink>
-        <Dot />
         <FootLink href={VIEWER_HREF}>Viewer</FootLink>
         <Dot />
-        <FootLink href="/atlas">Atlas</FootLink>
+        <FootLink href="/genomics/atlas">Atlas</FootLink>
         <Dot />
         <FootLink href="/claims">Claims</FootLink>
         <Dot />
-        <FootLink href="/docs">Docs</FootLink>
+        <FootLink href="/genomics/docs">Docs</FootLink>
         <Dot />
-        <FootLink href="/developers">Developers</FootLink>
+        <FootLink href="/genomics/developers">Developers</FootLink>
         <Dot />
-        <FootLink href="/data-sources">Data sources</FootLink>
+        <FootLink href="/genomics/data-sources">Data sources</FootLink>
         <Dot />
         <FootLink href="/terms">Terms</FootLink>
         <Dot />

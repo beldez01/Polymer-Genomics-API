@@ -94,7 +94,7 @@ export function GeneSearch() {
       setResults([]);
       setOpen(false);
       setHighlightedIndex(-1);
-      router.push(`/view/${BUILD}/${c}:${start}-${end}?layers=${LAYERS}`);
+      router.push(`/genomics/view/${BUILD}/${c}:${start}-${end}?layers=${LAYERS}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gene lookup failed');
     }

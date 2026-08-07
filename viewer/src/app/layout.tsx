@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   description:
     'Polymer Bio is building a partnered programmable-RNA discovery platform, supported by working genomics and governed-evidence infrastructure.',
   metadataBase: new URL('https://polymerbio.org'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
     description:
@@ -34,7 +37,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Polymer Bio — programmable RNA discovery, genomics, and governed evidence',
@@ -46,7 +49,7 @@ export const metadata: Metadata = {
     title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
     description:
       'A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure.',
-    images: ['/og-image.png'],
+    images: ['/opengraph-image'],
   },
   icons: {
     icon: [

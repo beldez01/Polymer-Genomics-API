@@ -120,7 +120,7 @@ export const CHROMOSOME_FEATURES: Record<string, ChromosomeFeatureData> = {
     diseaseAssociations: [
       { term: '2q37 deletion syndrome', detail: 'Terminal deletion of 2q37 causes a recognizable syndrome with brachydactyly (especially type E, short 4th/5th metacarpals), intellectual disability, obesity, autism-like behavior, and facial dysmorphism. Approximately 100 cases reported worldwide. The critical gene is HDAC4 (histone deacetylase 4).' },
       { term: 'Lynch syndrome', detail: 'MSH2 at 2p21 is the second most commonly mutated gene in hereditary colorectal cancer after MLH1. Constitutional epimutation of MSH2 (heritable promoter methylation without sequence change) is a rare but fascinating non-Mendelian cause.' },
-      { term: 'Dravet syndrome', detail: 'De novo SCN1A loss-of-function mutations at 2q24 cause this devastating infantile epilepsy. Over 1,250 pathogenic variants catalogued — one of the most mutationally diverse Mendelian disease genes.' },
+      { term: 'Dravet syndrome', detail: 'De novo SCN1A loss-of-function mutations at 2q24 cause this devastating infantile epilepsy. Over 1,250 pathogenic variants cataloged — one of the most mutationally diverse Mendelian disease genes.' },
       { term: 'Waardenburg syndrome', detail: 'PAX3 mutations at 2q36 cause types I and III. The "white forelock" phenotype is one of the most recognizable presentations in medical genetics.' },
       { term: 'Ehlers-Danlos syndrome (classical type)', detail: 'COL3A1 at 2q32.2 harbors mutations causing vascular EDS (type IV), the most lethal form, with median lifespan of 51 years due to arterial and organ rupture.' },
       { term: 'SATB2-associated syndrome', detail: 'Mutations or deletions at 2q33.1 cause severe speech impairment, intellectual disability, cleft palate, and dental anomalies.' },
@@ -409,7 +409,7 @@ export const CHROMOSOME_FEATURES: Record<string, ChromosomeFeatureData> = {
       { symbol: 'BRAF', band: '7q34', detail: 'V600E is the iconic melanoma mutation. Within the 7q22-q34 commonly deleted region in myeloid neoplasms.' },
     ],
     diseaseAssociations: [
-      { term: 'Cystic fibrosis', detail: '>2,000 CFTR mutations catalogued. Carrier frequency ~1/25 in Europeans.' },
+      { term: 'Cystic fibrosis', detail: '>2,000 CFTR mutations cataloged. Carrier frequency ~1/25 in Europeans.' },
       { term: 'Williams-Beuren syndrome', detail: '1.5-1.8 Mb deletion at 7q11.23 removing 26-28 genes. Supravalvular aortic stenosis, hypersociability, visuospatial disability. Reciprocal duplication causes opposite phenotype: social anxiety.' },
       { term: 'Monosomy 7/del(7q)', detail: 'Among the most prognostically adverse cytogenetic abnormalities in myeloid neoplasms. SAMD9/SAMD9L germline mutations predispose to hereditary MDS with monosomy 7.' },
       { term: 'Cancer', detail: 'EGFR (glioblastoma, NSCLC), BRAF (melanoma), MET (gastric, lung). Trisomy 7 is the most common chromosomal gain in glioblastoma.' },

@@ -17,7 +17,7 @@ const subtitle = (
   }}>
     <span style={{ color: COLOR.text.tertiary }}>Data sources</span>
     <span style={{ color: COLOR.border.strong }}>·</span>
-    <span style={{ color: COLOR.text.tertiary }}>50 layers · versions · provenance</span>
+    <span style={{ color: COLOR.text.tertiary }}>{LAYERS.length} layers · versions · provenance</span>
   </span>
 );
 

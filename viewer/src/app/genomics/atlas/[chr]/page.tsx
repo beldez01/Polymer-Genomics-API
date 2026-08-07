@@ -18,7 +18,7 @@ function viewerHrefFor(chrName: string, length: number): string {
   const center = Math.round(length / 2);
   const start = Math.max(1, center - Math.floor(targetWidth / 2));
   const end = Math.min(length, start + targetWidth - 1);
-  return `/view/hg38/${chrName}:${start}-${end}?layers=${LAYERS}`;
+  return `/genomics/view/hg38/${chrName}:${start}-${end}?layers=${LAYERS}`;
 }
 
 function fmtMb(bp: number): string { return (bp / 1_000_000).toFixed(1) + ' Mb'; }
@@ -192,7 +192,7 @@ export default function ChromosomeAnalysisPage() {
             fontFamily: FONT_FAMILY,
           }}>
             Chromosome &ldquo;{chrName}&rdquo; not found.{' '}
-            <Link href="/atlas" style={{ color: COLOR.primary.base, textDecoration: 'none' }}>
+            <Link href="/genomics/atlas" style={{ color: COLOR.primary.base, textDecoration: 'none' }}>
               Back to the atlas
             </Link>
             .
@@ -236,7 +236,7 @@ export default function ChromosomeAnalysisPage() {
         }}>
           <div style={{ minWidth: 0, display: 'flex', alignItems: 'baseline', gap: SPACE[4] }}>
             <Link
-              href="/atlas"
+              href="/genomics/atlas"
               style={{
                 color: COLOR.text.tertiary,
                 fontFamily: FONT_FAMILY_MONO,

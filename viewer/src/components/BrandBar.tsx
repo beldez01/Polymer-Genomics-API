@@ -15,9 +15,6 @@ interface BrandBarProps {
   onToggleSidebar?: () => void;
 }
 
-const VIEWER_HREF =
-  '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
-
 export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandBarProps) {
   const isMobile = useIsMobile();
   return (
@@ -102,11 +99,8 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
           </button>
         )}
 
-        {/* Umbrella nav — Polymer Bio subsections */}
-        <NavLink href="/biologics">Biologics</NavLink>
-        <NavLink href={VIEWER_HREF}>Genomics</NavLink>
-        <NavLink href="/claims">Claims</NavLink>
-        <NavLink href="/docs">Docs</NavLink>
+        <NavLink href="/genomics">Genomics</NavLink>
+        <NavLink href="/genomics/docs">Docs</NavLink>
       </nav>
     </div>
   );

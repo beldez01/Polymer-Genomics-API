@@ -1,406 +1,328 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
+import { RnaGlyph } from '@/components/company/RnaGlyph';
 import {
-  COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE,
+  Card,
+  Cta,
+  SectionHeader,
+  contentShell,
+  sectionRule,
+} from '@/components/company/Primitives';
+import {
+  COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT,
 } from '@/config/theme';
 
 /* ────────────────────────────────────────────────────────────────────────
-   Polymer Bio landing — umbrella front door.
+   Polymer Bio — company front door.
 
-   IA is organized by SUBSECTION, not by tool verb. Three visible pathways —
-   Polymer Biologics, Polymer Claims, and Polymer Genomics — lead as cards,
-   then expand into route listings below.
+   The root is the company. Supporting infrastructure lives under /genomics
+   and /claims.
+
+   Copy is deliberately high level — the specifics of the approach are not
+   public. Keep it that way when editing.
    ──────────────────────────────────────────────────────────────────────── */
 
-const VIEWER_HREF =
-  '/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
+export const metadata: Metadata = {
+  title: 'Polymer Bio',
+  description:
+    'Polymer Bio is a discovery engine for programmable RNA therapeutics.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'Polymer Bio',
+    description: 'A discovery engine for programmable RNA therapeutics.',
+    url: 'https://polymerbio.org/',
+    siteName: 'Polymer Bio',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Polymer Bio' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Polymer Bio',
+    description: 'A discovery engine for programmable RNA therapeutics.',
+    images: ['/opengraph-image'],
+  },
+};
 
-/* ── Lead pathways — the visible Polymer Bio subsections ─────────────────── */
+const CONTACT_EMAIL = 'polymergenomics@gmail.com';
+const PARTNER_EMAIL = `mailto:${CONTACT_EMAIL}?subject=Polymer%20Bio%20partnership`;
 
-interface Pathway {
-  name: string;
-  desc: string;
-  href: string;
-  tag: string;
-}
-
-const PATHWAYS: Pathway[] = [
-  {
-    name: 'Polymer Biologics',
-    desc: 'Partnered programmable-RNA discovery. SensorKit generates reviewable constructs; CytoWell is the proposed physical engine that tests them.',
-    href: '/biologics',
-    tag: 'pre-seed',
-  },
-  {
-    name: 'Polymer Claims',
-    desc: 'Governed scientific memory — a live universe of machine-verifiable claims licensed by evidence, not asserted.',
-    href: '/claims',
-    tag: 'built · live corpus',
-  },
-  {
-    name: 'Polymer Genomics',
-    desc: 'Multi-layer reference-genome data and analysis infrastructure — viewer, Atlas, evaluation tools, and API.',
-    href: VIEWER_HREF,
-    tag: 'built · 50 layers',
-  },
-];
-
-/* ── Route listings, grouped under each subsection ──────────────────────── */
-
-interface Module {
-  name: string;
-  desc: string;
-  href: string;
-  count?: string;
-}
-
-const MODULES_GENOMICS: Module[] = [
-  {
-    name: 'Genome viewer',
-    desc: 'Browse any locus with biophysics layers — stacking energy, curvature, CpG density, isochores. hg38 + hg37.',
-    href: VIEWER_HREF,
-    count: '50 layers',
-  },
-  {
-    name: 'Atlas',
-    desc: 'GENCODE v44 gene profiles with expression, pathways, constraint, biosynthetic cost.',
-    href: '/atlas',
-    count: '63K txs',
-  },
-  {
-    name: 'Evaluate',
-    desc: 'Physics linter for any DNA sequence. Thermodynamic profile, CpG islands, structural flags, batch mode.',
-    href: '/evaluate',
-    count: '13 flags',
-  },
-  {
-    name: 'Methylation',
-    desc: 'DMP volcano and Manhattan plots, TE/ERV family scoring, reactivation risk, Retro-Age clock.',
-    href: '/dmp',
-    count: '937K probes',
-  },
-  {
-    name: 'Epigenetic clocks',
-    desc: 'Probe anatomy, cross-clock comparison, coefficient application.',
-    href: '/clocks',
-    count: '6 clocks',
-  },
-  {
-    name: 'Transposome',
-    desc: 'Transposable elements with TE age, awakening potential, EPIC v2 probe overlap.',
-    href: '/transposome',
-    count: '5.6M TEs',
-  },
-  {
-    name: 'HLA',
-    desc: 'Allele biophysics for transplant loci. Non-coding divergence, expression mismatch scoring.',
-    href: '/hla',
-    count: '6 loci',
-  },
-  {
-    name: 'API & MCP',
-    desc: 'REST endpoints and Model Context Protocol for AI agents. Reference + compute tools, evidence-class metadata.',
-    href: '/docs',
-    count: '70 tools',
-  },
-  {
-    name: 'Developers',
-    desc: 'Quickstart, code examples, try-it evaluator, data inventory. Python SDK on PyPI.',
-    href: '/developers',
-    count: 'pip install',
-  },
-];
-
-const MODULES_CLAIMS: Module[] = [
-  {
-    name: 'Claims',
-    desc: 'The Polymer Claims universe — a live topology of machine-verifiable scientific claims: status-colored nodes, defeat / equivalence / entails edges, each licensed by evidence, not asserted.',
-    href: '/claims',
-    count: 'live corpus',
-  },
-];
-
-const MODULES_BIOLOGICS: Module[] = [
-  {
-    name: 'Polymer Biologics',
-    desc: 'The functional design foundry for programmable RNA — company thesis, first proving ground, platform architecture, and partnering model.',
-    href: '/biologics',
-    count: 'company',
-  },
-  {
-    name: 'SensorKit',
-    desc: 'Built RNA-sensor scoring, construct assembly, design checks, and a governed path from evidence to a reviewable library.',
-    href: '/biologics#platform',
-    count: 'built',
-  },
-  {
-    name: 'CytoWell',
-    desc: 'Proposed fabricated experimentation engine linking construct identity, cell context, controlled delivery, trajectory, and phenotype.',
-    href: '/biologics#cytowell',
-    count: 'proposed',
-  },
-];
-
-/* ────────────────────────────────────────────────────────────────────────
-   Primitives
-   ──────────────────────────────────────────────────────────────────────── */
-
-function PathwayCard({ p }: { p: Pathway }) {
-  return (
-    <Link
-      href={p.href}
-      className="pathway-card"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        padding: SPACE[6],
-        minHeight: 168,
-        border: `1px solid ${COLOR.border.strong}`,
-        backgroundColor: COLOR.bg.elevated,
-        borderRadius: 2,
-        textDecoration: 'none',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: SPACE[3], marginBottom: SPACE[3] }}>
-        <span
-          aria-hidden
-          style={{ width: 8, height: 8, backgroundColor: COLOR.primary.base, flexShrink: 0 }}
-        />
-        <span style={{
-          color: COLOR.text.primary,
-          fontFamily: FONT_FAMILY,
-          fontSize: TYPE.lg.fontSize,
-          fontWeight: WEIGHT.semibold,
-          letterSpacing: TYPE.lg.letterSpacing,
-        }}>
-          {p.name}
-        </span>
-      </div>
-
-      <span style={{
-        color: COLOR.text.secondary,
-        fontFamily: FONT_FAMILY,
-        fontSize: TYPE.base.fontSize,
-        lineHeight: TYPE.base.lineHeight,
-        marginBottom: SPACE[5],
-      }}>
-        {p.desc}
-      </span>
-
+/* Large linked surface — one per thing Polymer Bio actually operates.
+   Local to this page: the two below are the only callers. */
+function Surface({
+  href,
+  eyebrow,
+  status,
+  title,
+  body,
+}: {
+  href?: string;
+  eyebrow: string;
+  status: string;
+  title: string;
+  body: ReactNode;
+}) {
+  const live = Boolean(href);
+  const inner = (
+    <>
       <div style={{
-        marginTop: 'auto',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: SPACE[3],
+        marginBottom: SPACE[6],
       }}>
-        <span className="tabular" style={{
-          color: COLOR.text.tertiary,
+        <span style={{
+          color: live ? COLOR.primary.base : COLOR.text.faint,
+          fontFamily: FONT_FAMILY_MONO,
+          fontSize: TYPE.xs.fontSize,
+          fontWeight: WEIGHT.semibold,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+        }}>
+          {eyebrow}
+        </span>
+        <span style={{
+          color: COLOR.text.faint,
           fontFamily: FONT_FAMILY_MONO,
           fontSize: TYPE.xs.fontSize,
           letterSpacing: '0.08em',
           textTransform: 'uppercase',
         }}>
-          {p.tag}
-        </span>
-        <span aria-hidden className="pathway-card-arrow" style={{
-          color: COLOR.primary.base,
-          fontFamily: FONT_FAMILY,
-          fontSize: TYPE.md.fontSize,
-        }}>
-          →
+          {status}
         </span>
       </div>
-    </Link>
-  );
-}
 
-function ModuleRow({ mod }: { mod: Module }) {
-  return (
-    <Link
-      href={mod.href}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '220px 1fr auto 20px',
-        columnGap: SPACE[5],
-        alignItems: 'baseline',
-        padding: `${SPACE[4]}px ${SPACE[2]}px`,
-        borderBottom: `1px solid ${COLOR.border.default}`,
-        textDecoration: 'none',
-      }}
-    >
-      <span style={{
+      <h2 style={{
+        margin: `0 0 ${SPACE[3]}px`,
         color: COLOR.text.primary,
         fontFamily: FONT_FAMILY,
-        fontSize: TYPE.md.fontSize,
+        fontSize: TYPE.lg.fontSize,
+        lineHeight: TYPE.lg.lineHeight,
+        letterSpacing: TYPE.lg.letterSpacing,
         fontWeight: WEIGHT.semibold,
-        letterSpacing: TYPE.md.letterSpacing,
-        display: 'inline-flex',
-        alignItems: 'baseline',
-        gap: SPACE[3],
       }}>
-        {/* Data swatch — inline with name so it baselines naturally. */}
-        <span
-          aria-hidden
-          style={{
-            display: 'inline-block',
-            width: 8,
-            height: 8,
-            backgroundColor: COLOR.primary.base,
-            transform: 'translateY(-1px)',
-            flexShrink: 0,
-          }}
-        />
-        {mod.name}
-      </span>
-      <span style={{
+        {title}
+      </h2>
+
+      <p style={{
+        margin: 0,
         color: COLOR.text.secondary,
-        fontFamily: FONT_FAMILY,
         fontSize: TYPE.base.fontSize,
         lineHeight: TYPE.base.lineHeight,
       }}>
-        {mod.desc}
-      </span>
-      <span className="tabular" style={{
-        color: COLOR.text.tertiary,
-        fontFamily: FONT_FAMILY_MONO,
-        fontSize: TYPE.xs.fontSize,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
-        justifySelf: 'end',
-      }}>
-        {mod.count ?? ''}
-      </span>
-      <span aria-hidden style={{
-        color: COLOR.text.faint,
-        fontFamily: FONT_FAMILY,
-        fontSize: TYPE.base.fontSize,
-        justifySelf: 'end',
-        alignSelf: 'center',
-      }}>
-        →
-      </span>
-    </Link>
-  );
-}
+        {body}
+      </p>
 
-function ModuleGroup({ index, label, modules }: { index: string; label: string; modules: Module[] }) {
-  return (
-    <div style={{ marginBottom: SPACE[12] }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: SPACE[4],
-        paddingBottom: SPACE[3],
-        marginBottom: SPACE[2],
-        borderBottom: `1px solid ${COLOR.border.strong}`,
-      }}>
-        <span style={{
-          color: COLOR.text.faint,
+      {live && (
+        <span className="bio-surface-arrow" aria-hidden style={{
+          marginTop: 'auto',
+          paddingTop: SPACE[6],
+          color: COLOR.primary.base,
           fontFamily: FONT_FAMILY_MONO,
           fontSize: TYPE.sm.fontSize,
-          letterSpacing: '0.1em',
         }}>
-          §{index}
+          &#8594;
         </span>
-        <span style={{
-          color: COLOR.text.tertiary,
-          fontFamily: FONT_FAMILY_MONO,
-          fontSize: TYPE.sm.fontSize,
-          fontWeight: WEIGHT.medium,
-          letterSpacing: '0.16em',
-          textTransform: 'uppercase',
-        }}>
-          {label}
-        </span>
-      </div>
-      <div>
-        {modules.map((m) => <ModuleRow key={m.name} mod={m} />)}
-      </div>
-    </div>
+      )}
+    </>
   );
-}
 
-/* ────────────────────────────────────────────────────────────────────────
-   Page
-   ──────────────────────────────────────────────────────────────────────── */
+  if (!href) {
+    return <div className="bio-surface bio-surface--static">{inner}</div>;
+  }
+  return <Link href={href} className="bio-surface">{inner}</Link>;
+}
 
 export default function Home() {
   return (
-    <main style={{ backgroundColor: COLOR.bg.primary, minHeight: '100vh' }}>
+    <main className="bio-page" style={{
+      minHeight: '100vh',
+      backgroundColor: COLOR.bg.primary,
+      color: COLOR.text.primary,
+    }}>
       <BrandBar sticky />
 
-      {/* HERO — umbrella. Each pathway carries an explicit standing boundary. */}
-      <section style={{
-        maxWidth: 960,
-        margin: '0 auto',
-        padding: `${SPACE[24]}px ${SPACE[6]}px ${SPACE[10]}px`,
-      }}>
-        <div style={{
-          color: COLOR.text.tertiary,
-          fontFamily: FONT_FAMILY_MONO,
-          fontSize: TYPE.sm.fontSize,
-          fontWeight: WEIGHT.medium,
-          letterSpacing: '0.18em',
-          textTransform: 'uppercase',
-          marginBottom: SPACE[6],
-        }}>
-          Biologics &nbsp;·&nbsp; Genomics &nbsp;·&nbsp; Claims
-        </div>
+      {/* ── HERO + SURFACES ───────────────────────────────────────────────
+         One stack, because the glyph belongs to both halves: it is drawn in
+         white inside the blue field and continues in electric blue once it
+         crosses the seam between them. Each half clips its own copy — see
+         components/company/RnaGlyph.
+         ──────────────────────────────────────────────────────────────── */}
+      <div className="bio-hero-stack">
+        <section className="bio-hero-blue" style={{ backgroundColor: COLOR.primary.base }}>
+          <div style={{ ...contentShell, position: 'relative', zIndex: 2 }}>
+            <h1 className="bio-rise" style={{
+              margin: 0,
+              animationDelay: '0.05s',
+              color: COLOR.bg.white,
+              fontFamily: FONT_FAMILY,
+              fontSize: 'clamp(46px, 7.2vw, 104px)',
+              lineHeight: 1.0,
+              letterSpacing: '-0.04em',
+              fontWeight: WEIGHT.bold,
+            }}>
+              Polymer Bio
+            </h1>
 
-        <h1 style={{
-          margin: 0,
-          fontFamily: FONT_FAMILY,
-          fontSize: TYPE['2xl'].fontSize,
-          lineHeight: TYPE['2xl'].lineHeight,
-          letterSpacing: TYPE['2xl'].letterSpacing,
-          fontWeight: WEIGHT.bold,
-          color: COLOR.primary.base,
-          marginBottom: SPACE[5],
-        }}>
-          Polymer Bio
-        </h1>
+            <p className="bio-rise" style={{
+              margin: `${SPACE[6]}px 0 0`,
+              animationDelay: '0.18s',
+              maxWidth: 560,
+              color: `${COLOR.bg.white}E0`,
+              fontFamily: FONT_FAMILY,
+              fontSize: 'clamp(17px, 1.75vw, 23px)',
+              lineHeight: 1.45,
+              letterSpacing: '-0.01em',
+            }}>
+              RNA construct design for precision oncology.
+            </p>
+          </div>
 
-        <p style={{
-          margin: 0,
-          maxWidth: 660,
-          color: COLOR.text.secondary,
-          fontFamily: FONT_FAMILY,
-          fontSize: TYPE.md.fontSize,
-          lineHeight: 1.55,
-          letterSpacing: TYPE.md.letterSpacing,
-          fontWeight: WEIGHT.normal,
-        }}>
-          A functional design foundry for programmable RNA, supported by working
-          genomics and governed-evidence infrastructure.
-        </p>
-      </section>
+          <div className="bio-glyph bio-glyph--above" aria-hidden>
+            <RnaGlyph tone="onBlue" />
+          </div>
+        </section>
 
-      {/* LEAD PATHWAYS — the three visible Polymer Bio subsections */}
-      <section style={{
-        maxWidth: 960,
-        margin: '0 auto',
-        padding: `0 ${SPACE[6]}px ${SPACE[16]}px`,
-      }}>
+        <section className="bio-surface-band">
+          <div className="bio-glyph bio-glyph--below" aria-hidden>
+            <RnaGlyph tone="onLight" />
+          </div>
+
+          <div style={{ ...contentShell, position: 'relative', zIndex: 2 }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gap: SPACE[4],
+            }}>
+              <Surface
+                href="/genomics"
+                eyebrow="Infrastructure"
+                status="Live"
+                title="Polymer Genomics"
+                body="Multi-layer reference-genome data and analysis infrastructure — a genome viewer, a digital karyotype, a sequence evaluator, and an agent-ready API."
+              />
+              <Surface
+                eyebrow="Design"
+                status="In development"
+                title="RNA Construct Design"
+                body="Construct design and evaluation for programmable RNA, built on the same reference layers."
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ── §01 APPROACH ──────────────────────────────────────────────── */}
+      <section style={{ ...contentShell, ...sectionRule }}>
+        <SectionHeader
+          index="01"
+          label="Approach"
+          title="Discovery, run as a loop"
+        />
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: SPACE[4],
+          gap: SPACE[5],
         }}>
-          {PATHWAYS.map((p) => <PathwayCard key={p.name} p={p} />)}
+          <Card
+            eyebrow="Design"
+            title="Candidate libraries"
+            body="Constructs are generated and reviewed before anything reaches the bench."
+          />
+          <Card
+            eyebrow="Screen"
+            title="Functional evidence"
+            body="Candidates are tested in matched cellular contexts rather than ranked on prediction alone."
+          />
+          <Card
+            eyebrow="Select"
+            title="Validated output"
+            body="Each cycle narrows the pool and informs the next, ending in a validated set and its evidence package."
+          />
         </div>
       </section>
 
-      {/* ROUTE LISTINGS — grouped by subsection */}
+      {/* ── §02 FOUNDER ───────────────────────────────────────────────── */}
+      <section id="founder" style={{ ...contentShell, ...sectionRule }}>
+        <SectionHeader
+          index="02"
+          label="Founder"
+          title="Zachary Belden, MD"
+          body="Board-certified clinical pathologist and fellowship-trained molecular genetic pathologist, with laboratory and computational experience across assay development and genomics."
+        />
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: SPACE[4],
+        }}>
+          {([
+            ['Clinical', 'Clinical pathology · molecular genetic pathology'],
+            ['Laboratory', 'Assay development and validation'],
+            ['Computational', 'Genomics infrastructure and tooling'],
+          ] as [string, string][]).map(([heading, detail]) => (
+            <div key={heading} style={{
+              padding: SPACE[5],
+              borderTop: `2px solid ${COLOR.primary.base}`,
+              backgroundColor: COLOR.bg.elevated,
+            }}>
+              <div style={{
+                color: COLOR.text.faint,
+                fontFamily: FONT_FAMILY_MONO,
+                fontSize: TYPE.xs.fontSize,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: SPACE[3],
+              }}>
+                {heading}
+              </div>
+              <div style={{
+                color: COLOR.text.secondary,
+                fontSize: TYPE.base.fontSize,
+                lineHeight: TYPE.base.lineHeight,
+              }}>
+                {detail}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CONTACT ───────────────────────────────────────────────────── */}
       <section style={{
-        maxWidth: 960,
-        margin: '0 auto',
-        padding: `${SPACE[4]}px ${SPACE[6]}px ${SPACE[16]}px`,
+        ...contentShell,
+        borderTop: `1px solid ${COLOR.border.subtle}`,
+        paddingTop: SPACE[16],
+        paddingBottom: SPACE[24],
+        textAlign: 'center',
       }}>
-        <ModuleGroup index="01" label="Polymer Biologics" modules={MODULES_BIOLOGICS} />
-        <ModuleGroup index="02" label="Polymer Claims"    modules={MODULES_CLAIMS} />
-        <ModuleGroup index="03" label="Polymer Genomics"  modules={MODULES_GENOMICS} />
+        <h2 style={{
+          margin: 0,
+          color: COLOR.text.primary,
+          fontSize: TYPE.xl.fontSize,
+          lineHeight: TYPE.xl.lineHeight,
+          letterSpacing: TYPE.xl.letterSpacing,
+          fontWeight: WEIGHT.bold,
+        }}>
+          Get in touch
+        </h2>
+        <p style={{
+          margin: `${SPACE[5]}px auto 0`,
+          maxWidth: 560,
+          color: COLOR.text.secondary,
+          fontSize: TYPE.md.fontSize,
+          lineHeight: TYPE.md.lineHeight,
+        }}>
+          Program details are shared under discussion.
+        </p>
+        <div style={{
+          display: 'flex', flexWrap: 'wrap', gap: SPACE[3],
+          justifyContent: 'center', marginTop: SPACE[8],
+        }}>
+          <Cta href={PARTNER_EMAIL} primary>Contact</Cta>
+        </div>
       </section>
 
       <Footer />

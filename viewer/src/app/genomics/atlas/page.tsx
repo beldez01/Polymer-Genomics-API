@@ -170,7 +170,7 @@ export default function AtlasPage() {
               return (
                 <Link
                   key={chr.name}
-                  href={`/atlas/${chr.name}`}
+                  href={`/genomics/atlas/${chr.name}`}
                   onMouseEnter={() => setHoveredChr(chr.name)}
                   onMouseLeave={() => setHoveredChr(null)}
                   style={{
@@ -231,7 +231,7 @@ export default function AtlasPage() {
 
             {/* chrM — small electric-blue ring at the end */}
             <Link
-              href={`/atlas/${CHR_M.name}`}
+              href={`/genomics/atlas/${CHR_M.name}`}
               onMouseEnter={() => setHoveredChr('chrM')}
               onMouseLeave={() => setHoveredChr(null)}
               style={{

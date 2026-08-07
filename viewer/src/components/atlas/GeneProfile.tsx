@@ -1131,9 +1131,9 @@ export function GeneProfile({ symbol, build, onBack, standalone = false }: GeneP
   const upperSymbol = symbol.toUpperCase();
   const PAD = 5000;
   const viewerHref = gene
-    ? `/view/${build}/${gene.chr}:${Math.max(1, gene.geneStart - PAD)}-${gene.geneEnd + PAD}`
+    ? `/genomics/view/${build}/${gene.chr}:${Math.max(1, gene.geneStart - PAD)}-${gene.geneEnd + PAD}`
     : '#';
-  const geneDetailHref = `/gene/${build}/${upperSymbol}`;
+  const geneDetailHref = `/genomics/gene/${build}/${upperSymbol}`;
 
   const costFracs = cost ? [
     { frac: cost.composition.frac_cheap, color: COLOR.cost.cheap, label: 'Cheap' },

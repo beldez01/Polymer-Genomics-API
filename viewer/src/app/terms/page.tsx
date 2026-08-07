@@ -101,7 +101,7 @@ export default function TermsPage() {
           </p>
           <p style={bodyStyle}>
             Upstream data sources retain their original licenses as described on the{' '}
-            <a href="/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
+            <a href="/genomics/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
             page. Some data layers carry <strong style={{ color: COLOR.text.primary }}>non-commercial use
             restrictions</strong> (including data sourced from UCSC Genome Browser and COSMIC).
             Some layers are subject to <strong style={{ color: COLOR.text.primary }}>copyleft
@@ -186,7 +186,7 @@ export default function TermsPage() {
             <code style={{ color: COLOR.accent.teal, fontSize: TYPE.sm.fontSize }}>/v1/layers/&#123;key&#125;/license</code>.
             Bulk redistribution of data obtained from this platform requires compliance with all upstream
             data licenses. See the{' '}
-            <a href="/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
+            <a href="/genomics/data-sources" style={{ color: COLOR.accent.teal, textDecoration: 'none' }}>Data Sources</a>{' '}
             page for a complete list of sources and their license terms.
           </p>
         </div>

@@ -136,7 +136,7 @@ function GeneFeatureCard({
 
   return (
     <Link
-      href={`/gene/${build}/${symbol}`}
+      href={`/genomics/gene/${build}/${symbol}`}
       style={{ textDecoration: 'none', display: 'block' }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

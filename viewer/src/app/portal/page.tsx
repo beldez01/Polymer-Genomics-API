@@ -26,12 +26,12 @@ const SIBLING_SURFACES = [
   {
     title: 'Digital karyotype (/atlas)',
     subtitle: 'Genome-wide reference layers, biophysics, methylation atlas',
-    href: '/atlas',
+    href: '/genomics/atlas',
   },
   {
     title: 'Genome browser (/view)',
     subtitle: 'Region-level track viewer for reference data',
-    href: '/view/hg38/chr17:7571720-7590868',
+    href: '/genomics/view/hg38/chr17:7571720-7590868',
   },
 ];
 

@@ -273,7 +273,7 @@ export function FamilyInspector() {
         {detail.representative_loci.map((loc, i) => (
           <Link
             key={i}
-            href={`/view/hg38/${loc.region}`}
+            href={`/genomics/view/hg38/${loc.region}`}
             style={{
               display: 'flex', justifyContent: 'space-between', padding: '3px 0', cursor: 'pointer',
               fontSize: 9, color: COLOR.text.tertiary, fontFamily: FONT_FAMILY, textDecoration: 'none',

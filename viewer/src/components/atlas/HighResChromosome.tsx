@@ -210,7 +210,7 @@ export function HighResChromosome({ chr }: HighResChromosomeProps) {
           {/* Background — light surface */}
           <rect x={0} y={0} width={CHR_WIDTH} height={height} fill={COLOR.bg.elevated} />
 
-          {/* Isochore-coloured bins — same cool-warm AT→GC gradient as the
+          {/* Isochore-colored bins — same cool-warm AT→GC gradient as the
               /atlas overview. Bins are normalised [0,1] across chr length. */}
           {isochoreBins.map((b, i) => (
             <rect

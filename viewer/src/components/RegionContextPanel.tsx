@@ -177,7 +177,7 @@ export function RegionContextPanel({ context, activeLayers = [] }: RegionContext
             <div style={styles.value}>
               {context.gene.geneSymbol && (
                 <Link
-                  href={`/gene/${build}/${context.gene.geneSymbol}`}
+                  href={`/genomics/gene/${build}/${context.gene.geneSymbol}`}
                   style={{ color: COLORS.accent.teal, fontWeight: 500, textDecoration: 'none' }}
                   onMouseEnter={(e) => { (e.target as HTMLElement).style.textDecoration = 'underline'; }}
                   onMouseLeave={(e) => { (e.target as HTMLElement).style.textDecoration = 'none'; }}

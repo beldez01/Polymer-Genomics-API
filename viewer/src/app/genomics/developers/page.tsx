@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { CodeBlock, InlineCode } from '@/components/docs/CodeBlock';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
 import { API_BASE, MCP_TOTAL } from '@/config/apiDocsData';
+import { LAYERS } from '@/config/dataSourcesData';
 
 const subtitle = (
   <span style={{
@@ -234,7 +235,7 @@ export default function DevelopersPage() {
           }}>
             Genome-wide DNA biophysics in your stack. Python SDK, R bindings,
             TypeScript SDK, and an{' '}
-            <Link href="/docs" style={{ color: COLOR.primary.base, textDecoration: 'none', borderBottom: `1px solid ${COLOR.primary.base}40` }}>
+            <Link href="/genomics/docs" style={{ color: COLOR.primary.base, textDecoration: 'none', borderBottom: `1px solid ${COLOR.primary.base}40` }}>
               MCP server
             </Link>{' '}
             with {MCP_TOTAL} tools for AI agents. Every response carries provenance.
@@ -342,7 +343,7 @@ export default function DevelopersPage() {
           </Prose>
           <CodeBlock language="json" code={`{\n  "mcpServers": {\n    "polymer": {\n      "command": "uvx",\n      "args": ["polymer-mcp", "serve"],\n      "env": { "POLYMER_API_KEY": "POLY_..." }\n    }\n  }\n}`} />
           <div style={{ marginTop: SPACE[3] }}>
-            <Link href="/docs#mcp" style={{
+            <Link href="/genomics/docs#mcp" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: SPACE[2],
@@ -378,7 +379,7 @@ export default function DevelopersPage() {
               textTransform: 'uppercase',
               marginBottom: 4,
             }}>
-              50 layers · versions · licenses
+              {LAYERS.length} layers · versions · licenses
             </div>
             <div style={{
               color: COLOR.text.primary,
@@ -397,7 +398,7 @@ export default function DevelopersPage() {
               Browse every layer with citation, version, content hash, and license.
             </div>
           </div>
-          <Link href="/data-sources" style={{
+          <Link href="/genomics/data-sources" style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: SPACE[2],

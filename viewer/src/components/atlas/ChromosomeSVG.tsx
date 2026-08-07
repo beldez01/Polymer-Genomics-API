@@ -21,7 +21,7 @@ const CAP_FRAC = 0.55;     // semicircular telomere cap radius as fraction of ha
 
 /**
  * D2 vertical chromosome — p-arm at top, q-arm at bottom, semicircular
- * telomere caps, quadratic-bezier centromere pinch, isochore-coloured
+ * telomere caps, quadratic-bezier centromere pinch, isochore-colored
  * interior. Light-mode styled (light-gray background, hairline outline,
  * electric-blue hover). Drops the dark-mode teal glow and Giemsa fallback.
  */
