@@ -36,7 +36,7 @@ function IconBtn({ label, symbol, onClick }: { label: string; symbol: string; on
       type="button"
       aria-label={label}
       title={label}
-      onClick={onClick}
+      onClick={() => onClick?.()}
       style={{
         width: 32,
         height: 32,
