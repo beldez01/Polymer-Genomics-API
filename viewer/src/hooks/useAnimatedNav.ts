@@ -46,27 +46,31 @@ export function useAnimatedNav() {
     }, DURATION + 50);
   }, []);
 
-  const panLeft = useCallback((fraction = 0.25) => {
+  const panLeft = useCallback(() => {
+    const fraction = 0.25;
     const pct = fraction * 100;
     animate(`translateX(${pct}%)`, () => {
       useViewport.getState().panLeft(fraction);
     });
   }, [animate]);
 
-  const panRight = useCallback((fraction = 0.25) => {
+  const panRight = useCallback(() => {
+    const fraction = 0.25;
     const pct = fraction * 100;
     animate(`translateX(-${pct}%)`, () => {
       useViewport.getState().panRight(fraction);
     });
   }, [animate]);
 
-  const zoomIn = useCallback((factor = 2) => {
+  const zoomIn = useCallback(() => {
+    const factor = 2;
     animate(`scale(${factor})`, () => {
       useViewport.getState().zoomIn(factor);
     });
   }, [animate]);
 
-  const zoomOut = useCallback((factor = 2) => {
+  const zoomOut = useCallback(() => {
+    const factor = 2;
     animate(`scale(${1 / factor})`, () => {
       useViewport.getState().zoomOut(factor);
     });
