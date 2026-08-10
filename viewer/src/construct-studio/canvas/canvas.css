@@ -1,0 +1,74 @@
+.rna-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: #18181b;
+  background: #f4f4f5;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.rna-canvas:focus-visible {
+  outline: 2px solid #0f62fe;
+  outline-offset: -2px;
+}
+
+.canvas-background { fill: transparent; }
+.strand-path { stroke: #3f3f46; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; cursor: pointer; }
+.strand.selected .strand-path { stroke: #0f62fe; stroke-width: 2.5; }
+.strand-path:focus-visible { stroke: #0f62fe; stroke-dasharray: 5 3; stroke-width: 3; }
+.strand-ticks { stroke: #71717a; stroke-width: 1; pointer-events: none; }
+.strand-end { fill: #71717a; font-family: "JetBrains Mono", "DM Mono", monospace; pointer-events: none; }
+
+.rna-base { cursor: pointer; }
+.rna-base circle { fill: #fafafa; stroke: #71717a; stroke-width: 1; }
+.rna-base.selected-range circle { fill: #0f62fe; stroke: #0f62fe; }
+.rna-base.selected-range text { fill: #fff; }
+.rna-base text { fill: #18181b; font-family: "JetBrains Mono", "DM Mono", monospace; pointer-events: none; }
+.rna-base.ambiguous circle { fill: #e4e4e7; stroke: #a1a1aa; }
+.rna-base.ambiguous text { fill: #71717a; }
+.rna-base:focus-visible circle { stroke: #0f62fe; stroke-width: 2; }
+
+.paired-highlight { stroke: #0e9488; stroke-width: 7; stroke-linecap: round; opacity: .38; pointer-events: none; }
+.selection-highlight { stroke: #0f62fe; stroke-width: 7; stroke-linecap: round; opacity: .3; pointer-events: none; }
+.match-highlight { stroke: #b45309; stroke-width: 7; stroke-linecap: round; opacity: .42; pointer-events: none; }
+.lint-highlight { stroke: #b91c1c; stroke-width: 9; stroke-linecap: butt; opacity: .34; pointer-events: none; stroke-dasharray: 5 3; }
+
+.annotation { pointer-events: none; }
+.annotation path { stroke: #b45309; stroke-linecap: round; stroke-width: 5; opacity: .48; }
+.annotation-sensor path, .annotation-recognition-arm path { stroke: #0f62fe; }
+.annotation-payload path, .annotation-orf path { stroke: #7c3aed; }
+.annotation-token-blue path { stroke: #0f62fe; }
+.annotation-token-violet path { stroke: #7c3aed; }
+.annotation-token-teal path { stroke: #0e9488; }
+.annotation-token-amber path { stroke: #b45309; }
+.annotation-token-rose path { stroke: #be123c; }
+.annotation-token-green path { stroke: #15803d; }
+.annotation-token-slate path { stroke: #475569; }
+.annotation-token-neutral path { stroke: #71717a; }
+
+.duplex { stroke: #71717a; stroke-dasharray: 4 4; stroke-width: 1; pointer-events: none; }
+.duplex-sensor { stroke: #0f62fe; }
+
+.canvas-marquee { fill: rgba(15, 98, 254, .06); stroke: #0f62fe; stroke-dasharray: 4 3; stroke-width: 1; pointer-events: none; }
+
+.rotate-handle { fill: #fff; stroke: #0f62fe; stroke-width: 1.5; cursor: grab; }
+
+.blade-indicator { stroke: #dc2626; stroke-width: 2; pointer-events: none; }
+
+.splice-glow { fill: none; stroke: #0e9488; stroke-width: 2; pointer-events: none; }
+
+.canvas-toolbar { display: flex; min-height: 38px; align-items: center; gap: 12px; padding: 5px 8px; border: 1px solid #d4d4d8; background: rgba(250, 250, 250, .96); }
+.toolbar-group { display: flex; align-items: center; gap: 4px; padding-right: 12px; border-right: 1px solid #e4e4e7; }
+.toolbar-group:last-child { padding-right: 0; border-right: 0; }
+.canvas-toolbar button, .canvas-toolbar select { min-height: 26px; padding: 0 8px; color: #3f3f46; border: 1px solid #d4d4d8; background: #fafafa; font-size: 10px; }
+.canvas-toolbar button:hover:not(:disabled), .canvas-toolbar select:hover:not(:disabled) { color: #0f62fe; border-color: #0f62fe; }
+.canvas-toolbar button:disabled, .canvas-toolbar select:disabled { cursor: not-allowed; opacity: .45; }
+.canvas-toolbar span { color: #71717a; font-family: "JetBrains Mono", "DM Mono", monospace; font-size: 9px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rna-canvas * { transition: none !important; animation: none !important; }
+}

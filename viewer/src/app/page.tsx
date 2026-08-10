@@ -205,10 +205,11 @@ export default function Home() {
                 body="Multi-layer reference-genome data and analysis infrastructure — a genome viewer, a digital karyotype, a sequence evaluator, and an agent-ready API."
               />
               <Surface
+                href="/genomics/construct-builder"
                 eyebrow="Design"
-                status="In development"
-                title="RNA Construct Design"
-                body="Construct design and evaluation for programmable RNA, built on the same reference layers."
+                status="Live"
+                title="RNA Construct Builder"
+                body="Construct design and evaluation for programmable RNA — a direct-manipulation canvas, duplex thermodynamics, complementarity search, and sourced design lint."
               />
             </div>
           </div>

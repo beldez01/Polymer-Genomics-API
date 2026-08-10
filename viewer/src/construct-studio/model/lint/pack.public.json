@@ -1,0 +1,13 @@
+{
+  "note": "Reduced rule pack for the public site build. It carries only rules whose provenance is publishable literature. Rules sourced from internal documents are disabled outright rather than left unsourced, because a lint rule discloses through its message as well as its citation. This file is bundled into the shipped JavaScript, so it must not describe what it withholds — the reasoning and the full pack live in the studio repository. Check there, and the Polymer Biologics document register, before enabling anything below.",
+  "packVersion": "0.2.0-public",
+  "rules": {
+    "PKR-DSRNA-HELIX": {
+      "provenance": "CONFLICT",
+      "source": "[CONFLICT] — Wayment-Steele et al., \"Theoretical basis for stabilizing messenger RNA through secondary structure design\" (pmc/PMC7457604) [REVIEW] gives 33 bp, flagging helices longer than that as the threshold associated with PKR activation, and keeps its optimised low-AUP designs at 8–22 bp. The >~30 bp figure is [UNVERIFIED]. Neither number traces to primary PKR biochemistry. Design against 30 bp: this is a safety check for a design-killing defect, where a false flag costs a second look and a miss costs an interferon response.",
+      "thresholds": {
+        "minHelixBp": 30
+      }
+    }
+  }
+}
