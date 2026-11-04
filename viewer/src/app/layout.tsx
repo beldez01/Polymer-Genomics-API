@@ -21,34 +21,34 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
+  title: 'Polymer — Genomics database & API',
   description:
-    'Polymer Bio is building a partnered programmable-RNA discovery platform, supported by working genomics and governed-evidence infrastructure.',
+    'Explore reference-genome data, biological annotations, and sequence biophysics through the Polymer genome browser, analysis tools, and API.',
   metadataBase: new URL('https://polymerbio.org'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
+    title: 'Polymer — Genomics database & API',
     description:
-      'A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure.',
+      'A genomics database and API for exploration, analysis, and programmatic access.',
     url: 'https://polymerbio.org',
-    siteName: 'Polymer Bio',
+    siteName: 'Polymer',
     type: 'website',
     images: [
       {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'Polymer Bio — programmable RNA discovery, genomics, and governed evidence',
+        alt: 'Polymer — Genomics database & API',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Polymer Bio — Programmable RNA discovery, genomics, and governed evidence',
+    title: 'Polymer — Genomics database & API',
     description:
-      'A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure.',
+      'A genomics database and API for exploration, analysis, and programmatic access.',
     images: ['/opengraph-image'],
   },
   icons: {

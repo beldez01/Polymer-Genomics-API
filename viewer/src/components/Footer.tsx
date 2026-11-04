@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, SPACE } from '@/config/theme';
 
-const VIEWER_HREF =
-  '/genomics/view/hg38/chr17:7668421-7687490?layers=gencode_v44,cpg_sites,probe_epic_v2,isochores';
+import { VIEWER_HREF } from '@/config/platformNavigation';
 
 const Dot = () => (
   <span aria-hidden style={{ color: COLOR.border.strong, fontSize: 12, lineHeight: 1 }}>·</span>
@@ -58,6 +57,8 @@ export function Footer() {
         <Dot />
         <FootLink href="/genomics/data-sources">Data sources</FootLink>
         <Dot />
+        <FootLink href="/about">About</FootLink>
+        <Dot />
         <FootLink href="/terms">Terms</FootLink>
         <Dot />
         <FootLink href="/privacy">Privacy</FootLink>
@@ -86,7 +87,7 @@ export function Footer() {
           fontFamily: FONT_FAMILY_MONO,
           letterSpacing: '0.04em',
         }}>
-          © 2026 Polymer Bio
+          © 2026 Polymer
         </span>
       </div>
     </footer>

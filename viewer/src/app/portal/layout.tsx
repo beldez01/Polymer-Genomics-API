@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { BrandBar } from '@/components/BrandBar';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import { COLOR, FONT_FAMILY, SPACE, TYPE, WEIGHT, LAYOUT } from '@/config/theme';
 
 const PROJECTION_TABS: Array<{
   slug: string;
@@ -28,10 +29,12 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         fontFamily: FONT_FAMILY,
       }}
     >
+      <BrandBar sticky />
       <nav
+        aria-label="Claims navigation"
         style={{
           position: 'sticky',
-          top: 0,
+          top: LAYOUT.headerHeight,
           zIndex: 20,
           borderBottom: `1px solid ${COLOR.border.subtle}`,
           backgroundColor: `${COLOR.bg.primary}F2`,
@@ -46,6 +49,8 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
             display: 'flex',
             alignItems: 'center',
             gap: SPACE[4],
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
           }}
         >
           <Link

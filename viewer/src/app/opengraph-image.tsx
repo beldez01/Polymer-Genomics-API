@@ -1,17 +1,17 @@
 import { ImageResponse } from 'next/og';
 import { SocialCard } from '@/components/SocialCard';
 
-export const alt = 'Polymer Bio — programmable RNA discovery, genomics, and governed evidence';
+export const alt = 'Polymer — Genomics database & API';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
 export default function OpenGraphImage() {
   return new ImageResponse(
     <SocialCard
-      eyebrow="Biologics · Genomics · Claims"
-      title="Polymer Bio"
-      description="A functional design foundry for programmable RNA, supported by working genomics and governed-evidence infrastructure."
-      badges={['Programmable RNA', 'Working infrastructure']}
+      eyebrow="Explore · Analyze · Build"
+      title="Polymer"
+      description="A genomics database and API. Explore reference-genome data, biological annotations, and sequence biophysics."
+      badges={['Genome exploration', 'Data & API']}
     />,
     size,
   );

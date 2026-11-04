@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE, LAYOUT, COMPONENT } from '@/config/theme';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 
@@ -18,7 +19,7 @@ interface BrandBarProps {
 export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandBarProps) {
   const isMobile = useIsMobile();
   return (
-    <div style={{
+    <div className="platform-brandbar" style={{
       height: LAYOUT.headerHeight,
       backgroundColor: COLOR.bg.primary,
       display: 'flex',
@@ -39,12 +40,12 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         textDecoration: 'none',
         flexShrink: 0,
       }}>
-        POLYMER BIO
+        POLYMER
       </Link>
 
       {subtitle && (
         <>
-          <div style={{
+          <div className="platform-brand-divider" style={{
             width: 1,
             height: 20,
             backgroundColor: COLOR.border.strong,
@@ -52,7 +53,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
             marginLeft: SPACE[4],
             marginRight: SPACE[4],
           }} />
-          {typeof subtitle === 'string' ? (
+          <div className="platform-brand-subtitle">{typeof subtitle === 'string' ? (
             <span style={{
               color: COLOR.text.tertiary,
               fontSize: TYPE.base.fontSize,
@@ -61,12 +62,13 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
             }}>
               {subtitle}
             </span>
-          ) : subtitle}
+          ) : subtitle}</div>
         </>
       )}
 
       {/* Nav cluster — right side */}
       <nav
+        aria-label="Main navigation"
         className={isMobile ? 'brand-nav-scroll' : undefined}
         style={{
           marginLeft: 'auto',
@@ -101,17 +103,25 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
 
         <NavLink href="/genomics">Genomics</NavLink>
         <NavLink href="/genomics/docs">Docs</NavLink>
+        <NavLink href="/about">About</NavLink>
       </nav>
     </div>
   );
 }
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const active = href === '/genomics'
+    ? pathname.startsWith('/genomics') && !pathname.startsWith('/genomics/docs')
+    : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <Link
       href={href}
+      className="platform-nav-link"
+      aria-current={pathname === href ? 'page' : undefined}
+      data-active={active || undefined}
       style={{
-        color: COLOR.text.secondary,
+        color: active ? COLOR.primary.base : COLOR.text.secondary,
         fontFamily: FONT_FAMILY,
         fontSize: TYPE.sm.fontSize,
         fontWeight: WEIGHT.medium,
@@ -122,7 +132,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
         transition: 'color 0.15s',
       }}
       onMouseEnter={(e) => { e.currentTarget.style.color = COLOR.primary.base; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = COLOR.text.secondary; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = active ? COLOR.primary.base : COLOR.text.secondary; }}
     >
       {children}
     </Link>

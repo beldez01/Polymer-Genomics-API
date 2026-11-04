@@ -3,7 +3,7 @@ import { BrandBar } from '@/components/BrandBar';
 import { ConstructStudio } from '@/construct-studio/ConstructStudio';
 
 export const metadata: Metadata = {
-  title: 'RNA Construct Builder — Polymer Bio',
+  title: 'RNA Construct Builder — Polymer',
   description:
     'A direct-manipulation workspace for programmable-RNA constructs: strands and duplexes as first-class objects, nearest-neighbour thermodynamics, complementarity search and sourced design lint.',
 };

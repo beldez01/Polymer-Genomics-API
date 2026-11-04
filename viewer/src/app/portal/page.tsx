@@ -162,7 +162,7 @@ export default function PortalLanding() {
               flexShrink: 0,
             }}
           >
-            Reference surfaces on Polymerbio
+            Reference tools on Polymer
           </span>
           <div style={{ flex: 1, height: 1, backgroundColor: COLOR.border.subtle }} />
         </div>
