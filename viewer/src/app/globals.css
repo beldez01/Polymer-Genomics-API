@@ -484,3 +484,35 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .platform-lead-card, .platform-tool-card { transition: none; }
 }
+
+/* Direct genome entry and developer onboarding. */
+.platform-home-search { max-width: 920px; margin-top: 28px; }
+.platform-search-fields { display: flex; align-items: end; gap: 12px; }
+.platform-query-field { flex: 1; min-width: 0; }
+.platform-search-fields label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 12px; }
+.platform-search-fields input, .platform-search-fields select { width: 100%; min-width: 0; height: 46px; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 2px; background: var(--bg-white); color: var(--text-primary); font: inherit; font-size: 14px; }
+.platform-search-fields button { height: 46px; border: 0; cursor: pointer; white-space: nowrap; }
+.platform-search-fields button:disabled { opacity: .65; cursor: wait; }
+.platform-home-search :is(input, select, button, a):focus-visible, .platform-developer-content a:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.platform-home-search p { font-size: 12px; line-height: 1.7; color: var(--text-secondary); margin: 10px 0; }
+.platform-search-examples { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; font-size: 12px; color: var(--text-tertiary); }
+.platform-search-examples button { background: transparent; color: var(--primary); border: 0; border-bottom: 1px dotted var(--primary); padding: 2px 0; font: inherit; cursor: pointer; }
+#home-search-status:empty { display: none; }
+.platform-search-results { list-style: none; margin: 16px 0 0; padding: 0; border-top: 1px solid var(--border-default); max-height: 280px; overflow-y: auto; }
+.platform-search-results a { display: flex; justify-content: space-between; gap: 16px; padding: 12px; border-bottom: 1px solid var(--border-default); text-decoration: none; color: var(--primary); font-size: 14px; }
+.platform-search-results a:hover { background: var(--bg-deep); }
+.platform-search-results span { color: var(--text-secondary); font-size: 12px; }
+.platform-access-list h3 a { color: inherit; text-decoration: none; }
+.platform-access-list h3 a:hover { text-decoration: underline; }
+.platform-access-list > div > div { min-width: 0; flex: 1; }
+.platform-access-list p + div { margin-top: 12px; }
+.platform-developer-content { max-width: 960px; }
+.platform-developer-content section { scroll-margin-top: 90px; border-top: 1px solid var(--border-subtle); }
+.platform-developer-content a { color: var(--primary); }
+.platform-developer-content pre { overflow-x: auto; }
+.platform-code-gap { margin-top: 16px; }
+@media (max-width: 600px) {
+  .platform-search-fields { flex-wrap: wrap; }
+  .platform-query-field { flex-basis: 100%; }
+  .platform-assembly-field { flex: 1; min-width: 0; }
+}

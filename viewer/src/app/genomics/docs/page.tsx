@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { BrandBar } from '@/components/BrandBar';
 import { Footer } from '@/components/Footer';
@@ -7,6 +8,7 @@ import { DocsSidebar, type NavItem } from '@/components/docs/DocsSidebar';
 import { CodeBlock, InlineCode } from '@/components/docs/CodeBlock';
 import { EndpointCard } from '@/components/docs/EndpointCard';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, TYPE, WEIGHT } from '@/config/theme';
+import { MCP_CONFIG, PYTHON_QUICKSTART } from '@/config/developerQuickstart';
 import { ENDPOINTS, ENDPOINT_GROUPS, ERROR_CODES, MCP_TOOLS, MCP_REFERENCE_COUNT, MCP_COMPUTE_COUNT, MCP_TOTAL, API_BASE } from '@/config/apiDocsData';
 
 const subtitle = (
@@ -228,19 +230,18 @@ export default function DocsPage() {
             <CodeBlock language="bash" code="pip install polymer-genomics" />
           </div>
           <div style={{ marginBottom: SPACE[4] }}>
-            <CodeBlock language="python" code={`from polymer_genomics import PolymerClient\n\nclient = PolymerClient(api_key="POLY_...")\n\nregion = client.regions.fetch("hg38", "chr17:7668421-7687490")\nprint(region.stacking_dg37.mean)            # -8.42 kcal/mol\nprint(region.cpg_sites.count)                # 47\nprint(region.evidence_classes)               # {'thermodynamics': 'D', 'cpg_sites': 'K'}`} />
+            <CodeBlock language="python" code={PYTHON_QUICKSTART} />
           </div>
           <Prose>
             Without an SDK, hit the REST API directly. Use the curl below — any HTTP client works.
           </Prose>
-          <CodeBlock language="bash" code={`curl '${API_BASE}/v1/genes/hg38/TP53' \\\n  -H 'X-API-Key: $POLYMER_API_KEY'`} />
+          <CodeBlock language="bash" code={`curl '${API_BASE}/v1/genes/hg38/TP53' \\\n  -H "X-API-Key: $POLYMER_API_KEY"`} />
 
           {/* Auth */}
           <Heading id="auth" eyebrow="§ 03">Authentication</Heading>
           <Prose>
-            All requests must include the <InlineCode>X-API-Key</InlineCode> header. Request a key
-            at <span style={{ color: COLOR.primary.base }}>polymerbio.org/developers</span>.
-            Free tier: 1,000 requests/day. Rate limits are returned in <InlineCode>X-RateLimit-Remaining</InlineCode>.
+            Send your API key in the <InlineCode>X-API-Key</InlineCode> header.
+            See the <Link href="/genomics/developers#authentication">developer quickstart</Link> for access instructions.
           </Prose>
 
           {/* Endpoints */}
@@ -264,10 +265,10 @@ export default function DocsPage() {
           <Prose>
             The Model Context Protocol server exposes <InlineCode>{MCP_TOTAL}</InlineCode> tools to LLM agents —{' '}
             <InlineCode>{MCP_REFERENCE_COUNT}</InlineCode> reference and <InlineCode>{MCP_COMPUTE_COUNT}</InlineCode> compute.
-            Connect via stdio for local agents or HTTP/SSE for hosted deployments.
+            Connect a local agent through stdio using the configuration below. Install uv first and replace YOUR_API_KEY with your API key.
           </Prose>
           <div style={{ marginBottom: SPACE[4] }}>
-            <CodeBlock language="bash" code={`# Local stdio (Claude Desktop, etc.)\nuv run polymer-mcp serve\n\n# Hosted HTTP/SSE\npolymer-mcp serve --transport sse --port 8050`} />
+            <CodeBlock language="json" code={MCP_CONFIG} />
           </div>
           <div style={{
             border: `1px solid ${COLOR.border.default}`,
