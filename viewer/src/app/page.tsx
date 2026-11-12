@@ -46,7 +46,7 @@ export default function Home() {
       </section>
       <section aria-labelledby="sources-title" className="platform-shell platform-section platform-sources">
         <div><p className="platform-eyebrow">Understand / 04</p><h2 id="sources-title">Know the data behind the view.</h2><p>Explore the sources and methods behind Polymer, with provenance and license information for genomic data layers.</p></div>
-        <div className="platform-source-links"><Link href="/genomics/data-sources">Browse data sources <span aria-hidden>↗</span></Link><Link href="/genomics/docs/methodology">Read the methodology <span aria-hidden>↗</span></Link></div>
+        <div className="platform-source-links"><Link href="/library">Explore the Knowledge Library <span aria-hidden>↗</span></Link><Link href="/genomics/data-sources">Browse data sources <span aria-hidden>↗</span></Link><Link href="/genomics/docs/methodology">Read the methodology <span aria-hidden>↗</span></Link></div>
       </section>
       <Footer />
     </main>

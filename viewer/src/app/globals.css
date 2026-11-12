@@ -459,7 +459,7 @@ body {
 .platform-source-links a { display: flex; justify-content: space-between; gap: 16px; padding: 20px 0; color: var(--primary); border-bottom: 1px solid var(--border-subtle); text-decoration: none; font-size: 14px; }
 .platform-source-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .platform-brand-subtitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.platform-brandbar > nav { flex-shrink: 0; }
+.platform-brandbar > nav { flex-shrink: 1; min-width: 0; overflow-x: auto; }
 .platform-nav-link { padding: 8px 4px; }
 .platform-nav-link[data-active] { box-shadow: inset 0 -2px var(--primary); }
 .platform-page #founder { max-width: 1160px !important; padding-left: 32px !important; padding-right: 32px !important; }
@@ -478,6 +478,7 @@ body {
   .platform-page #founder { padding-left: 20px !important; padding-right: 20px !important; }
   .platform-brandbar { padding-left: 16px !important; padding-right: 12px !important; gap: 8px; }
   .platform-brandbar > nav { flex-shrink: 1; }
+  .platform-brandbar .platform-nav-link { font-size: 11px !important; padding-left: 2px; padding-right: 2px; }
   .platform-api-panel h2 { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {

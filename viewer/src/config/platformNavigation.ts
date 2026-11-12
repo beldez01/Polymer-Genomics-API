@@ -10,6 +10,7 @@ export const ANALYSIS_TOOLS: PlatformTool[] = [
   { name: 'RNA Construct Builder', description: 'Build and evaluate RNA constructs with an interactive canvas and duplex thermodynamics.', href: '/genomics/construct-builder', category: 'Design' },
 ];
 export const RESOURCE_TOOLS: PlatformTool[] = [
+  { name: 'Knowledge Library', description: 'Read connected explanations of DNA composition, genome organization, and physical properties.', href: '/library', category: 'Knowledge' },
   { name: 'API & MCP Reference', description: 'Find endpoints and agent tools for accessing genomic data and analysis.', href: '/genomics/docs', category: 'Documentation' },
   { name: 'Developer Quickstart', description: 'Get started with API requests, the Python SDK, and worked examples.', href: '/genomics/developers', category: 'Developers' },
   { name: 'Data Sources', description: 'Review the source, provenance, and license information for genomic data layers.', href: '/genomics/data-sources', category: 'Reference' },

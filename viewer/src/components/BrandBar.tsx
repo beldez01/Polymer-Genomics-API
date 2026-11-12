@@ -102,6 +102,7 @@ export function BrandBar({ subtitle, children, sticky, onToggleSidebar }: BrandB
         )}
 
         <NavLink href="/genomics">Genomics</NavLink>
+        <NavLink href="/library">Knowledge Library</NavLink>
         <NavLink href="/genomics/docs">Docs</NavLink>
         <NavLink href="/about">About</NavLink>
       </nav>

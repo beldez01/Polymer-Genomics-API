@@ -6,6 +6,18 @@
     <priority>1.0</priority>
   </url>
 
+  <!-- Knowledge Library -->
+  <url><loc>https://polymerbio.org/library</loc><priority>0.8</priority></url>
+  <url><loc>https://polymerbio.org/library/material-channel</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/gc-content</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/cpg-distribution</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/isochores</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/chromatin-maintenance</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/repeating-and-nonrepeating-dna</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/sequence-complexity</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/dna-thermodynamics</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/genomic-coordinates</loc><priority>0.6</priority></url>
+
   <!-- Claims -->
   <url>
     <loc>https://polymerbio.org/claims</loc>

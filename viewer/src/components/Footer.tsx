@@ -49,6 +49,8 @@ export function Footer() {
         <Dot />
         <FootLink href="/genomics/atlas">Atlas</FootLink>
         <Dot />
+        <FootLink href="/library">Knowledge Library</FootLink>
+        <Dot />
         <FootLink href="/claims">Claims</FootLink>
         <Dot />
         <FootLink href="/genomics/docs">Docs</FootLink>
