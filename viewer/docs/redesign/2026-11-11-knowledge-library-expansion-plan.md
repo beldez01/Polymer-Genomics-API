@@ -4,6 +4,11 @@ Date: 2026-11-11
 
 Status: Editorial and implementation planning draft
 
+This is the November 11 planning snapshot with dated implementation notes.
+Use the [current checklist](../../../docs/research/dark-genomics-2026-11-11/TODO.md)
+for present completion states and next actions, including the subsequent
+thermodynamics expansion and batch 0 internal source review.
+
 ## Objective
 
 Develop the existing opening collection into a substantial, connected reference resource grounded in the material-channel perspective and informed by the founder's existing research and study materials.
@@ -245,3 +250,12 @@ Numerical, type/build, browser, and responsive-layout checks passed; scientific
 review remains pending. Founder refinement of the material-channel introduction,
 the fuller thermodynamics article, other foundation rewrites, and later
 collections remain future work.
+
+### Subsequent progress — 2026-11-12
+
+The fuller thermodynamics draft is now implemented and internally source-reviewed
+as part of dark-genomics batch 0, alongside the new mechanics and evidence
+references. The earlier statement that thermodynamics is future work describes
+the November 11 snapshot. Independent scientific sign-off remains pending.
+Founder refinement and remaining foundation rewrites are carried forward in the
+current checklist; they have not been marked complete.

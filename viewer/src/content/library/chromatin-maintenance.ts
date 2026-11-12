@@ -101,7 +101,7 @@ export const CHROMATIN_ARTICLE: LibraryArticle = {
     { id: 'cbp', title: 'The CBP co-activator is a histone acetyltransferase', citation: 'Bannister & Kouzarides · Nature · 1996', href: 'https://pubmed.ncbi.nlm.nih.gov/8967953/' },
     { id: 'hdac', title: 'A mammalian histone deacetylase related to the yeast transcriptional regulator Rpd3p', citation: 'Taunton et al. · Science · 1996', href: 'https://pubmed.ncbi.nlm.nih.gov/8602529/' },
   ],
-  related: ['cpg-distribution', 'repeating-and-nonrepeating-dna', 'isochores', 'dna-thermodynamics'],
+  related: ['cpg-distribution', 'repeating-and-nonrepeating-dna', 'isochores', 'dna-thermodynamics', 'dna-mechanics', 'physical-annotation-and-evidence'],
   tools: [
     { title: 'Digital Karyotype', description: 'Explore chromosome organization and available regional annotations.', href: '/genomics/atlas' },
     { title: 'Data sources', description: 'Inspect the provenance and context of Polymer’s annotation layers.', href: '/genomics/data-sources' },

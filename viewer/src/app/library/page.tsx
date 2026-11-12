@@ -40,7 +40,7 @@ export default function LibraryPage() {
       </section>
       <section className="library-editorial" aria-labelledby="library-editorial-title">
         <h2 id="library-editorial-title">About this collection</h2>
-        <p>These entries are editorial drafts awaiting scientific review. The collection connects composition and genome organization to chromatin maintenance and epigenetic machinery. Cellular responses and genomic evolution are planned areas of expansion. The material channel is Polymer’s developing perspective, with established findings distinguished from proposed interpretations.</p>
+        <p>These entries are editorial drafts awaiting scientific review. The collection connects composition and genome organization to DNA mechanics, chromatin maintenance, and the evidence needed to evaluate an explanation. Cellular responses and genomic evolution are planned areas of expansion. The material channel is Polymer’s developing perspective, with established findings distinguished from proposed interpretations.</p>
         <Link href="mailto:polymergenomics@gmail.com?subject=Knowledge%20Library%20feedback">Suggest a correction or a topic <span aria-hidden="true">↗</span></Link>
       </section>
     </div>

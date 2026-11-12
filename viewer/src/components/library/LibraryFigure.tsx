@@ -1,8 +1,12 @@
 import type { LibraryFigureKind } from '@/content/library';
 import { CompositionFigure } from './CompositionFigure';
+import { PhysicalFoundationFigure } from './PhysicalFoundationFigure';
 
 /** Illustrations use synthetic examples; they are not measured genomic data. */
 export function LibraryFigure({ kind }: { kind: LibraryFigureKind }) {
+  if (kind === 'mechanics' || kind === 'evidence') {
+    return <PhysicalFoundationFigure kind={kind} />;
+  }
   if (kind === 'gc-windows' || kind === 'isochore-windows') {
     return <CompositionFigure showClasses={kind === 'isochore-windows'} />;
   }

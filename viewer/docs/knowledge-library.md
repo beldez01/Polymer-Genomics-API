@@ -4,9 +4,19 @@ The library is available at `/library`, with article pages at `/library/[slug]`.
 It is rendered from version-controlled content and does not require the genomics
 API to load. Guided experiences are outside this implementation.
 
+The [current expansion checklist](../../docs/research/dark-genomics-2026-11-11/TODO.md)
+tracks completed work, remaining scientific review, origins production, and the
+pending ERE/viral-mimicry source audit. Dated implementation records below are
+historical; the checklist supplies current next steps.
+
 The proposed next phase is documented in the
 [Knowledge Library expansion plan](redesign/2026-11-11-knowledge-library-expansion-plan.md),
 including collection order, local source mapping, and the new chromatin article.
+
+The [dark-genomics expansion plan](redesign/2026-11-12-dark-genomics-expansion-plan.md)
+maps the research dossier's 42 briefs to phased additions and existing-article
+extensions, with sourcing gates, draft-status requirements, and explicit handling
+of the unresolved repeat boundary-erosion hypothesis.
 
 ## Editing content
 
@@ -20,7 +30,7 @@ article's references and appear as links beside the relevant section. Reference
 links should point to the original research or official documentation. Write
 original explanations and do not reproduce source figures or long passages.
 
-The current nine entries are editorial drafts awaiting scientific review. The
+The current eleven entries are editorial drafts awaiting scientific review. The
 material-channel article describes a provisional Polymer perspective and should
 be refined with the founder. Do not mark content reviewed or attribute it to a
 named author without an actual review or authorship decision. Establish the
@@ -136,3 +146,77 @@ pages with extra header controls.
   updates. Cross-platform native-menu keyboard selection remains a manual check.
 - Scientific review and independent verification of live genomic values remain
   separate. No publication, deployment, backend, or atlas-renderer change occurred.
+
+## Dark-genomics batch 0 — 2026-11-12
+
+- Expanded DNA thermodynamics into an imported content module, incorporating
+  briefs 10–11 while retaining its slug, order, and three existing section anchors.
+- Added DNA mechanics (brief 12) and physical annotation/evidence (brief 36) to
+  Methods & reference. The library now contains eight foundations and three
+  reference entries. Existing foundation order is unchanged.
+- Added original code-native mechanics and evidence figures, comparison tables,
+  primary references, reciprocal related links, and sitemap entries. All eleven
+  articles retain editorial-draft status and scientific-review-pending labels.
+- Added the [batch evidence record](editorial/physical-foundations-brief.md),
+  [reusable template](editorial/evidence-record-template.md),
+  [source extension register](editorial/dark-genomics-source-extensions.md),
+  [copying-fidelity figure specification](editorial/copying-fidelity-figure-spec.md),
+  and [internal reading-path outline](editorial/genome-possible-reading-path.md).
+  The evidence record distinguishes targeted full-text inspection from abstract
+  access and unreviewed supplements; these remain publication gates.
+- TypeScript and production build passed, as did whitespace checks and the six
+  existing composition-calculation tests. The copying-fidelity specification's
+  nine rounded values were checked with independent high-precision decimal
+  arithmetic; no copying-fidelity widget or article was added in this batch.
+- Production-preview browser checks passed for all eleven routes, draft labels,
+  canonical URLs, citation and contents anchors, related-route resolution,
+  preserved thermodynamics anchors, combined text/subject filters, table-text
+  search, empty/reset behavior, focusable table regions, and missing-route HTTP
+  404. The directory and all three changed/new articles were checked at 1440,
+  768, 390, and 360 px with no horizontal page overflow or page exceptions.
+  Desktop mechanics and mobile mechanics/evidence screenshots were inspected.
+- Origins articles and later production batches remain planned. The LINE-1/ERV
+  boundary-erosion hypothesis has not been introduced as a mechanism. No public
+  deployment, API change, new measurement layer, or scientific-review claim was
+  made.
+
+## Batch 0 source review — 2026-11-12
+
+- Completed an internal source-and-methods review of the three batch 0 articles;
+  [the report](editorial/physical-foundations-review-2026-11-12.md) records eleven
+  findings and applied revisions. The [manifest](editorial/physical-foundations-review-manifest.json)
+  records eleven primary sources, notice/version relationships, retrieval URLs,
+  and twenty inspected artifact hashes. This is separate from independent
+  scientific sign-off, which remains pending.
+- Closed the earlier Bryant and Erdel main-text access gaps, inspected relevant
+  primary methods and supplements, and added Ke 2025, Gordiychuk 2026, and Popay
+  2026 as scoped updates. Source limits, preprint distinctions, normalization,
+  perturbation timing, and model scope are explicit in the revised drafts.
+- TypeScript, the final production build, whitespace checks, review-document
+  links, and manifest consistency passed. Browser checks passed for the three
+  revised pages: new sections and prose, all citation targets, reference counts,
+  preserved thermodynamics anchors, canonical metadata, draft notices, and
+  search/filter/reset behavior. Layout checks at 1440/768/390/360 px found no
+  horizontal overflow or page exceptions. Desktop thermodynamics and mobile
+  evidence screenshots were inspected.
+- No origins article, later batch, deployment, or commit was started as part of
+  this review. All articles remain editorial drafts. Independent subject-matter
+  review and the existing editorial publication decisions remain pending.
+
+## Library review and GitHub sync — 2026-11-12
+
+- Reviewed the pending batch 0 implementation and its existing source-review
+  records. No blocking implementation finding was identified. This pass did not
+  repeat the primary-source audit or provide independent scientific sign-off.
+- Production build (including TypeScript) and all six composition tests passed.
+  Checked the generated HTML for all eleven articles: unique IDs, citation and
+  contents anchors, related-article routes, draft/review notices, canonical URLs,
+  and sitemap coverage passed. Whitespace checks passed. This pass did not repeat
+  the previously recorded browser interaction and responsive-layout checks.
+- Isolated the library expansion on `feat/knowledge-library-expansion` for GitHub
+  sync. Included its editorial records and research roadmap/checklist; unrelated
+  PolyMethyl, figures, and EPICv2 script work remains outside this change.
+- The landing-page-only commit `653272f` was deployed separately to the `viewer`
+  production project and verified at polymerbio.org. Syncing this library branch
+  does not deploy the library to that production project. Independent scientific
+  review, editorial license, and authorship decisions remain pending.

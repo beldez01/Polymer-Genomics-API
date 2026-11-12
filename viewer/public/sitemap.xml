@@ -18,6 +18,9 @@
   <url><loc>https://polymerbio.org/library/dna-thermodynamics</loc><priority>0.6</priority></url>
   <url><loc>https://polymerbio.org/library/genomic-coordinates</loc><priority>0.6</priority></url>
 
+  <url><loc>https://polymerbio.org/library/dna-mechanics</loc><priority>0.6</priority></url>
+  <url><loc>https://polymerbio.org/library/physical-annotation-and-evidence</loc><priority>0.6</priority></url>
+
   <!-- Claims -->
   <url>
     <loc>https://polymerbio.org/claims</loc>

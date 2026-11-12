@@ -128,6 +128,15 @@
 .library-histone-key i { width: 10px; height: 10px; border: 1px solid var(--primary); border-radius: 50%; }
 .library-histone-key i[data-histone="parental"] { background: var(--primary); }
 .library-histone-key i[data-histone="new"] { background: var(--bg-elevated); }
+.library-mechanics-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.library-mechanics-panels strong { font-size: 15px; font-weight: 500; }
+.library-mechanics-panels svg { display: block; width: 100%; max-width: 230px; color: var(--primary); margin: 8px auto; }
+.library-mechanics-panels p, .library-evidence-steps p { font-size: 12px; line-height: 1.8; color: var(--text-secondary); margin: 8px 0; }
+.library-mechanics-panels > div > span { display: block; color: var(--text-tertiary); font-size: 11px; line-height: 1.8; }
+.library-evidence-steps { list-style: none; padding: 0; margin: 24px 0; counter-reset: none; }
+.library-evidence-steps li { border-left: 2px solid var(--primary); padding: 0 0 20px 18px; margin: 0; }
+.library-evidence-steps li:last-child { padding-bottom: 0; }
+.library-evidence-steps strong { display: block; font-size: 13px; line-height: 1.7; font-weight: 500; margin-top: 6px; }
 .library-composition-figure { margin-top: 24px; }
 .library-composition-figure h3 { font-size: 18px; font-weight: 500; line-height: 1.4; letter-spacing: -.02em; margin: 12px 0 20px; }
 .library-composition-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; }
@@ -172,6 +181,8 @@
   .library-article-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .library-collection[data-collection="reference"] .library-article-grid { grid-template-columns: minmax(0, 1fr); }
   .library-chromatin-stages { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .library-mechanics-panels { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .library-mechanics-panels > div + div { border-top: 1px solid var(--border-subtle); padding-top: 20px; }
   .library-chromatin-stages > div + div { border-top: 1px solid var(--border-subtle); padding-top: 20px; }
   .library-chromatin-stage { max-width: 200px; margin: 10px auto; }
   .library-article-card { padding: 20px; }

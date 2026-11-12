@@ -1,6 +1,7 @@
 import { VIEWER_HREF } from '@/config/platformNavigation';
 import { CHROMATIN_ARTICLE } from './library/chromatin-maintenance';
 import { GC_CONTENT_ARTICLE, ISOCHORES_ARTICLE } from './library/composition-articles';
+import { THERMODYNAMICS_ARTICLE, DNA_MECHANICS_ARTICLE, PHYSICAL_EVIDENCE_ARTICLE } from './library/physical-foundations';
 
 /** Editorial content lives here independently of presentation. No live API is required. */
 export const LIBRARY_SUBJECTS = [
@@ -12,7 +13,7 @@ export const LIBRARY_SUBJECTS = [
 ] as const;
 
 export type SubjectId = typeof LIBRARY_SUBJECTS[number]['id'];
-export type LibraryFigureKind = 'scales' | 'sequence' | 'coordinates' | 'chromatin' | 'gc-windows' | 'isochore-windows';
+export type LibraryFigureKind = 'scales' | 'sequence' | 'coordinates' | 'chromatin' | 'gc-windows' | 'isochore-windows' | 'mechanics' | 'evidence';
 export interface LibrarySection {
   id: string;
   title: string;
@@ -63,7 +64,7 @@ export const LIBRARY_ARTICLES: LibraryArticle[] = [
       { id: 'evidence', title: 'An evidence-first library', paragraphs: [
         'This library will connect foundational explanations to the tools that display relevant data. Established findings will be cited, calculations will link to methods, and original interpretations will be identified as such. The framework itself will evolve through editorial and scientific review.',
       ] },
-    ], references: [], related: ['gc-content', 'isochores', 'dna-thermodynamics'], tools: [atlas, evaluator, methods],
+    ], references: [], related: ['gc-content', 'isochores', 'dna-thermodynamics', 'physical-annotation-and-evidence'], tools: [atlas, evaluator, methods],
   },
   GC_CONTENT_ARTICLE,
   {
@@ -129,27 +130,11 @@ export const LIBRARY_ARTICLES: LibraryArticle[] = [
         'Periodicity describes recurrence at a spacing. In the second synthetic example, the four-base unit repeats exactly. Real sequence analyses must define the signal, interval, and comparison model before assigning significance to a pattern. An apparent period alone does not establish a structural or cellular mechanism.',
       ] },
     ], references: [{ id: 'dust', title: 'A Fast and Symmetric DUST Implementation to Mask Low-Complexity DNA Sequences', citation: 'Morgulis et al. · Journal of Computational Biology · 2006', href: 'https://doi.org/10.1089/cmb.2006.13.1028' }],
-    related: ['gc-content', 'repeating-and-nonrepeating-dna', 'material-channel'], tools: [evaluator, methods],
+    related: ['gc-content', 'repeating-and-nonrepeating-dna', 'dna-thermodynamics', 'dna-mechanics', 'material-channel'], tools: [evaluator, methods],
   },
-  {
-    slug: 'dna-thermodynamics', title: 'DNA thermodynamics', collection: 'foundations', order: 3,
-    description: 'Free energy, melting temperature, and the conditions that make a prediction interpretable.',
-    kind: 'Concept', subjects: ['physical-properties', 'methods'], terms: ['melting', 'Tm', 'free energy', 'stacking', 'nearest neighbor', 'salt'],
-    updated: '2026-11-11', status: 'Editorial draft',
-    sections: [
-      { id: 'quantities', title: 'Name the quantity and conditions', paragraphs: [
-        'DNA thermodynamic models describe quantities such as enthalpy, entropy, and free energy for a specified transition. A free-energy value requires a temperature and a defined model. Melting temperature describes a transition midpoint under specified conditions rather than a universal property of a sequence.',
-      ], sourceIds: ['santalucia'] },
-      { id: 'neighbors', title: 'Why neighboring bases matter', paragraphs: [
-        'Nearest-neighbor models use contributions associated with adjacent base pairs, with additional terms and corrections. SantaLucia unified parameter sets obtained from several experimental systems. Sequence order therefore enters the calculation beyond a single GC percentage.',
-        'Salt conditions, strand concentration, terminal effects, and the modeled molecular system affect interpretation. A short-duplex prediction should not be presented as a direct measurement of DNA behavior in chromatin.',
-      ], sourceIds: ['santalucia'] },
-      { id: 'comparison', title: 'Compare like with like', paragraphs: [
-        'Before comparing two reported values, check units, temperature, model parameters, ionic assumptions, and sequence length. In Polymer, follow the method link for the displayed metric. A model output is useful when its assumptions remain attached to it.',
-      ] },
-    ], references: [{ id: 'santalucia', title: 'A unified view of polymer, dumbbell, and oligonucleotide DNA nearest-neighbor thermodynamics', citation: 'SantaLucia · PNAS · 1998', href: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC19045/' }],
-    related: ['gc-content', 'sequence-complexity', 'material-channel'], tools: [evaluator, methods],
-  },
+  THERMODYNAMICS_ARTICLE,
+  DNA_MECHANICS_ARTICLE,
+  PHYSICAL_EVIDENCE_ARTICLE,
   {
     slug: 'genomic-coordinates', title: 'Genomic coordinates and reference assemblies', collection: 'reference', order: 1,
     description: 'What a genomic address means, and what must travel with it.',

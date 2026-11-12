@@ -1,0 +1,552 @@
+{
+  "reviewDate": "2026-11-12",
+  "scope": "Internal source-and-methods review for batch 0; not independent scientific sign-off",
+  "noticeConclusion": "No correction or retraction notice identified in the retrieved metadata and searches; absence of metadata is not proof of absence.",
+  "artifactPolicy": "Only bibliographic facts, notice relationships, retrieval URLs and hashes are stored here. Manuscripts are held in a temporary local review cache, not in public content. For ZIP endpoints, artifact hashes refer to the listed extracted file.",
+  "sources": [
+    {
+      "sourceId": "S07",
+      "doi": "10.1073/pnas.95.4.1460",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "9465037",
+            "pmcid": "PMC19045",
+            "title": "A unified view of polymer, dumbbell, and oligonucleotide DNA nearest-neighbor thermodynamics.",
+            "noticeAndVersionLinks": []
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1073/pnas.95.4.1460",
+        "title": [
+          "A unified view of polymer, dumbbell, and oligonucleotide DNA nearest-neighbor thermodynamics"
+        ],
+        "relations": {},
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "polymer-santalucia.pdf",
+          "retrievalUrl": "https://www.dna.caltech.edu/courses/cs191/paperscs191/santalucia1998a.pdf",
+          "bytes": 205958,
+          "sha256": "38b55923166ec15f20b57e32367fc19c6e6dd2fbf8bd34b526e10c6f1096269a"
+        }
+      ]
+    },
+    {
+      "sourceId": "S08",
+      "doi": "10.1038/nature01810",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "12867987",
+            "pmcid": null,
+            "title": "Structural transitions and elasticity from torque measurements on DNA.",
+            "noticeAndVersionLinks": []
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1038/nature01810",
+        "title": [
+          "Structural transitions and elasticity from torque measurements on DNA"
+        ],
+        "relations": {
+          "has-review": [
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.1013725.193650",
+              "asserted-by": "object"
+            }
+          ]
+        },
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "bryant.pdf",
+          "retrievalUrl": "https://bryantlab.stanford.edu/sites/g/files/sbiybj15356/files/media/file/nature2003.pdf",
+          "bytes": 476249,
+          "sha256": "3e6754d3f8d7ba89f65d6c6b5a1b29fb80c08097da4bd0b81841a465bbc76a9b"
+        }
+      ]
+    },
+    {
+      "sourceId": "S10",
+      "doi": "10.1038/s41586-020-03052-3",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "33328628",
+            "pmcid": "PMC7855230",
+            "title": "Measuring DNA mechanics on the genome scale.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "MED",
+                "id": "33542507",
+                "reference": "Nat Methods. 2021 Feb;18(2):121. doi: 10.1038/s41592-021-01070-1.",
+                "type": "Comment in",
+                "orderIn": 1
+              },
+              {
+                "source": "MED",
+                "id": "33622494",
+                "reference": "Trends Genet. 2021 Jun;37(6):494-495. doi: 10.1016/j.tig.2021.02.004.",
+                "type": "Comment in",
+                "orderIn": 2
+              },
+              {
+                "source": "MED",
+                "id": "33858745",
+                "reference": "Trends Biochem Sci. 2021 Jun;46(6):431-432. doi: 10.1016/j.tibs.2021.03.004.",
+                "type": "Comment in",
+                "orderIn": 3
+              },
+              {
+                "source": "PPR",
+                "id": "PPR202168",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1038/s41586-020-03052-3",
+        "title": [
+          "Measuring DNA mechanics on the genome scale"
+        ],
+        "relations": {
+          "has-preprint": [
+            {
+              "id-type": "doi",
+              "id": "10.1101/2020.08.17.255042",
+              "asserted-by": "object"
+            }
+          ],
+          "has-review": [
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.739220184.793584428",
+              "asserted-by": "object"
+            },
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.739220184.793585222",
+              "asserted-by": "object"
+            }
+          ]
+        },
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "polymer-basu.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7855230/fullTextXML",
+          "bytes": 136908,
+          "sha256": "bc19d837cfc178d1fa49831b31c793126b2f8efba6a564e904e5bb6a82453b7c"
+        },
+        {
+          "fileName": "EMS114566-supplement-Supplementary_Information.docx",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7855230/supplementaryFiles",
+          "bytes": 1821607,
+          "sha256": "988ac6927b9bdcf55c4b97e871a2ebbc55aafc032c41d2b70da50903cc1c8cd0"
+        }
+      ]
+    },
+    {
+      "sourceId": "S21",
+      "doi": "10.1038/nature24281",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "29094699",
+            "pmcid": "PMC5687303",
+            "title": "Two independent modes of chromatin organization revealed by cohesin removal.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "MED",
+                "id": "28976964",
+                "reference": "Nature. 2017 Nov 2;551(7678):38-40. doi: 10.1038/nature24145.",
+                "type": "Comment in",
+                "orderIn": 1
+              },
+              {
+                "source": "MED",
+                "id": "28989172",
+                "reference": "Nat Rev Genet. 2017 Nov;18(11):640-641. doi: 10.1038/nrg.2017.84.",
+                "type": "Comment in",
+                "orderIn": 2
+              },
+              {
+                "source": "PPR",
+                "id": "PPR20667",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1038/nature24281",
+        "title": [
+          "Two independent modes of chromatin organization revealed by cohesin removal"
+        ],
+        "relations": {
+          "has-preprint": [
+            {
+              "id-type": "doi",
+              "id": "10.1101/094185",
+              "asserted-by": "object"
+            }
+          ],
+          "has-review": [
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.732018782.793538481",
+              "asserted-by": "object"
+            }
+          ]
+        },
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "schwarzer.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5687303/fullTextXML",
+          "bytes": 161046,
+          "sha256": "bf6dd07c3bf140f801b0703fd96c7035b6737df8e294c8513d6afc6591b20066"
+        },
+        {
+          "fileName": "schwarzer-publisher-supp1.pdf",
+          "retrievalUrl": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnature24281/MediaObjects/41586_2017_BFnature24281_MOESM1_ESM.pdf",
+          "bytes": 3920463,
+          "sha256": "fb0bd73a0fe6fb731d0c09b83d2d0cd374583aee05c3a58b9673b6b42b0a85b6"
+        },
+        {
+          "fileName": "schwarzer-reporting.pdf",
+          "retrievalUrl": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnature24281/MediaObjects/41586_2017_BFnature24281_MOESM2_ESM.pdf",
+          "bytes": 96713,
+          "sha256": "0e2cd30b0f7f58a96d9c4ef090638eaff3ac57c0e75d77b0c94317dadf3ba9cd"
+        }
+      ]
+    },
+    {
+      "sourceId": "S22",
+      "doi": "10.1073/pnas.1717730115",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "29967174",
+            "pmcid": "PMC6055145",
+            "title": "Chromatin organization by an interplay of loop extrusion and compartmental segregation.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "PPR",
+                "id": "PPR24762",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1073/pnas.1717730115",
+        "title": [
+          "Chromatin organization by an interplay of loop extrusion and compartmental segregation"
+        ],
+        "relations": {
+          "has-preprint": [
+            {
+              "id-type": "doi",
+              "id": "10.1101/196261",
+              "asserted-by": "object"
+            }
+          ]
+        },
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "nuebler.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6055145/fullTextXML",
+          "bytes": 147459,
+          "sha256": "35e53b0f16953f520e1d6283a980ad778aba8a3f8b8474886f6608efb7258a05"
+        },
+        {
+          "fileName": "pnas.1717730115.sapp.pdf",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6055145/supplementaryFiles",
+          "bytes": 18463202,
+          "sha256": "f66c1fa5b357de3966257b735fa6409923f55bcdb6eef818d7104d3a5db3cc81"
+        }
+      ]
+    },
+    {
+      "sourceId": "S23",
+      "doi": "10.1038/nature22822",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "28636604",
+            "pmcid": "PMC5606208",
+            "title": "Liquid droplet formation by HP1α suggests a role for phase separation in heterochromatin.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "MED",
+                "id": "28636606",
+                "reference": "Nature. 2017 Jul 13;547(7662):168-170. doi: 10.1038/nature23089.",
+                "type": "Comment in",
+                "orderIn": 1
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1038/nature22822",
+        "title": [
+          "Liquid droplet formation by HP1α suggests a role for phase separation in heterochromatin"
+        ],
+        "relations": {},
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "larson.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC5606208/fullTextXML",
+          "bytes": 114499,
+          "sha256": "35cdf7506e9dede8c29f21368300aae48b36186f96e3dcaa7adb78a34e09994e"
+        },
+        {
+          "fileName": "larson-supp-tables.xlsx",
+          "retrievalUrl": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fnature22822/MediaObjects/41586_2017_BFnature22822_MOESM1_ESM.xlsx",
+          "bytes": 93514,
+          "sha256": "69684799a4b00f218b2a08dcd105959a03b3a53449809519a27cdcf23845cb27"
+        }
+      ]
+    },
+    {
+      "sourceId": "S24",
+      "doi": "10.1016/j.molcel.2020.02.005",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "32101700",
+            "pmcid": "PMC7163299",
+            "title": "Mouse Heterochromatin Adopts Digital Compaction States without Showing Hallmarks of HP1-Driven Liquid-Liquid Phase Separation.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "MED",
+                "id": "32302539",
+                "reference": "Mol Cell. 2020 Apr 16;78(2):193-194. doi: 10.1016/j.molcel.2020.03.029",
+                "type": "Comment in",
+                "orderIn": 1
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "doi": "10.1016/j.molcel.2020.02.005",
+        "title": [
+          "Mouse Heterochromatin Adopts Digital Compaction States without Showing Hallmarks of HP1-Driven Liquid-Liquid Phase Separation"
+        ],
+        "relations": {
+          "has-review": [
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.737432801.793572772",
+              "asserted-by": "object"
+            },
+            {
+              "id-type": "doi",
+              "id": "10.3410/f.737432801.793574080",
+              "asserted-by": "object"
+            }
+          ]
+        },
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "erdel.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7163299/fullTextXML",
+          "bytes": 238215,
+          "sha256": "b1b5a05a24d2c805ad90bc2ca6f0ac0ed0efda85ef7b96521afeb8a1c26529ac"
+        },
+        {
+          "fileName": "mmc1.pdf",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC7163299/supplementaryFiles",
+          "bytes": 4093526,
+          "sha256": "54e76a48f9eed0d0f3ae2c12afd4b1396b9ec3387577cb49e4232ecc19eac086"
+        }
+      ]
+    },
+    {
+      "sourceId": "S42",
+      "doi": "10.1021/ma00130a008",
+      "europePmc": {
+        "hitCount": 0,
+        "records": []
+      },
+      "crossref": {
+        "doi": "10.1021/ma00130a008",
+        "title": [
+          "Stretching DNA"
+        ],
+        "relations": {},
+        "updateTo": [],
+        "updatedBy": []
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "marko.pdf",
+          "retrievalUrl": "https://sites.engineering.ucsb.edu/~saleh/Teaching/bioforce2012/marko1995.pdf",
+          "bytes": 1600747,
+          "sha256": "7c803ce0b0af16543b5b5448dd96d62a44749bc5bc4216cb262f9c3fc6369392"
+        }
+      ]
+    },
+    {
+      "sourceId": "S43",
+      "doi": "10.1038/s41467-025-60455-4",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "40593545",
+            "pmcid": "PMC12216960",
+            "title": "High-throughput DNA melt measurements enable improved models of DNA folding thermodynamics.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "PPR",
+                "id": "PPR785016",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "checked": false
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "melt2025.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC12216960/fullTextXML",
+          "bytes": 282151,
+          "sha256": "820f037645f1064da7ccbb98f42719abfdc278d7fca5613153d845475dad3782"
+        },
+        {
+          "fileName": "melt2025-supp.pdf",
+          "retrievalUrl": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-025-60455-4/MediaObjects/41467_2025_60455_MOESM1_ESM.pdf",
+          "bytes": 5329210,
+          "sha256": "3ce75e236ff3f3c5707e262dd654a155860063209ceacfa4379c327f15fdbd6e"
+        }
+      ]
+    },
+    {
+      "sourceId": "S44",
+      "doi": "10.1093/pnasnexus/pgag167",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "42255020",
+            "pmcid": "PMC13238741",
+            "title": "Searching for sequence features that control DNA cyclizability.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "PPR",
+                "id": "PPR962555",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "checked": false
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "cycliz2026.data",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13238741/fullTextXML",
+          "bytes": 217847,
+          "sha256": "c897cef67dab52993e2377eca60c89372da4ef5545a7a09fe0da69c3ed38c82e"
+        },
+        {
+          "fileName": "cycliz2026-supp.pdf",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13238741/supplementaryFiles",
+          "bytes": 1103076,
+          "sha256": "b1aa8b1deecb9849e1fc88f747be850d54f3cda87a62743571435c673f26a77e"
+        }
+      ]
+    },
+    {
+      "sourceId": "S45",
+      "doi": "10.1038/s41588-026-02516-y",
+      "europePmc": {
+        "hitCount": 1,
+        "records": [
+          {
+            "pmid": "41699137",
+            "pmcid": "PMC13019969",
+            "title": "Acute NIPBL depletion reveals in vivo dynamics of loop extrusion and its role in transcription activation.",
+            "noticeAndVersionLinks": [
+              {
+                "source": "PPR",
+                "id": "PPR919700",
+                "type": "Preprint in",
+                "note": "CrossRef Pre-print loader",
+                "orderIn": 10002
+              }
+            ]
+          }
+        ]
+      },
+      "crossref": {
+        "checked": false
+      },
+      "inspectedArtifacts": [
+        {
+          "fileName": "nipbl2026.xml",
+          "retrievalUrl": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC13019969/fullTextXML",
+          "bytes": 190352,
+          "sha256": "241207f08f0cebd945ea25e34f077ba2af5fca17df8b60998e8b68e8d83dbbfc"
+        },
+        {
+          "fileName": "nipbl2026-supp.pdf",
+          "retrievalUrl": "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41588-026-02516-y/MediaObjects/41588_2026_2516_MOESM1_ESM.pdf",
+          "bytes": 458835,
+          "sha256": "78e1c1b92c368ed222b9bdb895f9d9658bb24f51ad955b2459be236fc7fe74b8"
+        }
+      ]
+    }
+  ]
+}
