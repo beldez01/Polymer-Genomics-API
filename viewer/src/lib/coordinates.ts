@@ -31,7 +31,7 @@ export function pixelToGenomic(
   canvasWidth: number,
 ): number {
   const span = viewEnd - viewStart + 1;
-  return Math.round(viewStart + (px / canvasWidth) * span);
+  return Math.max(viewStart, Math.min(viewEnd, Math.floor(viewStart + (px / canvasWidth) * span)));
 }
 
 /**

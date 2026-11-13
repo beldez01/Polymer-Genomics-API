@@ -84,19 +84,6 @@ export function SequenceTrack({
     const cpgSet = buildCpgSet(cpgData);
     const showCpgOverlay = cpgSet.size > 0;
 
-    // ── 5' / 3' strand labels ──
-    const labelPad = 4;
-    const labelFontSize = Math.min(11, height * 0.28);
-    ctx.font = `bold ${labelFontSize}px 'JetBrains Mono', monospace`;
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#8a8a8a';
-    ctx.textAlign = 'left';
-    ctx.fillText("5'", labelPad, height / 2);
-    ctx.textAlign = 'right';
-    ctx.fillText("3'", canvasWidth - labelPad, height / 2);
-
-    const labelInset = labelFontSize * 1.8;
-
     if (bpPerPixel <= 1) {
       const fontSize = Math.min(Math.floor(bpWidth * 0.85), height - 8);
       ctx.font = `bold ${fontSize}px 'JetBrains Mono', monospace`;
@@ -240,22 +227,13 @@ export function SequenceTrack({
       ctx.restore();
     }
 
-    // Redraw 5'/3' labels on top of everything
-    ctx.font = `bold ${labelFontSize}px 'JetBrains Mono', monospace`;
-    ctx.textBaseline = 'middle';
-    // Background pill for readability
-    const metrics5 = ctx.measureText("5'");
-    const metrics3 = ctx.measureText("3'");
-    ctx.fillStyle = 'rgba(10,10,10,0.85)';
-    ctx.fillRect(0, height / 2 - labelFontSize * 0.6, metrics5.width + labelPad * 2, labelFontSize * 1.2);
-    ctx.fillRect(canvasWidth - metrics3.width - labelPad * 2, height / 2 - labelFontSize * 0.6, metrics3.width + labelPad * 2, labelFontSize * 1.2);
-    ctx.fillStyle = '#8a8a8a';
-    ctx.textAlign = 'left';
-    ctx.fillText("5'", labelPad, height / 2);
-    ctx.textAlign = 'right';
-    ctx.fillText("3'", canvasWidth - labelPad, height / 2);
 
   }, [sequence, cpgData, viewStart, viewEnd, canvasWidth, height, enabledMotifs]);
 
-  return <canvas ref={canvasRef} className="block" />;
+  return <div>
+    <div className="viewer-sequence-direction" aria-label="Forward reference strand, 5 prime to 3 prime">
+      <span>5′</span><span>Reference + strand →</span><span>3′</span>
+    </div>
+    <canvas ref={canvasRef} className="block" role="img" aria-label={`Forward reference sequence, ${viewStart}–${viewEnd}, 5 prime to 3 prime`} />
+  </div>;
 }

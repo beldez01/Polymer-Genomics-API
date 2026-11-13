@@ -144,17 +144,19 @@ async function fetchMetaJSON<T>(
 export async function fetchSequence(
   build: string,
   region: string,
+  signal?: AbortSignal,
 ): Promise<SequenceData> {
-  return fetchMetaJSON(`${API_BASE}/v1/sequence/${build}/${region}`);
+  return fetchMetaJSON(`${API_BASE}/v1/sequence/${build}/${region}`, { signal });
 }
 
 export async function fetchRegion(
   build: string,
   region: string,
   layers?: string[],
+  signal?: AbortSignal,
 ): Promise<RegionResponse> {
   const layerParam = layers?.length ? `?layers=${layers.join(',')}` : '';
-  return fetchJSON(`${API_BASE}/v1/regions/${build}/${region}${layerParam}`);
+  return fetchJSON(`${API_BASE}/v1/regions/${build}/${region}${layerParam}`, { signal });
 }
 
 export async function fetchTile(
@@ -163,10 +165,12 @@ export async function fetchTile(
   resolution: number,
   tileIndex: number,
   layers?: string[],
+  signal?: AbortSignal,
 ): Promise<TileResponse> {
   const layerParam = layers?.length ? `?layers=${layers.join(',')}` : '';
   return fetchJSON(
     `${API_BASE}/v1/tiles/${build}/${chr}/tile/${resolution}/${tileIndex}${layerParam}`,
+    { signal },
   );
 }
 
@@ -233,11 +237,12 @@ export async function searchGenes(
 export async function fetchGene(
   build: string,
   symbol: string,
+  signal?: AbortSignal,
 ): Promise<RegionResponse> {
   const key = `gene:${build}:${symbol}`;
   const cached = getCached<RegionResponse>(key);
   if (cached) return cached;
-  const result = await fetchJSON<RegionResponse>(`${API_BASE}/v1/genes/${build}/${symbol}`);
+  const result = await fetchJSON<RegionResponse>(`${API_BASE}/v1/genes/${build}/${encodeURIComponent(symbol)}`, { signal });
   setCache(key, result, 600_000);
   return result;
 }
@@ -672,9 +677,10 @@ export async function fetchBiophysicsCompute(
   build: string,
   region: string,
   properties: string = 'all',
+  signal?: AbortSignal,
 ): Promise<BiophysicsComputeResponse> {
   const params = new URLSearchParams({ properties });
-  return fetchJSON(`${API_BASE}/v1/biophysics/${build}/${region}?${params}`);
+  return fetchJSON(`${API_BASE}/v1/biophysics/${build}/${region}?${params}`, { signal });
 }
 
 // ─── Transposome ────────────────────────────────────────────────────

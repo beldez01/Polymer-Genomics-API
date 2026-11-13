@@ -516,3 +516,22 @@ body {
   .platform-query-field { flex-basis: 100%; }
   .platform-assembly-field { flex: 1; min-width: 0; }
 }
+
+/* Track explanations stay compact; full scientific context remains accessible. */
+.viewer-track-copy { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 100%; }
+.viewer-track-copy:focus-visible { outline: 1px solid var(--primary); outline-offset: -1px; }
+.viewer-track-scroll { overflow-anchor: none; }
+
+.viewer-biophysics-header { display: flex; align-items: center; gap: 12px; min-height: 24px; padding: 2px 8px; border-bottom: 1px solid var(--border-subtle); position: relative; }
+.viewer-biophysics-title { width: 72px; flex-shrink: 0; color: var(--text-tertiary); font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.viewer-layer-provenance { font-size: 10px; min-width: 0; }
+.viewer-layer-provenance summary { cursor: pointer; color: var(--text-secondary); white-space: nowrap; }
+.viewer-layer-provenance[open] { position: absolute; left: 92px; right: 8px; top: 2px; z-index: 20; background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: 2px; padding: 4px 8px; max-height: 240px; overflow: auto; box-shadow: 0 4px 12px #0001; }
+.viewer-layer-provenance ul { padding-left: 16px; overflow-wrap: anywhere; }
+.viewer-sequence-direction { display: flex; justify-content: space-between; align-items: center; height: 18px; padding: 0 3px; color: var(--primary); background: var(--bg-deep); border-bottom: 1px solid var(--border-subtle); font: 10px var(--font-mono); }
+.viewer-sequence-direction > span:nth-child(2) { color: var(--text-tertiary); font-size: 9px; }
+.viewer-sequence-direction > span:first-child, .viewer-sequence-direction > span:last-child { padding: 0 4px; background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: 2px; }
+.viewer-codon-controls { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 3px 6px; font-size: 10px; color: var(--text-secondary); }
+.viewer-codon-controls label { white-space: nowrap; }
+.viewer-codon-controls select { min-width: 60px; max-width: 45%; color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 2px; background: var(--bg-elevated); font: inherit; padding: 2px; }
+.viewer-codon-controls > span { flex: 1; }

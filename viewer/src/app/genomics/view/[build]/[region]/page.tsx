@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useEffect, useLayoutEffect, useState, useRef, useCallback, Suspense } from 'react';
+import { TRACK_LABEL_WIDTH } from '@/config/viewerLayout';
+import { useViewerUrl } from '@/hooks/useViewerUrl';
+import { useLocusRequest } from '@/hooks/useLocusRequest';
+import { contigLength, validRegion, type GenomeBuild } from '@/lib/reference';
 import { useViewport } from '@/stores/viewport';
 import { useViewportData } from '@/hooks/useViewportData';
 import { TrackStack } from '@/components/TrackStack';
@@ -14,62 +17,53 @@ import { RegionContextPanel } from '@/components/RegionContextPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { Footer } from '@/components/Footer';
 import { useRegionContext } from '@/hooks/useRegionContext';
-import { getChromosomeByName } from '@/config/chromosomes';
 import { useAnimatedNav } from '@/hooks/useAnimatedNav';
 import { usePinchZoom } from '@/hooks/usePinchZoom';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, SPACE, LAYOUT, TYPE, WEIGHT } from '@/config/theme';
-import { fetchBiophysicsCompute, type BiophysicsComputeResponse } from '@/lib/api';
-
-function parseRegionParam(region: string): { chr: string; start: number; end: number } | null {
-  const decoded = decodeURIComponent(region);
-  const match = decoded.match(/^(chr[0-9XYM]+):(\d+)-(\d+)$/);
-  if (!match) return null;
-  return { chr: match[1], start: parseInt(match[2], 10), end: parseInt(match[3], 10) };
-}
+import { fetchBiophysicsCompute } from '@/lib/api';
 
 function ViewerPage() {
-  const params = useParams<{ build: string; region: string }>();
+  const { ready, error: routeError } = useViewerUrl();
   const { build, chr, start, end, width, activeLayers, showCodons, showGC, showStability, showStructure, showMotifs, visibleCellTypes, enabledMotifs, setBuild, setRegion, setLayers, toggleLayer, toggleCodons, toggleGC, toggleStability, toggleStructure, toggleMotifs, toggleCellType, toggleMotif, toggleAllProbes, toggleAllCellTypes } = useViewport();
   const { toggleAllMotifs } = useViewport();
-  const { data, loading, error } = useViewportData();
+  const { data, loading, error } = useViewportData(ready);
   const { animRef, panLeft, panRight, zoomIn, zoomOut } = useAnimatedNav();
 
-  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
+  const trackScrollRef = useRef<HTMLDivElement>(null);
+  const scrollAnchor = useRef<{ id: string; offset: number; top: number } | null>(null);
+  const restoringScroll = useRef(false);
+  const rememberTrackScroll = () => {
+    const pane = trackScrollRef.current;
+    if (!pane || restoringScroll.current) return;
+    const top = pane.getBoundingClientRect().top;
+    const rows = Array.from(pane.querySelectorAll<HTMLElement>('[data-track-id]'));
+    const row = rows.find(el => el.getBoundingClientRect().bottom > top);
+    if (row) scrollAnchor.current = { id: row.dataset.trackId!, offset: row.getBoundingClientRect().top - top, top: pane.scrollTop };
+  };
   const [canvasWidth, setCanvasWidth] = useState(1200);
-  const [showContext, setShowContext] = useState(true);
+  const showContext = useViewport(state => state.showContext);
+  const [pendingBuild, setPendingBuild] = useState<GenomeBuild | null>(null);
   const [copyLabel, setCopyLabel] = useState('Link');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [urlSyncEnabled, setUrlSyncEnabled] = useState(false);
-  const urlInitializedRef = useRef(false);
   const isMobile = useIsMobile();
   const regionContext = useRegionContext(data, chr, start, end);
 
-  // Fetch contextual biophysics when zoomed ≤1Mb and any new track is enabled
-  const [biophysicsData, setBiophysicsData] = useState<BiophysicsComputeResponse | null>(null);
-  const needsBiophysics = showStability || showStructure || showMotifs;
-  useEffect(() => {
-    if (!needsBiophysics || width > 1_000_000 || !chr || !start || !end) {
-      setBiophysicsData(null);
-      return;
-    }
-    let cancelled = false;
-    const region = `${chr}:${start}-${end}`;
-    const props = [
-      showStability ? 'thermodynamics,contextual' : '',
-      showStructure ? 'curvature,structural' : '',
-      showMotifs ? 'motifs' : '',
-    ].filter(Boolean).join(',');
-
-    fetchBiophysicsCompute(build, region, props)
-      .then((res) => { if (!cancelled) setBiophysicsData(res); })
-      .catch(() => { if (!cancelled) setBiophysicsData(null); });
-
-    return () => { cancelled = true; };
-  }, [build, chr, start, end, width, needsBiophysics, showStability, showStructure, showMotifs]);
-  usePinchZoom(containerRef);
+  const properties = [showStability ? 'thermodynamics,contextual' : '', showStructure ? 'curvature,structural' : '', showMotifs ? 'motifs' : ''].filter(Boolean).join(',');
+  const computeKey = ready && width <= 1_000_000 && properties ? JSON.stringify([build, chr, start, end, properties]) : null;
+  const { data: biophysicsData, loading: computeLoading, error: computeError } = useLocusRequest(computeKey,
+    signal => fetchBiophysicsCompute(build, `${chr}:${start}-${end}`, properties, signal), 25, response => response.data.n_steps <= 100_000);
+  usePinchZoom(containerRef, ready);
+  useLayoutEffect(() => {
+    const pane = trackScrollRef.current, anchor = scrollAnchor.current;
+    if (!pane || !anchor) return;
+    const row = Array.from(pane.querySelectorAll<HTMLElement>('[data-track-id]')).find(el => el.dataset.trackId === anchor.id);
+    restoringScroll.current = true;
+    pane.scrollTop = row ? pane.scrollTop + row.getBoundingClientRect().top - pane.getBoundingClientRect().top - anchor.offset : anchor.top;
+    requestAnimationFrame(() => { restoringScroll.current = false; });
+  }, [data, loading, computeLoading, biophysicsData, computeError]);
 
   useEffect(() => {
     function updateWidth() {
@@ -78,64 +72,23 @@ function ViewerPage() {
       }
     }
     updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    if (containerRef.current) observer.observe(containerRef.current);
     window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
-
-  // Initialize local viewport state from the route exactly once before we start
-  // writing viewport changes back into the URL.
-  useEffect(() => {
-    if (urlInitializedRef.current) return;
-
-    if (params.build === 'hg38' || params.build === 'hg37') {
-      setBuild(params.build);
-    }
-
-    const parsed = parseRegionParam(params.region);
-    if (parsed) {
-      setRegion(parsed.chr, parsed.start, parsed.end);
-    }
-
-    const layersParam = searchParams.get('layers');
-    if (layersParam) {
-      setLayers(layersParam.split(',').filter(Boolean));
-    }
-
-    urlInitializedRef.current = true;
-    setUrlSyncEnabled(true);
-  }, [params.build, params.region, searchParams, setBuild, setRegion, setLayers]);
-
-  // Keep the route in sync with the live viewport so copied links reproduce the
-  // region the user is actually looking at.
-  useEffect(() => {
-    if (!urlSyncEnabled) return;
-
-    const region = `${chr}:${start}-${end}`;
-    const params = new URLSearchParams();
-    if (activeLayers.length > 0) {
-      params.set('layers', activeLayers.join(','));
-    }
-
-    const nextPath = `/genomics/view/${build}/${encodeURIComponent(region)}`;
-    const nextQuery = params.toString();
-    const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath;
-    const currentUrl = `${window.location.pathname}${window.location.search}`;
-
-    if (currentUrl !== nextUrl) {
-      window.history.replaceState(null, '', nextUrl);
-    }
-  }, [urlSyncEnabled, build, chr, start, end, activeLayers]);
+    return () => { observer.disconnect(); window.removeEventListener('resize', updateWidth); };
+  }, [ready]);
 
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.target instanceof HTMLElement && (e.target.closest('input, textarea, select, button, a, [contenteditable=true]'))) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       switch (e.key) {
         case 'ArrowLeft':  panLeft();  break;
         case 'ArrowRight': panRight(); break;
         case '+': case '=': zoomIn();  break;
         case '-': case '_': zoomOut(); break;
-        case 'i': setShowContext(prev => !prev); break;
+        case 'i': useViewport.setState(state => ({ showContext: !state.showContext })); break;
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -149,7 +102,7 @@ function ViewerPage() {
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || (containerRef.current && e.clientX < containerRef.current.getBoundingClientRect().left + TRACK_LABEL_WIDTH)) return;
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT' || tag === 'A') return;
     const state = useViewport.getState();
@@ -173,7 +126,7 @@ function ViewerPage() {
       const drag = dragRef.current;
       if (drag && containerRef.current) {
         const deltaX = drag.lastClientX - drag.startX;
-        const trackWidth = containerRef.current.clientWidth;
+        const trackWidth = Math.max(1, containerRef.current.clientWidth - TRACK_LABEL_WIDTH);
         const viewWidth = drag.viewEnd - drag.viewStart + 1;
         const bpPerPixel = viewWidth / trackWidth;
         const deltaBp = Math.round(-deltaX * bpPerPixel);
@@ -208,7 +161,8 @@ function ViewerPage() {
   }
 
   function handleSelectChromosome(chrName: string) {
-    const info = getChromosomeByName(chrName);
+    const length = contigLength(build, chrName);
+    const info = length ? { length } : undefined;
     if (info) {
       const center = Math.round(info.length / 2);
       const halfView = Math.min(50_000, Math.round(info.length / 2));
@@ -218,8 +172,12 @@ function ViewerPage() {
 
   function handleZoomPreset(targetWidth: number) {
     const center = (start + end) / 2;
-    setRegion(chr, Math.max(1, Math.round(center - targetWidth / 2)), Math.round(center + targetWidth / 2));
+    const nextStart = Math.round(center - (targetWidth - 1) / 2);
+    setRegion(chr, nextStart, nextStart + targetWidth - 1);
   }
+
+  if (routeError) return <main style={{ padding: 32 }}><BrandBar /><h1>Unable to open this region</h1><p role="alert">{routeError}</p><a href="/">Return to genome search</a></main>;
+  if (!ready) return <p role="status">Opening genome viewer…</p>;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: COLOR.bg.primary }}>
@@ -266,7 +224,7 @@ function ViewerPage() {
             start={start}
             end={end}
             onNavigate={handleNavigate}
-            onBuildChange={setBuild}
+            onBuildChange={next => { if (next !== build) setPendingBuild(next); }}
             copyLinkLabel={copyLabel}
             onCopyLink={handleCopyLink}
             onPanLeft={panLeft}
@@ -279,12 +237,19 @@ function ViewerPage() {
         </div>
         {!isMobile && (
           <div style={{ paddingRight: 12, flexShrink: 0 }}>
-            <ExportButton targetRef={exportRef} region={`${chr}:${start}-${end}`} build={build} />
+            <ExportButton targetRef={exportRef} region={`${chr}:${start}-${end}`} build={build} disabled={!ready || loading || computeLoading || !!error} layers={data?.layersResolved} />
           </div>
         )}
       </div>
 
+      {pendingBuild && <div role="region" aria-label="Confirm assembly change" style={{ padding: 12, background: COLOR.bg.elevated, fontSize: 13 }}>
+        <p>Open the same numeric coordinates in {pendingBuild === 'hg38' ? 'GRCh38 / hg38' : 'GRCh37 / hg19'}? This does not convert the locus between assemblies. Annotation coverage may differ.</p>
+        {!validRegion(pendingBuild, chr, start, end) && <p role="alert">This interval is outside the destination chromosome. Search for a valid region in that assembly instead.</p>}
+        <button type="button" disabled={!validRegion(pendingBuild, chr, start, end)} onClick={() => { setBuild(pendingBuild); setPendingBuild(null); }}>Use same numeric coordinates</button>{' '}
+        <button type="button" onClick={() => setPendingBuild(null)}>Cancel</button>
+      </div>}
       <IdeogramBar
+        build={build}
         currentChromosome={chr}
         onSelectChromosome={handleSelectChromosome}
         viewStart={start}
@@ -369,15 +334,15 @@ function ViewerPage() {
           )}
 
           <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform', transform: dragOffsetPx !== 0 ? `translateX(${dragOffsetPx}px)` : undefined }}>
-            <div style={{ backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
+            <div data-testid="viewer-ruler" style={{ paddingLeft: TRACK_LABEL_WIDTH, backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
               <CoordinateRuler
                 viewStart={start}
                 viewEnd={end}
-                canvasWidth={Math.max(100, canvasWidth)}
+                canvasWidth={Math.max(100, canvasWidth - TRACK_LABEL_WIDTH)}
               />
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div ref={trackScrollRef} onScroll={rememberTrackScroll} data-testid="viewer-track-scroll" className="viewer-track-scroll flex-1 overflow-y-auto">
               <TrackStack
                 data={data}
                 viewStart={start}
@@ -391,6 +356,8 @@ function ViewerPage() {
                 showStructure={showStructure}
                 showMotifs={showMotifs}
                 biophysicsData={biophysicsData ?? undefined}
+                computeLoading={computeLoading}
+                computeError={computeError}
                 visibleCellTypes={visibleCellTypes}
                 enabledMotifs={enabledMotifs}
               />

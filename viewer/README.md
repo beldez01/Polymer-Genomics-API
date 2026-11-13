@@ -51,3 +51,20 @@ npx next dev --webpack
 
 If the UI shows API errors across most pages, the usual cause is that the frontend is
 still proxying to `http://localhost:8000` and no local API is running.
+
+## Website planning and change history
+
+See the [website plan](docs/website-plan.md), [work log](docs/WORK_LOG.md), and
+[current to-do list](docs/TODO.md). The archived
+[Genome Viewer v2 recommendations](docs/recommendations/Polymer_Genome_Viewer_Development_Plan_v2.md)
+are proposed scope; [verification notes](docs/redesign/2026-11-12-genome-viewer-audit-notes.md)
+record what has actually been checked.
+
+### Viewer reliability checks
+
+From this directory, run `npm test` and `npm run build`. Start a production
+preview with `npm run start -- --hostname 127.0.0.1 --port 3124`, then run
+`BASE_URL=http://127.0.0.1:3124 npm run test:viewer`. The browser suite uses
+installed Chrome by default and controlled API fixtures. See the
+[implementation and verification record](docs/redesign/2026-11-12-viewer-reliability-implementation.md)
+for live API evidence, reference-length sources and remaining limitations.

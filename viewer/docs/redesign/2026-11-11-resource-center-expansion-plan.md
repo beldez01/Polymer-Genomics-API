@@ -2,7 +2,10 @@
 
 Date: 2026-11-11
 
-Status: Planning draft; application changes are not authorized by this document.
+Status: Original planning draft with a 2026-11-12 viewer-audit intake update.
+Application changes are not authorized by this document. Current cross-site states
+are tracked in the [website plan](../website-plan.md), [work log](../WORK_LOG.md),
+and [to-do list](../TODO.md); baseline observations below retain their historical scope.
 
 ## Purpose
 
@@ -189,17 +192,28 @@ Present each chromosome as an information-rich overview that remains compact and
 - The page uses space more efficiently without depending on tiny typography.
 - Exact density targets are set after baseline screenshots and a prototype, not invented in advance.
 
-## Workstream 5: Browser changes to be specified
+## Workstream 5: Genome Viewer audit and reliability
 
-Gene search and contextual links are included above. Other browser changes remain pending the user's description.
+Updated 2026-11-12: the user supplied a
+[Genome Viewer development plan v2](../recommendations/Polymer_Genome_Viewer_Development_Plan_v2.md).
+It is archived verbatim as a proposal, not adopted wholesale. The user previously
+clarified that not every roadmap recommendation will be implemented.
 
-Record future requirements here before scheduling implementation:
+The [initial verification notes](2026-11-12-genome-viewer-audit-notes.md) record
+limited source/browser evidence; the full A01–A06 baseline remains pending.
+Current priorities and candidate fixes are in the [website checklist](../TODO.md).
 
-| Requirement | Current behavior/problem | Desired behavior | Dependencies | Validation |
-| --- | --- | --- | --- | --- |
-| Pending user discussion | — | — | — | — |
+| Requirement area | Initial observation | Planning implication |
+| --- | --- | --- |
+| Deep links and Share | Tested direct locus and shared interval/layers agree; several display settings are absent from URL serialization. | Complete reload/history/full-state checks before defining a canonical schema. |
+| Assembly and coordinates | Build switch retains numeric coordinates; store uses a fixed chromosome ceiling. Backend conversion adapters already exist. | Define switching semantics; validate assembly/contig bounds and coordinate boundaries. |
+| PNG export | Local production preview logs unresolved `html2canvas` and downloads nothing. | Scope a loading/error-feedback repair, then verify figure contents and provenance. |
+| Scientific display and data | Evidence badges and resolution tiers exist; metadata, missing states, axes and stale-data presentation need focused review. | Extend existing contracts rather than duplicating controls or claiming all features are absent. |
+| Downstream handoffs | v2 proposes explicit selection and sequence/strand contracts. | Scope separately after reference-coordinate reliability; do not treat RNA Builder/Transposome integration as already verified. |
 
-Do not infer a renderer rewrite, new tracks, new controls, or changed interaction behavior from this placeholder.
+A viewer-wide half-open coordinate migration, MANE/mappability ingestion, transcript
+projection, imports, session trays and claims overlays remain separate proposals.
+No renderer rewrite, new assembly or new research score is authorized by this intake.
 
 ## Connections across applications
 
@@ -224,18 +238,18 @@ Audit existing routes and state handling before introducing new URL conventions.
 4. **Chromosome improvements:** improve layout and labeling using the agreed coverage policy and trustworthy coordinates.
 5. **Gene-page improvements:** resolve correctness/coverage limitations, then add the selected analytical and presentation improvements.
 6. **Cross-application review:** verify contextual links, assemblies, accessibility, responsive layouts, and partial-data behavior.
-7. **Additional browser work:** schedule after requirements are described; it may move earlier if those requirements become prerequisites.
+7. **Viewer audit and reliability:** complete the v2 intake baseline, then select a small corrective package. Confirmed reliability defects may move earlier as prerequisites; specialist additions remain separately scoped.
 
 This is a dependency-aware proposal, not a fixed delivery schedule. Search and gene identity are shared foundations for chromosome labels and gene pages.
 
 ## Decisions still open
 
-- Final library name, URL, opening articles, and editorial review process.
+- Library editorial review process, license and authorship decisions (name, routes and eleven draft entries are now implemented; see the website plan).
 - Precise public definition of the material channel.
 - Search data sources, identifier coverage, result ranking, and primary destination on each surface.
 - Which gene analyses should be prioritized after the existing-analysis audit.
 - Chromosome layout direction and gene-selection/density policy.
-- Additional browser requirements.
+- First viewer reliability package and any later v2 recommendations to adopt after baseline verification.
 
 ## Review and release expectations
 

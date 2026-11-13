@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, type RefObject } from 'react';
+import { TRACK_LABEL_WIDTH } from '@/config/viewerLayout';
 import { useViewport } from '@/stores/viewport';
 
-export function usePinchZoom(containerRef: RefObject<HTMLElement | null>): void {
+export function usePinchZoom(containerRef: RefObject<HTMLElement | null>, enabled = true): void {
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || !enabled) return;
 
     let rafPending = false;
 
@@ -22,7 +23,7 @@ export function usePinchZoom(containerRef: RefObject<HTMLElement | null>): void 
         rafPending = false;
         const state = useViewport.getState();
         const rect = el!.getBoundingClientRect();
-        const cursorFraction = (e.clientX - rect.left) / rect.width;
+        const cursorFraction = Math.max(0, Math.min(1, (e.clientX - rect.left - TRACK_LABEL_WIDTH) / Math.max(1, rect.width - TRACK_LABEL_WIDTH)));
         const viewWidth = state.end - state.start + 1;
 
         const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
@@ -68,7 +69,7 @@ export function usePinchZoom(containerRef: RefObject<HTMLElement | null>): void 
 
         const state = useViewport.getState();
         const rect = el!.getBoundingClientRect();
-        const midFraction = (midX - rect.left) / rect.width;
+        const midFraction = Math.max(0, Math.min(1, (midX - rect.left - TRACK_LABEL_WIDTH) / Math.max(1, rect.width - TRACK_LABEL_WIDTH)));
         const viewWidth = state.end - state.start + 1;
         const newWidth = Math.max(10, Math.round(viewWidth / ratio));
         const anchor = state.start + midFraction * viewWidth;
@@ -82,7 +83,7 @@ export function usePinchZoom(containerRef: RefObject<HTMLElement | null>): void 
         const deltaX = e.touches[0].clientX - singleTouchStart.x;
         const rect = el!.getBoundingClientRect();
         const viewWidth = singleTouchStart.viewEnd - singleTouchStart.viewStart + 1;
-        const bpPerPixel = viewWidth / rect.width;
+        const bpPerPixel = viewWidth / Math.max(1, rect.width - TRACK_LABEL_WIDTH);
         const deltaBp = Math.round(-deltaX * bpPerPixel);
         const newStart = Math.max(1, singleTouchStart.viewStart + deltaBp);
         const newEnd = newStart + viewWidth - 1;
@@ -111,5 +112,5 @@ export function usePinchZoom(containerRef: RefObject<HTMLElement | null>): void 
       el.removeEventListener('touchmove', handleTouchMove);
       el.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [containerRef]);
+  }, [containerRef, enabled]);
 }

@@ -1,5 +1,10 @@
 # Knowledge Library
 
+Cross-site release and viewer planning: [website plan](website-plan.md),
+[work log](WORK_LOG.md), and [website checklist](TODO.md). The library remains
+a separate editorial workstream; its research checklist below is authoritative
+for article production and scientific review.
+
 The library is available at `/library`, with article pages at `/library/[slug]`.
 It is rendered from version-controlled content and does not require the genomics
 API to load. Guided experiences are outside this implementation.

@@ -1,11 +1,13 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { CHROMOSOMES, GENOME_LENGTH } from '@/config/chromosomes';
+import { contigLength, type GenomeBuild } from '@/lib/reference';
+import { CHROMOSOMES } from '@/config/chromosomes';
 import { useIsMobile } from '@/hooks/useBreakpoint';
 import { COLOR, FONT_FAMILY, COMPONENT } from '@/config/theme';
 
 interface IdeogramBarProps {
+  build?: GenomeBuild;
   currentChromosome: string;
   onSelectChromosome: (chr: string) => void;
   /** Current viewport start (1-based) */
@@ -98,8 +100,10 @@ function MinimapOverlay({ chrName, chrLength, viewStart, viewEnd, onNavigate, bu
   );
 }
 
-export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, viewEnd, onNavigate }: IdeogramBarProps) {
+export function IdeogramBar({ build = 'hg38', currentChromosome, onSelectChromosome, viewStart, viewEnd, onNavigate }: IdeogramBarProps) {
   const isMobile = useIsMobile();
+  const chromosomes = CHROMOSOMES.map(chr => ({ ...chr, length: contigLength(build, chr.name)! }));
+  const genomeLength = chromosomes.reduce((sum, chr) => sum + chr.length, 0);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   if (isMobile) {
@@ -117,7 +121,7 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
             padding: '0 8px',
           }}
         >
-          {CHROMOSOMES.map(chr => (
+          {chromosomes.map(chr => (
             <option key={chr.name} value={chr.name}>
               {chr.name} ({(chr.length / 1e6).toFixed(1)} Mb)
             </option>
@@ -130,8 +134,8 @@ export function IdeogramBar({ currentChromosome, onSelectChromosome, viewStart, 
   return (
     <div className="w-full flex items-stretch flex-shrink-0"
          style={{ height: 32, backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}`, padding: '4px 8px', gap: 2 }}>
-      {CHROMOSOMES.map(chr => {
-        const pct = (chr.length / GENOME_LENGTH) * 100;
+      {chromosomes.map(chr => {
+        const pct = (chr.length / genomeLength) * 100;
         const isActive = currentChromosome === chr.name;
         const isMito = chr.name === 'chrM';
         const label = chr.name.replace('chr', '');

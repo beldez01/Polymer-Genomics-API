@@ -1,4 +1,5 @@
 'use client';
+import { useLayoutEffect, useRef } from 'react';
 
 import type { ViewportData } from '@/lib/genomeFetcher';
 import type { GRanges, LayerResolved, BiophysicsComputeResponse } from '@/lib/api';
@@ -29,7 +30,7 @@ import { EvidenceBadge } from './EvidenceBadge';
 import { basePairWidth } from '@/lib/coordinates';
 import { COLOR, TYPE, FONT_FAMILY } from '@/config/theme';
 
-const TRACK_LABEL_WIDTH = 80;
+import { TRACK_LABEL_WIDTH } from '@/config/viewerLayout';
 
 const SEPARATOR_COLOR = `${COLOR.border.subtle}cc`;
 
@@ -46,6 +47,8 @@ export interface TrackStackProps {
   showStructure?: boolean;
   showMotifs?: boolean;
   biophysicsData?: BiophysicsComputeResponse;
+  computeLoading?: boolean;
+  computeError?: string | null;
   visibleCellTypes?: string[];
   enabledMotifs?: string[];
 }
@@ -88,7 +91,7 @@ interface TrackRowProps {
 
 function TrackRow({ label, evidenceClass, subLabels, children }: TrackRowProps) {
   return (
-    <div style={{
+    <div data-track-id={label} style={{
       borderBottom: `1px solid ${SEPARATOR_COLOR}`,
       display: 'flex',
       alignItems: 'stretch',
@@ -159,7 +162,18 @@ const METH_CELL_TYPES = [
   { key: 'CD8T',  text: 'CD8T',  color: '#4ade80' },
 ];
 
-export function TrackStack({
+export function TrackStack(props: TrackStackProps) {
+  const shell = useRef<HTMLDivElement>(null);
+  const stableHeight = useRef(0);
+  useLayoutEffect(() => {
+    if (!props.loading && shell.current) stableHeight.current = shell.current.scrollHeight;
+  });
+  return <div ref={shell} style={{ minHeight: props.loading ? stableHeight.current : undefined }}>
+    <TrackStackContent {...props} />
+  </div>;
+}
+
+function TrackStackContent({
   data,
   viewStart,
   viewEnd,
@@ -172,6 +186,8 @@ export function TrackStack({
   showStructure = false,
   showMotifs = false,
   biophysicsData,
+  computeLoading,
+  computeError,
   visibleCellTypes,
   enabledMotifs,
 }: TrackStackProps) {
@@ -198,6 +214,8 @@ export function TrackStack({
     );
   }
 
+  if (loading && !data) return <p role="status" style={{ padding: 20 }}>Loading this region…</p>;
+
   // Filter visible methylation cell type sub-labels
   const visibleMethLabels = visibleCellTypes
     ? METH_CELL_TYPES.filter((ct) => visibleCellTypes.includes(ct.key))
@@ -212,7 +230,7 @@ export function TrackStack({
   const hasBiophysics = !!(data?.layers?.sequence_biophysics_l0 || showGC || showStability || showStructure || showMotifs);
 
   return (
-    <div className="relative h-full overflow-y-auto" style={{ backgroundColor: COLOR.bg.primary }}>
+    <div className="relative" style={{ backgroundColor: COLOR.bg.primary }}>
 
       <div className="flex flex-col">
 
@@ -232,8 +250,8 @@ export function TrackStack({
         )}
 
         {showCodons && bpW >= 1 && (
-          <TrackRow label="Frames">
-            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} sequence={data?.sequence ?? null} />
+          <TrackRow label="Codons">
+            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} sequence={data?.sequence ?? null} features={data?.layers?.gencode_v44} />
           </TrackRow>
         )}
 
@@ -341,7 +359,19 @@ export function TrackStack({
         )}
 
         {/* ─── Biophysics ─── */}
-        {hasBiophysics && <CategoryHeader label="Biophysics" />}
+        {!!data?.unsupportedLayers?.length && <p role="status" style={{ padding: '8px 12px', fontSize: 12 }}>Not available in this assembly’s layer registry: {data.unsupportedLayers.join(', ')}. Your layer selection is retained in the link.</p>}
+        {data?.sequenceWarning && <p role="status" style={{ padding: '8px 12px', fontSize: 12 }}>{data.sequenceWarning}</p>}
+        {(hasBiophysics || data) && <div className="viewer-biophysics-header">
+          <span className="viewer-biophysics-title">Biophysics</span>
+          <details className="viewer-layer-provenance"><summary>Loaded layer provenance and availability</summary>
+          {data?.layersResolved.length ? <ul>{data.layersResolved.map(layer => <li key={layer.layer_key}>{layer.layer_key} · {layer.version} · {layer.status}{layer.evidence_class ? ` · Evidence ${layer.evidence_class}` : ''}{layer.content_hash ? ` · SHA ${layer.content_hash}` : ''}</li>)}</ul> : <p>No annotation-layer provenance returned. Empty results do not establish that a layer is unsupported.</p>}
+          <a href="/genomics/data-sources">Sources and licenses</a>
+        </details>
+        </div>}
+        {(showStability || showStructure || showMotifs) && <div style={{ padding: '4px 12px', display: 'flex', gap: 10, alignItems: 'center', minWidth: 0, fontSize: 11, color: COLOR.text.secondary }}>
+          <p className="viewer-track-copy" style={{ margin: 0, flex: 1 }} role="status">{computeLoading ? 'Computing sequence models for this interval…' : computeError ? `Sequence models unavailable: ${computeError}` : biophysicsData ? 'Computed sequence models · Model version not supplied by the endpoint.' : 'No computed values. These models require a reference sequence and an interval of at most 1 Mb.'}</p>
+          <a style={{ whiteSpace: 'nowrap', flexShrink: 0 }} href="/genomics/docs/methodology">Methods</a>
+        </div>}
 
         {data?.layers?.sequence_biophysics_l0 && (
           <TrackRow label="DNA Shape" evidenceClass={ec('sequence_biophysics_l0')}>
@@ -365,7 +395,7 @@ export function TrackStack({
                 ranges: { ...biophysicsData.data.ranges, width: biophysicsData.data.ranges.start.map((s, i) => biophysicsData.data.ranges.end[i] - s + 1) },
                 strand: biophysicsData.data.strand,
                 mcols: biophysicsData.data.mcols,
-              } satisfies GRanges : data?.layers?.sequence_biophysics_l0}
+              } satisfies GRanges : undefined}
               viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={80}
             />
           </TrackRow>
@@ -381,7 +411,7 @@ export function TrackStack({
                 ranges: { ...biophysicsData.data.ranges, width: biophysicsData.data.ranges.start.map((s, i) => biophysicsData.data.ranges.end[i] - s + 1) },
                 strand: biophysicsData.data.strand,
                 mcols: biophysicsData.data.mcols,
-              } satisfies GRanges : data?.layers?.sequence_biophysics_l0}
+              } satisfies GRanges : undefined}
               viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={60}
             />
           </TrackRow>

@@ -1,6 +1,6 @@
 # Homepage search and developer access
 
-Status: implemented locally on `feat/homepage-search-onboarding`; not deployed.
+Status: committed/pushed as `5983f72`; subsequently deployed to polymerbio.org on 2026-11-12. See the website work log.
 
 ## Agreed scope
 
@@ -51,3 +51,5 @@ was added.
 - Homepage and quickstart layouts checked at 1440/768/390/360 px with no horizontal
   page overflow. Mobile homepage screenshot inspected. No browser page errors.
 - No push, merge, or production deployment performed for this package.
+
+Release update: deployed clean `5983f72` to the `viewer` production project; live homepage, developer quickstart and library checks passed. Earlier verification statements describe the pre-release implementation pass.

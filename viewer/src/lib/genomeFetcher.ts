@@ -1,6 +1,7 @@
 import { dataResolution } from '@/stores/viewport';
 import {
   fetchSequence,
+  fetchLayers,
   fetchRegion,
   fetchTile,
   type TileResponse,
@@ -13,6 +14,8 @@ export interface ViewportData {
   layers: Record<string, GRanges>; // Feature data per layer
   layersResolved: LayerResolved[]; // Epistemic metadata per layer
   resolution: number; // The resolution tier used
+  unsupportedLayers?: string[];
+  sequenceWarning?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -21,6 +24,7 @@ export interface ViewportData {
 
 const CACHE_MAX = 500;
 const tileCache = new Map<string, TileResponse>();
+const tileExpiry = new Map<string, number>();
 
 function tileCacheKey(
   build: string,
@@ -36,12 +40,14 @@ function cacheTile(key: string, data: TileResponse): void {
   if (tileCache.size >= CACHE_MAX) {
     // Remove oldest entry (first key in Map iteration order)
     const firstKey = tileCache.keys().next().value;
-    if (firstKey !== undefined) tileCache.delete(firstKey);
+    if (firstKey !== undefined) { tileCache.delete(firstKey); tileExpiry.delete(firstKey); }
   }
   tileCache.set(key, data);
+  tileExpiry.set(key, Date.now() + 300_000);
 }
 
 function getCachedTile(key: string): TileResponse | undefined {
+  if ((tileExpiry.get(key) ?? 0) < Date.now()) { tileCache.delete(key); tileExpiry.delete(key); }
   const val = tileCache.get(key);
   if (val) {
     // Move to end (most recently used)
@@ -67,25 +73,36 @@ export async function fetchViewportData(
   start: number, // 1-based
   end: number, // 1-based
   layers: string[],
+  signal?: AbortSignal,
 ): Promise<ViewportData> {
   const width = end - start + 1;
   const resolution = dataResolution(width);
+  // The live registry is authoritative for assembly availability. Some endpoints
+  // resolve hg38 layer versions even for an empty hg37 dataset; do not infer support.
+  const available = new Set((await fetchLayers(build)).map(layer => layer.layer_key));
+  signal?.throwIfAborted();
+  const unsupportedLayers = layers.filter(layer => !available.has(layer));
+  layers = layers.filter(layer => available.has(layer));
 
   if (resolution === 1) {
     // Fine zoom: fetch sequence + features directly
     // Sequence is best-effort (FASTA may not be available)
     const region = `${chr}:${start}-${end}`;
     const [seqResult, featureRes] = await Promise.all([
-      fetchSequence(build, region).catch(() => null),
-      fetchRegion(build, region, layers),
+      fetchSequence(build, region, signal).catch(() => null),
+      layers.length ? fetchRegion(build, region, layers, signal) : Promise.resolve({ data: {}, layers_resolved: [] }),
     ]);
     return {
-      sequence: seqResult?.sequence ?? null,
+      sequence: seqResult?.sequence?.length === width ? seqResult.sequence : null,
+      sequenceWarning: seqResult?.sequence?.length === width ? undefined : 'Reference sequence unavailable or length does not match the requested interval.',
+      unsupportedLayers,
       layers: featureRes.data,
       layersResolved: featureRes.layers_resolved ?? [],
       resolution: 1,
     };
   }
+
+  if (!layers.length) return { sequence: null, layers: {}, layersResolved: [], resolution, unsupportedLayers };
 
   // Coarse zoom: fetch tiles covering [start, end]
   const firstTile = Math.floor((start - 1) / resolution);
@@ -99,7 +116,8 @@ export async function fetchViewportData(
       tilePromises.push(Promise.resolve(cached));
     } else {
       tilePromises.push(
-        fetchTile(build, chr, resolution, i, layers).then((tile) => {
+        fetchTile(build, chr, resolution, i, layers, signal).then((tile) => {
+          signal?.throwIfAborted();
           cacheTile(key, tile);
           return tile;
         }),
@@ -159,6 +177,7 @@ export async function fetchViewportData(
     layers: mergedLayers,
     layersResolved: Array.from(resolvedMap.values()),
     resolution,
+    unsupportedLayers,
   };
 }
 

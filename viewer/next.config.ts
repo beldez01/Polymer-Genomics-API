@@ -28,6 +28,8 @@ const GENOMICS_ROUTES = [
 ];
 
 const nextConfig: NextConfig = {
+  turbopack: { root: process.cwd() },
+  outputFileTracingRoot: process.cwd(),
   async redirects() {
     return [
       // `/biologics` was the company page before the company moved to the root.

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { boundedRegion } from '@/lib/reference';
 import { MOTIF_NAMES } from '@/lib/motifs';
 
 export type GenomeBuild = 'hg37' | 'hg38';
@@ -22,6 +23,8 @@ export interface ViewportState {
   showStability: boolean;
   showStructure: boolean;
   showMotifs: boolean;
+  showContext: boolean;
+  codonTranscript: string | null;
 
   // Methylation atlas cell type visibility
   visibleCellTypes: string[];
@@ -76,65 +79,41 @@ export const useViewport = create<ViewportState>((set, get) => ({
   showStability: false,
   showStructure: false,
   showMotifs: false,
+  showContext: true,
+  codonTranscript: null,
   visibleCellTypes: ['Gran', 'Mono', 'NK', 'Bcell', 'CD4T', 'CD8T'],
   enabledMotifs: [],
 
-  setBuild: (build) => set({ build }),
+  setBuild: (build) => {
+    const { chr, start, end } = get();
+    const region = boundedRegion(build, chr, start, end);
+    if (region) set({ build, ...region });
+  },
 
   setRegion: (chr, start, end) => {
-    const MAX_CHR_LENGTH = 250_000_000;
-    const s = Math.max(1, Math.round(start));
-    const e = Math.min(MAX_CHR_LENGTH, Math.max(s, Math.round(end)));
-    set({ chr, start: s, end: e, width: e - s + 1 });
+    const region = boundedRegion(get().build, chr, start, end);
+    if (region) set(region);
   },
 
   zoomIn: (factor = 2) => {
-    const { start, end } = get();
-    const center = (start + end) / 2;
-    const halfWidth = Math.max(0.5, (end - start + 1) / (2 * factor));
-    const newStart = Math.max(1, Math.round(center - halfWidth));
-    const newEnd = Math.max(newStart, Math.round(center + halfWidth));
-    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
+    if (!Number.isFinite(factor) || factor <= 0) return;
+    const { chr, start, width, setRegion } = get();
+    const nextWidth = Math.max(1, Math.round(width / factor));
+    const s = Math.round(start + (width - nextWidth) / 2);
+    setRegion(chr, s, s + nextWidth - 1);
   },
-
-  zoomOut: (factor = 2) => {
-    const { start, end } = get();
-    const MAX_CHR_LENGTH = 250_000_000;
-    const center = (start + end) / 2;
-    const halfWidth = (end - start + 1) * factor / 2;
-    const newStart = Math.max(1, Math.round(center - halfWidth));
-    const newEnd = Math.min(MAX_CHR_LENGTH, Math.round(center + halfWidth));
-    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
-  },
-
+  zoomOut: (factor = 2) => get().zoomIn(1 / factor),
   panLeft: (fraction = 0.25) => {
-    const { start, end } = get();
-    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
-    const width = end - start + 1;
+    const { chr, start, end, width, setRegion } = get();
     const shift = Math.max(1, Math.round(width * fraction));
-    const newStart = Math.max(1, start - shift);
-    const newEnd = newStart + width - 1;
-    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
+    setRegion(chr, start - shift, end - shift);
   },
-
   panRight: (fraction = 0.25) => {
-    const MAX_CHR_LENGTH = 250_000_000;
-    const state = get();
-    if (!Number.isFinite(state.start) || !Number.isFinite(state.end)) return;
-    const width = state.end - state.start + 1;
+    const { chr, start, end, width, setRegion } = get();
     const shift = Math.max(1, Math.round(width * fraction));
-    const newEnd = Math.min(MAX_CHR_LENGTH, state.end + shift);
-    const newStart = Math.max(1, newEnd - width + 1);
-    set({ start: newStart, end: newEnd, width: newEnd - newStart + 1 });
+    setRegion(chr, start + shift, end + shift);
   },
-
-  zoomToBase: (chr, position) => {
-    // Zoom to a 50bp window centered on the given position
-    const halfWidth = 25;
-    const s = Math.max(1, position - halfWidth);
-    const e = s + 50;
-    set({ chr, start: s, end: e, width: 51 });
-  },
+  zoomToBase: (chr, position) => get().setRegion(chr, position - 25, position + 25),
 
   toggleLayer: (layerKey) =>
     set((state) => ({

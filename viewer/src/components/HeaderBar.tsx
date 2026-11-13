@@ -1,5 +1,6 @@
 'use client';
 
+import { normalizeContig, validRegion } from '@/lib/reference';
 import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { searchGenes, fetchGene, fetchProbe } from '@/lib/api';
 import { COLOR, FONT_FAMILY, FONT_FAMILY_MONO, TYPE, WEIGHT, SPACE, LAYOUT } from '@/config/theme';
@@ -134,13 +135,16 @@ export function HeaderBar({
       }
       return;
     }
-    const regionMatch = query.match(/^(chr[0-9XYM]+):(\d+)-(\d+)$/i);
+    const regionMatch = trimmed.replaceAll(',', '').match(/^(?:chr)?([0-9XYM]+):(\d+)-(\d+)$/i);
     if (regionMatch) {
-      const c = regionMatch[1].toLowerCase().replace('chrx', 'chrX').replace('chry', 'chrY').replace('chrm', 'chrM');
-      onNavigate(c, parseInt(regionMatch[2], 10), parseInt(regionMatch[3], 10));
+      const c = normalizeContig(regionMatch[1]);
+      const start = Number(regionMatch[2]), end = Number(regionMatch[3]);
+      if (!validRegion(build, c, start, end)) { setActionError('Interval is outside this reference chromosome or has invalid coordinates.'); return; }
+      onNavigate(c, start, end);
       setOpen(false);
       return;
     }
+    if (trimmed.includes(':')) { setActionError('Use chr:start-end coordinates.'); return; }
     await selectGene(query.toUpperCase());
   }
 

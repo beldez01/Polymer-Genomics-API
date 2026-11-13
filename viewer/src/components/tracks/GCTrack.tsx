@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react';
 import type { ViewportData } from '@/lib/genomeFetcher';
 import { drawGridlines } from '@/lib/gridlines';
+import { gcWindow } from '@/lib/quantitative';
 import { COLORS } from '@/config/colors';
 
 
@@ -33,25 +34,18 @@ function interpolateColor(t: number): string {
  * Compute sliding-window GC% from raw sequence string.
  * Returns an array of GC fractions [0,1], one per output bin.
  */
-function gcFromSequence(sequence: string, binCount: number): number[] {
+function gcFromSequence(sequence: string, binCount: number): (number | null)[] {
   const seqLen = sequence.length;
-  if (seqLen === 0) return new Array(binCount).fill(0.5);
+  if (seqLen === 0) return new Array(binCount).fill(null);
 
   const windowSize = Math.max(10, Math.ceil(seqLen / binCount));
-  const result: number[] = [];
+  const result: (number | null)[] = [];
 
   for (let b = 0; b < binCount; b++) {
     const startIdx = Math.round((b / binCount) * seqLen);
     const endIdx = Math.min(seqLen, startIdx + windowSize);
 
-    let gc = 0;
-    let total = 0;
-    for (let i = startIdx; i < endIdx; i++) {
-      const ch = sequence[i].toUpperCase();
-      if (ch === 'G' || ch === 'C') { gc++; total++; }
-      else if (ch === 'A' || ch === 'T') { total++; }
-    }
-    result.push(total > 0 ? gc / total : 0.5);
+    result.push(gcWindow(sequence, startIdx, endIdx));
   }
 
   return result;
@@ -65,7 +59,7 @@ function gcFromCpgSites(
   viewStart: number,
   viewEnd: number,
   binCount: number,
-): number[] | null {
+): (number | null)[] | null {
   const cpg = data.layers?.cpg_sites;
   if (!cpg || cpg.n === 0 || !cpg.mcols.gc_content) return null;
 
@@ -87,7 +81,7 @@ function gcFromCpgSites(
   if (filled < binCount * 0.1) return null;
 
   return bins.map(b => {
-    if (b.length === 0) return 0.5;
+    if (b.length === 0) return null;
     return b.reduce((s, v) => s + v, 0) / b.length;
   });
 }
@@ -100,16 +94,16 @@ function gcFromIsochores(
   viewStart: number,
   viewEnd: number,
   binCount: number,
-): number[] | null {
+): (number | null)[] | null {
   const iso = data.layers?.isochores;
   if (!iso || iso.n === 0 || !iso.mcols.gc_content) return null;
 
   const span = viewEnd - viewStart + 1;
-  const result: number[] = [];
+  const result: (number | null)[] = [];
 
   for (let b = 0; b < binCount; b++) {
     const binCenter = viewStart + ((b + 0.5) / binCount) * span;
-    let gc = 0.5;
+    let gc: number | null = null;
     for (let i = 0; i < iso.n; i++) {
       if (binCenter >= iso.ranges.start[i] && binCenter <= iso.ranges.end[i]) {
         const v = iso.mcols.gc_content[i];
@@ -160,7 +154,7 @@ export function GCTrack({
     const span = viewEnd - viewStart + 1;
 
     // Choose data source
-    let gcValues: number[] | null = null;
+    let gcValues: (number | null)[] | null = null;
     if (data.sequence && span <= 200) {
       gcValues = gcFromSequence(data.sequence, binCount);
     }
@@ -182,40 +176,14 @@ export function GCTrack({
     const plotH = height - margin * 2;
     const barW = canvasWidth / binCount;
 
-    // Draw filled area chart
-    ctx.beginPath();
-    ctx.moveTo(0, margin + plotH); // bottom-left
-
+    // Each bin is drawn independently so absent data remains a visible gap.
     for (let b = 0; b < binCount; b++) {
-      const x = b * barW + barW / 2;
-      const frac = Math.max(0, Math.min(1, gcValues[b]));
-      const y = margin + plotH * (1 - frac);
-      if (b === 0) ctx.lineTo(x, y);
-      else ctx.lineTo(x, y);
+      const value = gcValues[b];
+      if (value === null || !Number.isFinite(value)) continue;
+      const frac = Math.max(0, Math.min(1, value));
+      ctx.fillStyle = GC_HIGH_COLOR + '88';
+      ctx.fillRect(b * barW, margin + plotH * (1 - frac), Math.max(1, barW), Math.max(1, plotH * frac));
     }
-
-    ctx.lineTo(canvasWidth, margin + plotH); // bottom-right
-    ctx.closePath();
-
-    // Gradient fill
-    const grad = ctx.createLinearGradient(0, margin, 0, margin + plotH);
-    grad.addColorStop(0, GC_HIGH_COLOR + '88');
-    grad.addColorStop(1, GC_LOW_COLOR + '44');
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // Draw line on top
-    ctx.beginPath();
-    for (let b = 0; b < binCount; b++) {
-      const x = b * barW + barW / 2;
-      const frac = Math.max(0, Math.min(1, gcValues[b]));
-      const y = margin + plotH * (1 - frac);
-      if (b === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.strokeStyle = GC_HIGH_COLOR;
-    ctx.lineWidth = 1;
-    ctx.stroke();
 
     // 50% reference line (dashed)
     const refY = margin + plotH * 0.5;
@@ -256,5 +224,6 @@ export function GCTrack({
 
   }, [data, viewStart, viewEnd, canvasWidth, height]);
 
-  return <canvas ref={canvasRef} className="block" />;
+  const source = data?.sequence ? 'Reference sequence; callable A/C/G/T denominator; forward windows of at least 10 bp, shortened at interval end.' : data?.layers?.cpg_sites?.mcols.gc_content ? 'Mean of GC annotations sampled at CpG sites within display bins; not whole-interval GC.' : 'Isochore GC annotation sampled at display-bin centers; domain values, not base-level measurements.';
+  return <div><canvas ref={canvasRef} className="block" role="img" aria-label="GC fraction on a fixed 0–100% scale; missing bins are gaps." /><p className="viewer-track-copy" title={`GC · 0–100% · ${source} Missing values are gaps.`} style={{ margin: '4px 6px', fontSize: 10, color: '#71717a' }}>GC · 0–100% · {source} Missing values are gaps.</p></div>;
 }
