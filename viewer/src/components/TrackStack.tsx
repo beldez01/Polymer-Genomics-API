@@ -193,6 +193,12 @@ function TrackStackContent({
 }: TrackStackProps) {
   const trackWidth = Math.max(100, canvasWidth - TRACK_LABEL_WIDTH);
   const bpW = basePairWidth(viewStart, viewEnd, trackWidth);
+  const sequenceOffset = data?.sequenceStart == null ? 0 : viewStart - data.sequenceStart;
+  const sequenceSlice = data?.sequence && sequenceOffset >= 0
+    ? data.sequence.slice(sequenceOffset, sequenceOffset + viewEnd - viewStart + 1)
+    : null;
+  const visibleSequence = sequenceSlice?.length === viewEnd - viewStart + 1 ? sequenceSlice : null;
+  const visibleData = data && data.sequenceStart != null ? { ...data, sequence: visibleSequence } : data;
 
   // Build layer_key → evidence_class lookup
   const ecMap = new Map<string, string>();
@@ -243,15 +249,15 @@ function TrackStackContent({
           </TrackRow>
         )}
 
-        {data?.sequence != null && (
+        {visibleSequence != null && (
           <TrackRow label="Sequence" evidenceClass={ec('genome_sequence')}>
-            <SequenceTrack sequence={data.sequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} enabledMotifs={enabledMotifs} />
+            <SequenceTrack sequence={visibleSequence} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={44} cpgData={data?.layers?.cpg_sites} enabledMotifs={enabledMotifs} />
           </TrackRow>
         )}
 
         {showCodons && bpW >= 1 && (
           <TrackRow label="Codons">
-            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} sequence={data?.sequence ?? null} features={data?.layers?.gencode_v44} />
+            <CodonFrameTrack viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} sequence={data?.sequence ?? null} sequenceStart={data?.sequenceStart ?? viewStart} features={data?.layers?.gencode_v44} />
           </TrackRow>
         )}
 
@@ -381,7 +387,7 @@ function TrackStackContent({
 
         {showGC && (
           <TrackRow label="GC%" evidenceClass={ec('sequence_biophysics_l0')}>
-            <GCTrack data={data} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
+          <GCTrack data={visibleData} viewStart={viewStart} viewEnd={viewEnd} canvasWidth={trackWidth} height={40} />
           </TrackRow>
         )}
 

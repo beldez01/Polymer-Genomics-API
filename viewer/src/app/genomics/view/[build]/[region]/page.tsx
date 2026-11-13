@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useState, useRef, useCallback, Suspense } f
 import { TRACK_LABEL_WIDTH } from '@/config/viewerLayout';
 import { useViewerUrl } from '@/hooks/useViewerUrl';
 import { useLocusRequest } from '@/hooks/useLocusRequest';
-import { contigLength, validRegion, type GenomeBuild } from '@/lib/reference';
+import { boundedRegion, contigLength, validRegion, type GenomeBuild } from '@/lib/reference';
 import { useViewport } from '@/stores/viewport';
 import { useViewportData } from '@/hooks/useViewportData';
 import { TrackStack } from '@/components/TrackStack';
@@ -49,12 +49,35 @@ function ViewerPage() {
   const [copyLabel, setCopyLabel] = useState('Link');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
-  const regionContext = useRegionContext(data, chr, start, end);
+  const dragRef = useRef<{ startX: number; viewStart: number; viewEnd: number; chr: string; lastClientX: number } | null>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const pendingDragOffsetRef = useRef(0);
+  const [dragging, setDragging] = useState(false);
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
+  const plotWidth = Math.max(1, canvasWidth - TRACK_LABEL_WIDTH);
+  const activeDrag = dragRef.current;
+  const dragBp = activeDrag ? Math.round(-dragOffsetPx * (activeDrag.viewEnd - activeDrag.viewStart + 1) / plotWidth) : 0;
+  const previewRegion = dragging && activeDrag
+    ? boundedRegion(build, activeDrag.chr, activeDrag.viewStart + dragBp, activeDrag.viewEnd + dragBp)
+    : null;
+  const displayStart = previewRegion?.start ?? start;
+  const displayEnd = previewRegion?.end ?? end;
+  const regionContext = useRegionContext(data, chr, displayStart, displayEnd);
 
   const properties = [showStability ? 'thermodynamics,contextual' : '', showStructure ? 'curvature,structural' : '', showMotifs ? 'motifs' : ''].filter(Boolean).join(',');
   const computeKey = ready && width <= 1_000_000 && properties ? JSON.stringify([build, chr, start, end, properties]) : null;
   const { data: biophysicsData, loading: computeLoading, error: computeError } = useLocusRequest(computeKey,
     signal => fetchBiophysicsCompute(build, `${chr}:${start}-${end}`, properties, signal), 25, response => response.data.n_steps <= 100_000);
+  // Preserve the last drag frame while the committed interval finishes loading.
+  // Features retain their genomic coordinates; this fallback is scoped to this
+  // release target and is never reused by a later navigation or assembly change.
+  const releaseFrame = useRef<{ key: string; data: typeof data; compute: typeof biophysicsData } | null>(null);
+  const frameKey = JSON.stringify([build, chr, start, end, activeLayers, properties]);
+  const latestFrame = useRef({ data, compute: biophysicsData });
+  const released = releaseFrame.current?.key === frameKey ? releaseFrame.current : null;
+  const renderedData = data ?? (loading ? released?.data ?? null : null);
+  const renderedCompute = biophysicsData ?? (computeLoading ? released?.compute ?? null : null);
+  latestFrame.current = { data: renderedData, compute: renderedCompute };
   usePinchZoom(containerRef, ready);
   useLayoutEffect(() => {
     const pane = trackScrollRef.current, anchor = scrollAnchor.current;
@@ -95,18 +118,14 @@ function ViewerPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [panLeft, panRight, zoomIn, zoomOut]);
 
-  // Click-and-drag panning — uses CSS transform during drag for smooth visuals,
-  // only commits the final genomic region on mouseup to avoid data/viewport desync.
-  const dragRef = useRef<{ startX: number; viewStart: number; viewEnd: number; chr: string; lastClientX: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [dragOffsetPx, setDragOffsetPx] = useState(0);
-
+  // Redraw against buffered genomic data during drag; commit the URL/history once on release.
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0 || (containerRef.current && e.clientX < containerRef.current.getBoundingClientRect().left + TRACK_LABEL_WIDTH)) return;
     const tag = (e.target as HTMLElement).tagName;
     if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT' || tag === 'A') return;
     const state = useViewport.getState();
     dragRef.current = { startX: e.clientX, viewStart: state.start, viewEnd: state.end, chr: state.chr, lastClientX: e.clientX };
+    pendingDragOffsetRef.current = 0;
     setDragging(true);
     setDragOffsetPx(0);
     e.preventDefault();
@@ -118,22 +137,35 @@ function ViewerPage() {
       const drag = dragRef.current;
       if (!drag) return;
       drag.lastClientX = e.clientX;
-      const deltaX = e.clientX - drag.startX;
-      // Visual offset only — no setRegion, no data refetch
-      setDragOffsetPx(deltaX);
+      pendingDragOffsetRef.current = e.clientX - drag.startX;
+      if (dragRafRef.current == null) {
+        dragRafRef.current = requestAnimationFrame(() => {
+          dragRafRef.current = null;
+          setDragOffsetPx(pendingDragOffsetRef.current);
+        });
+      }
     }
-    function handleMouseUp() {
+    function handleMouseUp(e: MouseEvent) {
       const drag = dragRef.current;
       if (drag && containerRef.current) {
-        const deltaX = drag.lastClientX - drag.startX;
+        const deltaX = e.clientX - drag.startX;
         const trackWidth = Math.max(1, containerRef.current.clientWidth - TRACK_LABEL_WIDTH);
         const viewWidth = drag.viewEnd - drag.viewStart + 1;
         const bpPerPixel = viewWidth / trackWidth;
         const deltaBp = Math.round(-deltaX * bpPerPixel);
         const newStart = Math.max(1, drag.viewStart + deltaBp);
         const newEnd = newStart + viewWidth - 1;
-        useViewport.getState().setRegion(drag.chr, newStart, newEnd);
+        const state = useViewport.getState();
+        const target = boundedRegion(state.build, drag.chr, newStart, newEnd);
+        if (target) releaseFrame.current = {
+          key: JSON.stringify([state.build, drag.chr, target.start, target.end, state.activeLayers, properties]),
+          ...latestFrame.current,
+        };
+        state.setRegion(drag.chr, newStart, newEnd);
       }
+      if (dragRafRef.current != null) cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
+      pendingDragOffsetRef.current = 0;
       dragRef.current = null;
       setDragging(false);
       setDragOffsetPx(0);
@@ -143,6 +175,8 @@ function ViewerPage() {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      if (dragRafRef.current != null) cancelAnimationFrame(dragRafRef.current);
+      dragRafRef.current = null;
     };
   }, [dragging]);
 
@@ -307,14 +341,14 @@ function ViewerPage() {
 
         <main
           ref={containerRef}
-          className="flex-1 overflow-hidden flex flex-col select-none"
+          className="relative flex-1 overflow-hidden flex flex-col select-none"
           style={{ cursor: dragging ? 'grabbing' : 'grab' }}
           onMouseDown={handleMouseDown}
         >
           {/* Loading progress bar — subtle teal line at top */}
           {loading && (
             <div style={{
-              position: 'sticky',
+              position: 'absolute',
               top: 0,
               left: 0,
               right: 0,
@@ -333,20 +367,20 @@ function ViewerPage() {
             </div>
           )}
 
-          <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden" style={{ transformOrigin: 'center center', willChange: 'transform', transform: dragOffsetPx !== 0 ? `translateX(${dragOffsetPx}px)` : undefined }}>
+          <div ref={(el) => { (animRef as React.MutableRefObject<HTMLDivElement | null>).current = el; exportRef.current = el; }} className="flex flex-col flex-1 overflow-hidden">
             <div data-testid="viewer-ruler" style={{ paddingLeft: TRACK_LABEL_WIDTH, backgroundColor: COLOR.bg.primary, borderBottom: `1px solid ${COLOR.border.subtle}` }}>
               <CoordinateRuler
-                viewStart={start}
-                viewEnd={end}
+                viewStart={displayStart}
+                viewEnd={displayEnd}
                 canvasWidth={Math.max(100, canvasWidth - TRACK_LABEL_WIDTH)}
               />
             </div>
 
             <div ref={trackScrollRef} onScroll={rememberTrackScroll} data-testid="viewer-track-scroll" className="viewer-track-scroll flex-1 overflow-y-auto">
               <TrackStack
-                data={data}
-                viewStart={start}
-                viewEnd={end}
+                data={renderedData}
+                viewStart={displayStart}
+                viewEnd={displayEnd}
                 canvasWidth={canvasWidth}
                 loading={loading}
                 error={error}
@@ -355,7 +389,7 @@ function ViewerPage() {
                 showStability={showStability}
                 showStructure={showStructure}
                 showMotifs={showMotifs}
-                biophysicsData={biophysicsData ?? undefined}
+                biophysicsData={renderedCompute ?? undefined}
                 computeLoading={computeLoading}
                 computeError={computeError}
                 visibleCellTypes={visibleCellTypes}

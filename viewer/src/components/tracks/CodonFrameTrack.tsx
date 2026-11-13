@@ -7,9 +7,9 @@ import { useViewport } from '@/stores/viewport';
 import { genomicToPixel } from '@/lib/coordinates';
 
 export interface CodonFrameTrackProps {
-  viewStart: number; viewEnd: number; canvasWidth: number; sequence?: string | null; features?: GRanges;
+  viewStart: number; viewEnd: number; canvasWidth: number; sequence?: string | null; sequenceStart?: number; features?: GRanges;
 }
-export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth, sequence, features }: CodonFrameTrackProps) {
+export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth, sequence, sequenceStart, features }: CodonFrameTrackProps) {
   const build=useViewport(s=>s.build), chr=useViewport(s=>s.chr), selected=useViewport(s=>s.codonTranscript);
   const symbols=useMemo(()=>{
     const distances=new Map<string,number>(), center=(viewStart+viewEnd)/2;
@@ -28,28 +28,33 @@ export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth, sequence, fea
   }).filter(tx=>tx.chr===chr).sort((a,b)=>Number(b.anchored)-Number(a.anchored)||b.length-a.length||a.id.localeCompare(b.id)),[annotations,chr]);
   const tx=selected?transcripts.find(tx=>tx.id===selected):transcripts[0];
   const codons=useMemo(()=>tx?visibleCodingCodons(tx,viewStart,viewEnd):[],[tx,viewStart,viewEnd]);
-  const sequenceKey=tx&&codons.length?JSON.stringify([build,chr,tx.id,tx.blocks,viewStart,viewEnd]):null;
-  const {data:bases,loading:sequenceLoading,error:sequenceError}=useLocusRequest(sequenceKey,async signal=>{
+  const bufferedBases=useMemo(()=>{
     const result=new Map<number,string>();
-    const put=(start:number,text:string)=>{for(let i=0;i<text.length;i++)result.set(start+i,text[i]);};
-    if(sequence?.length===viewEnd-viewStart+1)put(viewStart,sequence);
-    else {
-      const response=await fetchSequence(build,`${chr}:${viewStart}-${viewEnd}`,signal);
-      if(response.sequence.length!==viewEnd-viewStart+1)throw new Error('Reference sequence length mismatch.');
-      put(viewStart,response.sequence);
-    }
-    const missing=[...new Set(codons.flatMap(c=>c.positions).filter(p=>!result.has(p)))].sort((a,b)=>a-b);
+    if(sequence){const origin=sequenceStart??viewStart;for(let i=0;i<sequence.length;i++)result.set(origin+i,sequence[i]);}
+    return result;
+  },[sequence,sequenceStart,viewStart]);
+  const missing=useMemo(()=>[...new Set(codons.flatMap(c=>c.positions).filter(p=>!bufferedBases.has(p)))].sort((a,b)=>a-b),[codons,bufferedBases]);
+  const missingRanges=useMemo(()=>{
     const ranges:{start:number;end:number}[]=[];
     for(const position of missing){const last=ranges[ranges.length-1];if(last&&position===last.end+1)last.end=position;else ranges.push({start:position,end:position});}
+    return ranges;
+  },[missing]);
+  const sequenceKey=tx&&codons.length&&missing.length?JSON.stringify([build,chr,tx.id,sequence?missingRanges:[viewStart,viewEnd]]):null;
+  const {data:fetchedBases,loading:sequenceLoading,error:sequenceError}=useLocusRequest(sequenceKey,async signal=>{
+    const result=new Map<number,string>();
+    const put=(start:number,text:string)=>{for(let i=0;i<text.length;i++)result.set(start+i,text[i]);};
+    const ranges=sequence?missingRanges:[{start:viewStart,end:viewEnd},...missingRanges];
     await Promise.all(ranges.map(async range=>{
       const response=await fetchSequence(build,`${chr}:${range.start}-${range.end}`,signal);
-      if(response.sequence.length!==range.end-range.start+1)throw new Error('Reference sequence length mismatch at a codon boundary.');
+      if(response.sequence.length!==range.end-range.start+1)throw new Error('Reference sequence length mismatch.');
       put(range.start,response.sequence);
     }));
     return result;
   });
+  const bases=useMemo(()=>new Map([...bufferedBases,...(fetchedBases??new Map<number,string>())]),[bufferedBases,fetchedBases]);
+  const drawableCodons=useMemo(()=>codons.filter(c=>c.positions.every(p=>bases.has(p))),[codons,bases]);
   const height=32, toX=(p:number)=>genomicToPixel(p,viewStart,viewEnd,canvasWidth);
-  const message=loading?'Loading coding transcripts…':error?'Coding annotation unavailable.':!features?'Enable gene annotations to locate coding exons.':!transcripts.length?'No annotated coding transcript at this locus.':!tx?'Choose a transcript present at this locus.':!tx.anchored?'Reading phase unavailable: no complete annotated start codon.':!codons.length?'No coding exon in this interval.':sequenceLoading?'Loading reference codons…':sequenceError?'Codon sequence unavailable.':null;
+  const message=loading?'Loading coding transcripts…':error?'Coding annotation unavailable.':!features?'Enable gene annotations to locate coding exons.':!transcripts.length?'No annotated coding transcript at this locus.':!tx?'Choose a transcript present at this locus.':!tx.anchored?'Reading phase unavailable: no complete annotated start codon.':!codons.length?'No coding exon in this interval.':!drawableCodons.length&&sequenceLoading?'Loading reference codons…':!drawableCodons.length&&sequenceError?'Codon sequence unavailable.':null;
   return <div style={{minHeight:54}}>
     {transcripts.length>0&&<div className="viewer-codon-controls">
       <label htmlFor="viewer-coding-transcript">Coding transcript</label>
@@ -61,7 +66,7 @@ export function CodonFrameTrack({ viewStart, viewEnd, canvasWidth, sequence, fea
     </div>}
     {message?<p className="viewer-track-copy" role="status" style={{margin:'5px 6px',fontSize:11}}>{message}</p>:
       <svg width={canvasWidth} height={height} role="img" aria-label={`Annotated coding frame for ${tx?.gene} ${tx?.id}, ${tx?.strand} strand; amino acids in coding exons only.`} style={{display:'block'}}>
-        {tx&&bases&&codons.map(codon=>{
+        {tx&&drawableCodons.map(codon=>{
           const translated=readCodingCodon(tx,codon,bases);
           const positions=[...codon.positions].sort((a,b)=>a-b);
           const segments:{start:number;end:number}[]=[];

@@ -8,14 +8,113 @@ import {
   type GRanges,
   type LayerResolved,
 } from './api';
+import { contigLength, type GenomeBuild } from './reference';
 
 export interface ViewportData {
   sequence: string | null; // Raw DNA sequence (only at bp resolution)
+  sequenceStart?: number; // 1-based genomic coordinate for sequence[0]
   layers: Record<string, GRanges>; // Feature data per layer
   layersResolved: LayerResolved[]; // Epistemic metadata per layer
   resolution: number; // The resolution tier used
   unsupportedLayers?: string[];
   sequenceWarning?: string;
+}
+
+/** Fine-zoom data is fetched in overlapping windows so a drag can land on
+ * nearby coordinates without waiting for another round trip. */
+export function fineWindowBounds(build: string, chr: string, start: number, end: number) {
+  const width = end - start + 1;
+  const span = Math.max(2048, width * 8);
+  const stride = span - width;
+  const index = Math.floor((start - 1) / stride);
+  const length = contigLength(build as GenomeBuild, chr);
+  let windowStart = index * stride + 1;
+  let windowEnd = Math.min(length ?? Number.MAX_SAFE_INTEGER, windowStart + span - 1);
+  if (windowEnd < end) {
+    windowEnd = end;
+    windowStart = Math.max(1, windowEnd - span + 1);
+  }
+  if (length && windowEnd === length) windowStart = Math.max(1, Math.min(windowStart, length - span + 1));
+  return { start: windowStart, end: windowEnd };
+}
+
+const FINE_CACHE_TTL = 30_000;
+const FINE_CACHE_MAX = 12;
+const fineCache = new Map<string, { data: ViewportData; expires: number }>();
+const layerAvailabilityCache = new Map<string, { layers: Set<string>; expires: number }>();
+const finePrefetching = new Set<string>();
+const finePrefetched = new Set<string>();
+
+function fineCacheKey(build: string, chr: string, start: number, end: number, layers: string[]) {
+  return `${build}:${chr}:${start}-${end}:${layers.slice().sort().join(',')}`;
+}
+
+async function loadFineWindow(build: string, chr: string, start: number, end: number, layers: string[], signal?: AbortSignal): Promise<ViewportData> {
+  let availability = layerAvailabilityCache.get(build);
+  if (!availability || availability.expires <= Date.now()) {
+    const resolved = new Set((await fetchLayers(build)).map(layer => layer.layer_key));
+    availability = { layers: resolved, expires: Date.now() + 300_000 };
+    layerAvailabilityCache.set(build, availability);
+  }
+  signal?.throwIfAborted();
+  const unsupportedLayers = layers.filter(layer => !availability!.layers.has(layer));
+  const supportedLayers = layers.filter(layer => availability!.layers.has(layer));
+  const windowWidth = end - start + 1;
+  const region = `${chr}:${start}-${end}`;
+  const [seqResult, featureRes] = await Promise.all([
+    fetchSequence(build, region, signal).catch(() => null),
+    supportedLayers.length ? fetchRegion(build, region, supportedLayers, signal) : Promise.resolve({ data: {}, layers_resolved: [] }),
+  ]);
+  signal?.throwIfAborted();
+  const sequence = seqResult?.sequence?.length === windowWidth ? seqResult.sequence : null;
+  return {
+    sequence,
+    sequenceStart: sequence ? start : undefined,
+    sequenceWarning: sequence ? undefined : 'Reference sequence unavailable or length does not match the requested interval.',
+    unsupportedLayers,
+    layers: featureRes.data,
+    layersResolved: featureRes.layers_resolved ?? [],
+    resolution: 1,
+  };
+}
+
+async function fetchCachedFineWindow(build: string, chr: string, start: number, end: number, layers: string[], requestWidth: number, signal?: AbortSignal): Promise<ViewportData> {
+  const key = fineCacheKey(build, chr, start, end, layers);
+  const cached = fineCache.get(key);
+  if (cached && cached.expires > Date.now()) {
+    fineCache.delete(key);
+    fineCache.set(key, cached);
+    return cached.data;
+  }
+  const data = await loadFineWindow(build, chr, start, end, layers, signal);
+  if (signal?.aborted) return data;
+  if (fineCache.size >= FINE_CACHE_MAX) fineCache.delete(fineCache.keys().next().value!);
+  fineCache.set(key, { data, expires: Date.now() + FINE_CACHE_TTL });
+  scheduleFineNeighbors(build, chr, start, end, layers, requestWidth);
+  return data;
+}
+
+function scheduleFineNeighbors(build: string, chr: string, start: number, end: number, layers: string[], width: number) {
+  const stride = Math.max(2048, width * 8) - width;
+  const length = contigLength(build as GenomeBuild, chr) ?? Number.MAX_SAFE_INTEGER;
+  const sourceKey = fineCacheKey(build, chr, start, end, layers);
+  if (finePrefetched.has(sourceKey)) return;
+  finePrefetched.add(sourceKey);
+  if (finePrefetched.size > 128) finePrefetched.delete(finePrefetched.values().next().value!);
+  for (const offset of [-stride, stride]) {
+    const targetStart = Math.max(1, Math.min(length, start + offset));
+    const targetEnd = Math.min(length, targetStart + width - 1);
+    if (targetEnd - targetStart + 1 !== width) continue;
+    const bounds = fineWindowBounds(build, chr, targetStart, targetEnd);
+    const key = fineCacheKey(build, chr, bounds.start, bounds.end, layers);
+    const existing = fineCache.get(key);
+    if ((existing && existing.expires > Date.now()) || finePrefetching.has(key)) continue;
+    finePrefetching.add(key);
+    void loadFineWindow(build, chr, bounds.start, bounds.end, layers).then(data => {
+      if (fineCache.size >= FINE_CACHE_MAX) fineCache.delete(fineCache.keys().next().value!);
+      fineCache.set(key, { data, expires: Date.now() + FINE_CACHE_TTL });
+    }).catch(() => {}).finally(() => finePrefetching.delete(key));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -77,30 +176,16 @@ export async function fetchViewportData(
 ): Promise<ViewportData> {
   const width = end - start + 1;
   const resolution = dataResolution(width);
+  if (resolution === 1) {
+    const window = fineWindowBounds(build, chr, start, end);
+    return fetchCachedFineWindow(build, chr, window.start, window.end, layers, width, signal);
+  }
   // The live registry is authoritative for assembly availability. Some endpoints
   // resolve hg38 layer versions even for an empty hg37 dataset; do not infer support.
   const available = new Set((await fetchLayers(build)).map(layer => layer.layer_key));
   signal?.throwIfAborted();
   const unsupportedLayers = layers.filter(layer => !available.has(layer));
   layers = layers.filter(layer => available.has(layer));
-
-  if (resolution === 1) {
-    // Fine zoom: fetch sequence + features directly
-    // Sequence is best-effort (FASTA may not be available)
-    const region = `${chr}:${start}-${end}`;
-    const [seqResult, featureRes] = await Promise.all([
-      fetchSequence(build, region, signal).catch(() => null),
-      layers.length ? fetchRegion(build, region, layers, signal) : Promise.resolve({ data: {}, layers_resolved: [] }),
-    ]);
-    return {
-      sequence: seqResult?.sequence?.length === width ? seqResult.sequence : null,
-      sequenceWarning: seqResult?.sequence?.length === width ? undefined : 'Reference sequence unavailable or length does not match the requested interval.',
-      unsupportedLayers,
-      layers: featureRes.data,
-      layersResolved: featureRes.layers_resolved ?? [],
-      resolution: 1,
-    };
-  }
 
   if (!layers.length) return { sequence: null, layers: {}, layersResolved: [], resolution, unsupportedLayers };
 
